@@ -32,10 +32,8 @@ import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import { Toaster } from './components/ui/sonner';
 
-// const API = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
-
-const API = process.env.REACT_APP_API_URL;
-
+const API = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+console.log("API URL - ", API)
 // Auth Context
 const AuthContext = createContext();
 
