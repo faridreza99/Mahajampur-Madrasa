@@ -5,6 +5,8 @@ import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+const API = process.env.REACT_APP_API_URL || 'http://localhost:8000/api'; 
+
 const AISummary = () => {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -34,7 +36,7 @@ const AISummary = () => {
       if (filterClass) params.class_standard = filterClass;
       if (filterSubject) params.subject = filterSubject;
 
-      const response = await axios.get(`${process.env.REACT_APP_API_URL}/ai/summary/list`, {
+      const response = await axios.get(`${API}/ai/summary/list`, {
         headers: { Authorization: `Bearer ${token}` },
         params
       });
