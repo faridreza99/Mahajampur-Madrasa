@@ -34,11 +34,7 @@ import { Toaster } from './components/ui/sonner';
 
 // const API = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
-const API =
-  process.env.REACT_APP_API_URL ||
-  (process.env.NODE_ENV === 'development'
-    ? 'http://localhost:8000/api'
-    : `${window.location.origin}/api`);
+const API = process.env.REACT_APP_API_URL;
 
 // Auth Context
 const AuthContext = createContext();
