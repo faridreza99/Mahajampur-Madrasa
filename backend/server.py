@@ -1328,10 +1328,17 @@ async def login_user(login_data: UserLogin):
     # Use tenant from login data or default (do not use global context)
     tenant_id = login_data.tenant_id or DEFAULT_TENANT_ID
     
+    logging.info(f"DEBUG LOGIN: Looking for username='{login_data.username}', tenant_id='{tenant_id}'")
+    
     user = await db.users.find_one({
         "username": login_data.username,
         "tenant_id": tenant_id
     })
+    
+    if user:
+        logging.info(f"DEBUG LOGIN: Found user - id='{user.get('id')}', role='{user.get('role')}', email='{user.get('email')}'")
+    else:
+        logging.info(f"DEBUG LOGIN: No user found!")
     
     if not user or not verify_password(login_data.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
