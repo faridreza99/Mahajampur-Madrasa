@@ -1421,9 +1421,10 @@ async def get_all_users(current_user: User = Depends(get_current_user)):
     # Get all users in the tenant
     users = await db.users.find({"tenant_id": current_user.tenant_id}).to_list(1000)
     
-    # Remove password_hash from response
+    # Remove password_hash and _id (ObjectId) from response
     for user in users:
         user.pop("password_hash", None)
+        user.pop("_id", None)
     
     return {"users": users}
 
