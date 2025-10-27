@@ -1050,8 +1050,11 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         if user is None:
             raise HTTPException(status_code=401, detail="User not found")
         
+        logging.info(f"DEBUG get_current_user: Fetched from DB - username='{user.get('username')}', role='{user.get('role')}'")
+        
         # Add school_id to user object if available
         user_obj = User(**user)
+        logging.info(f"DEBUG get_current_user: After User() creation - username='{user_obj.username}', role='{user_obj.role}'")
         if school_id:
             user_obj.school_id = school_id
             
