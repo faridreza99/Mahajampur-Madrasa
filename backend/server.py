@@ -1400,7 +1400,9 @@ async def log_admin_action(
 @api_router.get("/admin/users")
 async def get_all_users(current_user: User = Depends(get_current_user)):
     """Get all users in the system (System Admin only)"""
+    logging.info(f"DEBUG: User {current_user.username} accessing /admin/users with role: '{current_user.role}' (type: {type(current_user.role)})")
     if current_user.role != "super_admin":
+        logging.error(f"DEBUG: Access denied. Role '{current_user.role}' != 'super_admin'")
         raise HTTPException(status_code=403, detail="Only System Admins can access user management")
     
     # Get all users in the tenant
