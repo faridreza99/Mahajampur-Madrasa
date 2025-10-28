@@ -185,10 +185,8 @@ const Layout = ({ children }) => {
   // Smooth scroll to top on route change
   React.useEffect(() => {
     if (mainRef.current && !isLoginPage) {
-      mainRef.current.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-      });
+      // Use scrollTop for better compatibility - CSS handles smooth behavior
+      mainRef.current.scrollTop = 0;
     }
   }, [location.pathname, isLoginPage]);
   

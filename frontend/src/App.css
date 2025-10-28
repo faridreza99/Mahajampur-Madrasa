@@ -19,6 +19,15 @@ body {
   min-height: 100vh;
 }
 
+/* Smooth scrolling for main content area */
+html {
+  scroll-behavior: smooth;
+}
+
+main {
+  scroll-behavior: smooth;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
