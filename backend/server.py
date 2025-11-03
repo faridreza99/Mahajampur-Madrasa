@@ -867,137 +867,246 @@ class AssignStudentsToRoute(BaseModel):
 
 # ==================== ACADEMIC CMS MODELS ====================
 
+# A. Academic Books (Tag) - Hierarchical: Class → Subject → Chapter
 class AcademicBook(BaseModel):
-    """Academic textbook or reference book in the CMS"""
+    """Academic textbook in the CMS with hierarchical structure"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
     school_id: str
+    
+    # Hierarchical Tags
+    class_standard: str  # "6th", "7th", "8th", "9th", "10th", etc.
+    subject: str  # Subject name (e.g., "Mathematics", "Physics")
+    
+    # Book Details
     title: str
     author: str
     publisher: Optional[str] = None
     isbn: Optional[str] = None
     edition: Optional[str] = None
     publication_year: Optional[int] = None
-    subject: str  # Subject name
-    class_standard: str  # "6th", "7th", "8th", etc.
     board: str = "CBSE"  # CBSE, ICSE, State Board, etc.
     description: Optional[str] = None
     cover_image_url: Optional[str] = None
     pdf_url: Optional[str] = None
-    tags: List[str] = []
+    
+    # Tags & Metadata
+    tags: List[str] = ["Academic Books"]  # Category tag
     is_active: bool = True
     created_by: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 class AcademicBookCreate(BaseModel):
+    class_standard: str
+    subject: str
     title: str
     author: str
     publisher: Optional[str] = None
     isbn: Optional[str] = None
     edition: Optional[str] = None
     publication_year: Optional[int] = None
-    subject: str
-    class_standard: str
     board: str = "CBSE"
     description: Optional[str] = None
     cover_image_url: Optional[str] = None
     pdf_url: Optional[str] = None
-    tags: List[str] = []
 
-class Chapter(BaseModel):
-    """Chapter within an academic book"""
+# B. Reference Books (Tag) - Hierarchical: Class → Subject → Chapter
+class ReferenceBook(BaseModel):
+    """Reference book in the CMS with hierarchical structure"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
     school_id: str
-    book_id: str
-    chapter_number: int
-    chapter_title: str
+    
+    # Hierarchical Tags
+    class_standard: str  # "6th", "7th", "8th", "9th", "10th", etc.
+    subject: str  # Subject name (e.g., "Mathematics", "Physics")
+    
+    # Book Details
+    title: str
+    author: str
+    publisher: Optional[str] = None
+    isbn: Optional[str] = None
+    edition: Optional[str] = None
+    publication_year: Optional[int] = None
     description: Optional[str] = None
-    learning_objectives: List[str] = []
-    key_concepts: List[str] = []
-    is_active: bool = True
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
-
-class ChapterCreate(BaseModel):
-    book_id: str
-    chapter_number: int
-    chapter_title: str
-    description: Optional[str] = None
-    learning_objectives: List[str] = []
-    key_concepts: List[str] = []
-
-class AcademicContent(BaseModel):
-    """Academic content/topic within a chapter"""
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    tenant_id: str
-    school_id: str
-    book_id: str
-    chapter_id: str
-    topic_title: str
-    content_type: str = "text"  # text, formula, diagram, example, exercise
-    content_text: str  # Main content
-    explanation: Optional[str] = None
-    examples: List[str] = []
-    formulas: List[str] = []
-    diagrams: List[str] = []  # URLs to diagram images
-    difficulty_level: str = "medium"  # easy, medium, hard
-    tags: List[str] = []
-    keywords: List[str] = []  # For search optimization
-    is_active: bool = True
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
-
-class AcademicContentCreate(BaseModel):
-    book_id: str
-    chapter_id: str
-    topic_title: str
-    content_type: str = "text"
-    content_text: str
-    explanation: Optional[str] = None
-    examples: List[str] = []
-    formulas: List[str] = []
-    diagrams: List[str] = []
-    difficulty_level: str = "medium"
-    tags: List[str] = []
-    keywords: List[str] = []
-
-class QAPair(BaseModel):
-    """Question-Answer pairs for quick AI retrieval"""
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    tenant_id: str
-    school_id: str
-    book_id: str
-    chapter_id: Optional[str] = None
-    content_id: Optional[str] = None
-    question: str
-    answer: str
-    question_type: str = "conceptual"  # conceptual, numerical, theoretical, application
-    subject: str
-    class_standard: str
-    difficulty_level: str = "medium"
-    tags: List[str] = []
-    keywords: List[str] = []
-    source: str = "manual"  # manual, auto-generated, imported
+    cover_image_url: Optional[str] = None
+    pdf_url: Optional[str] = None
+    
+    # Tags & Metadata
+    tags: List[str] = ["Reference Books"]  # Category tag
     is_active: bool = True
     created_by: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
-class QAPairCreate(BaseModel):
+class ReferenceBookCreate(BaseModel):
+    class_standard: str
+    subject: str
+    title: str
+    author: str
+    publisher: Optional[str] = None
+    isbn: Optional[str] = None
+    edition: Optional[str] = None
+    publication_year: Optional[int] = None
+    description: Optional[str] = None
+    cover_image_url: Optional[str] = None
+    pdf_url: Optional[str] = None
+
+# Chapter model (shared by both Academic and Reference Books)
+class BookChapter(BaseModel):
+    """Chapter within an academic/reference book"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    school_id: str
+    book_id: str  # Links to AcademicBook or ReferenceBook
+    book_type: str  # "academic" or "reference"
+    
+    # Chapter Details
+    chapter_number: int
+    chapter_title: str
+    description: Optional[str] = None
+    learning_objectives: List[str] = []
+    key_concepts: List[str] = []
+    content: Optional[str] = None  # Main chapter content
+    
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class BookChapterCreate(BaseModel):
     book_id: str
-    chapter_id: Optional[str] = None
-    content_id: Optional[str] = None
+    book_type: str  # "academic" or "reference"
+    chapter_number: int
+    chapter_title: str
+    description: Optional[str] = None
+    learning_objectives: List[str] = []
+    key_concepts: List[str] = []
+    content: Optional[str] = None
+
+# C. Q&A Knowledge Base (Tag) - Hierarchical: Class → Subject → Chapter/Topic → Question Type → Q&A
+class QAKnowledgeBase(BaseModel):
+    """Question-Answer knowledge base with hierarchical structure"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    school_id: str
+    
+    # Hierarchical Tags
+    class_standard: str  # "6th", "7th", "8th", "9th", "10th", etc.
+    subject: str  # Subject name
+    chapter_topic: str  # Chapter or Topic name
+    question_type: str  # "MCQ", "Short Answer", "Long Answer", "Numerical", "Conceptual", etc.
+    
+    # Q&A Details
     question: str
     answer: str
-    question_type: str = "conceptual"
-    subject: str
+    explanation: Optional[str] = None
+    examples: List[str] = []
+    
+    # Metadata
+    difficulty_level: str = "medium"  # easy, medium, hard
+    tags: List[str] = ["Q&A Knowledge Base"]  # Category tag
+    keywords: List[str] = []
+    source: str = "manual"  # manual, auto-generated, imported
+    
+    is_active: bool = True
+    created_by: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class QAKnowledgeBaseCreate(BaseModel):
     class_standard: str
+    subject: str
+    chapter_topic: str
+    question_type: str
+    question: str
+    answer: str
+    explanation: Optional[str] = None
+    examples: List[str] = []
     difficulty_level: str = "medium"
-    tags: List[str] = []
     keywords: List[str] = []
     source: str = "manual"
+
+# D. Previous Years' Question Papers (Tag) - Hierarchical: Class → Subject → Exam Year → Paper Type
+class PreviousYearPaper(BaseModel):
+    """Previous years' question papers with hierarchical structure"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    school_id: str
+    
+    # Hierarchical Tags
+    class_standard: str  # "6th", "7th", "8th", "9th", "10th", etc.
+    subject: str  # Subject name
+    exam_year: str  # "2023", "2024", etc.
+    paper_type: str  # "Mid-term", "Final", "Pre-board", "Sample Paper", etc.
+    
+    # Paper Details
+    title: str  # e.g., "CBSE Class 10 Mathematics Final 2023"
+    board: str = "CBSE"  # CBSE, ICSE, State Board, etc.
+    exam_date: Optional[str] = None
+    duration_minutes: Optional[int] = None
+    total_marks: Optional[int] = None
+    description: Optional[str] = None
+    pdf_url: Optional[str] = None  # Link to paper PDF
+    
+    # Tags & Metadata
+    tags: List[str] = ["Previous Years' Question Papers"]  # Category tag
+    is_active: bool = True
+    created_by: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class PreviousYearPaperCreate(BaseModel):
+    class_standard: str
+    subject: str
+    exam_year: str
+    paper_type: str
+    title: str
+    board: str = "CBSE"
+    exam_date: Optional[str] = None
+    duration_minutes: Optional[int] = None
+    total_marks: Optional[int] = None
+    description: Optional[str] = None
+    pdf_url: Optional[str] = None
+
+# Questions and Solutions for Previous Year Papers
+class PaperQuestion(BaseModel):
+    """Individual question from a previous year paper with solution"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    school_id: str
+    paper_id: str  # Links to PreviousYearPaper
+    
+    # Question Details
+    question_number: str  # "1", "2a", "3(i)", etc.
+    question_text: str
+    question_type: str  # "MCQ", "Short Answer", "Long Answer", "Numerical", etc.
+    marks: int
+    
+    # Solution
+    solution: str
+    solution_steps: List[str] = []  # Step-by-step solution
+    hints: List[str] = []
+    
+    # Metadata
+    difficulty_level: str = "medium"
+    tags: List[str] = []
+    
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class PaperQuestionCreate(BaseModel):
+    paper_id: str
+    question_number: str
+    question_text: str
+    question_type: str
+    marks: int
+    solution: str
+    solution_steps: List[str] = []
+    hints: List[str] = []
+    difficulty_level: str = "medium"
+    tags: List[str] = []
 
 # ==================== UTILITY FUNCTIONS ====================
 
@@ -16055,37 +16164,7 @@ async def delete_academic_book(
         logger.error(f"Delete book error: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to delete book: {str(e)}")
 
-@api_router.post("/cms/qa-pairs")
-async def create_qa_pair(
-    qa_pair: QAPairCreate,
-    current_user: User = Depends(get_current_user)
-):
-    """Create a new Q&A pair in the knowledge base"""
-    try:
-        qa_dict = qa_pair.dict()
-        qa_dict.update({
-            "id": str(uuid.uuid4()),
-            "tenant_id": current_user.tenant_id,
-            "school_id": current_user.school_id,
-            "created_by": current_user.id,
-            "is_active": True,
-            "created_at": datetime.now(timezone.utc),
-            "updated_at": datetime.now(timezone.utc)
-        })
-        
-        await db.qa_pairs.insert_one(qa_dict)
-        
-        return {
-            "success": True,
-            "message": "Q&A pair created successfully",
-            "qa_id": qa_dict["id"]
-        }
-        
-    except Exception as e:
-        logger.error(f"Create QA error: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to create Q&A pair: {str(e)}")
-
-@api_router.post("/cms/qa-pairs/bulk-upload")
+@api_router.post("/cms/qa-knowledge-base/bulk-upload")
 async def bulk_upload_qa_pairs(
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user)
@@ -16173,8 +16252,8 @@ async def bulk_upload_qa_pairs(
         
         # Bulk insert into database
         if qa_pairs_to_insert:
-            await db.qa_pairs.insert_many(qa_pairs_to_insert)
-            logger.info(f"Bulk upload: {successful_count} Q&A pairs added by {current_user.full_name}")
+            await db.qa_knowledge_base.insert_many(qa_pairs_to_insert)
+            logger.info(f"Bulk upload: {successful_count} Q&A knowledge base items added by {current_user.full_name}")
         
         return {
             "success": True,
@@ -16192,49 +16271,6 @@ async def bulk_upload_qa_pairs(
     except Exception as e:
         logger.error(f"Bulk upload error: {e}")
         raise HTTPException(status_code=500, detail=f"Bulk upload failed: {str(e)}")
-
-@api_router.get("/cms/qa-pairs")
-async def get_qa_pairs(
-    subject: Optional[str] = None,
-    class_standard: Optional[str] = None,
-    book_id: Optional[str] = None,
-    current_user: User = Depends(get_current_user)
-):
-    """Get Q&A pairs with optional filters"""
-    try:
-        query = {
-            "tenant_id": current_user.tenant_id,
-            "school_id": current_user.school_id,
-            "is_active": True
-        }
-        
-        if subject:
-            query["subject"] = subject
-        if class_standard:
-            query["class_standard"] = class_standard
-        if book_id:
-            query["book_id"] = book_id
-        
-        qa_pairs = await db.qa_pairs.find(query).to_list(length=1000)
-        
-        # Convert ObjectId and datetime to string for JSON serialization
-        for qa in qa_pairs:
-            if "_id" in qa:
-                qa["_id"] = str(qa["_id"])
-            if "created_at" in qa and isinstance(qa["created_at"], datetime):
-                qa["created_at"] = qa["created_at"].isoformat()
-            if "updated_at" in qa and isinstance(qa["updated_at"], datetime):
-                qa["updated_at"] = qa["updated_at"].isoformat()
-        
-        return {
-            "success": True,
-            "qa_pairs": qa_pairs,
-            "total": len(qa_pairs)
-        }
-        
-    except Exception as e:
-        logger.error(f"Get QA pairs error: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve Q&A pairs: {str(e)}")
 
 @api_router.get("/cms/search")
 async def search_academic_content(
@@ -16256,8 +16292,8 @@ async def search_academic_content(
         if class_standard:
             search_filter["class_standard"] = class_standard
         
-        # Search in Q&A pairs first
-        qa_results = await db.qa_pairs.find({
+        # Search in Q&A knowledge base first
+        qa_results = await db.qa_knowledge_base.find({
             **search_filter,
             "$or": [
                 {"question": {"$regex": query, "$options": "i"}},
@@ -18449,6 +18485,770 @@ async def delete_notes(
     except Exception as e:
         logger.error(f"Notes delete error: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete notes")
+
+# ============================================================================
+# ACADEMIC CONTENT CMS API ENDPOINTS
+# ============================================================================
+
+# ==================== A. ACADEMIC BOOKS ENDPOINTS ====================
+
+@api_router.get("/cms/academic-books")
+async def get_academic_books(
+    class_standard: Optional[str] = None,
+    subject: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all academic books with optional filtering by class and subject"""
+    try:
+        query = {
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id,
+            "is_active": True
+        }
+        
+        if class_standard:
+            query["class_standard"] = class_standard
+        if subject:
+            query["subject"] = subject
+        
+        books = await db.academic_books.find(query).sort("class_standard", 1).to_list(1000)
+        return books
+    except Exception as e:
+        logger.error(f"Error fetching academic books: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch academic books")
+
+@api_router.post("/cms/academic-books")
+async def create_academic_book(
+    book: AcademicBookCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new academic book"""
+    try:
+        if current_user.role not in ["super_admin", "admin", "teacher"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        book_data = book.dict()
+        book_data.update({
+            "id": str(uuid.uuid4()),
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id,
+            "tags": ["Academic Books"],
+            "is_active": True,
+            "created_by": current_user.id,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        })
+        
+        await db.academic_books.insert_one(book_data)
+        return book_data
+    except Exception as e:
+        logger.error(f"Error creating academic book: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create academic book")
+
+@api_router.put("/cms/academic-books/{book_id}")
+async def update_academic_book(
+    book_id: str,
+    book: AcademicBookCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update an existing academic book"""
+    try:
+        if current_user.role not in ["super_admin", "admin", "teacher"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        update_data = book.dict()
+        update_data["updated_at"] = datetime.utcnow()
+        
+        result = await db.academic_books.update_one(
+            {"id": book_id, "tenant_id": current_user.tenant_id},
+            {"$set": update_data}
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Academic book not found")
+        
+        return {"message": "Academic book updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating academic book: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update academic book")
+
+@api_router.delete("/cms/academic-books/{book_id}")
+async def delete_academic_book(
+    book_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete an academic book (soft delete)"""
+    try:
+        if current_user.role not in ["super_admin", "admin"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        result = await db.academic_books.update_one(
+            {"id": book_id, "tenant_id": current_user.tenant_id},
+            {"$set": {"is_active": False, "updated_at": datetime.utcnow()}}
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Academic book not found")
+        
+        return {"message": "Academic book deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting academic book: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete academic book")
+
+# ==================== B. REFERENCE BOOKS ENDPOINTS ====================
+
+@api_router.get("/cms/reference-books")
+async def get_reference_books(
+    class_standard: Optional[str] = None,
+    subject: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all reference books with optional filtering"""
+    try:
+        query = {
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id,
+            "is_active": True
+        }
+        
+        if class_standard:
+            query["class_standard"] = class_standard
+        if subject:
+            query["subject"] = subject
+        
+        books = await db.reference_books.find(query).sort("class_standard", 1).to_list(1000)
+        return books
+    except Exception as e:
+        logger.error(f"Error fetching reference books: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch reference books")
+
+@api_router.post("/cms/reference-books")
+async def create_reference_book(
+    book: ReferenceBookCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new reference book"""
+    try:
+        if current_user.role not in ["super_admin", "admin", "teacher"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        book_data = book.dict()
+        book_data.update({
+            "id": str(uuid.uuid4()),
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id,
+            "tags": ["Reference Books"],
+            "is_active": True,
+            "created_by": current_user.id,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        })
+        
+        await db.reference_books.insert_one(book_data)
+        return book_data
+    except Exception as e:
+        logger.error(f"Error creating reference book: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create reference book")
+
+@api_router.put("/cms/reference-books/{book_id}")
+async def update_reference_book(
+    book_id: str,
+    book: ReferenceBookCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update an existing reference book"""
+    try:
+        if current_user.role not in ["super_admin", "admin", "teacher"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        update_data = book.dict()
+        update_data["updated_at"] = datetime.utcnow()
+        
+        result = await db.reference_books.update_one(
+            {"id": book_id, "tenant_id": current_user.tenant_id},
+            {"$set": update_data}
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Reference book not found")
+        
+        return {"message": "Reference book updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating reference book: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update reference book")
+
+@api_router.delete("/cms/reference-books/{book_id}")
+async def delete_reference_book(
+    book_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a reference book (soft delete)"""
+    try:
+        if current_user.role not in ["super_admin", "admin"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        result = await db.reference_books.update_one(
+            {"id": book_id, "tenant_id": current_user.tenant_id},
+            {"$set": {"is_active": False, "updated_at": datetime.utcnow()}}
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Reference book not found")
+        
+        return {"message": "Reference book deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting reference book: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete reference book")
+
+# ==================== BOOK CHAPTERS ENDPOINTS (Shared) ====================
+
+@api_router.get("/cms/books/{book_id}/chapters")
+async def get_book_chapters(
+    book_id: str,
+    book_type: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all chapters for a specific book"""
+    try:
+        chapters = await db.book_chapters.find({
+            "book_id": book_id,
+            "book_type": book_type,
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        }).sort("chapter_number", 1).to_list(1000)
+        return chapters
+    except Exception as e:
+        logger.error(f"Error fetching book chapters: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch book chapters")
+
+@api_router.post("/cms/books/chapters")
+async def create_book_chapter(
+    chapter: BookChapterCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new chapter for a book"""
+    try:
+        if current_user.role not in ["super_admin", "admin", "teacher"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        chapter_data = chapter.dict()
+        chapter_data.update({
+            "id": str(uuid.uuid4()),
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id,
+            "is_active": True,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        })
+        
+        await db.book_chapters.insert_one(chapter_data)
+        return chapter_data
+    except Exception as e:
+        logger.error(f"Error creating book chapter: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create book chapter")
+
+@api_router.put("/cms/books/chapters/{chapter_id}")
+async def update_book_chapter(
+    chapter_id: str,
+    chapter: BookChapterCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update an existing book chapter"""
+    try:
+        if current_user.role not in ["super_admin", "admin", "teacher"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        update_data = chapter.dict()
+        update_data["updated_at"] = datetime.utcnow()
+        
+        result = await db.book_chapters.update_one(
+            {"id": chapter_id, "tenant_id": current_user.tenant_id},
+            {"$set": update_data}
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Chapter not found")
+        
+        return {"message": "Chapter updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating book chapter: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update book chapter")
+
+@api_router.delete("/cms/books/chapters/{chapter_id}")
+async def delete_book_chapter(
+    chapter_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a book chapter (soft delete)"""
+    try:
+        if current_user.role not in ["super_admin", "admin"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        result = await db.book_chapters.update_one(
+            {"id": chapter_id, "tenant_id": current_user.tenant_id},
+            {"$set": {"is_active": False, "updated_at": datetime.utcnow()}}
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Chapter not found")
+        
+        return {"message": "Chapter deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting book chapter: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete book chapter")
+
+# ==================== C. Q&A KNOWLEDGE BASE ENDPOINTS ====================
+
+@api_router.get("/cms/qa-knowledge-base")
+async def get_qa_knowledge_base(
+    class_standard: Optional[str] = None,
+    subject: Optional[str] = None,
+    chapter_topic: Optional[str] = None,
+    question_type: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get Q&A knowledge base with hierarchical filtering"""
+    try:
+        query = {
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id,
+            "is_active": True
+        }
+        
+        if class_standard:
+            query["class_standard"] = class_standard
+        if subject:
+            query["subject"] = subject
+        if chapter_topic:
+            query["chapter_topic"] = chapter_topic
+        if question_type:
+            query["question_type"] = question_type
+        
+        qa_items = await db.qa_knowledge_base.find(query).to_list(1000)
+        return qa_items
+    except Exception as e:
+        logger.error(f"Error fetching Q&A knowledge base: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch Q&A knowledge base")
+
+@api_router.post("/cms/qa-knowledge-base")
+async def create_qa_knowledge_base(
+    qa: QAKnowledgeBaseCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new Q&A knowledge base entry"""
+    try:
+        if current_user.role not in ["super_admin", "admin", "teacher"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        qa_data = qa.dict()
+        qa_data.update({
+            "id": str(uuid.uuid4()),
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id,
+            "tags": ["Q&A Knowledge Base"],
+            "is_active": True,
+            "created_by": current_user.id,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        })
+        
+        await db.qa_knowledge_base.insert_one(qa_data)
+        return qa_data
+    except Exception as e:
+        logger.error(f"Error creating Q&A knowledge base entry: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create Q&A entry")
+
+@api_router.put("/cms/qa-knowledge-base/{qa_id}")
+async def update_qa_knowledge_base(
+    qa_id: str,
+    qa: QAKnowledgeBaseCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update an existing Q&A knowledge base entry"""
+    try:
+        if current_user.role not in ["super_admin", "admin", "teacher"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        update_data = qa.dict()
+        update_data["updated_at"] = datetime.utcnow()
+        
+        result = await db.qa_knowledge_base.update_one(
+            {"id": qa_id, "tenant_id": current_user.tenant_id},
+            {"$set": update_data}
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Q&A entry not found")
+        
+        return {"message": "Q&A entry updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating Q&A knowledge base entry: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update Q&A entry")
+
+@api_router.delete("/cms/qa-knowledge-base/{qa_id}")
+async def delete_qa_knowledge_base(
+    qa_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a Q&A knowledge base entry (soft delete)"""
+    try:
+        if current_user.role not in ["super_admin", "admin"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        result = await db.qa_knowledge_base.update_one(
+            {"id": qa_id, "tenant_id": current_user.tenant_id},
+            {"$set": {"is_active": False, "updated_at": datetime.utcnow()}}
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Q&A entry not found")
+        
+        return {"message": "Q&A entry deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting Q&A knowledge base entry: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete Q&A entry")
+
+# ==================== D. PREVIOUS YEARS' QUESTION PAPERS ENDPOINTS ====================
+
+@api_router.get("/cms/previous-year-papers")
+async def get_previous_year_papers(
+    class_standard: Optional[str] = None,
+    subject: Optional[str] = None,
+    exam_year: Optional[str] = None,
+    paper_type: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get previous year papers with hierarchical filtering"""
+    try:
+        query = {
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id,
+            "is_active": True
+        }
+        
+        if class_standard:
+            query["class_standard"] = class_standard
+        if subject:
+            query["subject"] = subject
+        if exam_year:
+            query["exam_year"] = exam_year
+        if paper_type:
+            query["paper_type"] = paper_type
+        
+        papers = await db.previous_year_papers.find(query).sort("exam_year", -1).to_list(1000)
+        return papers
+    except Exception as e:
+        logger.error(f"Error fetching previous year papers: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch previous year papers")
+
+@api_router.post("/cms/previous-year-papers")
+async def create_previous_year_paper(
+    paper: PreviousYearPaperCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new previous year paper"""
+    try:
+        if current_user.role not in ["super_admin", "admin", "teacher"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        paper_data = paper.dict()
+        paper_data.update({
+            "id": str(uuid.uuid4()),
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id,
+            "tags": ["Previous Years' Question Papers"],
+            "is_active": True,
+            "created_by": current_user.id,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        })
+        
+        await db.previous_year_papers.insert_one(paper_data)
+        return paper_data
+    except Exception as e:
+        logger.error(f"Error creating previous year paper: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create previous year paper")
+
+@api_router.put("/cms/previous-year-papers/{paper_id}")
+async def update_previous_year_paper(
+    paper_id: str,
+    paper: PreviousYearPaperCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update an existing previous year paper"""
+    try:
+        if current_user.role not in ["super_admin", "admin", "teacher"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        update_data = paper.dict()
+        update_data["updated_at"] = datetime.utcnow()
+        
+        result = await db.previous_year_papers.update_one(
+            {"id": paper_id, "tenant_id": current_user.tenant_id},
+            {"$set": update_data}
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Previous year paper not found")
+        
+        return {"message": "Previous year paper updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating previous year paper: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update previous year paper")
+
+@api_router.delete("/cms/previous-year-papers/{paper_id}")
+async def delete_previous_year_paper(
+    paper_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a previous year paper (soft delete)"""
+    try:
+        if current_user.role not in ["super_admin", "admin"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        result = await db.previous_year_papers.update_one(
+            {"id": paper_id, "tenant_id": current_user.tenant_id},
+            {"$set": {"is_active": False, "updated_at": datetime.utcnow()}}
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Previous year paper not found")
+        
+        return {"message": "Previous year paper deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting previous year paper: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete previous year paper")
+
+# ==================== PAPER QUESTIONS & SOLUTIONS ENDPOINTS ====================
+
+@api_router.get("/cms/previous-year-papers/{paper_id}/questions")
+async def get_paper_questions(
+    paper_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all questions for a specific previous year paper"""
+    try:
+        questions = await db.paper_questions.find({
+            "paper_id": paper_id,
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        }).to_list(1000)
+        return questions
+    except Exception as e:
+        logger.error(f"Error fetching paper questions: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch paper questions")
+
+@api_router.post("/cms/previous-year-papers/questions")
+async def create_paper_question(
+    question: PaperQuestionCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new question for a previous year paper"""
+    try:
+        if current_user.role not in ["super_admin", "admin", "teacher"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        question_data = question.dict()
+        question_data.update({
+            "id": str(uuid.uuid4()),
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id,
+            "is_active": True,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        })
+        
+        await db.paper_questions.insert_one(question_data)
+        return question_data
+    except Exception as e:
+        logger.error(f"Error creating paper question: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create paper question")
+
+@api_router.put("/cms/previous-year-papers/questions/{question_id}")
+async def update_paper_question(
+    question_id: str,
+    question: PaperQuestionCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update an existing paper question"""
+    try:
+        if current_user.role not in ["super_admin", "admin", "teacher"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        update_data = question.dict()
+        update_data["updated_at"] = datetime.utcnow()
+        
+        result = await db.paper_questions.update_one(
+            {"id": question_id, "tenant_id": current_user.tenant_id},
+            {"$set": update_data}
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Paper question not found")
+        
+        return {"message": "Paper question updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating paper question: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update paper question")
+
+@api_router.delete("/cms/previous-year-papers/questions/{question_id}")
+async def delete_paper_question(
+    question_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a paper question (soft delete)"""
+    try:
+        if current_user.role not in ["super_admin", "admin"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        result = await db.paper_questions.update_one(
+            {"id": question_id, "tenant_id": current_user.tenant_id},
+            {"$set": {"is_active": False, "updated_at": datetime.utcnow()}}
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Paper question not found")
+        
+        return {"message": "Paper question deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting paper question: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete paper question")
+
+# ==================== CMS DASHBOARD & HIERARCHICAL NAVIGATION ====================
+
+@api_router.get("/cms/dashboard")
+async def get_cms_dashboard(
+    current_user: User = Depends(get_current_user)
+):
+    """Get Academic CMS dashboard with statistics for all content types"""
+    try:
+        query_base = {
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id,
+            "is_active": True
+        }
+        
+        # Count all content types
+        academic_books_count = await db.academic_books.count_documents(query_base)
+        reference_books_count = await db.reference_books.count_documents(query_base)
+        qa_count = await db.qa_knowledge_base.count_documents(query_base)
+        papers_count = await db.previous_year_papers.count_documents(query_base)
+        
+        # Get unique values for filters
+        classes_pipeline = [
+            {"$match": query_base},
+            {"$group": {"_id": "$class_standard"}},
+            {"$sort": {"_id": 1}}
+        ]
+        
+        academic_classes = await db.academic_books.aggregate(classes_pipeline).to_list(None)
+        reference_classes = await db.reference_books.aggregate(classes_pipeline).to_list(None)
+        qa_classes = await db.qa_knowledge_base.aggregate(classes_pipeline).to_list(None)
+        papers_classes = await db.previous_year_papers.aggregate(classes_pipeline).to_list(None)
+        
+        return {
+            "statistics": {
+                "academic_books": academic_books_count,
+                "reference_books": reference_books_count,
+                "qa_knowledge_base": qa_count,
+                "previous_year_papers": papers_count
+            },
+            "filters": {
+                "academic_book_classes": [item["_id"] for item in academic_classes if item["_id"]],
+                "reference_book_classes": [item["_id"] for item in reference_classes if item["_id"]],
+                "qa_classes": [item["_id"] for item in qa_classes if item["_id"]],
+                "paper_classes": [item["_id"] for item in papers_classes if item["_id"]]
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error fetching CMS dashboard: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch CMS dashboard")
+
+@api_router.get("/cms/hierarchy/{content_type}")
+async def get_cms_hierarchy(
+    content_type: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get hierarchical structure for navigation (Class → Subject → ...)"""
+    try:
+        query_base = {
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id,
+            "is_active": True
+        }
+        
+        # Determine collection based on content type
+        collection_map = {
+            "academic_books": db.academic_books,
+            "reference_books": db.reference_books,
+            "qa_knowledge_base": db.qa_knowledge_base,
+            "previous_year_papers": db.previous_year_papers
+        }
+        
+        if content_type not in collection_map:
+            raise HTTPException(status_code=400, detail="Invalid content type")
+        
+        collection = collection_map[content_type]
+        
+        # Get hierarchy: Classes
+        classes_pipeline = [
+            {"$match": query_base},
+            {"$group": {"_id": "$class_standard"}},
+            {"$sort": {"_id": 1}}
+        ]
+        classes = await collection.aggregate(classes_pipeline).to_list(None)
+        
+        # For each class, get subjects
+        hierarchy = []
+        for class_item in classes:
+            class_name = class_item["_id"]
+            
+            subjects_pipeline = [
+                {"$match": {**query_base, "class_standard": class_name}},
+                {"$group": {"_id": "$subject"}},
+                {"$sort": {"_id": 1}}
+            ]
+            subjects = await collection.aggregate(subjects_pipeline).to_list(None)
+            
+            hierarchy.append({
+                "class": class_name,
+                "subjects": [s["_id"] for s in subjects if s["_id"]]
+            })
+        
+        return hierarchy
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching CMS hierarchy: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch CMS hierarchy")
+
+# ============================================================================
+# END ACADEMIC CONTENT CMS API ENDPOINTS
+# ============================================================================
 
 # ============================================================================
 # END AI SUMMARY & NOTES MODULES
