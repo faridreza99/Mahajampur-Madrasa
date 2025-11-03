@@ -16838,22 +16838,64 @@ async def ai_voice_output(
 
 @api_router.get("/ai-engine/logs")
 async def ai_get_logs(
+    content_source: Optional[str] = None,  # "Academic Book", "Reference Book", "Q&A Knowledge Base", "Previous Papers"
+    subject: Optional[str] = None,
+    chapter: Optional[str] = None,
+    topic: Optional[str] = None,
+    page: int = 1,
     limit: int = 50,
+    sort_order: str = "latest",  # "latest" or "oldest"
     current_user: User = Depends(get_current_user)
 ):
     """
-    Get AI activity logs (for teachers and admins)
+    Get AI activity logs with tag-based filtering (Student Monitoring)
+    Supports hierarchical filtering by Content Source → Subject → Chapter → Topic
     """
     try:
-        # Check if user has permission to view logs
-        if current_user.role not in ["super_admin", "admin", "teacher"]:
-            raise HTTPException(status_code=403, detail="Insufficient permissions to view AI logs")
-        
-        # Fetch logs from database
-        logs_cursor = db.ai_logs.find({
+        # Build filter query
+        query = {
             "tenant_id": current_user.tenant_id,
             "school_id": current_user.school_id
-        }).sort("created_at", -1).limit(limit)
+        }
+        
+        # Students can only see their own logs
+        if current_user.role == "student":
+            query["user_id"] = current_user.id
+        
+        # Filter by content source (Academic Book, Reference Book, Q&A, Previous Papers)
+        if content_source:
+            if content_source == "Academic Book":
+                query["tags.academic_book"] = {"$ne": None}
+            elif content_source == "Reference Book":
+                query["tags.reference_book"] = {"$ne": None}
+            elif content_source == "Q&A Knowledge Base":
+                query["tags.qa_knowledge_base"] = {"$ne": None}
+            elif content_source == "Previous Papers":
+                query["tags.previous_papers"] = {"$ne": None}
+        
+        # Filter by subject
+        if subject:
+            query["tags.subject"] = subject
+        
+        # Filter by chapter
+        if chapter:
+            query["tags.chapter"] = chapter
+        
+        # Filter by topic
+        if topic:
+            query["tags.topic"] = topic
+        
+        # Sorting
+        sort_direction = -1 if sort_order == "latest" else 1
+        
+        # Pagination
+        skip = (page - 1) * limit
+        
+        # Get total count
+        total_count = await db.ai_logs.count_documents(query)
+        
+        # Fetch logs from database
+        logs_cursor = db.ai_logs.find(query).sort("created_at", sort_direction).skip(skip).limit(limit)
         
         logs = []
         async for log in logs_cursor:
@@ -16861,10 +16903,20 @@ async def ai_get_logs(
             log["created_at"] = log["created_at"].isoformat() if isinstance(log["created_at"], datetime) else log["created_at"]
             logs.append(log)
         
+        # Calculate pagination metadata
+        total_pages = (total_count + limit - 1) // limit  # Ceiling division
+        
         return {
             "success": True,
             "logs": logs,
-            "total": len(logs)
+            "pagination": {
+                "current_page": page,
+                "total_pages": total_pages,
+                "total_count": total_count,
+                "page_size": limit,
+                "has_next": page < total_pages,
+                "has_previous": page > 1
+            }
         }
         
     except HTTPException:
@@ -16872,6 +16924,111 @@ async def ai_get_logs(
     except Exception as e:
         logger.error(f"AI logs retrieval error: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve AI logs")
+
+@api_router.get("/ai-engine/log-filters")
+async def ai_get_log_filters(
+    content_source: Optional[str] = None,
+    subject: Optional[str] = None,
+    chapter: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get available filter options for AI logs (hierarchical filtering)
+    Returns unique values for Content Sources, Subjects, Chapters, and Topics
+    """
+    try:
+        # Base query
+        query = {
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id
+        }
+        
+        # Students can only see their own logs
+        if current_user.role == "student":
+            query["user_id"] = current_user.id
+        
+        # Apply filters to narrow down options
+        if content_source:
+            if content_source == "Academic Book":
+                query["tags.academic_book"] = {"$ne": None}
+            elif content_source == "Reference Book":
+                query["tags.reference_book"] = {"$ne": None}
+            elif content_source == "Q&A Knowledge Base":
+                query["tags.qa_knowledge_base"] = {"$ne": None}
+            elif content_source == "Previous Papers":
+                query["tags.previous_papers"] = {"$ne": None}
+        
+        if subject:
+            query["tags.subject"] = subject
+        
+        if chapter:
+            query["tags.chapter"] = chapter
+        
+        # Get unique content sources
+        content_sources = []
+        if not content_source:
+            pipeline = [
+                {"$match": query},
+                {"$project": {
+                    "sources": {
+                        "$cond": [{"$ne": ["$tags.academic_book", None]}, "Academic Book",
+                            {"$cond": [{"$ne": ["$tags.reference_book", None]}, "Reference Book",
+                                {"$cond": [{"$ne": ["$tags.qa_knowledge_base", None]}, "Q&A Knowledge Base",
+                                    {"$cond": [{"$ne": ["$tags.previous_papers", None]}, "Previous Papers", None]}
+                                ]}
+                            ]}
+                        ]
+                    }
+                }},
+                {"$group": {"_id": "$sources"}},
+                {"$match": {"_id": {"$ne": None}}}
+            ]
+            sources_result = await db.ai_logs.aggregate(pipeline).to_list(length=100)
+            content_sources = [s["_id"] for s in sources_result if s["_id"]]
+        
+        # Get unique subjects
+        subjects_pipeline = [
+            {"$match": query},
+            {"$group": {"_id": "$tags.subject"}},
+            {"$match": {"_id": {"$ne": None}}},
+            {"$sort": {"_id": 1}}
+        ]
+        subjects_result = await db.ai_logs.aggregate(subjects_pipeline).to_list(length=100)
+        subjects = [s["_id"] for s in subjects_result if s["_id"]]
+        
+        # Get unique chapters
+        chapters_pipeline = [
+            {"$match": query},
+            {"$group": {"_id": "$tags.chapter"}},
+            {"$match": {"_id": {"$ne": None}}},
+            {"$sort": {"_id": 1}}
+        ]
+        chapters_result = await db.ai_logs.aggregate(chapters_pipeline).to_list(length=100)
+        chapters = [c["_id"] for c in chapters_result if c["_id"]]
+        
+        # Get unique topics
+        topics_pipeline = [
+            {"$match": query},
+            {"$group": {"_id": "$tags.topic"}},
+            {"$match": {"_id": {"$ne": None}}},
+            {"$sort": {"_id": 1}}
+        ]
+        topics_result = await db.ai_logs.aggregate(topics_pipeline).to_list(length=100)
+        topics = [t["_id"] for t in topics_result if t["_id"]]
+        
+        return {
+            "success": True,
+            "filters": {
+                "content_sources": content_sources,
+                "subjects": subjects,
+                "chapters": chapters,
+                "topics": topics
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"AI log filters retrieval error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve filter options")
 
 @api_router.post("/ai-engine/n8n-webhook")
 async def ai_n8n_webhook(
