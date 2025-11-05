@@ -16,7 +16,12 @@ import {
   Calendar,
   Bell,
   MessageSquare,
-  BarChart3
+  BarChart3,
+  Brain,
+  FileQuestion,
+  FileText,
+  ListChecks,
+  Lightbulb
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -37,10 +42,18 @@ const Dashboard = () => {
   });
   const [recentAdmissions, setRecentAdmissions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [giniAnalytics, setGiniAnalytics] = useState(null);
+  const [giniPeriod, setGiniPeriod] = useState(7); // 7 or 30 days
+  const [giniLoading, setGiniLoading] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
+    fetchGiniAnalytics(giniPeriod);
   }, []);
+
+  useEffect(() => {
+    fetchGiniAnalytics(giniPeriod);
+  }, [giniPeriod]);
 
   const fetchDashboardData = async () => {
     console.log('🔄 Fetching dashboard data...');
@@ -66,6 +79,25 @@ const Dashboard = () => {
       toast.error('Failed to load dashboard data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchGiniAnalytics = async (days) => {
+    setGiniLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `${API}/gini/usage/analytics?days=${days}`,
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+      setGiniAnalytics(response.data);
+    } catch (error) {
+      console.error('❌ Failed to fetch GiNi analytics:', error);
+      // Silently fail - GiNi analytics is optional
+    } finally {
+      setGiniLoading(false);
     }
   };
 
@@ -370,6 +402,231 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* GiNi Module Usage Analytics */}
+      <Card className="card-hover">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center space-x-2">
+                <Brain className="h-5 w-5 text-purple-500" />
+                <span>Dashboard (GiNi) - AI Module Usage Analytics</span>
+              </CardTitle>
+              <CardDescription>
+                Weekly and monthly usage statistics for all GiNi AI modules
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant={giniPeriod === 7 ? "default" : "outline"}
+                onClick={() => setGiniPeriod(7)}
+                className={giniPeriod === 7 ? "bg-purple-600 hover:bg-purple-700" : ""}
+              >
+                7 Days
+              </Button>
+              <Button
+                size="sm"
+                variant={giniPeriod === 30 ? "default" : "outline"}
+                onClick={() => setGiniPeriod(30)}
+                className={giniPeriod === 30 ? "bg-purple-600 hover:bg-purple-700" : ""}
+              >
+                30 Days
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {giniLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-40 bg-gray-100 animate-pulse rounded-lg"></div>
+              ))}
+            </div>
+          ) : giniAnalytics && giniAnalytics.analytics ? (
+            <>
+              {/* Module Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+                {/* AI Assistant */}
+                <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <Brain className="h-6 w-6 text-purple-600" />
+                      <span className="text-2xl font-bold text-purple-700">
+                        {giniAnalytics.analytics.ai_assistant.total_interactions}
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-semibold text-purple-900">AI Assistant (GiNi)</h4>
+                    <p className="text-xs text-purple-600 mt-1">Total interactions</p>
+                  </CardContent>
+                </Card>
+
+                {/* Quiz */}
+                <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <FileQuestion className="h-6 w-6 text-blue-600" />
+                      <span className="text-2xl font-bold text-blue-700">
+                        {giniAnalytics.analytics.quiz.total_interactions}
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-semibold text-blue-900">GiNi Quiz</h4>
+                    <p className="text-xs text-blue-600 mt-1">Total quiz attempts</p>
+                  </CardContent>
+                </Card>
+
+                {/* Test Generator */}
+                <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <ListChecks className="h-6 w-6 text-emerald-600" />
+                      <span className="text-2xl font-bold text-emerald-700">
+                        {giniAnalytics.analytics.test_generator.total_interactions}
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-semibold text-emerald-900">GiNi Test Generator</h4>
+                    <p className="text-xs text-emerald-600 mt-1">Tests generated</p>
+                  </CardContent>
+                </Card>
+
+                {/* Summary */}
+                <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <FileText className="h-6 w-6 text-orange-600" />
+                      <span className="text-2xl font-bold text-orange-700">
+                        {giniAnalytics.analytics.summary.total_interactions}
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-semibold text-orange-900">GiNi Summary</h4>
+                    <p className="text-xs text-orange-600 mt-1">Summaries generated</p>
+                  </CardContent>
+                </Card>
+
+                {/* Notes */}
+                <Card className="bg-gradient-to-br from-pink-50 to-pink-100 border-pink-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <Lightbulb className="h-6 w-6 text-pink-600" />
+                      <span className="text-2xl font-bold text-pink-700">
+                        {giniAnalytics.analytics.notes.total_interactions}
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-semibold text-pink-900">GiNi Notes</h4>
+                    <p className="text-xs text-pink-600 mt-1">Notes generated</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Class-wise and Subject-wise Breakdowns */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Class-wise Usage */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Class-wise Usage</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {Object.entries(
+                        Object.values(giniAnalytics.analytics).reduce((acc, module) => {
+                          Object.entries(module.class_wise || {}).forEach(([cls, count]) => {
+                            acc[cls] = (acc[cls] || 0) + count;
+                          });
+                          return acc;
+                        }, {})
+                      ).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([cls, count]) => (
+                        <div key={cls} className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-16 font-medium text-sm">Class {cls}</div>
+                            <div className="flex-1 bg-gray-200 rounded-full h-2 w-32">
+                              <div
+                                className="bg-purple-600 h-2 rounded-full"
+                                style={{ width: `${Math.min(100, (count / Math.max(...Object.values(
+                                  Object.values(giniAnalytics.analytics).reduce((acc, module) => {
+                                    Object.entries(module.class_wise || {}).forEach(([c, cnt]) => {
+                                      acc[c] = (acc[c] || 0) + cnt;
+                                    });
+                                    return acc;
+                                  }, {})
+                                ))) * 100)}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                          <span className="text-sm font-semibold text-gray-700">{count}</span>
+                        </div>
+                      ))}
+                      {Object.keys(
+                        Object.values(giniAnalytics.analytics).reduce((acc, module) => {
+                          Object.entries(module.class_wise || {}).forEach(([cls, count]) => {
+                            acc[cls] = (acc[cls] || 0) + count;
+                          });
+                          return acc;
+                        }, {})
+                      ).length === 0 && (
+                        <p className="text-sm text-gray-500 text-center py-4">No class data available</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Subject-wise Usage */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Subject-wise Usage</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {Object.entries(
+                        Object.values(giniAnalytics.analytics).reduce((acc, module) => {
+                          Object.entries(module.subject_wise || {}).forEach(([subj, count]) => {
+                            acc[subj] = (acc[subj] || 0) + count;
+                          });
+                          return acc;
+                        }, {})
+                      ).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([subj, count]) => (
+                        <div key={subj} className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-24 font-medium text-sm truncate">{subj}</div>
+                            <div className="flex-1 bg-gray-200 rounded-full h-2 w-32">
+                              <div
+                                className="bg-emerald-600 h-2 rounded-full"
+                                style={{ width: `${Math.min(100, (count / Math.max(...Object.values(
+                                  Object.values(giniAnalytics.analytics).reduce((acc, module) => {
+                                    Object.entries(module.subject_wise || {}).forEach(([s, cnt]) => {
+                                      acc[s] = (acc[s] || 0) + cnt;
+                                    });
+                                    return acc;
+                                  }, {})
+                                ))) * 100)}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                          <span className="text-sm font-semibold text-gray-700">{count}</span>
+                        </div>
+                      ))}
+                      {Object.keys(
+                        Object.values(giniAnalytics.analytics).reduce((acc, module) => {
+                          Object.entries(module.subject_wise || {}).forEach(([subj, count]) => {
+                            acc[subj] = (acc[subj] || 0) + count;
+                          });
+                          return acc;
+                        }, {})
+                      ).length === 0 && (
+                        <p className="text-sm text-gray-500 text-center py-4">No subject data available</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-12 text-gray-500">
+              <Brain className="h-16 w-16 mx-auto mb-4 opacity-50" />
+              <p className="text-sm">No GiNi usage data available yet</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

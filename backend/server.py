@@ -17731,6 +17731,7 @@ async def generate_test(
         difficulty_level = request.get("difficulty_level", "medium")
         num_questions = request.get("num_questions", 10)
         tags = request.get("tags", [])
+        max_marks = request.get("max_marks")  # Maximum marks for this subject
         
         print(f"========== TEST GENERATION REQUEST ==========")
         print(f"Teacher: {current_user.full_name}")
@@ -17979,6 +17980,9 @@ Format as JSON array:
             
             generated_by = "ai"
         
+        # Calculate total marks from questions
+        total_marks = sum(q.get("marks", 2) for q in questions)
+        
         # Create test record (draft status)
         test_id = str(uuid.uuid4())
         test_doc = {
@@ -17994,6 +17998,8 @@ Format as JSON array:
             "topic": topic or "",
             "difficulty_level": difficulty_level,
             "total_questions": len(questions),
+            "total_marks": total_marks,
+            "max_marks": max_marks or total_marks,  # Use provided max_marks or calculated total
             "duration_minutes": len(questions) * 3,
             "tags": tags,
             "generated_by": generated_by,
@@ -18042,6 +18048,64 @@ Format as JSON array:
     except Exception as e:
         logger.error(f"Test generation error: {e}")
         raise HTTPException(status_code=500, detail=f"Test generation failed: {str(e)}")
+
+@api_router.put("/test/question/{question_id}")
+async def update_test_question(
+    question_id: str,
+    request: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Update a test question (editing functionality)
+    """
+    try:
+        if current_user.role not in ["teacher", "admin", "super_admin"]:
+            raise HTTPException(status_code=403, detail="Only teachers and admins can edit questions")
+        
+        # Build update data
+        update_data = {
+            "updated_at": datetime.now(timezone.utc)
+        }
+        
+        # Update fields if provided
+        if "question_text" in request:
+            update_data["question_text"] = request["question_text"]
+        if "options" in request:
+            update_data["options"] = request["options"]
+        if "correct_answer" in request:
+            update_data["correct_answer"] = request["correct_answer"]
+        if "marks" in request:
+            update_data["marks"] = request["marks"]
+        if "question_type" in request:
+            update_data["question_type"] = request["question_type"]
+        if "learning_tag" in request:
+            update_data["learning_tag"] = request["learning_tag"]
+        
+        # Update question
+        result = await db.assessment_questions.update_one(
+            {"id": question_id, "tenant_id": current_user.tenant_id},
+            {"$set": update_data}
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Question not found or no changes made")
+        
+        # Fetch updated question
+        updated_question = await db.assessment_questions.find_one({"id": question_id})
+        if updated_question and "_id" in updated_question:
+            del updated_question["_id"]
+        
+        print(f"✅ Question updated: {question_id}")
+        
+        return {
+            "success": True,
+            "question": updated_question,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Question update error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update question")
 
 @api_router.post("/test/publish")
 async def publish_test(
@@ -18115,6 +18179,20 @@ async def list_tests(
         tests_cursor = db.assessments.find(filter_query).sort("created_at", -1)
         tests = []
         async for test in tests_cursor:
+            # Remove MongoDB _id field
+            if "_id" in test:
+                del test["_id"]
+            
+            # Serialize datetime fields
+            if "created_at" in test and isinstance(test["created_at"], datetime):
+                test["created_at"] = test["created_at"].isoformat()
+            if "published_at" in test and isinstance(test["published_at"], datetime):
+                test["published_at"] = test["published_at"].isoformat()
+            if "scheduled_start" in test and isinstance(test["scheduled_start"], datetime):
+                test["scheduled_start"] = test["scheduled_start"].isoformat()
+            if "scheduled_end" in test and isinstance(test["scheduled_end"], datetime):
+                test["scheduled_end"] = test["scheduled_end"].isoformat()
+            
             tests.append(test)
         
         return {
@@ -18250,6 +18328,181 @@ async def submit_test(
     except Exception as e:
         logger.error(f"Test submission error: {e}")
         raise HTTPException(status_code=500, detail=f"Test submission failed: {str(e)}")
+
+# ============================================================================
+# GiNi Module Usage Analytics (Dashboard)
+# ============================================================================
+
+@api_router.get("/gini/usage/analytics")
+async def get_gini_usage_analytics(
+    days: int = 7,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get GiNi module usage analytics for dashboard charts
+    Supports both 7-day and 30-day views
+    Returns class-wise and subject-wise breakdowns for all GiNi modules
+    """
+    try:
+        # Calculate date range
+        end_date = datetime.now(timezone.utc)
+        start_date = end_date - timedelta(days=days)
+        
+        filter_base = {
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id,
+            "created_at": {"$gte": start_date, "$lte": end_date}
+        }
+        
+        # Initialize analytics structure
+        analytics = {
+            "ai_assistant": {
+                "total_interactions": 0,
+                "class_wise": {},
+                "subject_wise": {},
+                "daily": {}
+            },
+            "quiz": {
+                "total_interactions": 0,
+                "class_wise": {},
+                "subject_wise": {},
+                "daily": {}
+            },
+            "test_generator": {
+                "total_interactions": 0,
+                "class_wise": {},
+                "subject_wise": {},
+                "daily": {}
+            },
+            "summary": {
+                "total_interactions": 0,
+                "class_wise": {},
+                "subject_wise": {},
+                "daily": {}
+            },
+            "notes": {
+                "total_interactions": 0,
+                "class_wise": {},
+                "subject_wise": {},
+                "daily": {}
+            }
+        }
+        
+        # AI Assistant usage - from ai_chat_sessions
+        assistant_filter = {**filter_base}
+        assistant_cursor = db.ai_chat_sessions.find(assistant_filter)
+        async for session in assistant_cursor:
+            analytics["ai_assistant"]["total_interactions"] += 1
+            
+            # Class-wise
+            class_std = session.get("class_standard", "Unknown")
+            analytics["ai_assistant"]["class_wise"][class_std] = analytics["ai_assistant"]["class_wise"].get(class_std, 0) + 1
+            
+            # Subject-wise
+            subject = session.get("subject", "General")
+            analytics["ai_assistant"]["subject_wise"][subject] = analytics["ai_assistant"]["subject_wise"].get(subject, 0) + 1
+            
+            # Daily
+            day_key = session.get("created_at", end_date).strftime("%Y-%m-%d")
+            analytics["ai_assistant"]["daily"][day_key] = analytics["ai_assistant"]["daily"].get(day_key, 0) + 1
+        
+        # Quiz usage - from assessment_submissions (quiz type)
+        quiz_filter = {**filter_base, "assessment_type": "quiz"}
+        quiz_cursor = db.assessment_submissions.find(quiz_filter)
+        async for submission in quiz_cursor:
+            analytics["quiz"]["total_interactions"] += 1
+            
+            # Class-wise
+            class_std = submission.get("student_class", "Unknown")
+            analytics["quiz"]["class_wise"][class_std] = analytics["quiz"]["class_wise"].get(class_std, 0) + 1
+            
+            # Subject-wise
+            subject = submission.get("subject", "General")
+            analytics["quiz"]["subject_wise"][subject] = analytics["quiz"]["subject_wise"].get(subject, 0) + 1
+            
+            # Daily
+            day_key = submission.get("created_at", end_date).strftime("%Y-%m-%d")
+            analytics["quiz"]["daily"][day_key] = analytics["quiz"]["daily"].get(day_key, 0) + 1
+        
+        # Test Generator usage - from assessments (test type)
+        test_filter = {**filter_base, "type": "test"}
+        test_cursor = db.assessments.find(test_filter)
+        async for test in test_cursor:
+            analytics["test_generator"]["total_interactions"] += 1
+            
+            # Class-wise
+            class_std = test.get("class_standard", "Unknown")
+            analytics["test_generator"]["class_wise"][class_std] = analytics["test_generator"]["class_wise"].get(class_std, 0) + 1
+            
+            # Subject-wise
+            subject = test.get("subject", "General")
+            analytics["test_generator"]["subject_wise"][subject] = analytics["test_generator"]["subject_wise"].get(subject, 0) + 1
+            
+            # Daily
+            day_key = test.get("created_at", end_date).strftime("%Y-%m-%d")
+            analytics["test_generator"]["daily"][day_key] = analytics["test_generator"]["daily"].get(day_key, 0) + 1
+        
+        # Summary usage - from ai_summary_requests (if collection exists)
+        summary_filter = {**filter_base}
+        try:
+            summary_cursor = db.ai_summary_requests.find(summary_filter)
+            async for req in summary_cursor:
+                analytics["summary"]["total_interactions"] += 1
+                
+                # Class-wise
+                class_std = req.get("class_standard", "Unknown")
+                analytics["summary"]["class_wise"][class_std] = analytics["summary"]["class_wise"].get(class_std, 0) + 1
+                
+                # Subject-wise
+                subject = req.get("subject", "General")
+                analytics["summary"]["subject_wise"][subject] = analytics["summary"]["subject_wise"].get(subject, 0) + 1
+                
+                # Daily
+                day_key = req.get("created_at", end_date).strftime("%Y-%m-%d")
+                analytics["summary"]["daily"][day_key] = analytics["summary"]["daily"].get(day_key, 0) + 1
+        except:
+            pass  # Collection may not exist yet
+        
+        # Notes usage - from ai_notes_requests (if collection exists)
+        notes_filter = {**filter_base}
+        try:
+            notes_cursor = db.ai_notes_requests.find(notes_filter)
+            async for req in notes_cursor:
+                analytics["notes"]["total_interactions"] += 1
+                
+                # Class-wise
+                class_std = req.get("class_standard", "Unknown")
+                analytics["notes"]["class_wise"][class_std] = analytics["notes"]["class_wise"].get(class_std, 0) + 1
+                
+                # Subject-wise
+                subject = req.get("subject", "General")
+                analytics["notes"]["subject_wise"][subject] = analytics["notes"]["subject_wise"].get(subject, 0) + 1
+                
+                # Daily
+                day_key = req.get("created_at", end_date).strftime("%Y-%m-%d")
+                analytics["notes"]["daily"][day_key] = analytics["notes"]["daily"].get(day_key, 0) + 1
+        except:
+            pass  # Collection may not exist yet
+        
+        # Generate date labels for charts
+        date_labels = []
+        for i in range(days):
+            date = start_date + timedelta(days=i)
+            date_labels.append(date.strftime("%Y-%m-%d"))
+        
+        return {
+            "success": True,
+            "period": f"{days}_days",
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+            "date_labels": date_labels,
+            "analytics": analytics,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"GiNi analytics error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch GiNi usage analytics")
 
 # ============================================================================
 # END QUIZ TOOL & TEST GENERATOR MODULE
