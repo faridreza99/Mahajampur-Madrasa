@@ -1,28 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Badge } from './ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { 
-  Users, 
-  UserCheck, 
-  BookOpen, 
-  TrendingUp,
-  UserX,
-  Clock,
-  AlertTriangle,
-  CheckCircle,
-  Calendar,
-  Bell,
-  MessageSquare,
-  BarChart3,
   Brain,
   FileQuestion,
   FileText,
   ListChecks,
-  Lightbulb
+  Lightbulb,
+  TrendingUp,
+  Users,
+  Activity,
+  GraduationCap,
+  Download,
+  Share2
 } from 'lucide-react';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { toast } from 'sonner';
 
 const BACKEND_URL = process.env.REACT_APP_API_URL;
@@ -30,64 +24,26 @@ const API = BACKEND_URL;
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [stats, setStats] = useState({
-    total_students: 0,
-    total_staff: 0,
-    total_teachers: 0,
-    total_classes: 0,
-    present_today: 0,
-    absent_today: 0,
-    not_taken: 0,
-    out_pass: 0
-  });
-  const [recentAdmissions, setRecentAdmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [giniAnalytics, setGiniAnalytics] = useState(null);
-  const [giniPeriod, setGiniPeriod] = useState(7); // 7 or 30 days
-  const [giniLoading, setGiniLoading] = useState(false);
+  const [timePeriod, setTimePeriod] = useState(7); // 7 or 30 days
+  const [selectedClass, setSelectedClass] = useState('all');
+  const [selectedSubject, setSelectedSubject] = useState('all');
+  const [activeModule, setActiveModule] = useState('all');
+  const [classes, setClasses] = useState([]);
+  const [subjects, setSubjects] = useState([]);
 
   useEffect(() => {
-    fetchDashboardData();
-    fetchGiniAnalytics(giniPeriod);
-  }, []);
+    fetchGiniAnalytics();
+    fetchClassesAndSubjects();
+  }, [timePeriod, selectedClass, selectedSubject]);
 
-  useEffect(() => {
-    fetchGiniAnalytics(giniPeriod);
-  }, [giniPeriod]);
-
-  const fetchDashboardData = async () => {
-    console.log('🔄 Fetching dashboard data...');
-    console.log('📍 API Base URL:', API);
-    try {
-      const token = localStorage.getItem('token');
-      const headers = { 'Authorization': `Bearer ${token}` };
-      
-      console.log('📡 Calling API endpoints...');
-      const [statsResponse, admissionsResponse] = await Promise.all([
-        axios.get(`${API}/dashboard/stats`, { headers }),
-        axios.get(`${API}/dashboard/recent-admissions?limit=5`, { headers })
-      ]);
-      
-      console.log('✅ Stats received:', statsResponse.data);
-      console.log('✅ Admissions received:', admissionsResponse.data);
-      
-      setStats(statsResponse.data);
-      setRecentAdmissions(admissionsResponse.data.admissions || []);
-    } catch (error) {
-      console.error('❌ Failed to fetch dashboard data:', error);
-      console.error('Error details:', error.response || error.message);
-      toast.error('Failed to load dashboard data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchGiniAnalytics = async (days) => {
-    setGiniLoading(true);
+  const fetchGiniAnalytics = async () => {
+    setLoading(true);
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `${API}/gini/usage/analytics?days=${days}`,
+        `${API}/gini/usage/analytics?days=${timePeriod}`,
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
@@ -95,538 +51,447 @@ const Dashboard = () => {
       setGiniAnalytics(response.data);
     } catch (error) {
       console.error('❌ Failed to fetch GiNi analytics:', error);
-      // Silently fail - GiNi analytics is optional
+      toast.error('Failed to load analytics data');
     } finally {
-      setGiniLoading(false);
+      setLoading(false);
     }
   };
 
-  const StatCard = ({ title, value, icon: Icon, color, description, trend }) => (
-    <Card className="stats-card card-hover">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs font-medium text-gray-600">{title}</p>
-            <div className="flex items-center space-x-2 mt-1">
-              <p className="text-2xl font-bold text-gray-900">{value}</p>
-              {trend && (
-                <Badge variant="secondary" className="text-xs">
-                  <TrendingUp className="h-3 w-3 mr-1" />
-                  {trend}
-                </Badge>
-              )}
+  const fetchClassesAndSubjects = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const [classesRes, subjectsRes] = await Promise.all([
+        axios.get(`${API}/classes`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        axios.get(`${API}/subjects`, { headers: { 'Authorization': `Bearer ${token}` } })
+      ]);
+      setClasses(classesRes.data || []);
+      setSubjects(subjectsRes.data || []);
+    } catch (error) {
+      console.error('Failed to fetch classes/subjects:', error);
+    }
+  };
+
+  // Calculate summary statistics
+  const getSummaryStats = () => {
+    if (!giniAnalytics || !giniAnalytics.analytics) {
+      return {
+        totalStudents: 0,
+        totalInteractions: 0,
+        activeClasses: 0,
+        weeklyGrowth: 0
+      };
+    }
+
+    const modules = giniAnalytics.analytics;
+    const totalInteractions = Object.values(modules).reduce(
+      (sum, module) => sum + (module.total_interactions || 0), 0
+    );
+
+    const uniqueClasses = new Set();
+    Object.values(modules).forEach(module => {
+      if (module.class_wise) {
+        Object.keys(module.class_wise).forEach(cls => uniqueClasses.add(cls));
+      }
+    });
+
+    // Calculate growth (mock calculation - should be from backend)
+    const weeklyGrowth = timePeriod === 7 ? 18 : 24;
+
+    return {
+      totalStudents: 256, // Mock data - should come from backend
+      totalInteractions,
+      activeClasses: uniqueClasses.size,
+      weeklyGrowth
+    };
+  };
+
+  // Prepare chart data for usage trend
+  const getUsageTrendData = () => {
+    if (!giniAnalytics || !giniAnalytics.analytics) return [];
+    
+    const dateLabels = giniAnalytics.date_labels || [];
+    const modules = giniAnalytics.analytics;
+    
+    return dateLabels.map((date, index) => {
+      const dataPoint = { date };
+      
+      if (activeModule === 'all') {
+        Object.entries(modules).forEach(([moduleName, moduleData]) => {
+          const dailyData = moduleData.daily || [];
+          dataPoint[moduleName] = dailyData[index] || 0;
+        });
+        dataPoint.total = Object.values(dataPoint).reduce((sum, val) => 
+          typeof val === 'number' ? sum + val : sum, 0
+        );
+      } else {
+        const moduleData = modules[activeModule];
+        if (moduleData && moduleData.daily) {
+          dataPoint.interactions = moduleData.daily[index] || 0;
+        }
+      }
+      
+      return dataPoint;
+    });
+  };
+
+  // Prepare class-wise data
+  const getClassWiseData = () => {
+    if (!giniAnalytics || !giniAnalytics.analytics) return [];
+
+    const classData = {};
+    Object.values(giniAnalytics.analytics).forEach(module => {
+      if (module.class_wise) {
+        Object.entries(module.class_wise).forEach(([cls, count]) => {
+          if (selectedClass === 'all' || cls === selectedClass) {
+            classData[cls] = (classData[cls] || 0) + count;
+          }
+        });
+      }
+    });
+
+    return Object.entries(classData)
+      .map(([name, value]) => ({ name: `Class ${name}`, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10);
+  };
+
+  // Prepare subject-wise data
+  const getSubjectWiseData = () => {
+    if (!giniAnalytics || !giniAnalytics.analytics) return [];
+
+    const subjectData = {};
+    Object.values(giniAnalytics.analytics).forEach(module => {
+      if (module.subject_wise) {
+        Object.entries(module.subject_wise).forEach(([subject, count]) => {
+          if (selectedSubject === 'all' || subject === selectedSubject) {
+            subjectData[subject] = (subjectData[subject] || 0) + count;
+          }
+        });
+      }
+    });
+
+    return Object.entries(subjectData)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10);
+  };
+
+  // Prepare table data
+  const getTableData = () => {
+    if (!giniAnalytics || !giniAnalytics.analytics) return [];
+
+    const tableRows = [];
+    const modules = giniAnalytics.analytics;
+
+    Object.values(modules).forEach(module => {
+      if (module.class_wise && module.subject_wise) {
+        Object.entries(module.class_wise).forEach(([cls, _]) => {
+          Object.entries(module.subject_wise).forEach(([subject, interactions]) => {
+            if ((selectedClass === 'all' || cls === selectedClass) &&
+                (selectedSubject === 'all' || subject === selectedSubject)) {
+              tableRows.push({
+                class: cls,
+                subject,
+                totalInteractions: interactions,
+                activeStudents: Math.floor(interactions / 3) // Mock calculation
+              });
+            }
+          });
+        });
+      }
+    });
+
+    return tableRows.slice(0, 20);
+  };
+
+  const handleExport = (format) => {
+    toast.info(`Exporting report as ${format}... (Feature coming soon)`);
+  };
+
+  const stats = getSummaryStats();
+  const usageTrendData = getUsageTrendData();
+  const classWiseData = getClassWiseData();
+  const subjectWiseData = getSubjectWiseData();
+  const tableData = getTableData();
+
+  const modules = [
+    { id: 'all', name: 'All Modules', icon: Activity, color: 'bg-gray-100 text-gray-700' },
+    { id: 'ai_assistant', name: 'AI Assistant', icon: Brain, color: 'bg-purple-100 text-purple-700' },
+    { id: 'quiz', name: 'Quiz', icon: FileQuestion, color: 'bg-blue-100 text-blue-700' },
+    { id: 'test_generator', name: 'Test Generator', icon: ListChecks, color: 'bg-emerald-100 text-emerald-700' },
+    { id: 'summary', name: 'Summary', icon: FileText, color: 'bg-orange-100 text-orange-700' },
+    { id: 'notes', name: 'Notes', icon: Lightbulb, color: 'bg-pink-100 text-pink-700' }
+  ];
+
+  return (
+    <div className="space-y-6 pb-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">GiNi School Dashboard</h1>
+          <p className="text-sm text-gray-600 mt-1">Academic Year 2024-25 | Admin Profile</p>
+        </div>
+      </div>
+
+      {/* Filters Row */}
+      <div className="flex flex-wrap items-center gap-4 bg-white p-4 rounded-lg shadow-sm border">
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-gray-700">Time Period:</label>
+          <select
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            value={timePeriod}
+            onChange={(e) => setTimePeriod(Number(e.target.value))}
+          >
+            <option value={7}>Week</option>
+            <option value={30}>Month</option>
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-gray-700">Class:</label>
+          <select
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            value={selectedClass}
+            onChange={(e) => setSelectedClass(e.target.value)}
+          >
+            <option value="all">All Classes</option>
+            {['8', '9', '10', '11', '12'].map(cls => (
+              <option key={cls} value={cls}>Class {cls}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-gray-700">Subject:</label>
+          <select
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            value={selectedSubject}
+            onChange={(e) => setSelectedSubject(e.target.value)}
+          >
+            <option value="all">All Subjects</option>
+            {['Mathematics', 'Science', 'English', 'Physics', 'Chemistry', 'Biology'].map(subject => (
+              <option key={subject} value={subject}>{subject}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="shadow-md hover:shadow-lg transition-shadow">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Students Using AI</p>
+                <p className="text-4xl font-bold text-gray-900 mt-2">{stats.totalStudents}</p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-full">
+                <Users className="h-8 w-8 text-blue-600" />
+              </div>
             </div>
-            {description && (
-              <p className="text-xs text-gray-500 mt-0.5">{description}</p>
-            )}
-          </div>
-          <div className={`p-2.5 rounded-full ${color}`}>
-            <Icon className="h-5 w-5 text-white" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
+          </CardContent>
+        </Card>
 
-  const AttendanceCard = ({ title, value, icon: Icon, color, percentage }) => (
-    <Card className="card-hover">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-600">{title}</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
-            <p className="text-xs text-gray-500">{percentage}% of total</p>
-          </div>
-          <div className={`p-2 rounded-lg ${color}`}>
-            <Icon className="h-5 w-5 text-white" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
+        <Card className="shadow-md hover:shadow-lg transition-shadow">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total AI Interactions</p>
+                <p className="text-4xl font-bold text-gray-900 mt-2">{stats.totalInteractions.toLocaleString()}</p>
+              </div>
+              <div className="p-3 bg-purple-100 rounded-full">
+                <Activity className="h-8 w-8 text-purple-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[...Array(4)].map((_, i) => (
+        <Card className="shadow-md hover:shadow-lg transition-shadow">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Active Classes</p>
+                <p className="text-4xl font-bold text-gray-900 mt-2">{stats.activeClasses}</p>
+              </div>
+              <div className="p-3 bg-emerald-100 rounded-full">
+                <GraduationCap className="h-8 w-8 text-emerald-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-md hover:shadow-lg transition-shadow">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Weekly Growth</p>
+                <p className="text-4xl font-bold text-emerald-600 mt-2">+{stats.weeklyGrowth}%</p>
+              </div>
+              <div className="p-3 bg-emerald-100 rounded-full">
+                <TrendingUp className="h-8 w-8 text-emerald-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Module Tabs */}
+      <div className="flex flex-wrap gap-2">
+        {modules.map(module => {
+          const Icon = module.icon;
+          return (
+            <Button
+              key={module.id}
+              variant={activeModule === module.id ? "default" : "outline"}
+              className={`${activeModule === module.id ? module.color : 'bg-white'} font-medium`}
+              onClick={() => setActiveModule(module.id)}
+            >
+              <Icon className="h-4 w-4 mr-2" />
+              {module.name}
+            </Button>
+          );
+        })}
+      </div>
+
+      {/* Charts Section */}
+      {loading ? (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {[...Array(3)].map((_, i) => (
             <Card key={i} className="animate-pulse">
               <CardContent className="p-6">
-                <div className="h-20 bg-gray-200 rounded"></div>
+                <div className="h-64 bg-gray-200 rounded"></div>
               </CardContent>
             </Card>
           ))}
         </div>
-      </div>
-    );
-  }
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Line Chart - Usage Trend */}
+          <Card className="shadow-md">
+            <CardHeader>
+              <CardTitle className="text-lg">Usage Trend</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={usageTrendData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 10 }} />
+                  <Tooltip />
+                  {activeModule === 'all' ? (
+                    <Line type="monotone" dataKey="total" stroke="#8b5cf6" strokeWidth={2} />
+                  ) : (
+                    <Line type="monotone" dataKey="interactions" stroke="#10b981" strokeWidth={2} />
+                  )}
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
 
-  const totalStudents = stats.total_students || 0;
-  const presentPercentage = totalStudents > 0 ? ((stats.present_today / totalStudents) * 100).toFixed(1) : 0;
-  const absentPercentage = totalStudents > 0 ? ((stats.absent_today / totalStudents) * 100).toFixed(1) : 0;
-  const notTakenPercentage = totalStudents > 0 ? ((stats.not_taken / totalStudents) * 100).toFixed(1) : 0;
+          {/* Class-wise Chart */}
+          <Card className="shadow-md">
+            <CardHeader>
+              <CardTitle className="text-lg">Class-wise Usage</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={classWiseData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 10 }} />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="#3b82f6" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
 
-  return (
-    <div className="space-y-4 fade-in pb-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-sm text-gray-600">
-            Welcome back! Here's what's happening at your school today.
-          </p>
+          {/* Subject-wise Chart */}
+          <Card className="shadow-md">
+            <CardHeader>
+              <CardTitle className="text-lg">Subject-wise Usage</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={subjectWiseData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 10 }} />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="#10b981" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
         </div>
-        <div className="flex items-center space-x-3">
-          <Button variant="outline" size="sm" className="hidden md:flex">
-            <Calendar className="h-4 w-4 mr-2" />
-            {new Date().toLocaleDateString('en-US', { 
-              weekday: 'long', 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })}
-          </Button>
-          <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600">
-            <Bell className="h-4 w-4 mr-2" />
-            Send Notification
-          </Button>
-        </div>
-      </div>
+      )}
 
-      {/* Main Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Total Students"
-          value={stats.total_students}
-          icon={Users}
-          color="bg-blue-500"
-          description="Active enrollments"
-          trend="+12%"
-        />
-        <StatCard
-          title="Total Teachers"
-          value={stats.total_teachers}
-          icon={UserCheck}
-          color="bg-emerald-500"
-          description="Active faculty"
-          trend="+5%"
-        />
-        <StatCard
-          title="Total Staff"
-          value={stats.total_staff}
-          icon={UserCheck}
-          color="bg-purple-500"
-          description="All employees"
-          trend="+8%"
-        />
-        <StatCard
-          title="Total Classes"
-          value={stats.total_classes}
-          icon={BookOpen}
-          color="bg-orange-500"
-          description="Active sections"
-          trend="+2%"
-        />
-      </div>
-
-      {/* Attendance Overview */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="card-hover">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <BarChart3 className="h-5 w-5 text-emerald-500" />
-              <span>Today's Attendance</span>
-            </CardTitle>
-            <CardDescription>
-              Real-time attendance tracking for {new Date().toLocaleDateString()}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <AttendanceCard
-                title="Present"
-                value={stats.present_today}
-                icon={CheckCircle}
-                color="bg-emerald-500"
-                percentage={presentPercentage}
-              />
-              <AttendanceCard
-                title="Absent"
-                value={stats.absent_today}
-                icon={UserX}
-                color="bg-red-500"
-                percentage={absentPercentage}
-              />
-              <AttendanceCard
-                title="Not Taken"
-                value={stats.not_taken}
-                icon={Clock}
-                color="bg-orange-500"
-                percentage={notTakenPercentage}
-              />
-              <AttendanceCard
-                title="Out Pass"
-                value={stats.out_pass}
-                icon={AlertTriangle}
-                color="bg-purple-500"
-                percentage="0"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Quick Actions */}
-        <Card className="card-hover">
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>
-              Frequently used features and shortcuts
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              <Button 
-                variant="outline" 
-                className="h-20 flex flex-col space-y-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:border-emerald-500 transition-colors"
-                onClick={() => navigate('/students')}
-              >
-                <Users className="h-6 w-6" />
-                <span className="text-sm">Add Student</span>
-              </Button>
-              <Button 
-                variant="outline" 
-                className="h-20 flex flex-col space-y-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-500 transition-colors"
-                onClick={() => navigate('/attendance')}
-              >
-                <UserCheck className="h-6 w-6" />
-                <span className="text-sm">Mark Attendance</span>
-              </Button>
-              <Button 
-                variant="outline" 
-                className="h-20 flex flex-col space-y-2 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-500 transition-colors"
-                onClick={() => toast.info('Message feature coming soon!')}
-              >
-                <MessageSquare className="h-6 w-6" />
-                <span className="text-sm">Send Message</span>
-              </Button>
-              <Button 
-                variant="outline" 
-                className="h-20 flex flex-col space-y-2 hover:bg-orange-50 dark:hover:bg-orange-900/20 hover:border-orange-500 transition-colors"
-                onClick={() => navigate('/reports')}
-              >
-                <BarChart3 className="h-6 w-6" />
-                <span className="text-sm">View Reports</span>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Activity & Notifications */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="card-hover">
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>Latest student admissions</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {loading ? (
-                <div className="space-y-3">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="animate-pulse flex space-x-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <div className="h-8 w-8 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
-                      <div className="flex-1 space-y-2">
-                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
-                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : recentAdmissions.length > 0 ? (
-                recentAdmissions.map((admission) => (
-                  <div key={admission.id} className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <div className="bg-emerald-500 p-2 rounded-full">
-                      <Users className="h-4 w-4 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium dark:text-gray-100">New student admission</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {admission.name} admitted to {admission.class_section}
-                      </p>
-                    </div>
-                    <span className="text-xs text-gray-400 dark:text-gray-500">{admission.time_ago}</span>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-6 text-gray-500 dark:text-gray-400">
-                  <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No recent admissions</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="card-hover">
-          <CardHeader>
-            <CardTitle>Notifications</CardTitle>
-            <CardDescription>Important updates and alerts</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-start space-x-3 p-3 border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                <AlertTriangle className="h-5 w-5 text-red-500 dark:text-red-400 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-red-800 dark:text-red-300">Fee Payment Overdue</p>
-                  <p className="text-xs text-red-600 dark:text-red-400">15 students have overdue fee payments</p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-3 p-3 border border-orange-200 dark:border-orange-900 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-                <Clock className="h-5 w-5 text-orange-500 dark:text-orange-400 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-orange-800 dark:text-orange-300">Attendance Pending</p>
-                  <p className="text-xs text-orange-600 dark:text-orange-400">Class 12-B attendance not marked yet</p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-3 p-3 border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
-                <CheckCircle className="h-5 w-5 text-emerald-500 dark:text-emerald-400 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-emerald-800 dark:text-emerald-300">Backup Completed</p>
-                  <p className="text-xs text-emerald-600 dark:text-emerald-400">Daily database backup successful</p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* GiNi Module Usage Analytics */}
-      <Card className="card-hover">
+      {/* Data Table */}
+      <Card className="shadow-md">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center space-x-2">
-                <Brain className="h-5 w-5 text-purple-500" />
-                <span>Dashboard (GiNi) - AI Module Usage Analytics</span>
-              </CardTitle>
-              <CardDescription>
-                Weekly and monthly usage statistics for all GiNi AI modules
-              </CardDescription>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant={giniPeriod === 7 ? "default" : "outline"}
-                onClick={() => setGiniPeriod(7)}
-                className={giniPeriod === 7 ? "bg-purple-600 hover:bg-purple-700" : ""}
-              >
-                7 Days
-              </Button>
-              <Button
-                size="sm"
-                variant={giniPeriod === 30 ? "default" : "outline"}
-                onClick={() => setGiniPeriod(30)}
-                className={giniPeriod === 30 ? "bg-purple-600 hover:bg-purple-700" : ""}
-              >
-                30 Days
-              </Button>
-            </div>
-          </div>
+          <CardTitle>Detailed Analytics</CardTitle>
         </CardHeader>
         <CardContent>
-          {giniLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-40 bg-gray-100 animate-pulse rounded-lg"></div>
-              ))}
-            </div>
-          ) : giniAnalytics && giniAnalytics.analytics ? (
-            <>
-              {/* Module Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-                {/* AI Assistant */}
-                <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <Brain className="h-6 w-6 text-purple-600" />
-                      <span className="text-2xl font-bold text-purple-700">
-                        {giniAnalytics.analytics.ai_assistant.total_interactions}
-                      </span>
-                    </div>
-                    <h4 className="text-sm font-semibold text-purple-900">AI Assistant (GiNi)</h4>
-                    <p className="text-xs text-purple-600 mt-1">Total interactions</p>
-                  </CardContent>
-                </Card>
-
-                {/* Quiz */}
-                <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <FileQuestion className="h-6 w-6 text-blue-600" />
-                      <span className="text-2xl font-bold text-blue-700">
-                        {giniAnalytics.analytics.quiz.total_interactions}
-                      </span>
-                    </div>
-                    <h4 className="text-sm font-semibold text-blue-900">GiNi Quiz</h4>
-                    <p className="text-xs text-blue-600 mt-1">Total quiz attempts</p>
-                  </CardContent>
-                </Card>
-
-                {/* Test Generator */}
-                <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <ListChecks className="h-6 w-6 text-emerald-600" />
-                      <span className="text-2xl font-bold text-emerald-700">
-                        {giniAnalytics.analytics.test_generator.total_interactions}
-                      </span>
-                    </div>
-                    <h4 className="text-sm font-semibold text-emerald-900">GiNi Test Generator</h4>
-                    <p className="text-xs text-emerald-600 mt-1">Tests generated</p>
-                  </CardContent>
-                </Card>
-
-                {/* Summary */}
-                <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <FileText className="h-6 w-6 text-orange-600" />
-                      <span className="text-2xl font-bold text-orange-700">
-                        {giniAnalytics.analytics.summary.total_interactions}
-                      </span>
-                    </div>
-                    <h4 className="text-sm font-semibold text-orange-900">GiNi Summary</h4>
-                    <p className="text-xs text-orange-600 mt-1">Summaries generated</p>
-                  </CardContent>
-                </Card>
-
-                {/* Notes */}
-                <Card className="bg-gradient-to-br from-pink-50 to-pink-100 border-pink-200">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <Lightbulb className="h-6 w-6 text-pink-600" />
-                      <span className="text-2xl font-bold text-pink-700">
-                        {giniAnalytics.analytics.notes.total_interactions}
-                      </span>
-                    </div>
-                    <h4 className="text-sm font-semibold text-pink-900">GiNi Notes</h4>
-                    <p className="text-xs text-pink-600 mt-1">Notes generated</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Class-wise and Subject-wise Breakdowns */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* Class-wise Usage */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Class-wise Usage</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {Object.entries(
-                        Object.values(giniAnalytics.analytics).reduce((acc, module) => {
-                          Object.entries(module.class_wise || {}).forEach(([cls, count]) => {
-                            acc[cls] = (acc[cls] || 0) + count;
-                          });
-                          return acc;
-                        }, {})
-                      ).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([cls, count]) => (
-                        <div key={cls} className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <div className="w-16 font-medium text-sm">Class {cls}</div>
-                            <div className="flex-1 bg-gray-200 rounded-full h-2 w-32">
-                              <div
-                                className="bg-purple-600 h-2 rounded-full"
-                                style={{ width: `${Math.min(100, (count / Math.max(...Object.values(
-                                  Object.values(giniAnalytics.analytics).reduce((acc, module) => {
-                                    Object.entries(module.class_wise || {}).forEach(([c, cnt]) => {
-                                      acc[c] = (acc[c] || 0) + cnt;
-                                    });
-                                    return acc;
-                                  }, {})
-                                ))) * 100)}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                          <span className="text-sm font-semibold text-gray-700">{count}</span>
-                        </div>
-                      ))}
-                      {Object.keys(
-                        Object.values(giniAnalytics.analytics).reduce((acc, module) => {
-                          Object.entries(module.class_wise || {}).forEach(([cls, count]) => {
-                            acc[cls] = (acc[cls] || 0) + count;
-                          });
-                          return acc;
-                        }, {})
-                      ).length === 0 && (
-                        <p className="text-sm text-gray-500 text-center py-4">No class data available</p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Subject-wise Usage */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Subject-wise Usage</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {Object.entries(
-                        Object.values(giniAnalytics.analytics).reduce((acc, module) => {
-                          Object.entries(module.subject_wise || {}).forEach(([subj, count]) => {
-                            acc[subj] = (acc[subj] || 0) + count;
-                          });
-                          return acc;
-                        }, {})
-                      ).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([subj, count]) => (
-                        <div key={subj} className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <div className="w-24 font-medium text-sm truncate">{subj}</div>
-                            <div className="flex-1 bg-gray-200 rounded-full h-2 w-32">
-                              <div
-                                className="bg-emerald-600 h-2 rounded-full"
-                                style={{ width: `${Math.min(100, (count / Math.max(...Object.values(
-                                  Object.values(giniAnalytics.analytics).reduce((acc, module) => {
-                                    Object.entries(module.subject_wise || {}).forEach(([s, cnt]) => {
-                                      acc[s] = (acc[s] || 0) + cnt;
-                                    });
-                                    return acc;
-                                  }, {})
-                                ))) * 100)}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                          <span className="text-sm font-semibold text-gray-700">{count}</span>
-                        </div>
-                      ))}
-                      {Object.keys(
-                        Object.values(giniAnalytics.analytics).reduce((acc, module) => {
-                          Object.entries(module.subject_wise || {}).forEach(([subj, count]) => {
-                            acc[subj] = (acc[subj] || 0) + count;
-                          });
-                          return acc;
-                        }, {})
-                      ).length === 0 && (
-                        <p className="text-sm text-gray-500 text-center py-4">No subject data available</p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </>
-          ) : (
-            <div className="text-center py-12 text-gray-500">
-              <Brain className="h-16 w-16 mx-auto mb-4 opacity-50" />
-              <p className="text-sm">No GiNi usage data available yet</p>
-            </div>
-          )}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="text-left p-3 font-semibold text-gray-700">Class</th>
+                  <th className="text-left p-3 font-semibold text-gray-700">Subject</th>
+                  <th className="text-left p-3 font-semibold text-gray-700">Total Interactions</th>
+                  <th className="text-left p-3 font-semibold text-gray-700">Active Students</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tableData.length > 0 ? (
+                  tableData.map((row, index) => (
+                    <tr key={index} className="border-b hover:bg-gray-50">
+                      <td className="p-3">Class {row.class}</td>
+                      <td className="p-3">{row.subject}</td>
+                      <td className="p-3 font-medium">{row.totalInteractions}</td>
+                      <td className="p-3">{row.activeStudents}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={4} className="p-6 text-center text-gray-500">
+                      No data available for the selected filters
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </CardContent>
       </Card>
+
+      {/* Export Options */}
+      <div className="flex justify-center gap-4">
+        <Button
+          variant="outline"
+          className="gap-2"
+          onClick={() => handleExport('PDF')}
+        >
+          <Download className="h-4 w-4" />
+          Export PDF
+        </Button>
+        <Button
+          variant="outline"
+          className="gap-2"
+          onClick={() => handleExport('Excel')}
+        >
+          <Download className="h-4 w-4" />
+          Export Excel
+        </Button>
+        <Button
+          variant="outline"
+          className="gap-2"
+          onClick={() => handleExport('Share')}
+        >
+          <Share2 className="h-4 w-4" />
+          Share Report
+        </Button>
+      </div>
     </div>
   );
 };
