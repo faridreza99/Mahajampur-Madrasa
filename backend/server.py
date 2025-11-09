@@ -5247,18 +5247,24 @@ async def upload_file(
     document_type: str = None,
     current_user: User = Depends(get_current_user)
 ):
-    """Upload a file and return the file URL"""
+    """Upload a file and return the file URL (supports PDF, TXT, DOCX, JPG, PNG up to 30MB)"""
     try:
-        # Validate file type
-        allowed_types = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']
+        # Validate file type - Extended to support TXT and DOCX
+        allowed_types = [
+            'application/pdf',
+            'image/jpeg', 'image/jpg', 'image/png',
+            'text/plain',  # TXT files
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',  # DOCX
+            'application/msword'  # DOC (legacy)
+        ]
         if file.content_type not in allowed_types:
-            raise HTTPException(status_code=400, detail="Invalid file type. Only PDF, JPG, and PNG files are allowed")
+            raise HTTPException(status_code=400, detail="Invalid file type. Only PDF, TXT, DOC, DOCX, JPG, and PNG files are allowed")
         
-        # Validate file size (10MB max)
-        max_size = 10 * 1024 * 1024  # 10MB
+        # Validate file size (30MB max for academic content)
+        max_size = 30 * 1024 * 1024  # 30MB
         file_content = await file.read()
         if len(file_content) > max_size:
-            raise HTTPException(status_code=400, detail="File size exceeds 10MB limit")
+            raise HTTPException(status_code=400, detail="File size exceeds 30MB limit")
         
         # Reset file pointer for saving
         await file.seek(0)
