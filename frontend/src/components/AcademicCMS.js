@@ -26,12 +26,9 @@ const AcademicCMS = () => {
   const [editingPaperId, setEditingPaperId] = useState(null);
   const [uploadingFile, setUploadingFile] = useState(false);
   
-  // Filters
-  const [filters, setFilters] = useState({
-    class_standard: '',
-    subject: '',
-    chapter: ''
-  });
+  // Navigation states for hierarchical flow
+  const [refNavLevel, setRefNavLevel] = useState({ step: 'class', class: '', subject: '', book: '' });
+  const [paperNavLevel, setPaperNavLevel] = useState({ step: 'class', class: '', subject: '', year: '' });
   
   // Form states
   const [bookForm, setBookForm] = useState({
@@ -355,12 +352,7 @@ const AcademicCMS = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const params = new URLSearchParams();
-      if (filters.class_standard) params.append('class_standard', filters.class_standard);
-      if (filters.subject) params.append('subject', filters.subject);
-      if (filters.chapter) params.append('chapter', filters.chapter);
-      
-      const response = await axios.get(`${API_BASE_URL}/cms/reference-books?${params}`, {
+      const response = await axios.get(`${API_BASE_URL}/cms/reference-books`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setReferenceBooks(response.data.books || []);
@@ -436,12 +428,7 @@ const AcademicCMS = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const params = new URLSearchParams();
-      if (filters.class_standard) params.append('class_standard', filters.class_standard);
-      if (filters.subject) params.append('subject', filters.subject);
-      if (filters.chapter) params.append('chapter', filters.chapter);
-      
-      const response = await axios.get(`${API_BASE_URL}/cms/previous-year-papers?${params}`, {
+      const response = await axios.get(`${API_BASE_URL}/cms/previous-year-papers`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setPreviousPapers(response.data.papers || []);
@@ -559,10 +546,12 @@ const AcademicCMS = () => {
       fetchQAPairs();
     } else if (activeTab === 'reference') {
       fetchReferenceBooks();
+      setRefNavLevel({ step: 'class', class: '', subject: '', book: '' });
     } else if (activeTab === 'papers') {
       fetchPreviousPapers();
+      setPaperNavLevel({ step: 'class', class: '', subject: '', year: '' });
     }
-  }, [activeTab, filters]);
+  }, [activeTab]);
 
   return (
     <div className="p-6">
@@ -769,136 +758,200 @@ const AcademicCMS = () => {
       {/* Reference Books Tab */}
       {activeTab === 'reference' && (
         <div>
-          {/* Filters */}
-          <div className="bg-white rounded-lg shadow p-4 mb-4">
-            <div className="grid grid-cols-4 gap-4">
-              <select
-                value={filters.class_standard}
-                onChange={(e) => setFilters({...filters, class_standard: e.target.value})}
-                className="px-3 py-2 border rounded-lg"
-              >
-                <option value="">All Classes</option>
-                {[9, 10, 11, 12].map(c => (
-                  <option key={c} value={c}>Class {c}</option>
-                ))}
-              </select>
-              <select
-                value={filters.subject}
-                onChange={(e) => setFilters({...filters, subject: e.target.value})}
-                className="px-3 py-2 border rounded-lg"
-              >
-                <option value="">All Subjects</option>
-                {['Physics', 'Chemistry', 'Biology', 'Math', 'English'].map(s => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-              <input
-                type="text"
-                placeholder="Filter by Chapter"
-                value={filters.chapter}
-                onChange={(e) => setFilters({...filters, chapter: e.target.value})}
-                className="px-3 py-2 border rounded-lg"
-              />
+          {/* Breadcrumb Navigation */}
+          {refNavLevel.step !== 'class' && (
+            <div className="mb-4 flex items-center gap-2 text-sm text-gray-600">
               <button
-                onClick={() => setFilters({ class_standard: '', subject: '', chapter: '' })}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                onClick={() => setRefNavLevel({ step: 'class', class: '', subject: '', book: '' })}
+                className="hover:text-emerald-600"
               >
-                Clear Filters
+                Classes
               </button>
+              {refNavLevel.class && (
+                <>
+                  <span>›</span>
+                  <span className="font-medium">Class {refNavLevel.class}</span>
+                </>
+              )}
+              {refNavLevel.step === 'subject' && (
+                <>
+                  <span>›</span>
+                  <span>Select Subject</span>
+                </>
+              )}
+              {refNavLevel.subject && refNavLevel.step === 'books' && (
+                <>
+                  <span>›</span>
+                  <button
+                    onClick={() => setRefNavLevel({ ...refNavLevel, step: 'subject', subject: '' })}
+                    className="hover:text-emerald-600"
+                  >
+                    {refNavLevel.subject}
+                  </button>
+                  <span>›</span>
+                  <span>Books</span>
+                </>
+              )}
             </div>
-          </div>
+          )}
 
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">Reference Books ({referenceBooks.length})</h2>
-            <button
-              onClick={() => {
-                setEditingReferenceBookId(null);
-                setReferenceBookForm({
-                  title: '',
-                  author: '',
-                  subject: '',
-                  class_standard: '',
-                  chapter: '',
-                  board: 'CBSE',
-                  publisher: '',
-                  description: '',
-                  file_url: ''
-                });
-                setShowAddReferenceBook(true);
-              }}
-              className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700"
-            >
-              <Plus className="w-4 h-4" />
-              Add Reference Book
-            </button>
-          </div>
-
-          {/* Books Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {referenceBooks.map((book) => (
-              <div key={book.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-semibold text-gray-900 flex-1">{book.title}</h3>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        setEditingReferenceBookId(book.id);
-                        setReferenceBookForm({
-                          title: book.title,
-                          author: book.author,
-                          subject: book.subject,
-                          class_standard: book.class_standard,
-                          chapter: book.chapter || '',
-                          board: book.board || 'CBSE',
-                          publisher: book.publisher || '',
-                          description: book.description || '',
-                          file_url: book.file_url || ''
-                        });
-                        setShowAddReferenceBook(true);
-                      }}
-                      className="text-blue-600 hover:text-blue-800 p-1"
-                      title="Edit Book"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteReferenceBook(book.id)}
-                      className="text-red-600 hover:text-red-800 p-1"
-                      title="Delete Book"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600">by {book.author}</p>
-                <div className="mt-2 flex gap-2 flex-wrap">
-                  <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
-                    {book.subject}
-                  </span>
-                  <span className="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">
-                    Class {book.class_standard}
-                  </span>
-                  {book.chapter && (
-                    <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
-                      {book.chapter}
-                    </span>
-                  )}
-                  {book.file_url && (
-                    <a
-                      href={book.file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded hover:bg-orange-200"
-                    >
-                      <FileText className="w-3 h-3" />
-                      View File
-                    </a>
-                  )}
-                </div>
-                {book.description && <p className="text-sm text-gray-500 mt-2">{book.description}</p>}
+          {/* Step 1: Select Class */}
+          {refNavLevel.step === 'class' && (
+            <div>
+              <h2 className="text-lg font-semibold mb-4">Select Class</h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {[...new Set(referenceBooks.map(book => book.class_standard))].sort((a, b) => a - b).map(classNum => (
+                  <button
+                    key={classNum}
+                    onClick={() => setRefNavLevel({ ...refNavLevel, step: 'subject', class: classNum })}
+                    className="border-2 border-gray-300 rounded-lg p-6 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-center"
+                  >
+                    <div className="text-3xl font-bold text-gray-900">Class {classNum}</div>
+                    <div className="text-sm text-gray-600 mt-2">
+                      {referenceBooks.filter(b => b.class_standard === classNum).length} books
+                    </div>
+                  </button>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          )}
+
+          {/* Step 2: Select Subject */}
+          {refNavLevel.step === 'subject' && (
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold">Select Subject</h2>
+                <button
+                  onClick={() => setRefNavLevel({ ...refNavLevel, step: 'class', class: '' })}
+                  className="text-gray-600 hover:text-gray-900"
+                >
+                  ← Back
+                </button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[...new Set(referenceBooks
+                  .filter(book => book.class_standard === refNavLevel.class)
+                  .map(book => book.subject)
+                )].sort().map(subject => (
+                  <button
+                    key={subject}
+                    onClick={() => setRefNavLevel({ ...refNavLevel, step: 'books', subject })}
+                    className="border-2 border-gray-300 rounded-lg p-4 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left"
+                  >
+                    <div className="text-xl font-semibold text-gray-900">{subject}</div>
+                    <div className="text-sm text-gray-600 mt-1">
+                      {referenceBooks.filter(b => b.class_standard === refNavLevel.class && b.subject === subject).length} books
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: View Books */}
+          {refNavLevel.step === 'books' && (
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold">
+                  Reference Books ({referenceBooks.filter(b => 
+                    b.class_standard === refNavLevel.class && b.subject === refNavLevel.subject
+                  ).length})
+                </h2>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setRefNavLevel({ ...refNavLevel, step: 'subject', subject: '' })}
+                    className="text-gray-600 hover:text-gray-900"
+                  >
+                    ← Back
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEditingReferenceBookId(null);
+                      setReferenceBookForm({
+                        title: '',
+                        author: '',
+                        subject: refNavLevel.subject,
+                        class_standard: refNavLevel.class,
+                        chapter: '',
+                        board: 'CBSE',
+                        publisher: '',
+                        description: '',
+                        file_url: ''
+                      });
+                      setShowAddReferenceBook(true);
+                    }}
+                    className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Reference Book
+                  </button>
+                </div>
+              </div>
+
+              {/* Books Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {referenceBooks
+                  .filter(book => book.class_standard === refNavLevel.class && book.subject === refNavLevel.subject)
+                  .map((book) => (
+                    <div key={book.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="font-semibold text-gray-900 flex-1">{book.title}</h3>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              setEditingReferenceBookId(book.id);
+                              setReferenceBookForm({
+                                title: book.title,
+                                author: book.author,
+                                subject: book.subject,
+                                class_standard: book.class_standard,
+                                chapter: book.chapter || '',
+                                board: book.board || 'CBSE',
+                                publisher: book.publisher || '',
+                                description: book.description || '',
+                                file_url: book.file_url || ''
+                              });
+                              setShowAddReferenceBook(true);
+                            }}
+                            className="text-blue-600 hover:text-blue-800 p-1"
+                            title="Edit Book"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteReferenceBook(book.id)}
+                            className="text-red-600 hover:text-red-800 p-1"
+                            title="Delete Book"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-600">by {book.author}</p>
+                      <div className="mt-2 flex gap-2 flex-wrap">
+                        {book.chapter && (
+                          <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
+                            {book.chapter}
+                          </span>
+                        )}
+                        {book.file_url && (
+                          <a
+                            href={book.file_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded hover:bg-orange-200"
+                          >
+                            <FileText className="w-3 h-3" />
+                            View File
+                          </a>
+                        )}
+                      </div>
+                      {book.description && <p className="text-sm text-gray-500 mt-2">{book.description}</p>}
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
 
           {/* Add/Edit Reference Book Modal */}
           {showAddReferenceBook && (
@@ -1013,136 +1066,256 @@ const AcademicCMS = () => {
       {/* Previous Years' Papers Tab */}
       {activeTab === 'papers' && (
         <div>
-          {/* Filters */}
-          <div className="bg-white rounded-lg shadow p-4 mb-4">
-            <div className="grid grid-cols-4 gap-4">
-              <select
-                value={filters.class_standard}
-                onChange={(e) => setFilters({...filters, class_standard: e.target.value})}
-                className="px-3 py-2 border rounded-lg"
-              >
-                <option value="">All Classes</option>
-                {[9, 10, 11, 12].map(c => (
-                  <option key={c} value={c}>Class {c}</option>
-                ))}
-              </select>
-              <select
-                value={filters.subject}
-                onChange={(e) => setFilters({...filters, subject: e.target.value})}
-                className="px-3 py-2 border rounded-lg"
-              >
-                <option value="">All Subjects</option>
-                {['Physics', 'Chemistry', 'Biology', 'Math', 'English'].map(s => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-              <input
-                type="text"
-                placeholder="Filter by Chapter"
-                value={filters.chapter}
-                onChange={(e) => setFilters({...filters, chapter: e.target.value})}
-                className="px-3 py-2 border rounded-lg"
-              />
+          {/* Breadcrumb Navigation */}
+          {paperNavLevel.step !== 'class' && (
+            <div className="mb-4 flex items-center gap-2 text-sm text-gray-600">
               <button
-                onClick={() => setFilters({ class_standard: '', subject: '', chapter: '' })}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                onClick={() => setPaperNavLevel({ step: 'class', class: '', subject: '', year: '' })}
+                className="hover:text-emerald-600"
               >
-                Clear Filters
+                Classes
               </button>
+              {paperNavLevel.class && (
+                <>
+                  <span>›</span>
+                  <span className="font-medium">Class {paperNavLevel.class}</span>
+                </>
+              )}
+              {paperNavLevel.step === 'subject' && (
+                <>
+                  <span>›</span>
+                  <span>Select Subject</span>
+                </>
+              )}
+              {paperNavLevel.subject && paperNavLevel.step !== 'subject' && (
+                <>
+                  <span>›</span>
+                  <button
+                    onClick={() => setPaperNavLevel({ ...paperNavLevel, step: 'subject', subject: '', year: '' })}
+                    className="hover:text-emerald-600"
+                  >
+                    {paperNavLevel.subject}
+                  </button>
+                </>
+              )}
+              {paperNavLevel.step === 'year' && (
+                <>
+                  <span>›</span>
+                  <span>Select Year</span>
+                </>
+              )}
+              {paperNavLevel.year && paperNavLevel.step === 'papers' && (
+                <>
+                  <span>›</span>
+                  <button
+                    onClick={() => setPaperNavLevel({ ...paperNavLevel, step: 'year', year: '' })}
+                    className="hover:text-emerald-600"
+                  >
+                    {paperNavLevel.year}
+                  </button>
+                  <span>›</span>
+                  <span>Papers</span>
+                </>
+              )}
             </div>
-          </div>
+          )}
 
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">Previous Years' Papers ({previousPapers.length})</h2>
-            <button
-              onClick={() => {
-                setEditingPaperId(null);
-                setPaperForm({
-                  title: '',
-                  subject: '',
-                  class_standard: '',
-                  chapter: '',
-                  exam_year: new Date().getFullYear(),
-                  paper_type: 'Final Exam',
-                  file_url: ''
-                });
-                setShowAddPaper(true);
-              }}
-              className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700"
-            >
-              <Plus className="w-4 h-4" />
-              Add Paper
-            </button>
-          </div>
+          {/* Step 1: Select Class */}
+          {paperNavLevel.step === 'class' && (
+            <div>
+              <h2 className="text-lg font-semibold mb-4">Select Class</h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {[...new Set(previousPapers.map(paper => paper.class_standard))].sort((a, b) => a - b).map(classNum => (
+                  <button
+                    key={classNum}
+                    onClick={() => setPaperNavLevel({ ...paperNavLevel, step: 'subject', class: classNum })}
+                    className="border-2 border-gray-300 rounded-lg p-6 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-center"
+                  >
+                    <div className="text-3xl font-bold text-gray-900">Class {classNum}</div>
+                    <div className="text-sm text-gray-600 mt-2">
+                      {previousPapers.filter(p => p.class_standard === classNum).length} papers
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
-          {/* Papers Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {previousPapers.map((paper) => (
-              <div key={paper.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-semibold text-gray-900 flex-1">{paper.title}</h3>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        setEditingPaperId(paper.id);
-                        setPaperForm({
-                          title: paper.title,
-                          subject: paper.subject,
-                          class_standard: paper.class_standard,
-                          chapter: paper.chapter || '',
-                          exam_year: paper.exam_year,
-                          paper_type: paper.paper_type,
-                          file_url: paper.file_url || ''
-                        });
-                        setShowAddPaper(true);
-                      }}
-                      className="text-blue-600 hover:text-blue-800 p-1"
-                      title="Edit Paper"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeletePaper(paper.id)}
-                      className="text-red-600 hover:text-red-800 p-1"
-                      title="Delete Paper"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-                <div className="mt-2 flex gap-2 flex-wrap">
-                  <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
-                    {paper.subject}
-                  </span>
-                  <span className="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">
-                    Class {paper.class_standard}
-                  </span>
-                  <span className="inline-block bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded">
-                    {paper.exam_year}
-                  </span>
-                  <span className="inline-block bg-pink-100 text-pink-800 text-xs px-2 py-1 rounded">
-                    {paper.paper_type}
-                  </span>
-                  {paper.chapter && (
-                    <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
-                      {paper.chapter}
-                    </span>
-                  )}
-                  {paper.file_url && (
-                    <a
-                      href={paper.file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded hover:bg-orange-200"
-                    >
-                      <FileText className="w-3 h-3" />
-                      View File
-                    </a>
-                  )}
+          {/* Step 2: Select Subject */}
+          {paperNavLevel.step === 'subject' && (
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold">Select Subject</h2>
+                <button
+                  onClick={() => setPaperNavLevel({ ...paperNavLevel, step: 'class', class: '' })}
+                  className="text-gray-600 hover:text-gray-900"
+                >
+                  ← Back
+                </button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[...new Set(previousPapers
+                  .filter(paper => paper.class_standard === paperNavLevel.class)
+                  .map(paper => paper.subject)
+                )].sort().map(subject => (
+                  <button
+                    key={subject}
+                    onClick={() => setPaperNavLevel({ ...paperNavLevel, step: 'year', subject })}
+                    className="border-2 border-gray-300 rounded-lg p-4 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left"
+                  >
+                    <div className="text-xl font-semibold text-gray-900">{subject}</div>
+                    <div className="text-sm text-gray-600 mt-1">
+                      {previousPapers.filter(p => p.class_standard === paperNavLevel.class && p.subject === subject).length} papers
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Select Year */}
+          {paperNavLevel.step === 'year' && (
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold">Select Exam Year</h2>
+                <button
+                  onClick={() => setPaperNavLevel({ ...paperNavLevel, step: 'subject', subject: '' })}
+                  className="text-gray-600 hover:text-gray-900"
+                >
+                  ← Back
+                </button>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {[...new Set(previousPapers
+                  .filter(paper => paper.class_standard === paperNavLevel.class && paper.subject === paperNavLevel.subject)
+                  .map(paper => paper.exam_year)
+                )].sort((a, b) => b - a).map(year => (
+                  <button
+                    key={year}
+                    onClick={() => setPaperNavLevel({ ...paperNavLevel, step: 'papers', year })}
+                    className="border-2 border-gray-300 rounded-lg p-6 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-center"
+                  >
+                    <div className="text-3xl font-bold text-gray-900">{year}</div>
+                    <div className="text-sm text-gray-600 mt-2">
+                      {previousPapers.filter(p => 
+                        p.class_standard === paperNavLevel.class && 
+                        p.subject === paperNavLevel.subject && 
+                        p.exam_year === year
+                      ).length} papers
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: View Papers */}
+          {paperNavLevel.step === 'papers' && (
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold">
+                  Previous Years' Papers ({previousPapers.filter(p => 
+                    p.class_standard === paperNavLevel.class && 
+                    p.subject === paperNavLevel.subject && 
+                    p.exam_year === paperNavLevel.year
+                  ).length})
+                </h2>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setPaperNavLevel({ ...paperNavLevel, step: 'year', year: '' })}
+                    className="text-gray-600 hover:text-gray-900"
+                  >
+                    ← Back
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEditingPaperId(null);
+                      setPaperForm({
+                        title: '',
+                        subject: paperNavLevel.subject,
+                        class_standard: paperNavLevel.class,
+                        chapter: '',
+                        exam_year: paperNavLevel.year,
+                        paper_type: 'Final Exam',
+                        file_url: ''
+                      });
+                      setShowAddPaper(true);
+                    }}
+                    className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Paper
+                  </button>
                 </div>
               </div>
-            ))}
-          </div>
+
+              {/* Papers Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {previousPapers
+                  .filter(paper => 
+                    paper.class_standard === paperNavLevel.class && 
+                    paper.subject === paperNavLevel.subject && 
+                    paper.exam_year === paperNavLevel.year
+                  )
+                  .map((paper) => (
+                    <div key={paper.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="font-semibold text-gray-900 flex-1">{paper.title}</h3>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              setEditingPaperId(paper.id);
+                              setPaperForm({
+                                title: paper.title,
+                                subject: paper.subject,
+                                class_standard: paper.class_standard,
+                                chapter: paper.chapter || '',
+                                exam_year: paper.exam_year,
+                                paper_type: paper.paper_type,
+                                file_url: paper.file_url || ''
+                              });
+                              setShowAddPaper(true);
+                            }}
+                            className="text-blue-600 hover:text-blue-800 p-1"
+                            title="Edit Paper"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeletePaper(paper.id)}
+                            className="text-red-600 hover:text-red-800 p-1"
+                            title="Delete Paper"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="mt-2 flex gap-2 flex-wrap">
+                        <span className="inline-block bg-pink-100 text-pink-800 text-xs px-2 py-1 rounded">
+                          {paper.paper_type}
+                        </span>
+                        {paper.chapter && (
+                          <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
+                            {paper.chapter}
+                          </span>
+                        )}
+                        {paper.file_url && (
+                          <a
+                            href={paper.file_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded hover:bg-orange-200"
+                          >
+                            <FileText className="w-3 h-3" />
+                            View File
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
 
           {/* Add/Edit Paper Modal */}
           {showAddPaper && (
