@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Book, Plus, Edit, Trash2, Search, FileText, Upload, Download } from 'lucide-react';
+import { Book, Plus, Edit, Trash2, Search, FileText, Upload, Download, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 
@@ -798,21 +798,43 @@ const AcademicCMS = () => {
           {/* Step 1: Select Class */}
           {refNavLevel.step === 'class' && (
             <div>
-              <h2 className="text-lg font-semibold mb-4">Select Class</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {[...new Set(referenceBooks.map(book => book.class_standard))].sort((a, b) => a - b).map(classNum => (
-                  <button
-                    key={classNum}
-                    onClick={() => setRefNavLevel({ ...refNavLevel, step: 'subject', class: classNum })}
-                    className="border-2 border-gray-300 rounded-lg p-6 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-center"
-                  >
-                    <div className="text-3xl font-bold text-gray-900">Class {classNum}</div>
-                    <div className="text-sm text-gray-600 mt-2">
-                      {referenceBooks.filter(b => b.class_standard === classNum).length} books
-                    </div>
-                  </button>
-                ))}
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold">Select Class</h2>
+                <button
+                  onClick={() => setShowAddReferenceBook(true)}
+                  className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 flex items-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add New Book
+                </button>
               </div>
+              {referenceBooks.length === 0 ? (
+                <div className="text-center py-12 bg-gray-50 rounded-lg">
+                  <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-4">No reference books added yet</p>
+                  <button
+                    onClick={() => setShowAddReferenceBook(true)}
+                    className="bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700"
+                  >
+                    Add Your First Book
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                  {[...new Set(referenceBooks.map(book => book.class_standard))].sort((a, b) => a - b).map(classNum => (
+                    <button
+                      key={classNum}
+                      onClick={() => setRefNavLevel({ ...refNavLevel, step: 'subject', class: classNum })}
+                      className="border-2 border-gray-300 rounded-lg p-6 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-center"
+                    >
+                      <div className="text-3xl font-bold text-gray-900">Class {classNum}</div>
+                      <div className="text-sm text-gray-600 mt-2">
+                        {referenceBooks.filter(b => b.class_standard === classNum).length} books
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -1123,21 +1145,43 @@ const AcademicCMS = () => {
           {/* Step 1: Select Class */}
           {paperNavLevel.step === 'class' && (
             <div>
-              <h2 className="text-lg font-semibold mb-4">Select Class</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {[...new Set(previousPapers.map(paper => paper.class_standard))].sort((a, b) => a - b).map(classNum => (
-                  <button
-                    key={classNum}
-                    onClick={() => setPaperNavLevel({ ...paperNavLevel, step: 'subject', class: classNum })}
-                    className="border-2 border-gray-300 rounded-lg p-6 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-center"
-                  >
-                    <div className="text-3xl font-bold text-gray-900">Class {classNum}</div>
-                    <div className="text-sm text-gray-600 mt-2">
-                      {previousPapers.filter(p => p.class_standard === classNum).length} papers
-                    </div>
-                  </button>
-                ))}
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold">Select Class</h2>
+                <button
+                  onClick={() => setShowAddPaper(true)}
+                  className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 flex items-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add New Paper
+                </button>
               </div>
+              {previousPapers.length === 0 ? (
+                <div className="text-center py-12 bg-gray-50 rounded-lg">
+                  <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-4">No previous year papers added yet</p>
+                  <button
+                    onClick={() => setShowAddPaper(true)}
+                    className="bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700"
+                  >
+                    Add Your First Paper
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                  {[...new Set(previousPapers.map(paper => paper.class_standard))].sort((a, b) => a - b).map(classNum => (
+                    <button
+                      key={classNum}
+                      onClick={() => setPaperNavLevel({ ...paperNavLevel, step: 'subject', class: classNum })}
+                      className="border-2 border-gray-300 rounded-lg p-6 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-center"
+                    >
+                      <div className="text-3xl font-bold text-gray-900">Class {classNum}</div>
+                      <div className="text-sm text-gray-600 mt-2">
+                        {previousPapers.filter(p => p.class_standard === classNum).length} papers
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
