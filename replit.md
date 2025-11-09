@@ -39,6 +39,7 @@ Preferred communication style: Simple, everyday language.
 ## System Design Choices
 - **Build Tooling**: Create React App with Craco and Webpack customization.
 - **Development Environment**: Hot reloading and a development server.
+- **React Performance Pattern**: All async fetch functions in useEffect hooks are wrapped in useCallback with proper dependency arrays to prevent infinite render loops. This pattern is consistently applied across AINotes, AISummary, and AILogs components.
 
 # External Dependencies
 
