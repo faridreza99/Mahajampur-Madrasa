@@ -1393,6 +1393,32 @@ async def ensure_seed_data():
             if not existing_student:
                 await db.students.insert_one(student_data)
                 logging.info(f"Created demo HSS student: {student_data['name']}")
+        
+        # Create default super admin user if it doesn't exist
+        default_super_admin = await db.users.find_one({
+            "username": "admin",
+            "tenant_id": DEFAULT_TENANT_ID
+        })
+        if not default_super_admin:
+            # Create super admin with default credentials
+            admin_password = "admin123"  # Default password
+            hashed_password = hash_password(admin_password)
+            
+            admin_user = {
+                "id": str(uuid.uuid4()),
+                "tenant_id": DEFAULT_TENANT_ID,
+                "school_id": DEFAULT_SCHOOL_ID,
+                "username": "admin",
+                "email": "admin@maxtech.bd",
+                "full_name": "System Administrator",
+                "role": "super_admin",
+                "password_hash": hashed_password,
+                "is_active": True,
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }
+            await db.users.insert_one(admin_user)
+            logging.info("✅ Created default super admin user - Username: admin, Password: admin123")
             
     except Exception as e:
         logging.error(f"Error creating seed data: {e}")
