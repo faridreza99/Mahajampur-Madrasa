@@ -19378,7 +19378,10 @@ async def create_reference_book(
             "updated_at": datetime.utcnow()
         })
         
-        await db.reference_books.insert_one(book_data)
+        result = await db.reference_books.insert_one(book_data)
+        # Remove MongoDB _id before returning
+        if '_id' in book_data:
+            del book_data['_id']
         return book_data
     except Exception as e:
         logger.error(f"Error creating reference book: {e}")
@@ -19709,7 +19712,10 @@ async def create_previous_year_paper(
             "updated_at": datetime.utcnow()
         })
         
-        await db.previous_year_papers.insert_one(paper_data)
+        result = await db.previous_year_papers.insert_one(paper_data)
+        # Remove MongoDB _id before returning
+        if '_id' in paper_data:
+            del paper_data['_id']
         return paper_data
     except Exception as e:
         logger.error(f"Error creating previous year paper: {e}")
