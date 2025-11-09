@@ -35,8 +35,7 @@ const AISummary = () => {
 
   useEffect(() => {
     fetchSummaries();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterClass, filterSubject, filterChapter]); // include chapter in dependency
+  }, [filterClass, filterSubject, filterChapter, fetchSummaries]); // include chapter in dependency
 
   const fetchSummaries = async () => {
     try {

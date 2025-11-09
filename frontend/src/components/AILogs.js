@@ -39,7 +39,6 @@ export default function AILogs() {
   useEffect(() => {
     fetchFilterOptions();
     fetchLogs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     contentSource,
     subject,
@@ -48,6 +47,8 @@ export default function AILogs() {
     referenceBook,
     sortOrder,
     currentPage,
+    fetchFilterOptions,
+    fetchLogs,
   ]);
 
   const fetchLogs = async () => {

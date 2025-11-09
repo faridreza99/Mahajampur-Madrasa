@@ -31,8 +31,7 @@ const AINotes = () => {
 
   useEffect(() => {
     fetchNotes();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterClass, filterSubject, filterChapter]); // include chapter
+  }, [filterClass, filterSubject, filterChapter, fetchNotes]); // include chapter
 
   const fetchNotes = async () => {
     try {
