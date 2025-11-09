@@ -10,14 +10,28 @@ const AcademicCMS = () => {
   const [activeTab, setActiveTab] = useState('books');
   const [books, setBooks] = useState([]);
   const [qaPairs, setQaPairs] = useState([]);
+  const [referenceBooks, setReferenceBooks] = useState([]);
+  const [previousPapers, setPreviousPapers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showAddBook, setShowAddBook] = useState(false);
   const [showAddQA, setShowAddQA] = useState(false);
+  const [showAddReferenceBook, setShowAddReferenceBook] = useState(false);
+  const [showAddPaper, setShowAddPaper] = useState(false);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [bulkUploadFile, setBulkUploadFile] = useState(null);
   const [uploadSummary, setUploadSummary] = useState(null);
   const [editingBookId, setEditingBookId] = useState(null);
   const [editingQAId, setEditingQAId] = useState(null);
+  const [editingReferenceBookId, setEditingReferenceBookId] = useState(null);
+  const [editingPaperId, setEditingPaperId] = useState(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  
+  // Filters
+  const [filters, setFilters] = useState({
+    class_standard: '',
+    subject: '',
+    chapter: ''
+  });
   
   // Form states
   const [bookForm, setBookForm] = useState({
@@ -40,6 +54,28 @@ const AcademicCMS = () => {
     difficulty_level: 'medium',
     keywords: '',
     tags: ''
+  });
+  
+  const [referenceBookForm, setReferenceBookForm] = useState({
+    title: '',
+    author: '',
+    subject: '',
+    class_standard: '',
+    chapter: '',
+    board: 'CBSE',
+    publisher: '',
+    description: '',
+    file_url: ''
+  });
+  
+  const [paperForm, setPaperForm] = useState({
+    title: '',
+    subject: '',
+    class_standard: '',
+    chapter: '',
+    exam_year: new Date().getFullYear(),
+    paper_type: 'Final Exam',
+    file_url: ''
   });
 
   // Fetch books
@@ -314,13 +350,219 @@ const AcademicCMS = () => {
     toast.success('📄 Sample template downloaded!');
   };
 
+  // Fetch reference books
+  const fetchReferenceBooks = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const params = new URLSearchParams();
+      if (filters.class_standard) params.append('class_standard', filters.class_standard);
+      if (filters.subject) params.append('subject', filters.subject);
+      if (filters.chapter) params.append('chapter', filters.chapter);
+      
+      const response = await axios.get(`${API_BASE_URL}/cms/reference-books?${params}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setReferenceBooks(response.data.books || []);
+    } catch (error) {
+      toast.error('Failed to load reference books');
+      console.error(error);
+    }
+    setLoading(false);
+  };
+
+  // Add or Update reference book
+  const handleAddReferenceBook = async (e) => {
+    e.preventDefault();
+    const isEditing = editingReferenceBookId !== null;
+    
+    try {
+      const token = localStorage.getItem('token');
+      
+      if (isEditing) {
+        await axios.put(`${API_BASE_URL}/cms/reference-books/${editingReferenceBookId}`, referenceBookForm, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        toast.success('✅ Reference book updated successfully!');
+      } else {
+        await axios.post(`${API_BASE_URL}/cms/reference-books`, referenceBookForm, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        toast.success('✅ Reference book added successfully!');
+      }
+      
+      setShowAddReferenceBook(false);
+      setEditingReferenceBookId(null);
+      setReferenceBookForm({
+        title: '',
+        author: '',
+        subject: '',
+        class_standard: '',
+        chapter: '',
+        board: 'CBSE',
+        publisher: '',
+        description: '',
+        file_url: ''
+      });
+      fetchReferenceBooks();
+    } catch (error) {
+      const errorMsg = isEditing ? 'Failed to update reference book' : 'Failed to add reference book';
+      toast.error(error.response?.data?.detail || errorMsg);
+      console.error(error);
+    }
+  };
+
+  // Delete reference book
+  const handleDeleteReferenceBook = async (bookId) => {
+    if (!window.confirm('Are you sure you want to delete this reference book?')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`${API_BASE_URL}/cms/reference-books/${bookId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('✅ Reference book deleted successfully!');
+      fetchReferenceBooks();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to delete reference book');
+      console.error(error);
+    }
+  };
+
+  // Fetch previous papers
+  const fetchPreviousPapers = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const params = new URLSearchParams();
+      if (filters.class_standard) params.append('class_standard', filters.class_standard);
+      if (filters.subject) params.append('subject', filters.subject);
+      if (filters.chapter) params.append('chapter', filters.chapter);
+      
+      const response = await axios.get(`${API_BASE_URL}/cms/previous-year-papers?${params}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setPreviousPapers(response.data.papers || []);
+    } catch (error) {
+      toast.error('Failed to load previous year papers');
+      console.error(error);
+    }
+    setLoading(false);
+  };
+
+  // Add or Update previous paper
+  const handleAddPaper = async (e) => {
+    e.preventDefault();
+    const isEditing = editingPaperId !== null;
+    
+    try {
+      const token = localStorage.getItem('token');
+      
+      if (isEditing) {
+        await axios.put(`${API_BASE_URL}/cms/previous-year-papers/${editingPaperId}`, paperForm, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        toast.success('✅ Previous year paper updated successfully!');
+      } else {
+        await axios.post(`${API_BASE_URL}/cms/previous-year-papers`, paperForm, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        toast.success('✅ Previous year paper added successfully!');
+      }
+      
+      setShowAddPaper(false);
+      setEditingPaperId(null);
+      setPaperForm({
+        title: '',
+        subject: '',
+        class_standard: '',
+        chapter: '',
+        exam_year: new Date().getFullYear(),
+        paper_type: 'Final Exam',
+        file_url: ''
+      });
+      fetchPreviousPapers();
+    } catch (error) {
+      const errorMsg = isEditing ? 'Failed to update paper' : 'Failed to add paper';
+      toast.error(error.response?.data?.detail || errorMsg);
+      console.error(error);
+    }
+  };
+
+  // Delete previous paper
+  const handleDeletePaper = async (paperId) => {
+    if (!window.confirm('Are you sure you want to delete this paper?')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`${API_BASE_URL}/cms/previous-year-papers/${paperId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('✅ Previous year paper deleted successfully!');
+      fetchPreviousPapers();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to delete paper');
+      console.error(error);
+    }
+  };
+
+  // Handle file upload
+  const handleFileUpload = async (file) => {
+    if (!file) return null;
+    
+    // Validate file size (max 30MB)
+    const maxSize = 30 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error('File size must be less than 30MB');
+      return null;
+    }
+    
+    // Validate file type
+    const allowedTypes = ['application/pdf', 'text/plain', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Only PDF, TXT, and DOCX files are allowed');
+      return null;
+    }
+    
+    setUploadingFile(true);
+    try {
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await axios.post(`${API_BASE_URL}/files/upload`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      toast.success('File uploaded successfully!');
+      return response.data.file_url;
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'File upload failed');
+      console.error(error);
+      return null;
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'books') {
       fetchBooks();
     } else if (activeTab === 'qa') {
       fetchQAPairs();
+    } else if (activeTab === 'reference') {
+      fetchReferenceBooks();
+    } else if (activeTab === 'papers') {
+      fetchPreviousPapers();
     }
-  }, [activeTab]);
+  }, [activeTab, filters]);
 
   return (
     <div className="p-6">
@@ -343,6 +585,28 @@ const AcademicCMS = () => {
           >
             <Book className="w-4 h-4" />
             Academic Books
+          </button>
+          <button
+            onClick={() => setActiveTab('reference')}
+            className={`${
+              activeTab === 'reference'
+                ? 'border-emerald-500 text-emerald-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
+          >
+            <Book className="w-4 h-4" />
+            Reference Books
+          </button>
+          <button
+            onClick={() => setActiveTab('papers')}
+            className={`${
+              activeTab === 'papers'
+                ? 'border-emerald-500 text-emerald-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
+          >
+            <FileText className="w-4 h-4" />
+            Previous Years' Papers
           </button>
           <button
             onClick={() => setActiveTab('qa')}
@@ -489,6 +753,502 @@ const AcademicCMS = () => {
                           publisher: '',
                           description: ''
                         });
+                      }}
+                      className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Reference Books Tab */}
+      {activeTab === 'reference' && (
+        <div>
+          {/* Filters */}
+          <div className="bg-white rounded-lg shadow p-4 mb-4">
+            <div className="grid grid-cols-4 gap-4">
+              <select
+                value={filters.class_standard}
+                onChange={(e) => setFilters({...filters, class_standard: e.target.value})}
+                className="px-3 py-2 border rounded-lg"
+              >
+                <option value="">All Classes</option>
+                {[9, 10, 11, 12].map(c => (
+                  <option key={c} value={c}>Class {c}</option>
+                ))}
+              </select>
+              <select
+                value={filters.subject}
+                onChange={(e) => setFilters({...filters, subject: e.target.value})}
+                className="px-3 py-2 border rounded-lg"
+              >
+                <option value="">All Subjects</option>
+                {['Physics', 'Chemistry', 'Biology', 'Math', 'English'].map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+              <input
+                type="text"
+                placeholder="Filter by Chapter"
+                value={filters.chapter}
+                onChange={(e) => setFilters({...filters, chapter: e.target.value})}
+                className="px-3 py-2 border rounded-lg"
+              />
+              <button
+                onClick={() => setFilters({ class_standard: '', subject: '', chapter: '' })}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+              >
+                Clear Filters
+              </button>
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold">Reference Books ({referenceBooks.length})</h2>
+            <button
+              onClick={() => {
+                setEditingReferenceBookId(null);
+                setReferenceBookForm({
+                  title: '',
+                  author: '',
+                  subject: '',
+                  class_standard: '',
+                  chapter: '',
+                  board: 'CBSE',
+                  publisher: '',
+                  description: '',
+                  file_url: ''
+                });
+                setShowAddReferenceBook(true);
+              }}
+              className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700"
+            >
+              <Plus className="w-4 h-4" />
+              Add Reference Book
+            </button>
+          </div>
+
+          {/* Books Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {referenceBooks.map((book) => (
+              <div key={book.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="font-semibold text-gray-900 flex-1">{book.title}</h3>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setEditingReferenceBookId(book.id);
+                        setReferenceBookForm({
+                          title: book.title,
+                          author: book.author,
+                          subject: book.subject,
+                          class_standard: book.class_standard,
+                          chapter: book.chapter || '',
+                          board: book.board || 'CBSE',
+                          publisher: book.publisher || '',
+                          description: book.description || '',
+                          file_url: book.file_url || ''
+                        });
+                        setShowAddReferenceBook(true);
+                      }}
+                      className="text-blue-600 hover:text-blue-800 p-1"
+                      title="Edit Book"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteReferenceBook(book.id)}
+                      className="text-red-600 hover:text-red-800 p-1"
+                      title="Delete Book"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600">by {book.author}</p>
+                <div className="mt-2 flex gap-2 flex-wrap">
+                  <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                    {book.subject}
+                  </span>
+                  <span className="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">
+                    Class {book.class_standard}
+                  </span>
+                  {book.chapter && (
+                    <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
+                      {book.chapter}
+                    </span>
+                  )}
+                  {book.file_url && (
+                    <a
+                      href={book.file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded hover:bg-orange-200"
+                    >
+                      <FileText className="w-3 h-3" />
+                      View File
+                    </a>
+                  )}
+                </div>
+                {book.description && <p className="text-sm text-gray-500 mt-2">{book.description}</p>}
+              </div>
+            ))}
+          </div>
+
+          {/* Add/Edit Reference Book Modal */}
+          {showAddReferenceBook && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <h3 className="text-lg font-semibold mb-4">
+                  {editingReferenceBookId ? 'Edit Reference Book' : 'Add New Reference Book'}
+                </h3>
+                <form onSubmit={handleAddReferenceBook} className="space-y-4">
+                  <input
+                    type="text"
+                    placeholder="Book Title *"
+                    value={referenceBookForm.title}
+                    onChange={(e) => setReferenceBookForm({...referenceBookForm, title: e.target.value})}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    required
+                  />
+                  <input
+                    type="text"
+                    placeholder="Author *"
+                    value={referenceBookForm.author}
+                    onChange={(e) => setReferenceBookForm({...referenceBookForm, author: e.target.value})}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    required
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <select
+                      value={referenceBookForm.subject}
+                      onChange={(e) => setReferenceBookForm({...referenceBookForm, subject: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-lg"
+                      required
+                    >
+                      <option value="">Select Subject *</option>
+                      {['Physics', 'Chemistry', 'Biology', 'Math', 'English'].map(s => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={referenceBookForm.class_standard}
+                      onChange={(e) => setReferenceBookForm({...referenceBookForm, class_standard: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-lg"
+                      required
+                    >
+                      <option value="">Select Class *</option>
+                      {[9, 10, 11, 12].map(c => (
+                        <option key={c} value={c}>Class {c}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Chapter (optional)"
+                    value={referenceBookForm.chapter}
+                    onChange={(e) => setReferenceBookForm({...referenceBookForm, chapter: e.target.value})}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  />
+                  <textarea
+                    placeholder="Description"
+                    value={referenceBookForm.description}
+                    onChange={(e) => setReferenceBookForm({...referenceBookForm, description: e.target.value})}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    rows={3}
+                  />
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Upload File (PDF, TXT, DOCX - Max 30MB)</label>
+                    <input
+                      type="file"
+                      accept=".pdf,.txt,.docx"
+                      onChange={async (e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          const fileUrl = await handleFileUpload(file);
+                          if (fileUrl) {
+                            setReferenceBookForm({...referenceBookForm, file_url: fileUrl});
+                          }
+                        }
+                      }}
+                      className="w-full px-3 py-2 border rounded-lg"
+                      disabled={uploadingFile}
+                    />
+                    {uploadingFile && <p className="text-sm text-blue-600 mt-1">Uploading...</p>}
+                    {referenceBookForm.file_url && (
+                      <p className="text-sm text-green-600 mt-1">✓ File uploaded</p>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="submit"
+                      className="flex-1 bg-emerald-600 text-white py-2 rounded-lg hover:bg-emerald-700"
+                      disabled={uploadingFile}
+                    >
+                      {editingReferenceBookId ? 'Update Book' : 'Add Book'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAddReferenceBook(false);
+                        setEditingReferenceBookId(null);
+                      }}
+                      className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Previous Years' Papers Tab */}
+      {activeTab === 'papers' && (
+        <div>
+          {/* Filters */}
+          <div className="bg-white rounded-lg shadow p-4 mb-4">
+            <div className="grid grid-cols-4 gap-4">
+              <select
+                value={filters.class_standard}
+                onChange={(e) => setFilters({...filters, class_standard: e.target.value})}
+                className="px-3 py-2 border rounded-lg"
+              >
+                <option value="">All Classes</option>
+                {[9, 10, 11, 12].map(c => (
+                  <option key={c} value={c}>Class {c}</option>
+                ))}
+              </select>
+              <select
+                value={filters.subject}
+                onChange={(e) => setFilters({...filters, subject: e.target.value})}
+                className="px-3 py-2 border rounded-lg"
+              >
+                <option value="">All Subjects</option>
+                {['Physics', 'Chemistry', 'Biology', 'Math', 'English'].map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+              <input
+                type="text"
+                placeholder="Filter by Chapter"
+                value={filters.chapter}
+                onChange={(e) => setFilters({...filters, chapter: e.target.value})}
+                className="px-3 py-2 border rounded-lg"
+              />
+              <button
+                onClick={() => setFilters({ class_standard: '', subject: '', chapter: '' })}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+              >
+                Clear Filters
+              </button>
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold">Previous Years' Papers ({previousPapers.length})</h2>
+            <button
+              onClick={() => {
+                setEditingPaperId(null);
+                setPaperForm({
+                  title: '',
+                  subject: '',
+                  class_standard: '',
+                  chapter: '',
+                  exam_year: new Date().getFullYear(),
+                  paper_type: 'Final Exam',
+                  file_url: ''
+                });
+                setShowAddPaper(true);
+              }}
+              className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700"
+            >
+              <Plus className="w-4 h-4" />
+              Add Paper
+            </button>
+          </div>
+
+          {/* Papers Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {previousPapers.map((paper) => (
+              <div key={paper.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="font-semibold text-gray-900 flex-1">{paper.title}</h3>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setEditingPaperId(paper.id);
+                        setPaperForm({
+                          title: paper.title,
+                          subject: paper.subject,
+                          class_standard: paper.class_standard,
+                          chapter: paper.chapter || '',
+                          exam_year: paper.exam_year,
+                          paper_type: paper.paper_type,
+                          file_url: paper.file_url || ''
+                        });
+                        setShowAddPaper(true);
+                      }}
+                      className="text-blue-600 hover:text-blue-800 p-1"
+                      title="Edit Paper"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeletePaper(paper.id)}
+                      className="text-red-600 hover:text-red-800 p-1"
+                      title="Delete Paper"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-2 flex gap-2 flex-wrap">
+                  <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                    {paper.subject}
+                  </span>
+                  <span className="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">
+                    Class {paper.class_standard}
+                  </span>
+                  <span className="inline-block bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded">
+                    {paper.exam_year}
+                  </span>
+                  <span className="inline-block bg-pink-100 text-pink-800 text-xs px-2 py-1 rounded">
+                    {paper.paper_type}
+                  </span>
+                  {paper.chapter && (
+                    <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
+                      {paper.chapter}
+                    </span>
+                  )}
+                  {paper.file_url && (
+                    <a
+                      href={paper.file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded hover:bg-orange-200"
+                    >
+                      <FileText className="w-3 h-3" />
+                      View File
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Add/Edit Paper Modal */}
+          {showAddPaper && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <h3 className="text-lg font-semibold mb-4">
+                  {editingPaperId ? 'Edit Previous Year Paper' : 'Add New Previous Year Paper'}
+                </h3>
+                <form onSubmit={handleAddPaper} className="space-y-4">
+                  <input
+                    type="text"
+                    placeholder="Paper Title *"
+                    value={paperForm.title}
+                    onChange={(e) => setPaperForm({...paperForm, title: e.target.value})}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    required
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <select
+                      value={paperForm.subject}
+                      onChange={(e) => setPaperForm({...paperForm, subject: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-lg"
+                      required
+                    >
+                      <option value="">Select Subject *</option>
+                      {['Physics', 'Chemistry', 'Biology', 'Math', 'English'].map(s => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={paperForm.class_standard}
+                      onChange={(e) => setPaperForm({...paperForm, class_standard: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-lg"
+                      required
+                    >
+                      <option value="">Select Class *</option>
+                      {[9, 10, 11, 12].map(c => (
+                        <option key={c} value={c}>Class {c}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <input
+                      type="number"
+                      placeholder="Exam Year *"
+                      value={paperForm.exam_year}
+                      onChange={(e) => setPaperForm({...paperForm, exam_year: parseInt(e.target.value)})}
+                      className="w-full px-3 py-2 border rounded-lg"
+                      min="2000"
+                      max={new Date().getFullYear()}
+                      required
+                    />
+                    <select
+                      value={paperForm.paper_type}
+                      onChange={(e) => setPaperForm({...paperForm, paper_type: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-lg"
+                      required
+                    >
+                      <option value="Final Exam">Final Exam</option>
+                      <option value="Mid-Term">Mid-Term</option>
+                      <option value="Practice Paper">Practice Paper</option>
+                      <option value="Sample Paper">Sample Paper</option>
+                    </select>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Chapter (optional)"
+                    value={paperForm.chapter}
+                    onChange={(e) => setPaperForm({...paperForm, chapter: e.target.value})}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  />
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Upload File (PDF, TXT, DOCX - Max 30MB)</label>
+                    <input
+                      type="file"
+                      accept=".pdf,.txt,.docx"
+                      onChange={async (e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          const fileUrl = await handleFileUpload(file);
+                          if (fileUrl) {
+                            setPaperForm({...paperForm, file_url: fileUrl});
+                          }
+                        }
+                      }}
+                      className="w-full px-3 py-2 border rounded-lg"
+                      disabled={uploadingFile}
+                    />
+                    {uploadingFile && <p className="text-sm text-blue-600 mt-1">Uploading...</p>}
+                    {paperForm.file_url && (
+                      <p className="text-sm text-green-600 mt-1">✓ File uploaded</p>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="submit"
+                      className="flex-1 bg-emerald-600 text-white py-2 rounded-lg hover:bg-emerald-700"
+                      disabled={uploadingFile}
+                    >
+                      {editingPaperId ? 'Update Paper' : 'Add Paper'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAddPaper(false);
+                        setEditingPaperId(null);
                       }}
                       className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
                     >
