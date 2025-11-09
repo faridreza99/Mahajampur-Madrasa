@@ -5316,16 +5316,13 @@ async def upload_file(
         if len(file_content) > max_size:
             raise HTTPException(status_code=400, detail="File size exceeds 30MB limit")
         
-        # Reset file pointer for uploading
-        await file.seek(0)
-        
         # Determine resource type based on file type
         resource_type = "image" if file.content_type.startswith("image/") else "raw"
         
         # Upload to Cloudinary with tenant-specific folder
         folder = f"school-erp/{current_user.tenant_id}"
         upload_result = cloudinary.uploader.upload(
-            file.file,
+            io.BytesIO(file_content),
             folder=folder,
             resource_type=resource_type,
             use_filename=True,
