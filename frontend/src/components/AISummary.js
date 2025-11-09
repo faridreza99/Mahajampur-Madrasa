@@ -1,57 +1,70 @@
-import React, { useState, useEffect } from 'react';
-import { BookOpen, Sparkles, FileText, Trash2, Download, Loader2 } from 'lucide-react';
-import axios from 'axios';
-import { toast } from 'sonner';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import React, { useState, useEffect } from "react";
+import {
+  BookOpen,
+  Sparkles,
+  FileText,
+  Trash2,
+  Download,
+  Loader2,
+} from "lucide-react";
+import axios from "axios";
+import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
-const API = process.env.REACT_APP_API_URL || 'http://localhost:8000/api'; 
+const API = process.env.REACT_APP_API_URL || "http://localhost:8000/api";
 
 const AISummary = () => {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [summaries, setSummaries] = useState([]);
   const [currentSummary, setCurrentSummary] = useState(null);
-  
+
   // Form state
   const [formData, setFormData] = useState({
-    class_standard: '',
-    subject: '',
-    chapter: '',
-    topic: ''
+    class_standard: "",
+    subject: "",
+    chapter: "",
+    topic: "",
   });
 
-  // Filter state for history
-  const [filterClass, setFilterClass] = useState('');
-  const [filterSubject, setFilterSubject] = useState('');
+  // Filters
+  const [filterClass, setFilterClass] = useState("");
+  const [filterSubject, setFilterSubject] = useState("");
+  const [filterChapter, setFilterChapter] = useState(""); // NEW: chapter-wise filter
 
   useEffect(() => {
     fetchSummaries();
-  }, [filterClass, filterSubject]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterClass, filterSubject, filterChapter]); // include chapter in dependency
 
   const fetchSummaries = async () => {
     try {
-      const token = localStorage.getItem('token');
+      setLoading(true);
+      const token = localStorage.getItem("token");
       const params = {};
       if (filterClass) params.class_standard = filterClass;
       if (filterSubject) params.subject = filterSubject;
+      if (filterChapter) params.chapter = filterChapter; // NEW: send chapter
 
       const response = await axios.get(`${API}/ai/summary/list`, {
         headers: { Authorization: `Bearer ${token}` },
-        params
+        params,
       });
 
       if (response.data.success) {
         setSummaries(response.data.summaries);
       }
     } catch (error) {
-      console.error('Fetch summaries error:', error);
+      console.error("Fetch summaries error:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleGenerate = async () => {
     if (!formData.class_standard || !formData.subject) {
-      toast.error('Please select Class and Subject');
+      toast.error("Please select Class and Subject");
       return;
     }
 
@@ -59,47 +72,48 @@ const AISummary = () => {
     setCurrentSummary(null);
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const response = await axios.post(
-        `${process.env.REACT_APP_API_URL}/ai/summary/generate`,
+        `${API}/ai/summary/generate`, // use API const
         formData,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       if (response.data.success) {
         setCurrentSummary(response.data);
-        if (response.data.source === 'cms') {
-          toast.success('Summary loaded from library!');
+        if (response.data.source === "cms") {
+          toast.success("Summary loaded from library!");
         } else {
-          toast.success('AI Summary generated and saved!');
+          toast.success("AI Summary generated and saved!");
         }
         fetchSummaries();
       }
     } catch (error) {
-      console.error('Generate summary error:', error);
-      toast.error(error.response?.data?.detail || 'Failed to generate summary');
+      console.error("Generate summary error:", error);
+      toast.error(error.response?.data?.detail || "Failed to generate summary");
     } finally {
       setGenerating(false);
     }
   };
 
   const handleDelete = async (summaryId) => {
-    if (!window.confirm('Delete this summary?')) return;
+    if (!window.confirm("Delete this summary?")) return;
 
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`${process.env.REACT_APP_API_URL}/ai/summary/${summaryId}`, {
-        headers: { Authorization: `Bearer ${token}` }
+      const token = localStorage.getItem("token");
+      await axios.delete(`${API}/ai/summary/${summaryId}`, {
+        // use API const
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      toast.success('Summary deleted');
+      toast.success("Summary deleted");
       fetchSummaries();
       if (currentSummary?.summary_id === summaryId) {
         setCurrentSummary(null);
       }
     } catch (error) {
-      console.error('Delete summary error:', error);
-      toast.error('Failed to delete summary');
+      console.error("Delete summary error:", error);
+      toast.error("Failed to delete summary");
     }
   };
 
@@ -112,7 +126,7 @@ const AISummary = () => {
       subject: summary.subject,
       chapter: summary.chapter,
       topic: summary.topic,
-      created_at: summary.created_at
+      created_at: summary.created_at,
     });
   };
 
@@ -121,19 +135,19 @@ const AISummary = () => {
 
     const content = `
 ${currentSummary.subject} - Class ${currentSummary.class_standard}
-${currentSummary.chapter ? `Chapter: ${currentSummary.chapter}` : ''}
-${currentSummary.topic ? `Topic: ${currentSummary.topic}` : ''}
+${currentSummary.chapter ? `Chapter: ${currentSummary.chapter}` : ""}
+${currentSummary.topic ? `Topic: ${currentSummary.topic}` : ""}
 
 ${currentSummary.content}
 
 ---
 Generated: ${new Date(currentSummary.created_at).toLocaleString()}
-Source: ${currentSummary.source === 'cms' ? 'Library' : 'AI Generated'}
+Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
     `.trim();
 
-    const blob = new Blob([content], { type: 'text/plain' });
+    const blob = new Blob([content], { type: "text/plain" });
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `summary_${currentSummary.subject}_${currentSummary.class_standard}.txt`;
     document.body.appendChild(a);
@@ -149,9 +163,13 @@ Source: ${currentSummary.source === 'cms' ? 'Library' : 'AI Generated'}
         <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg shadow-lg p-6 mb-6">
           <div className="flex items-center gap-3 mb-2">
             <BookOpen className="text-white" size={32} />
-            <h1 className="text-3xl font-bold text-white">AI Summary Generator</h1>
+            <h1 className="text-3xl font-bold text-white">
+              AI Summary Generator
+            </h1>
           </div>
-          <p className="text-purple-100">Generate comprehensive chapter and topic summaries</p>
+          <p className="text-purple-100">
+            Generate comprehensive chapter and topic summaries
+          </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -164,24 +182,34 @@ Source: ${currentSummary.source === 'cms' ? 'Library' : 'AI Generated'}
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Class *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Class *
+                </label>
                 <select
                   value={formData.class_standard}
-                  onChange={(e) => setFormData({ ...formData, class_standard: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, class_standard: e.target.value })
+                  }
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500"
                 >
                   <option value="">Select Class</option>
                   {[...Array(12)].map((_, i) => (
-                    <option key={i + 1} value={i + 1}>{i + 1}</option>
+                    <option key={i + 1} value={i + 1}>
+                      {i + 1}
+                    </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Subject *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Subject *
+                </label>
                 <select
                   value={formData.subject}
-                  onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, subject: e.target.value })
+                  }
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500"
                 >
                   <option value="">Select Subject</option>
@@ -198,22 +226,30 @@ Source: ${currentSummary.source === 'cms' ? 'Library' : 'AI Generated'}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Chapter</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Chapter
+                </label>
                 <input
                   type="text"
                   value={formData.chapter}
-                  onChange={(e) => setFormData({ ...formData, chapter: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, chapter: e.target.value })
+                  }
                   placeholder="e.g., Motion in a Straight Line"
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Topic</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Topic
+                </label>
                 <input
                   type="text"
                   value={formData.topic}
-                  onChange={(e) => setFormData({ ...formData, topic: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, topic: e.target.value })
+                  }
                   placeholder="e.g., Velocity and Acceleration"
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500"
                 />
@@ -266,31 +302,51 @@ Source: ${currentSummary.source === 'cms' ? 'Library' : 'AI Generated'}
                 <div className="bg-purple-50 rounded-lg p-4">
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
-                      <span className="font-medium text-gray-700">Class:</span>{' '}
-                      <span className="text-gray-900">{currentSummary.class_standard}</span>
+                      <span className="font-medium text-gray-700">Class:</span>{" "}
+                      <span className="text-gray-900">
+                        {currentSummary.class_standard}
+                      </span>
                     </div>
                     <div>
-                      <span className="font-medium text-gray-700">Subject:</span>{' '}
-                      <span className="text-gray-900">{currentSummary.subject}</span>
+                      <span className="font-medium text-gray-700">
+                        Subject:
+                      </span>{" "}
+                      <span className="text-gray-900">
+                        {currentSummary.subject}
+                      </span>
                     </div>
                     {currentSummary.chapter && (
                       <div>
-                        <span className="font-medium text-gray-700">Chapter:</span>{' '}
-                        <span className="text-gray-900">{currentSummary.chapter}</span>
+                        <span className="font-medium text-gray-700">
+                          Chapter:
+                        </span>{" "}
+                        <span className="text-gray-900">
+                          {currentSummary.chapter}
+                        </span>
                       </div>
                     )}
                     {currentSummary.topic && (
                       <div>
-                        <span className="font-medium text-gray-700">Topic:</span>{' '}
-                        <span className="text-gray-900">{currentSummary.topic}</span>
+                        <span className="font-medium text-gray-700">
+                          Topic:
+                        </span>{" "}
+                        <span className="text-gray-900">
+                          {currentSummary.topic}
+                        </span>
                       </div>
                     )}
                     <div className="col-span-2">
-                      <span className="font-medium text-gray-700">Source:</span>{' '}
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        currentSummary.source === 'cms' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
-                      }`}>
-                        {currentSummary.source === 'cms' ? 'Library' : 'AI Generated'}
+                      <span className="font-medium text-gray-700">Source:</span>{" "}
+                      <span
+                        className={`px-2 py-1 rounded text-xs font-medium ${
+                          currentSummary.source === "cms"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-blue-100 text-blue-800"
+                        }`}
+                      >
+                        {currentSummary.source === "cms"
+                          ? "Library"
+                          : "AI Generated"}
                       </span>
                     </div>
                   </div>
@@ -316,9 +372,11 @@ Source: ${currentSummary.source === 'cms' ? 'Library' : 'AI Generated'}
           <h2 className="text-xl font-semibold mb-4">Summary Library</h2>
 
           {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Class</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Filter by Class
+              </label>
               <select
                 value={filterClass}
                 onChange={(e) => setFilterClass(e.target.value)}
@@ -326,13 +384,17 @@ Source: ${currentSummary.source === 'cms' ? 'Library' : 'AI Generated'}
               >
                 <option value="">All Classes</option>
                 {[...Array(12)].map((_, i) => (
-                  <option key={i + 1} value={i + 1}>Class {i + 1}</option>
+                  <option key={i + 1} value={i + 1}>
+                    Class {i + 1}
+                  </option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Subject</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Filter by Subject
+              </label>
               <select
                 value={filterSubject}
                 onChange={(e) => setFilterSubject(e.target.value)}
@@ -346,11 +408,30 @@ Source: ${currentSummary.source === 'cms' ? 'Library' : 'AI Generated'}
                 <option value="English">English</option>
               </select>
             </div>
+
+            {/* NEW: Chapter filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Filter by Chapter
+              </label>
+              <input
+                type="text"
+                value={filterChapter}
+                onChange={(e) => setFilterChapter(e.target.value)}
+                placeholder="e.g., Motion in a Straight Line"
+                className="w-full border border-gray-300 rounded-md px-3 py-2"
+              />
+            </div>
           </div>
 
           {/* List */}
           <div className="space-y-3">
-            {summaries.length > 0 ? (
+            {loading ? (
+              <div className="flex items-center justify-center gap-2 text-gray-500 py-8">
+                <Loader2 className="animate-spin" size={18} />
+                Loading summaries...
+              </div>
+            ) : summaries.length > 0 ? (
               summaries.map((summary) => (
                 <div
                   key={summary.id}
@@ -364,17 +445,21 @@ Source: ${currentSummary.source === 'cms' ? 'Library' : 'AI Generated'}
                       </h3>
                       <p className="text-sm text-gray-600 mt-1">
                         {summary.chapter && `Chapter: ${summary.chapter}`}
-                        {summary.chapter && summary.topic && ' | '}
+                        {summary.chapter && summary.topic && " | "}
                         {summary.topic && `Topic: ${summary.topic}`}
                       </p>
                       <div className="flex items-center gap-3 mt-2">
                         <span className="text-xs text-gray-500">
                           {new Date(summary.created_at).toLocaleDateString()}
                         </span>
-                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                          summary.source === 'cms' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
-                        }`}>
-                          {summary.source === 'ai_generated' ? 'AI' : 'Library'}
+                        <span
+                          className={`px-2 py-0.5 rounded text-xs font-medium ${
+                            summary.source === "ai_generated"
+                              ? "bg-blue-100 text-blue-800"
+                              : "bg-green-100 text-green-800"
+                          }`}
+                        >
+                          {summary.source === "ai_generated" ? "AI" : "Library"}
                         </span>
                       </div>
                     </div>

@@ -1,53 +1,69 @@
-import React, { useState, useEffect } from 'react';
-import { FileText, Sparkles, BookOpen, Trash2, Download, Loader2 } from 'lucide-react';
-import axios from 'axios';
-import { toast } from 'sonner';
+import React, { useState, useEffect } from "react";
+import {
+  FileText,
+  Sparkles,
+  BookOpen,
+  Trash2,
+  Download,
+  Loader2,
+} from "lucide-react";
+import axios from "axios";
+import { toast } from "sonner";
 
 const AINotes = () => {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [notesList, setNotesList] = useState([]);
   const [currentNotes, setCurrentNotes] = useState(null);
-  
+
   // Form state
   const [formData, setFormData] = useState({
-    class_standard: '',
-    subject: '',
-    chapter: '',
-    topic: ''
+    class_standard: "",
+    subject: "",
+    chapter: "",
+    topic: "",
   });
 
   // Filter state for history
-  const [filterClass, setFilterClass] = useState('');
-  const [filterSubject, setFilterSubject] = useState('');
+  const [filterClass, setFilterClass] = useState("");
+  const [filterSubject, setFilterSubject] = useState("");
+  const [filterChapter, setFilterChapter] = useState(""); // NEW: chapter filter
 
   useEffect(() => {
     fetchNotes();
-  }, [filterClass, filterSubject]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterClass, filterSubject, filterChapter]); // include chapter
 
   const fetchNotes = async () => {
     try {
-      const token = localStorage.getItem('token');
+      setLoading(true);
+      const token = localStorage.getItem("token");
       const params = {};
       if (filterClass) params.class_standard = filterClass;
       if (filterSubject) params.subject = filterSubject;
+      if (filterChapter) params.chapter = filterChapter; // NEW: send chapter param
 
-      const response = await axios.get(`${process.env.REACT_APP_API_URL}/ai/notes/list`, {
-        headers: { Authorization: `Bearer ${token}` },
-        params
-      });
+      const response = await axios.get(
+        `${process.env.REACT_APP_API_URL}/ai/notes/list`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          params,
+        },
+      );
 
       if (response.data.success) {
         setNotesList(response.data.notes);
       }
     } catch (error) {
-      console.error('Fetch notes error:', error);
+      console.error("Fetch notes error:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleGenerate = async () => {
     if (!formData.class_standard || !formData.subject) {
-      toast.error('Please select Class and Subject');
+      toast.error("Please select Class and Subject");
       return;
     }
 
@@ -55,47 +71,50 @@ const AINotes = () => {
     setCurrentNotes(null);
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const response = await axios.post(
         `${process.env.REACT_APP_API_URL}/ai/notes/generate`,
         formData,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       if (response.data.success) {
         setCurrentNotes(response.data);
-        if (response.data.source === 'cms') {
-          toast.success('Notes loaded from library!');
+        if (response.data.source === "cms") {
+          toast.success("Notes loaded from library!");
         } else {
-          toast.success('AI Notes generated and saved!');
+          toast.success("AI Notes generated and saved!");
         }
         fetchNotes();
       }
     } catch (error) {
-      console.error('Generate notes error:', error);
-      toast.error(error.response?.data?.detail || 'Failed to generate notes');
+      console.error("Generate notes error:", error);
+      toast.error(error.response?.data?.detail || "Failed to generate notes");
     } finally {
       setGenerating(false);
     }
   };
 
   const handleDelete = async (notesId) => {
-    if (!window.confirm('Delete these notes?')) return;
+    if (!window.confirm("Delete these notes?")) return;
 
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`${process.env.REACT_APP_API_URL}/ai/notes/${notesId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const token = localStorage.getItem("token");
+      await axios.delete(
+        `${process.env.REACT_APP_API_URL}/ai/notes/${notesId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
 
-      toast.success('Notes deleted');
+      toast.success("Notes deleted");
       fetchNotes();
       if (currentNotes?.notes_id === notesId) {
         setCurrentNotes(null);
       }
     } catch (error) {
-      console.error('Delete notes error:', error);
-      toast.error('Failed to delete notes');
+      console.error("Delete notes error:", error);
+      toast.error("Failed to delete notes");
     }
   };
 
@@ -108,7 +127,7 @@ const AINotes = () => {
       subject: notes.subject,
       chapter: notes.chapter,
       topic: notes.topic,
-      created_at: notes.created_at
+      created_at: notes.created_at,
     });
   };
 
@@ -117,19 +136,19 @@ const AINotes = () => {
 
     const content = `
 ${currentNotes.subject} - Class ${currentNotes.class_standard}
-${currentNotes.chapter ? `Chapter: ${currentNotes.chapter}` : ''}
-${currentNotes.topic ? `Topic: ${currentNotes.topic}` : ''}
+${currentNotes.chapter ? `Chapter: ${currentNotes.chapter}` : ""}
+${currentNotes.topic ? `Topic: ${currentNotes.topic}` : ""}
 
 ${currentNotes.content}
 
 ---
 Generated: ${new Date(currentNotes.created_at).toLocaleString()}
-Source: ${currentNotes.source === 'cms' ? 'Library' : 'AI Generated'}
+Source: ${currentNotes.source === "cms" ? "Library" : "AI Generated"}
     `.trim();
 
-    const blob = new Blob([content], { type: 'text/plain' });
+    const blob = new Blob([content], { type: "text/plain" });
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `notes_${currentNotes.subject}_${currentNotes.class_standard}.txt`;
     document.body.appendChild(a);
@@ -145,9 +164,14 @@ Source: ${currentNotes.source === 'cms' ? 'Library' : 'AI Generated'}
         <div className="bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg shadow-lg p-6 mb-6">
           <div className="flex items-center gap-3 mb-2">
             <FileText className="text-white" size={32} />
-            <h1 className="text-3xl font-bold text-white">AI Notes Generator</h1>
+            <h1 className="text-3xl font-bold text-white">
+              AI Notes Generator
+            </h1>
           </div>
-          <p className="text-blue-100">Generate comprehensive study notes with examples and practice questions</p>
+          <p className="text-blue-100">
+            Generate comprehensive study notes with examples and practice
+            questions
+          </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -160,24 +184,34 @@ Source: ${currentNotes.source === 'cms' ? 'Library' : 'AI Generated'}
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Class *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Class *
+                </label>
                 <select
                   value={formData.class_standard}
-                  onChange={(e) => setFormData({ ...formData, class_standard: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, class_standard: e.target.value })
+                  }
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Select Class</option>
                   {[...Array(12)].map((_, i) => (
-                    <option key={i + 1} value={i + 1}>{i + 1}</option>
+                    <option key={i + 1} value={i + 1}>
+                      {i + 1}
+                    </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Subject *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Subject *
+                </label>
                 <select
                   value={formData.subject}
-                  onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, subject: e.target.value })
+                  }
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Select Subject</option>
@@ -194,22 +228,30 @@ Source: ${currentNotes.source === 'cms' ? 'Library' : 'AI Generated'}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Chapter</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Chapter
+                </label>
                 <input
                   type="text"
                   value={formData.chapter}
-                  onChange={(e) => setFormData({ ...formData, chapter: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, chapter: e.target.value })
+                  }
                   placeholder="e.g., Thermodynamics"
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Topic</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Topic
+                </label>
                 <input
                   type="text"
                   value={formData.topic}
-                  onChange={(e) => setFormData({ ...formData, topic: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, topic: e.target.value })
+                  }
                   placeholder="e.g., Laws of Thermodynamics"
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500"
                 />
@@ -262,31 +304,51 @@ Source: ${currentNotes.source === 'cms' ? 'Library' : 'AI Generated'}
                 <div className="bg-blue-50 rounded-lg p-4">
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
-                      <span className="font-medium text-gray-700">Class:</span>{' '}
-                      <span className="text-gray-900">{currentNotes.class_standard}</span>
+                      <span className="font-medium text-gray-700">Class:</span>{" "}
+                      <span className="text-gray-900">
+                        {currentNotes.class_standard}
+                      </span>
                     </div>
                     <div>
-                      <span className="font-medium text-gray-700">Subject:</span>{' '}
-                      <span className="text-gray-900">{currentNotes.subject}</span>
+                      <span className="font-medium text-gray-700">
+                        Subject:
+                      </span>{" "}
+                      <span className="text-gray-900">
+                        {currentNotes.subject}
+                      </span>
                     </div>
                     {currentNotes.chapter && (
                       <div>
-                        <span className="font-medium text-gray-700">Chapter:</span>{' '}
-                        <span className="text-gray-900">{currentNotes.chapter}</span>
+                        <span className="font-medium text-gray-700">
+                          Chapter:
+                        </span>{" "}
+                        <span className="text-gray-900">
+                          {currentNotes.chapter}
+                        </span>
                       </div>
                     )}
                     {currentNotes.topic && (
                       <div>
-                        <span className="font-medium text-gray-700">Topic:</span>{' '}
-                        <span className="text-gray-900">{currentNotes.topic}</span>
+                        <span className="font-medium text-gray-700">
+                          Topic:
+                        </span>{" "}
+                        <span className="text-gray-900">
+                          {currentNotes.topic}
+                        </span>
                       </div>
                     )}
                     <div className="col-span-2">
-                      <span className="font-medium text-gray-700">Source:</span>{' '}
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        currentNotes.source === 'cms' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
-                      }`}>
-                        {currentNotes.source === 'cms' ? 'Library' : 'AI Generated'}
+                      <span className="font-medium text-gray-700">Source:</span>{" "}
+                      <span
+                        className={`px-2 py-1 rounded text-xs font-medium ${
+                          currentNotes.source === "cms"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-blue-100 text-blue-800"
+                        }`}
+                      >
+                        {currentNotes.source === "cms"
+                          ? "Library"
+                          : "AI Generated"}
                       </span>
                     </div>
                   </div>
@@ -312,9 +374,11 @@ Source: ${currentNotes.source === 'cms' ? 'Library' : 'AI Generated'}
           <h2 className="text-xl font-semibold mb-4">Notes Library</h2>
 
           {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Class</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Filter by Class
+              </label>
               <select
                 value={filterClass}
                 onChange={(e) => setFilterClass(e.target.value)}
@@ -322,13 +386,17 @@ Source: ${currentNotes.source === 'cms' ? 'Library' : 'AI Generated'}
               >
                 <option value="">All Classes</option>
                 {[...Array(12)].map((_, i) => (
-                  <option key={i + 1} value={i + 1}>Class {i + 1}</option>
+                  <option key={i + 1} value={i + 1}>
+                    Class {i + 1}
+                  </option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Subject</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Filter by Subject
+              </label>
               <select
                 value={filterSubject}
                 onChange={(e) => setFilterSubject(e.target.value)}
@@ -342,11 +410,30 @@ Source: ${currentNotes.source === 'cms' ? 'Library' : 'AI Generated'}
                 <option value="English">English</option>
               </select>
             </div>
+
+            {/* NEW: Chapter filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Filter by Chapter
+              </label>
+              <input
+                type="text"
+                value={filterChapter}
+                onChange={(e) => setFilterChapter(e.target.value)}
+                placeholder="e.g., Thermodynamics"
+                className="w-full border border-gray-300 rounded-md px-3 py-2"
+              />
+            </div>
           </div>
 
           {/* List */}
           <div className="space-y-3">
-            {notesList.length > 0 ? (
+            {loading ? (
+              <div className="flex items-center justify-center gap-2 text-gray-500 py-8">
+                <Loader2 className="animate-spin" size={18} />
+                Loading notes...
+              </div>
+            ) : notesList.length > 0 ? (
               notesList.map((notes) => (
                 <div
                   key={notes.id}
@@ -360,17 +447,21 @@ Source: ${currentNotes.source === 'cms' ? 'Library' : 'AI Generated'}
                       </h3>
                       <p className="text-sm text-gray-600 mt-1">
                         {notes.chapter && `Chapter: ${notes.chapter}`}
-                        {notes.chapter && notes.topic && ' | '}
+                        {notes.chapter && notes.topic && " | "}
                         {notes.topic && `Topic: ${notes.topic}`}
                       </p>
                       <div className="flex items-center gap-3 mt-2">
                         <span className="text-xs text-gray-500">
                           {new Date(notes.created_at).toLocaleDateString()}
                         </span>
-                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                          notes.source === 'cms' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
-                        }`}>
-                          {notes.source === 'ai_generated' ? 'AI' : 'Library'}
+                        <span
+                          className={`px-2 py-0.5 rounded text-xs font-medium ${
+                            notes.source === "ai_generated"
+                              ? "bg-blue-100 text-blue-800"
+                              : "bg-green-100 text-green-800"
+                          }`}
+                        >
+                          {notes.source === "ai_generated" ? "AI" : "Library"}
                         </span>
                       </div>
                     </div>
