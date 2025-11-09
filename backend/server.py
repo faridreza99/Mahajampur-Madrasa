@@ -5337,7 +5337,9 @@ async def upload_file(
             folder=folder,
             resource_type=resource_type,
             public_id=unique_filename,
-            overwrite=False
+            overwrite=False,
+            type="upload",
+            access_mode="public"
         )
         
         # Extract file URL and public ID from Cloudinary response
