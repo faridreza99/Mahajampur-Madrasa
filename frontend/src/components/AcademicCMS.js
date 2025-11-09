@@ -6,6 +6,33 @@ import * as XLSX from 'xlsx';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
+// Helper function to format API validation errors
+const formatErrorMessage = (error, fallbackMsg) => {
+  const detail = error.response?.data?.detail;
+  
+  // If detail is a string, return it
+  if (typeof detail === 'string') {
+    return detail;
+  }
+  
+  // If detail is an array of validation errors (Pydantic format)
+  if (Array.isArray(detail)) {
+    const messages = detail.map(err => {
+      const field = err.loc ? err.loc.join('.') : 'field';
+      return `${field}: ${err.msg}`;
+    });
+    return messages.join(', ');
+  }
+  
+  // If detail is an object with msg property
+  if (detail && typeof detail === 'object' && detail.msg) {
+    return detail.msg;
+  }
+  
+  // Fallback to the provided message
+  return fallbackMsg;
+};
+
 const AcademicCMS = () => {
   const [activeTab, setActiveTab] = useState('books');
   const [books, setBooks] = useState([]);
@@ -143,7 +170,7 @@ const AcademicCMS = () => {
       fetchBooks();
     } catch (error) {
       const errorMsg = isEditing ? 'Failed to update book' : 'Failed to add book';
-      toast.error(error.response?.data?.detail || errorMsg);
+      toast.error(formatErrorMessage(error, errorMsg));
       console.error(error);
     }
   };
@@ -177,7 +204,7 @@ const AcademicCMS = () => {
       toast.success('✅ Book deleted successfully!');
       fetchBooks();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to delete book');
+      toast.error(formatErrorMessage(error, 'Failed to delete book'));
       console.error(error);
     }
   };
@@ -225,7 +252,7 @@ const AcademicCMS = () => {
       fetchQAPairs();
     } catch (error) {
       const errorMsg = isEditing ? 'Failed to update Q&A pair' : 'Failed to add Q&A pair';
-      toast.error(error.response?.data?.detail || errorMsg);
+      toast.error(formatErrorMessage(error, errorMsg));
       console.error(error);
     }
   };
@@ -261,7 +288,7 @@ const AcademicCMS = () => {
       toast.success('✅ Q&A pair deleted successfully!');
       fetchQAPairs();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to delete Q&A pair');
+      toast.error(formatErrorMessage(error, 'Failed to delete Q&A pair'));
       console.error(error);
     }
   };
@@ -295,7 +322,7 @@ const AcademicCMS = () => {
       setBulkUploadFile(null);
       fetchQAPairs();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Bulk upload failed');
+      toast.error(formatErrorMessage(error, 'Bulk upload failed'));
       console.error(error);
     }
     setLoading(false);
@@ -399,7 +426,7 @@ const AcademicCMS = () => {
       fetchReferenceBooks();
     } catch (error) {
       const errorMsg = isEditing ? 'Failed to update reference book' : 'Failed to add reference book';
-      toast.error(error.response?.data?.detail || errorMsg);
+      toast.error(formatErrorMessage(error, errorMsg));
       console.error(error);
     }
   };
@@ -418,7 +445,7 @@ const AcademicCMS = () => {
       toast.success('✅ Reference book deleted successfully!');
       fetchReferenceBooks();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to delete reference book');
+      toast.error(formatErrorMessage(error, 'Failed to delete reference book'));
       console.error(error);
     }
   };
@@ -473,7 +500,7 @@ const AcademicCMS = () => {
       fetchPreviousPapers();
     } catch (error) {
       const errorMsg = isEditing ? 'Failed to update paper' : 'Failed to add paper';
-      toast.error(error.response?.data?.detail || errorMsg);
+      toast.error(formatErrorMessage(error, errorMsg));
       console.error(error);
     }
   };
@@ -492,7 +519,7 @@ const AcademicCMS = () => {
       toast.success('✅ Previous year paper deleted successfully!');
       fetchPreviousPapers();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to delete paper');
+      toast.error(formatErrorMessage(error, 'Failed to delete paper'));
       console.error(error);
     }
   };
@@ -531,7 +558,7 @@ const AcademicCMS = () => {
       toast.success('File uploaded successfully!');
       return response.data.file_url;
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'File upload failed');
+      toast.error(formatErrorMessage(error, 'File upload failed'));
       console.error(error);
       return null;
     } finally {
