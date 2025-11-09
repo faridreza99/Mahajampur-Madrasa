@@ -31,10 +31,17 @@ from twilio.rest import Client
 import io
 import pandas as pd
 import csv
+import cloudinary
+import cloudinary.uploader
 
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
+
+# ==================== Cloudinary Configuration ====================
+cloudinary.config(
+    cloudinary_url=os.environ.get('CLOUDINARY_URL')
+)
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
@@ -5290,7 +5297,7 @@ async def upload_file(
     document_type: str = None,
     current_user: User = Depends(get_current_user)
 ):
-    """Upload a file and return the file URL (supports PDF, TXT, DOCX, JPG, PNG up to 30MB)"""
+    """Upload a file to Cloudinary and return the URL (supports PDF, TXT, DOCX, JPG, PNG up to 30MB)"""
     try:
         # Validate file type - Extended to support TXT and DOCX
         allowed_types = [
@@ -5309,37 +5316,40 @@ async def upload_file(
         if len(file_content) > max_size:
             raise HTTPException(status_code=400, detail="File size exceeds 30MB limit")
         
-        # Reset file pointer for saving
+        # Reset file pointer for uploading
         await file.seek(0)
         
-        # Generate unique filename
-        file_extension = Path(file.filename).suffix
-        unique_filename = f"{uuid.uuid4()}{file_extension}"
+        # Determine resource type based on file type
+        resource_type = "image" if file.content_type.startswith("image/") else "raw"
         
-        # Create tenant-specific directory
-        tenant_dir = UPLOAD_DIR / current_user.tenant_id
-        tenant_dir.mkdir(exist_ok=True)
+        # Upload to Cloudinary with tenant-specific folder
+        folder = f"school-erp/{current_user.tenant_id}"
+        upload_result = cloudinary.uploader.upload(
+            file.file,
+            folder=folder,
+            resource_type=resource_type,
+            use_filename=True,
+            unique_filename=True
+        )
         
-        # Save file
-        file_path = tenant_dir / unique_filename
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        # Extract file URL and public ID from Cloudinary response
+        file_url = upload_result.get('secure_url')
+        public_id = upload_result.get('public_id')
         
-        # Return file URL (relative to serve from static files)
-        file_url = f"/uploads/{current_user.tenant_id}/{unique_filename}"
-        
-        logging.info(f"File uploaded successfully: {file.filename} -> {file_url} by {current_user.full_name}")
+        logging.info(f"File uploaded to Cloudinary: {file.filename} -> {file_url} by {current_user.full_name}")
         
         return {
-            "url": file_url,
+            "file_url": file_url,
+            "url": file_url,  # Keep for backward compatibility
+            "public_id": public_id,
             "filename": file.filename,
             "size": len(file_content),
             "content_type": file.content_type
         }
         
     except Exception as e:
-        logging.error(f"Failed to upload file: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to upload file")
+        logging.error(f"Failed to upload file to Cloudinary: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to upload file: {str(e)}")
 
 @api_router.get("/leave-types")
 async def get_leave_types(current_user: User = Depends(get_current_user)):
