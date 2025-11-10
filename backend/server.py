@@ -976,7 +976,8 @@ class AcademicBookCreate(BaseModel):
     board: str = "CBSE"
     description: Optional[str] = None
     cover_image_url: Optional[str] = None
-    pdf_url: Optional[str] = None
+    pdf_url: Optional[str] = None  # Kept for backward compatibility
+    file_url: Optional[str] = None  # New field for consistency
 
 # B. Reference Books (Tag) - Hierarchical: Class → Subject → Chapter
 class ReferenceBook(BaseModel):

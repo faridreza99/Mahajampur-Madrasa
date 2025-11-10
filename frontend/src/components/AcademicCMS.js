@@ -65,7 +65,8 @@ const AcademicCMS = () => {
     class_standard: '',
     board: 'CBSE',
     publisher: '',
-    description: ''
+    description: '',
+    file_url: ''  // Added for file upload support
   });
   
   const [qaForm, setQaForm] = useState({
@@ -166,7 +167,8 @@ const AcademicCMS = () => {
         class_standard: '',
         board: 'CBSE',
         publisher: '',
-        description: ''
+        description: '',
+        file_url: ''
       });
       fetchBooks();
     } catch (error) {
@@ -186,7 +188,8 @@ const AcademicCMS = () => {
       class_standard: book.class_standard,
       board: book.board || 'CBSE',
       publisher: book.publisher || '',
-      description: book.description || ''
+      description: book.description || '',
+      file_url: book.file_url || book.pdf_url || ''  // Support both file_url and pdf_url
     });
     setShowAddBook(true);
   };
@@ -673,7 +676,8 @@ const AcademicCMS = () => {
                   class_standard: '',
                   board: 'CBSE',
                   publisher: '',
-                  description: ''
+                  description: '',
+                  file_url: ''
                 });
                 setShowAddBook(true);
               }}
@@ -768,6 +772,31 @@ const AcademicCMS = () => {
                     className="w-full px-3 py-2 border rounded-lg"
                     rows={3}
                   />
+                  
+                  {/* File Upload */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Upload File (PDF, TXT, DOCX - Max 30MB)</label>
+                    <input
+                      type="file"
+                      accept=".pdf,.txt,.docx"
+                      onChange={async (e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          const fileUrl = await handleFileUpload(file);
+                          if (fileUrl) {
+                            setBookForm({...bookForm, file_url: fileUrl});
+                          }
+                        }
+                      }}
+                      className="w-full px-3 py-2 border rounded-lg"
+                      disabled={uploadingFile}
+                    />
+                    {uploadingFile && <p className="text-sm text-blue-600 mt-1">Uploading...</p>}
+                    {bookForm.file_url && (
+                      <p className="text-sm text-green-600 mt-1">✓ File uploaded</p>
+                    )}
+                  </div>
+                  
                   <div className="flex gap-2">
                     <button
                       type="submit"
@@ -787,7 +816,8 @@ const AcademicCMS = () => {
                           class_standard: '',
                           board: 'CBSE',
                           publisher: '',
-                          description: ''
+                          description: '',
+                          file_url: ''
                         });
                       }}
                       className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
