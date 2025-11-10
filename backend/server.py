@@ -16300,13 +16300,13 @@ async def bulk_upload_qa_pairs(
         else:  # csv
             df = pd.read_csv(BytesIO(file_content))
         
-        # Validate required columns
-        required_columns = ['question', 'answer']
-        missing_columns = [col for col in required_columns if col.lower() not in [c.lower() for c in df.columns]]
+        # Validate required columns (aligned with QAKnowledgeBaseCreate model)
+        required_columns = ['question', 'answer', 'class_standard', 'subject', 'chapter_topic']
+        missing_columns = [col for col in required_columns if col.lower().replace('_', ' ') not in [c.lower().replace('_', ' ') for c in df.columns]]
         if missing_columns:
             raise HTTPException(
                 status_code=400, 
-                detail=f"Missing required columns: {', '.join(missing_columns)}. File must have 'question' and 'answer' columns."
+                detail=f"Missing required columns: {', '.join(required_columns)}. Please download the sample template."
             )
         
         # Normalize column names to lowercase
@@ -16319,10 +16319,14 @@ async def bulk_upload_qa_pairs(
         qa_pairs_to_insert = []
         
         for index, row in df.iterrows():
-            # Validate required fields
+            # Validate required fields (matching QAKnowledgeBaseCreate)
             question = str(row.get('question', '')).strip()
             answer = str(row.get('answer', '')).strip()
+            subject = str(row.get('subject', '')).strip() if pd.notna(row.get('subject')) else ""
+            class_standard = str(row.get('class_standard', '')).strip() if pd.notna(row.get('class_standard')) else ""
+            chapter_topic = str(row.get('chapter_topic', '')).strip() if pd.notna(row.get('chapter_topic')) else ""
             
+            # Skip rows with missing required fields
             if not question or question == 'nan':
                 skipped_count += 1
                 skipped_reasons.append(f"Row {index + 2}: Missing question")
@@ -16333,26 +16337,47 @@ async def bulk_upload_qa_pairs(
                 skipped_reasons.append(f"Row {index + 2}: Missing answer")
                 continue
             
-            # Extract optional fields (matching single Q&A creation schema)
-            subject = str(row.get('subject', '')).strip() if pd.notna(row.get('subject')) else ""
-            class_standard = str(row.get('class', row.get('class_standard', ''))).strip() if pd.notna(row.get('class')) or pd.notna(row.get('class_standard')) else ""
-            keywords = str(row.get('keywords', '')).strip() if pd.notna(row.get('keywords')) else ""
-            difficulty_level = str(row.get('difficulty', row.get('difficulty_level', 'medium'))).strip() if pd.notna(row.get('difficulty')) or pd.notna(row.get('difficulty_level')) else "medium"
-            question_type = str(row.get('type', row.get('question_type', 'conceptual'))).strip() if pd.notna(row.get('type')) or pd.notna(row.get('question_type')) else "conceptual"
+            if not subject or subject == 'nan':
+                skipped_count += 1
+                skipped_reasons.append(f"Row {index + 2}: Missing subject")
+                continue
             
-            # Create Q&A pair document (aligned with single-create schema)
+            if not class_standard or class_standard == 'nan':
+                skipped_count += 1
+                skipped_reasons.append(f"Row {index + 2}: Missing class_standard")
+                continue
+            
+            if not chapter_topic or chapter_topic == 'nan':
+                skipped_count += 1
+                skipped_reasons.append(f"Row {index + 2}: Missing chapter_topic (required field)")
+                continue
+            
+            # Extract optional fields
+            explanation = str(row.get('explanation', '')).strip() if pd.notna(row.get('explanation')) else ""
+            keywords_str = str(row.get('keywords', '')).strip() if pd.notna(row.get('keywords')) else ""
+            examples_str = str(row.get('examples', '')).strip() if pd.notna(row.get('examples')) else ""
+            difficulty_level = str(row.get('difficulty_level', 'medium')).strip() if pd.notna(row.get('difficulty_level')) else "medium"
+            question_type = str(row.get('question_type', 'conceptual')).strip() if pd.notna(row.get('question_type')) else "conceptual"
+            
+            # Convert comma-separated strings to arrays
+            keywords = [k.strip() for k in keywords_str.split(',') if k.strip()] if keywords_str else []
+            examples = [ex.strip() for ex in examples_str.split(',') if ex.strip()] if examples_str else []
+            
+            # Create Q&A pair document (aligned with QAKnowledgeBaseCreate model)
             qa_dict = {
                 "id": str(uuid.uuid4()),
                 "tenant_id": current_user.tenant_id,
                 "school_id": current_user.school_id,
+                "class_standard": class_standard,
+                "subject": subject,
+                "chapter_topic": chapter_topic,
+                "question_type": question_type,
                 "question": question,
                 "answer": answer,
-                "subject": subject,
-                "class_standard": class_standard,
-                "keywords": keywords,
+                "explanation": explanation,
+                "examples": examples,
                 "difficulty_level": difficulty_level,
-                "question_type": question_type,
-                "tags": [tag.strip() for tag in keywords.split(',') if tag.strip()] if keywords else [],
+                "keywords": keywords,
                 "created_by": current_user.id,
                 "is_active": True,
                 "created_at": datetime.now(timezone.utc),

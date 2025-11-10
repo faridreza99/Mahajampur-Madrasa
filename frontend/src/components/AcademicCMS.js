@@ -318,7 +318,7 @@ const AcademicCMS = () => {
       formData.append('file', bulkUploadFile);
 
       const response = await axios.post(
-        `${API_BASE_URL}/cms/qa-pairs/bulk-upload`,
+        `${API_BASE_URL}/cms/qa-knowledge-base/bulk-upload`,
         formData,
         {
           headers: {
@@ -339,36 +339,45 @@ const AcademicCMS = () => {
     setLoading(false);
   };
 
-  // Download sample template
+  // Download sample template (aligned with QAKnowledgeBaseCreate schema)
   const downloadSampleTemplate = () => {
-    // Sample data
+    // Sample data with all required and optional fields
     const sampleData = [
       {
+        class_standard: "9",
+        subject: "Physics",
+        chapter_topic: "Laws of Motion",
         question: "What is Newton's Second Law?",
         answer: "Force = mass × acceleration (F = m × a)",
-        subject: "Physics",
-        class: "9",
-        keywords: "newton, force, motion",
-        difficulty: "medium",
-        type: "conceptual"
+        explanation: "This law relates the net force on an object to its mass and acceleration. Higher mass requires more force for the same acceleration.",
+        examples: "Pushing a cart, Rocket propulsion",
+        difficulty_level: "medium",
+        question_type: "conceptual",
+        keywords: "newton, force, motion, acceleration"
       },
       {
+        class_standard: "9",
+        subject: "Math",
+        chapter_topic: "Linear Equations",
         question: "Solve: 2x + 5 = 15",
         answer: "x = 5",
-        subject: "Math",
-        class: "9",
-        keywords: "algebra, equations",
-        difficulty: "easy",
-        type: "numerical"
+        explanation: "Subtract 5 from both sides to get 2x = 10, then divide by 2 to get x = 5",
+        examples: "3x + 2 = 11, 5x - 3 = 12",
+        difficulty_level: "easy",
+        question_type: "numerical",
+        keywords: "algebra, equations, solving"
       },
       {
+        class_standard: "10",
+        subject: "Biology",
+        chapter_topic: "Photosynthesis",
         question: "What is photosynthesis?",
         answer: "Photosynthesis is the process by which plants use sunlight, water and carbon dioxide to produce oxygen and energy in the form of sugar.",
-        subject: "Biology",
-        class: "10",
-        keywords: "photosynthesis, plants, chlorophyll",
-        difficulty: "medium",
-        type: "conceptual"
+        explanation: "This process occurs in chloroplasts and is essential for plant growth and oxygen production on Earth.",
+        examples: "Green plants, Algae, Some bacteria",
+        difficulty_level: "medium",
+        question_type: "conceptual",
+        keywords: "photosynthesis, plants, chlorophyll, oxygen"
       }
     ];
 
@@ -382,7 +391,7 @@ const AcademicCMS = () => {
     // Generate Excel file and download
     XLSX.writeFile(workbook, "sample_qa_template.xlsx");
     
-    toast.success('📄 Sample template downloaded!');
+    toast.success('📄 Sample template downloaded with new schema!');
   };
 
   // Fetch reference books
