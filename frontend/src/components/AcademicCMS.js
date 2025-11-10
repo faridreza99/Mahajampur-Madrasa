@@ -69,15 +69,16 @@ const AcademicCMS = () => {
   });
   
   const [qaForm, setQaForm] = useState({
-    book_id: '',
     question: '',
     answer: '',
     subject: '',
     class_standard: '',
+    chapter_topic: '',
     question_type: 'conceptual',
     difficulty_level: 'medium',
+    explanation: '',
     keywords: '',
-    tags: ''
+    examples: ''
   });
   
   const [referenceBookForm, setReferenceBookForm] = useState({
@@ -216,10 +217,18 @@ const AcademicCMS = () => {
     
     try {
       const token = localStorage.getItem('token');
+      // Explicitly construct payload with only backend-supported fields
       const qaData = {
-        ...qaForm,
-        keywords: qaForm.keywords.split(',').map(k => k.trim()).filter(k => k),
-        tags: qaForm.tags.split(',').map(t => t.trim()).filter(t => t)
+        class_standard: qaForm.class_standard,
+        subject: qaForm.subject,
+        chapter_topic: qaForm.chapter_topic,
+        question_type: qaForm.question_type,
+        question: qaForm.question,
+        answer: qaForm.answer,
+        explanation: qaForm.explanation || '',
+        examples: qaForm.examples.split(',').map(ex => ex.trim()).filter(ex => ex),
+        difficulty_level: qaForm.difficulty_level,
+        keywords: qaForm.keywords.split(',').map(k => k.trim()).filter(k => k)
       };
       
       if (isEditing) {
@@ -239,15 +248,16 @@ const AcademicCMS = () => {
       setShowAddQA(false);
       setEditingQAId(null);
       setQaForm({
-        book_id: '',
         question: '',
         answer: '',
         subject: '',
         class_standard: '',
+        chapter_topic: '',
         question_type: 'conceptual',
         difficulty_level: 'medium',
+        explanation: '',
         keywords: '',
-        tags: ''
+        examples: ''
       });
       fetchQAPairs();
     } catch (error) {
@@ -261,15 +271,16 @@ const AcademicCMS = () => {
   const handleEditQA = (qa) => {
     setEditingQAId(qa.id);
     setQaForm({
-      book_id: qa.book_id || '',
       question: qa.question,
       answer: qa.answer,
       subject: qa.subject,
       class_standard: qa.class_standard,
+      chapter_topic: qa.chapter_topic || '',
       question_type: qa.question_type || 'conceptual',
       difficulty_level: qa.difficulty_level || 'medium',
+      explanation: qa.explanation || '',
       keywords: Array.isArray(qa.keywords) ? qa.keywords.join(', ') : (qa.keywords || ''),
-      tags: Array.isArray(qa.tags) ? qa.tags.join(', ') : (qa.tags || '')
+      examples: Array.isArray(qa.examples) ? qa.examples.join(', ') : (qa.examples || '')
     });
     setShowAddQA(true);
   };
@@ -1614,7 +1625,7 @@ const AcademicCMS = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">Subject</label>
+                      <label className="block text-sm font-medium mb-1">Subject *</label>
                       <input
                         type="text"
                         value={qaForm.subject}
@@ -1624,7 +1635,7 @@ const AcademicCMS = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Class</label>
+                      <label className="block text-sm font-medium mb-1">Class *</label>
                       <input
                         type="text"
                         value={qaForm.class_standard}
@@ -1633,6 +1644,17 @@ const AcademicCMS = () => {
                         required
                       />
                     </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Chapter/Topic *</label>
+                    <input
+                      type="text"
+                      value={qaForm.chapter_topic}
+                      onChange={(e) => setQaForm({...qaForm, chapter_topic: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-lg"
+                      placeholder="e.g., Laws of Motion, Photosynthesis, etc."
+                      required
+                    />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -1662,6 +1684,16 @@ const AcademicCMS = () => {
                     </div>
                   </div>
                   <div>
+                    <label className="block text-sm font-medium mb-1">Explanation (Optional)</label>
+                    <textarea
+                      value={qaForm.explanation}
+                      onChange={(e) => setQaForm({...qaForm, explanation: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-lg"
+                      rows={3}
+                      placeholder="Additional explanation or context..."
+                    />
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium mb-1">Keywords (comma-separated)</label>
                     <input
                       type="text"
@@ -1669,6 +1701,16 @@ const AcademicCMS = () => {
                       onChange={(e) => setQaForm({...qaForm, keywords: e.target.value})}
                       className="w-full px-3 py-2 border rounded-lg"
                       placeholder="newton, force, motion"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Examples (comma-separated)</label>
+                    <input
+                      type="text"
+                      value={qaForm.examples}
+                      onChange={(e) => setQaForm({...qaForm, examples: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-lg"
+                      placeholder="Example 1, Example 2"
                     />
                   </div>
                   <div className="flex gap-2">
@@ -1684,15 +1726,16 @@ const AcademicCMS = () => {
                         setShowAddQA(false);
                         setEditingQAId(null);
                         setQaForm({
-                          book_id: '',
                           question: '',
                           answer: '',
                           subject: '',
                           class_standard: '',
+                          chapter_topic: '',
                           question_type: 'conceptual',
                           difficulty_level: 'medium',
+                          explanation: '',
                           keywords: '',
-                          tags: ''
+                          examples: ''
                         });
                       }}
                       className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
