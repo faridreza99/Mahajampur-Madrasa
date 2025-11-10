@@ -1,40 +1,51 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { Book, Plus, Edit, Trash2, Search, FileText, Upload, Download, BookOpen } from 'lucide-react';
-import { toast } from 'sonner';
-import * as XLSX from 'xlsx';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import {
+  Book,
+  Plus,
+  Edit,
+  Trash2,
+  Search,
+  FileText,
+  Upload,
+  Download,
+  BookOpen,
+} from "lucide-react";
+import { toast } from "sonner";
+import * as XLSX from "xlsx";
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL =
+  process.env.REACT_APP_API_URL || "http://localhost:8000/api";
 
 // Helper function to format API validation errors
 const formatErrorMessage = (error, fallbackMsg) => {
   const detail = error.response?.data?.detail;
-  
+
   // If detail is a string, return it
-  if (typeof detail === 'string') {
+  if (typeof detail === "string") {
     return detail;
   }
-  
+
   // If detail is an array of validation errors (Pydantic format)
   if (Array.isArray(detail)) {
-    const messages = detail.map(err => {
-      const field = err.loc ? err.loc.join('.') : 'field';
+    const messages = detail.map((err) => {
+      const field = err.loc ? err.loc.join(".") : "field";
       return `${field}: ${err.msg}`;
     });
-    return messages.join(', ');
+    return messages.join(", ");
   }
-  
+
   // If detail is an object with msg property
-  if (detail && typeof detail === 'object' && detail.msg) {
+  if (detail && typeof detail === "object" && detail.msg) {
     return detail.msg;
   }
-  
+
   // Fallback to the provided message
   return fallbackMsg;
 };
 
 const AcademicCMS = () => {
-  const [activeTab, setActiveTab] = useState('books');
+  const [activeTab, setActiveTab] = useState("books");
   const [books, setBooks] = useState([]);
   const [qaPairs, setQaPairs] = useState([]);
   const [referenceBooks, setReferenceBooks] = useState([]);
@@ -52,69 +63,79 @@ const AcademicCMS = () => {
   const [editingReferenceBookId, setEditingReferenceBookId] = useState(null);
   const [editingPaperId, setEditingPaperId] = useState(null);
   const [uploadingFile, setUploadingFile] = useState(false);
-  
+
   // Navigation states for hierarchical flow
-  const [refNavLevel, setRefNavLevel] = useState({ step: 'class', class: '', subject: '', book: '' });
-  const [paperNavLevel, setPaperNavLevel] = useState({ step: 'class', class: '', subject: '', year: '' });
-  
+  const [refNavLevel, setRefNavLevel] = useState({
+    step: "class",
+    class: "",
+    subject: "",
+    book: "",
+  });
+  const [paperNavLevel, setPaperNavLevel] = useState({
+    step: "class",
+    class: "",
+    subject: "",
+    year: "",
+  });
+
   // Form states
   const [bookForm, setBookForm] = useState({
-    title: '',
-    author: '',
-    subject: '',
-    class_standard: '',
-    board: 'CBSE',
-    publisher: '',
-    description: '',
-    file_url: ''  // Added for file upload support
+    title: "",
+    author: "",
+    subject: "",
+    class_standard: "",
+    board: "CBSE",
+    publisher: "",
+    description: "",
+    file_url: "", // Added for file upload support
   });
-  
+
   const [qaForm, setQaForm] = useState({
-    question: '',
-    answer: '',
-    subject: '',
-    class_standard: '',
-    chapter_topic: '',
-    question_type: 'conceptual',
-    difficulty_level: 'medium',
-    explanation: '',
-    keywords: '',
-    examples: ''
+    question: "",
+    answer: "",
+    subject: "",
+    class_standard: "",
+    chapter_topic: "",
+    question_type: "conceptual",
+    difficulty_level: "medium",
+    explanation: "",
+    keywords: "",
+    examples: "",
   });
-  
+
   const [referenceBookForm, setReferenceBookForm] = useState({
-    title: '',
-    author: '',
-    subject: '',
-    class_standard: '',
-    chapter: '',
-    board: 'CBSE',
-    publisher: '',
-    description: '',
-    file_url: ''
+    title: "",
+    author: "",
+    subject: "",
+    class_standard: "",
+    chapter: "",
+    board: "CBSE",
+    publisher: "",
+    description: "",
+    file_url: "",
   });
-  
+
   const [paperForm, setPaperForm] = useState({
-    title: '',
-    subject: '',
-    class_standard: '',
-    chapter: '',
+    title: "",
+    subject: "",
+    class_standard: "",
+    chapter: "",
     exam_year: new Date().getFullYear().toString(),
-    paper_type: 'Final Exam',
-    file_url: ''
+    paper_type: "Final Exam",
+    file_url: "",
   });
 
   // Fetch books
   const fetchBooks = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const response = await axios.get(`${API_BASE_URL}/cms/books`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       setBooks(response.data.books || []);
     } catch (error) {
-      toast.error('Failed to load books');
+      toast.error("Failed to load books");
       console.error(error);
     }
     setLoading(false);
@@ -124,13 +145,13 @@ const AcademicCMS = () => {
   const fetchQAPairs = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const response = await axios.get(`${API_BASE_URL}/cms/qa-pairs`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       setQaPairs(response.data.qa_pairs || []);
     } catch (error) {
-      toast.error('Failed to load Q&A pairs');
+      toast.error("Failed to load Q&A pairs");
       console.error(error);
     }
     setLoading(false);
@@ -140,39 +161,45 @@ const AcademicCMS = () => {
   const handleAddBook = async (e) => {
     e.preventDefault();
     const isEditing = editingBookId !== null;
-    
+
     try {
-      const token = localStorage.getItem('token');
-      
+      const token = localStorage.getItem("token");
+
       if (isEditing) {
         // UPDATE existing book
-        await axios.put(`${API_BASE_URL}/cms/books/${editingBookId}`, bookForm, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        toast.success('✅ Book updated successfully!');
+        await axios.put(
+          `${API_BASE_URL}/cms/books/${editingBookId}`,
+          bookForm,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+        toast.success("✅ Book updated successfully!");
       } else {
         // CREATE new book
         await axios.post(`${API_BASE_URL}/cms/books`, bookForm, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
-        toast.success('✅ Book added successfully!');
+        toast.success("✅ Book added successfully!");
       }
-      
+
       setShowAddBook(false);
       setEditingBookId(null);
       setBookForm({
-        title: '',
-        author: '',
-        subject: '',
-        class_standard: '',
-        board: 'CBSE',
-        publisher: '',
-        description: '',
-        file_url: ''
+        title: "",
+        author: "",
+        subject: "",
+        class_standard: "",
+        board: "CBSE",
+        publisher: "",
+        description: "",
+        file_url: "",
       });
       fetchBooks();
     } catch (error) {
-      const errorMsg = isEditing ? 'Failed to update book' : 'Failed to add book';
+      const errorMsg = isEditing
+        ? "Failed to update book"
+        : "Failed to add book";
       toast.error(formatErrorMessage(error, errorMsg));
       console.error(error);
     }
@@ -186,29 +213,29 @@ const AcademicCMS = () => {
       author: book.author,
       subject: book.subject,
       class_standard: book.class_standard,
-      board: book.board || 'CBSE',
-      publisher: book.publisher || '',
-      description: book.description || '',
-      file_url: book.file_url || book.pdf_url || ''  // Support both file_url and pdf_url
+      board: book.board || "CBSE",
+      publisher: book.publisher || "",
+      description: book.description || "",
+      file_url: book.file_url || book.pdf_url || "", // Support both file_url and pdf_url
     });
     setShowAddBook(true);
   };
 
   // Delete book
   const handleDeleteBook = async (bookId) => {
-    if (!window.confirm('Are you sure you want to delete this book?')) {
+    if (!window.confirm("Are you sure you want to delete this book?")) {
       return;
     }
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       await axios.delete(`${API_BASE_URL}/cms/books/${bookId}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
-      toast.success('✅ Book deleted successfully!');
+      toast.success("✅ Book deleted successfully!");
       fetchBooks();
     } catch (error) {
-      toast.error(formatErrorMessage(error, 'Failed to delete book'));
+      toast.error(formatErrorMessage(error, "Failed to delete book"));
       console.error(error);
     }
   };
@@ -217,9 +244,9 @@ const AcademicCMS = () => {
   const handleAddQA = async (e) => {
     e.preventDefault();
     const isEditing = editingQAId !== null;
-    
+
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       // Explicitly construct payload with only backend-supported fields
       const qaData = {
         class_standard: qaForm.class_standard,
@@ -228,43 +255,51 @@ const AcademicCMS = () => {
         question_type: qaForm.question_type,
         question: qaForm.question,
         answer: qaForm.answer,
-        explanation: qaForm.explanation || '',
-        examples: qaForm.examples.split(',').map(ex => ex.trim()).filter(ex => ex),
+        explanation: qaForm.explanation || "",
+        examples: qaForm.examples
+          .split(",")
+          .map((ex) => ex.trim())
+          .filter((ex) => ex),
         difficulty_level: qaForm.difficulty_level,
-        keywords: qaForm.keywords.split(',').map(k => k.trim()).filter(k => k)
+        keywords: qaForm.keywords
+          .split(",")
+          .map((k) => k.trim())
+          .filter((k) => k),
       };
-      
+
       if (isEditing) {
         // UPDATE existing Q&A
         await axios.put(`${API_BASE_URL}/cms/qa-pairs/${editingQAId}`, qaData, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
-        toast.success('✅ Q&A pair updated successfully!');
+        toast.success("✅ Q&A pair updated successfully!");
       } else {
         // CREATE new Q&A
         await axios.post(`${API_BASE_URL}/cms/qa-pairs`, qaData, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
-        toast.success('✅ Q&A pair added successfully!');
+        toast.success("✅ Q&A pair added successfully!");
       }
-      
+
       setShowAddQA(false);
       setEditingQAId(null);
       setQaForm({
-        question: '',
-        answer: '',
-        subject: '',
-        class_standard: '',
-        chapter_topic: '',
-        question_type: 'conceptual',
-        difficulty_level: 'medium',
-        explanation: '',
-        keywords: '',
-        examples: ''
+        question: "",
+        answer: "",
+        subject: "",
+        class_standard: "",
+        chapter_topic: "",
+        question_type: "conceptual",
+        difficulty_level: "medium",
+        explanation: "",
+        keywords: "",
+        examples: "",
       });
       fetchQAPairs();
     } catch (error) {
-      const errorMsg = isEditing ? 'Failed to update Q&A pair' : 'Failed to add Q&A pair';
+      const errorMsg = isEditing
+        ? "Failed to update Q&A pair"
+        : "Failed to add Q&A pair";
       toast.error(formatErrorMessage(error, errorMsg));
       console.error(error);
     }
@@ -278,31 +313,35 @@ const AcademicCMS = () => {
       answer: qa.answer,
       subject: qa.subject,
       class_standard: qa.class_standard,
-      chapter_topic: qa.chapter_topic || '',
-      question_type: qa.question_type || 'conceptual',
-      difficulty_level: qa.difficulty_level || 'medium',
-      explanation: qa.explanation || '',
-      keywords: Array.isArray(qa.keywords) ? qa.keywords.join(', ') : (qa.keywords || ''),
-      examples: Array.isArray(qa.examples) ? qa.examples.join(', ') : (qa.examples || '')
+      chapter_topic: qa.chapter_topic || "",
+      question_type: qa.question_type || "conceptual",
+      difficulty_level: qa.difficulty_level || "medium",
+      explanation: qa.explanation || "",
+      keywords: Array.isArray(qa.keywords)
+        ? qa.keywords.join(", ")
+        : qa.keywords || "",
+      examples: Array.isArray(qa.examples)
+        ? qa.examples.join(", ")
+        : qa.examples || "",
     });
     setShowAddQA(true);
   };
 
   // Delete Q&A pair
   const handleDeleteQA = async (qaId) => {
-    if (!window.confirm('Are you sure you want to delete this Q&A pair?')) {
+    if (!window.confirm("Are you sure you want to delete this Q&A pair?")) {
       return;
     }
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       await axios.delete(`${API_BASE_URL}/cms/qa-pairs/${qaId}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
-      toast.success('✅ Q&A pair deleted successfully!');
+      toast.success("✅ Q&A pair deleted successfully!");
       fetchQAPairs();
     } catch (error) {
-      toast.error(formatErrorMessage(error, 'Failed to delete Q&A pair'));
+      toast.error(formatErrorMessage(error, "Failed to delete Q&A pair"));
       console.error(error);
     }
   };
@@ -310,15 +349,15 @@ const AcademicCMS = () => {
   // Bulk upload Q&A pairs
   const handleBulkUpload = async () => {
     if (!bulkUploadFile) {
-      toast.error('Please select a file to upload');
+      toast.error("Please select a file to upload");
       return;
     }
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const formData = new FormData();
-      formData.append('file', bulkUploadFile);
+      formData.append("file", bulkUploadFile);
 
       const response = await axios.post(
         `${API_BASE_URL}/cms/qa-knowledge-base/bulk-upload`,
@@ -326,17 +365,19 @@ const AcademicCMS = () => {
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data'
-          }
-        }
+            "Content-Type": "multipart/form-data",
+          },
+        },
       );
 
       setUploadSummary(response.data.summary);
-      toast.success(`✅ ${response.data.summary.successful} Q&A pairs uploaded successfully!`);
+      toast.success(
+        `✅ ${response.data.summary.successful} Q&A pairs uploaded successfully!`,
+      );
       setBulkUploadFile(null);
       fetchQAPairs();
     } catch (error) {
-      toast.error(formatErrorMessage(error, 'Bulk upload failed'));
+      toast.error(formatErrorMessage(error, "Bulk upload failed"));
       console.error(error);
     }
     setLoading(false);
@@ -352,11 +393,12 @@ const AcademicCMS = () => {
         chapter_topic: "Laws of Motion",
         question: "What is Newton's Second Law?",
         answer: "Force = mass × acceleration (F = m × a)",
-        explanation: "This law relates the net force on an object to its mass and acceleration. Higher mass requires more force for the same acceleration.",
+        explanation:
+          "This law relates the net force on an object to its mass and acceleration. Higher mass requires more force for the same acceleration.",
         examples: "Pushing a cart, Rocket propulsion",
         difficulty_level: "medium",
         question_type: "conceptual",
-        keywords: "newton, force, motion, acceleration"
+        keywords: "newton, force, motion, acceleration",
       },
       {
         class_standard: "9",
@@ -364,50 +406,53 @@ const AcademicCMS = () => {
         chapter_topic: "Linear Equations",
         question: "Solve: 2x + 5 = 15",
         answer: "x = 5",
-        explanation: "Subtract 5 from both sides to get 2x = 10, then divide by 2 to get x = 5",
+        explanation:
+          "Subtract 5 from both sides to get 2x = 10, then divide by 2 to get x = 5",
         examples: "3x + 2 = 11, 5x - 3 = 12",
         difficulty_level: "easy",
         question_type: "numerical",
-        keywords: "algebra, equations, solving"
+        keywords: "algebra, equations, solving",
       },
       {
         class_standard: "10",
         subject: "Biology",
         chapter_topic: "Photosynthesis",
         question: "What is photosynthesis?",
-        answer: "Photosynthesis is the process by which plants use sunlight, water and carbon dioxide to produce oxygen and energy in the form of sugar.",
-        explanation: "This process occurs in chloroplasts and is essential for plant growth and oxygen production on Earth.",
+        answer:
+          "Photosynthesis is the process by which plants use sunlight, water and carbon dioxide to produce oxygen and energy in the form of sugar.",
+        explanation:
+          "This process occurs in chloroplasts and is essential for plant growth and oxygen production on Earth.",
         examples: "Green plants, Algae, Some bacteria",
         difficulty_level: "medium",
         question_type: "conceptual",
-        keywords: "photosynthesis, plants, chlorophyll, oxygen"
-      }
+        keywords: "photosynthesis, plants, chlorophyll, oxygen",
+      },
     ];
 
     // Create worksheet
     const worksheet = XLSX.utils.json_to_sheet(sampleData);
-    
+
     // Create workbook
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Q&A Template");
-    
+
     // Generate Excel file and download
     XLSX.writeFile(workbook, "sample_qa_template.xlsx");
-    
-    toast.success('📄 Sample template downloaded with new schema!');
+
+    toast.success("📄 Sample template downloaded with new schema!");
   };
 
   // Fetch reference books
   const fetchReferenceBooks = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const response = await axios.get(`${API_BASE_URL}/cms/reference-books`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       setReferenceBooks(response.data || []);
     } catch (error) {
-      toast.error('Failed to load reference books');
+      toast.error("Failed to load reference books");
       console.error(error);
     }
     setLoading(false);
@@ -417,38 +462,48 @@ const AcademicCMS = () => {
   const handleAddReferenceBook = async (e) => {
     e.preventDefault();
     const isEditing = editingReferenceBookId !== null;
-    
+
     try {
-      const token = localStorage.getItem('token');
-      
+      const token = localStorage.getItem("token");
+
       if (isEditing) {
-        await axios.put(`${API_BASE_URL}/cms/reference-books/${editingReferenceBookId}`, referenceBookForm, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        toast.success('✅ Reference book updated successfully!');
+        await axios.put(
+          `${API_BASE_URL}/cms/reference-books/${editingReferenceBookId}`,
+          referenceBookForm,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+        toast.success("✅ Reference book updated successfully!");
       } else {
-        await axios.post(`${API_BASE_URL}/cms/reference-books`, referenceBookForm, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        toast.success('✅ Reference book added successfully!');
+        await axios.post(
+          `${API_BASE_URL}/cms/reference-books`,
+          referenceBookForm,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+        toast.success("✅ Reference book added successfully!");
       }
-      
+
       setShowAddReferenceBook(false);
       setEditingReferenceBookId(null);
       setReferenceBookForm({
-        title: '',
-        author: '',
-        subject: '',
-        class_standard: '',
-        chapter: '',
-        board: 'CBSE',
-        publisher: '',
-        description: '',
-        file_url: ''
+        title: "",
+        author: "",
+        subject: "",
+        class_standard: "",
+        chapter: "",
+        board: "CBSE",
+        publisher: "",
+        description: "",
+        file_url: "",
       });
       fetchReferenceBooks();
     } catch (error) {
-      const errorMsg = isEditing ? 'Failed to update reference book' : 'Failed to add reference book';
+      const errorMsg = isEditing
+        ? "Failed to update reference book"
+        : "Failed to add reference book";
       toast.error(formatErrorMessage(error, errorMsg));
       console.error(error);
     }
@@ -456,19 +511,21 @@ const AcademicCMS = () => {
 
   // Delete reference book
   const handleDeleteReferenceBook = async (bookId) => {
-    if (!window.confirm('Are you sure you want to delete this reference book?')) {
+    if (
+      !window.confirm("Are you sure you want to delete this reference book?")
+    ) {
       return;
     }
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       await axios.delete(`${API_BASE_URL}/cms/reference-books/${bookId}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
-      toast.success('✅ Reference book deleted successfully!');
+      toast.success("✅ Reference book deleted successfully!");
       fetchReferenceBooks();
     } catch (error) {
-      toast.error(formatErrorMessage(error, 'Failed to delete reference book'));
+      toast.error(formatErrorMessage(error, "Failed to delete reference book"));
       console.error(error);
     }
   };
@@ -477,13 +534,16 @@ const AcademicCMS = () => {
   const fetchPreviousPapers = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_BASE_URL}/cms/previous-year-papers`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `${API_BASE_URL}/cms/previous-year-papers`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
       setPreviousPapers(response.data || []);
     } catch (error) {
-      toast.error('Failed to load previous year papers');
+      toast.error("Failed to load previous year papers");
       console.error(error);
     }
     setLoading(false);
@@ -493,36 +553,46 @@ const AcademicCMS = () => {
   const handleAddPaper = async (e) => {
     e.preventDefault();
     const isEditing = editingPaperId !== null;
-    
+
     try {
-      const token = localStorage.getItem('token');
-      
+      const token = localStorage.getItem("token");
+
       if (isEditing) {
-        await axios.put(`${API_BASE_URL}/cms/previous-year-papers/${editingPaperId}`, paperForm, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        toast.success('✅ Previous year paper updated successfully!');
+        await axios.put(
+          `${API_BASE_URL}/cms/previous-year-papers/${editingPaperId}`,
+          paperForm,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+        toast.success("✅ Previous year paper updated successfully!");
       } else {
-        await axios.post(`${API_BASE_URL}/cms/previous-year-papers`, paperForm, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        toast.success('✅ Previous year paper added successfully!');
+        await axios.post(
+          `${API_BASE_URL}/cms/previous-year-papers`,
+          paperForm,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+        toast.success("✅ Previous year paper added successfully!");
       }
-      
+
       setShowAddPaper(false);
       setEditingPaperId(null);
       setPaperForm({
-        title: '',
-        subject: '',
-        class_standard: '',
-        chapter: '',
+        title: "",
+        subject: "",
+        class_standard: "",
+        chapter: "",
         exam_year: new Date().getFullYear().toString(),
-        paper_type: 'Final Exam',
-        file_url: ''
+        paper_type: "Final Exam",
+        file_url: "",
       });
       fetchPreviousPapers();
     } catch (error) {
-      const errorMsg = isEditing ? 'Failed to update paper' : 'Failed to add paper';
+      const errorMsg = isEditing
+        ? "Failed to update paper"
+        : "Failed to add paper";
       toast.error(formatErrorMessage(error, errorMsg));
       console.error(error);
     }
@@ -530,19 +600,22 @@ const AcademicCMS = () => {
 
   // Delete previous paper
   const handleDeletePaper = async (paperId) => {
-    if (!window.confirm('Are you sure you want to delete this paper?')) {
+    if (!window.confirm("Are you sure you want to delete this paper?")) {
       return;
     }
 
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`${API_BASE_URL}/cms/previous-year-papers/${paperId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      toast.success('✅ Previous year paper deleted successfully!');
+      const token = localStorage.getItem("token");
+      await axios.delete(
+        `${API_BASE_URL}/cms/previous-year-papers/${paperId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      toast.success("✅ Previous year paper deleted successfully!");
       fetchPreviousPapers();
     } catch (error) {
-      toast.error(formatErrorMessage(error, 'Failed to delete paper'));
+      toast.error(formatErrorMessage(error, "Failed to delete paper"));
       console.error(error);
     }
   };
@@ -550,38 +623,46 @@ const AcademicCMS = () => {
   // Handle file upload
   const handleFileUpload = async (file) => {
     if (!file) return null;
-    
+
     // Validate file size (max 30MB)
     const maxSize = 30 * 1024 * 1024;
     if (file.size > maxSize) {
-      toast.error('File size must be less than 30MB');
+      toast.error("File size must be less than 30MB");
       return null;
     }
-    
+
     // Validate file type
-    const allowedTypes = ['application/pdf', 'text/plain', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    const allowedTypes = [
+      "application/pdf",
+      "text/plain",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
     if (!allowedTypes.includes(file.type)) {
-      toast.error('Only PDF, TXT, and DOCX files are allowed');
+      toast.error("Only PDF, TXT, and DOCX files are allowed");
       return null;
     }
-    
+
     setUploadingFile(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const formData = new FormData();
-      formData.append('file', file);
-      
-      const response = await axios.post(`${API_BASE_URL}/files/upload`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      
-      toast.success('File uploaded successfully!');
+      formData.append("file", file);
+
+      const response = await axios.post(
+        `${API_BASE_URL}/files/upload`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        },
+      );
+
+      toast.success("File uploaded successfully!");
       return response.data.file_url;
     } catch (error) {
-      toast.error(formatErrorMessage(error, 'File upload failed'));
+      toast.error(formatErrorMessage(error, "File upload failed"));
       console.error(error);
       return null;
     } finally {
@@ -590,16 +671,16 @@ const AcademicCMS = () => {
   };
 
   useEffect(() => {
-    if (activeTab === 'books') {
+    if (activeTab === "books") {
       fetchBooks();
-    } else if (activeTab === 'qa') {
+    } else if (activeTab === "qa") {
       fetchQAPairs();
-    } else if (activeTab === 'reference') {
+    } else if (activeTab === "reference") {
       fetchReferenceBooks();
-      setRefNavLevel({ step: 'class', class: '', subject: '', book: '' });
-    } else if (activeTab === 'papers') {
+      setRefNavLevel({ step: "class", class: "", subject: "", book: "" });
+    } else if (activeTab === "papers") {
       fetchPreviousPapers();
-      setPaperNavLevel({ step: 'class', class: '', subject: '', year: '' });
+      setPaperNavLevel({ step: "class", class: "", subject: "", year: "" });
     }
   }, [activeTab]);
 
@@ -607,52 +688,56 @@ const AcademicCMS = () => {
     <div className="p-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Academic Content CMS</h1>
-        <p className="text-gray-600">Manage academic books and Q&A knowledge base for AI Assistant</p>
+        <h1 className="text-2xl font-bold text-gray-900">
+          Academic Content CMS
+        </h1>
+        <p className="text-gray-600">
+          Manage academic books and Q&A knowledge base for AI Assistant
+        </p>
       </div>
 
       {/* Tabs */}
       <div className="border-b border-gray-200 mb-6">
         <nav className="-mb-px flex space-x-8">
           <button
-            onClick={() => setActiveTab('books')}
+            onClick={() => setActiveTab("books")}
             className={`${
-              activeTab === 'books'
-                ? 'border-emerald-500 text-emerald-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              activeTab === "books"
+                ? "border-emerald-500 text-emerald-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
           >
             <Book className="w-4 h-4" />
             Academic Books
           </button>
           <button
-            onClick={() => setActiveTab('reference')}
+            onClick={() => setActiveTab("reference")}
             className={`${
-              activeTab === 'reference'
-                ? 'border-emerald-500 text-emerald-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              activeTab === "reference"
+                ? "border-emerald-500 text-emerald-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
           >
             <Book className="w-4 h-4" />
             Reference Books
           </button>
           <button
-            onClick={() => setActiveTab('papers')}
+            onClick={() => setActiveTab("papers")}
             className={`${
-              activeTab === 'papers'
-                ? 'border-emerald-500 text-emerald-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              activeTab === "papers"
+                ? "border-emerald-500 text-emerald-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
           >
             <FileText className="w-4 h-4" />
             Previous Years' Papers
           </button>
           <button
-            onClick={() => setActiveTab('qa')}
+            onClick={() => setActiveTab("qa")}
             className={`${
-              activeTab === 'qa'
-                ? 'border-emerald-500 text-emerald-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              activeTab === "qa"
+                ? "border-emerald-500 text-emerald-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
           >
             <FileText className="w-4 h-4" />
@@ -662,22 +747,24 @@ const AcademicCMS = () => {
       </div>
 
       {/* Books Tab */}
-      {activeTab === 'books' && (
+      {activeTab === "books" && (
         <div>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">Academic Books ({books.length})</h2>
+            <h2 className="text-lg font-semibold">
+              Academic Books ({books.length})
+            </h2>
             <button
               onClick={() => {
                 setEditingBookId(null);
                 setBookForm({
-                  title: '',
-                  author: '',
-                  subject: '',
-                  class_standard: '',
-                  board: 'CBSE',
-                  publisher: '',
-                  description: '',
-                  file_url: ''
+                  title: "",
+                  author: "",
+                  subject: "",
+                  class_standard: "",
+                  board: "CBSE",
+                  publisher: "",
+                  description: "",
+                  file_url: "",
                 });
                 setShowAddBook(true);
               }}
@@ -691,9 +778,14 @@ const AcademicCMS = () => {
           {/* Books Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {books.map((book) => (
-              <div key={book.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+              <div
+                key={book.id}
+                className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+              >
                 <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-semibold text-gray-900 flex-1">{book.title}</h3>
+                  <h3 className="font-semibold text-gray-900 flex-1">
+                    {book.title}
+                  </h3>
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleEditBook(book)}
@@ -721,6 +813,31 @@ const AcademicCMS = () => {
                   </span>
                 </div>
                 <p className="text-sm text-gray-500 mt-2">{book.description}</p>
+
+                {/* File link(s) if present */}
+                {(book.file_url || book.pdf_url) && (
+                  <div className="mt-3 flex gap-2 flex-wrap">
+                    <a
+                      href={book.file_url || book.pdf_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded hover:bg-orange-200"
+                      title="Open uploaded file"
+                    >
+                      <FileText className="w-3 h-3" />
+                      View File
+                    </a>
+                    <a
+                      href={book.file_url || book.pdf_url}
+                      download
+                      className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 text-xs px-2 py-1 rounded hover:bg-emerald-200"
+                      title="Download file"
+                    >
+                      <Download className="w-3 h-3" />
+                      Download
+                    </a>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -730,14 +847,16 @@ const AcademicCMS = () => {
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
               <div className="bg-white rounded-lg p-6 max-w-md w-full">
                 <h3 className="text-lg font-semibold mb-4">
-                  {editingBookId ? 'Edit Book' : 'Add New Book'}
+                  {editingBookId ? "Edit Book" : "Add New Book"}
                 </h3>
                 <form onSubmit={handleAddBook} className="space-y-4">
                   <input
                     type="text"
                     placeholder="Book Title"
                     value={bookForm.title}
-                    onChange={(e) => setBookForm({...bookForm, title: e.target.value})}
+                    onChange={(e) =>
+                      setBookForm({ ...bookForm, title: e.target.value })
+                    }
                     className="w-full px-3 py-2 border rounded-lg"
                     required
                   />
@@ -745,7 +864,9 @@ const AcademicCMS = () => {
                     type="text"
                     placeholder="Author"
                     value={bookForm.author}
-                    onChange={(e) => setBookForm({...bookForm, author: e.target.value})}
+                    onChange={(e) =>
+                      setBookForm({ ...bookForm, author: e.target.value })
+                    }
                     className="w-full px-3 py-2 border rounded-lg"
                     required
                   />
@@ -753,7 +874,9 @@ const AcademicCMS = () => {
                     type="text"
                     placeholder="Subject (e.g., Mathematics)"
                     value={bookForm.subject}
-                    onChange={(e) => setBookForm({...bookForm, subject: e.target.value})}
+                    onChange={(e) =>
+                      setBookForm({ ...bookForm, subject: e.target.value })
+                    }
                     className="w-full px-3 py-2 border rounded-lg"
                     required
                   />
@@ -761,21 +884,30 @@ const AcademicCMS = () => {
                     type="text"
                     placeholder="Class (e.g., 10th)"
                     value={bookForm.class_standard}
-                    onChange={(e) => setBookForm({...bookForm, class_standard: e.target.value})}
+                    onChange={(e) =>
+                      setBookForm({
+                        ...bookForm,
+                        class_standard: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 border rounded-lg"
                     required
                   />
                   <textarea
                     placeholder="Description"
                     value={bookForm.description}
-                    onChange={(e) => setBookForm({...bookForm, description: e.target.value})}
+                    onChange={(e) =>
+                      setBookForm({ ...bookForm, description: e.target.value })
+                    }
                     className="w-full px-3 py-2 border rounded-lg"
                     rows={3}
                   />
-                  
+
                   {/* File Upload */}
                   <div>
-                    <label className="block text-sm font-medium mb-2">Upload File (PDF, TXT, DOCX - Max 30MB)</label>
+                    <label className="block text-sm font-medium mb-2">
+                      Upload File (PDF, TXT, DOCX - Max 30MB)
+                    </label>
                     <input
                       type="file"
                       accept=".pdf,.txt,.docx"
@@ -784,25 +916,36 @@ const AcademicCMS = () => {
                         if (file) {
                           const fileUrl = await handleFileUpload(file);
                           if (fileUrl) {
-                            setBookForm({...bookForm, file_url: fileUrl});
+                            setBookForm({ ...bookForm, file_url: fileUrl });
                           }
                         }
                       }}
                       className="w-full px-3 py-2 border rounded-lg"
                       disabled={uploadingFile}
                     />
-                    {uploadingFile && <p className="text-sm text-blue-600 mt-1">Uploading...</p>}
+                    {uploadingFile && (
+                      <p className="text-sm text-blue-600 mt-1">Uploading...</p>
+                    )}
                     {bookForm.file_url && (
-                      <p className="text-sm text-green-600 mt-1">✓ File uploaded</p>
+                      <a
+                        href={bookForm.file_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm inline-flex items-center gap-1 text-emerald-700 mt-1 underline"
+                        title="Preview uploaded file"
+                      >
+                        <FileText className="w-3 h-3" />
+                        Preview uploaded file
+                      </a>
                     )}
                   </div>
-                  
+
                   <div className="flex gap-2">
                     <button
                       type="submit"
                       className="flex-1 bg-emerald-600 text-white py-2 rounded-lg hover:bg-emerald-700"
                     >
-                      {editingBookId ? 'Update Book' : 'Add Book'}
+                      {editingBookId ? "Update Book" : "Add Book"}
                     </button>
                     <button
                       type="button"
@@ -810,14 +953,14 @@ const AcademicCMS = () => {
                         setShowAddBook(false);
                         setEditingBookId(null);
                         setBookForm({
-                          title: '',
-                          author: '',
-                          subject: '',
-                          class_standard: '',
-                          board: 'CBSE',
-                          publisher: '',
-                          description: '',
-                          file_url: ''
+                          title: "",
+                          author: "",
+                          subject: "",
+                          class_standard: "",
+                          board: "CBSE",
+                          publisher: "",
+                          description: "",
+                          file_url: "",
                         });
                       }}
                       className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
@@ -833,13 +976,20 @@ const AcademicCMS = () => {
       )}
 
       {/* Reference Books Tab */}
-      {activeTab === 'reference' && (
+      {activeTab === "reference" && (
         <div>
           {/* Breadcrumb Navigation */}
-          {refNavLevel.step !== 'class' && (
+          {refNavLevel.step !== "class" && (
             <div className="mb-4 flex items-center gap-2 text-sm text-gray-600">
               <button
-                onClick={() => setRefNavLevel({ step: 'class', class: '', subject: '', book: '' })}
+                onClick={() =>
+                  setRefNavLevel({
+                    step: "class",
+                    class: "",
+                    subject: "",
+                    book: "",
+                  })
+                }
                 className="hover:text-emerald-600"
               >
                 Classes
@@ -850,17 +1000,23 @@ const AcademicCMS = () => {
                   <span className="font-medium">Class {refNavLevel.class}</span>
                 </>
               )}
-              {refNavLevel.step === 'subject' && (
+              {refNavLevel.step === "subject" && (
                 <>
                   <span>›</span>
                   <span>Select Subject</span>
                 </>
               )}
-              {refNavLevel.subject && refNavLevel.step === 'books' && (
+              {refNavLevel.subject && refNavLevel.step === "books" && (
                 <>
                   <span>›</span>
                   <button
-                    onClick={() => setRefNavLevel({ ...refNavLevel, step: 'subject', subject: '' })}
+                    onClick={() =>
+                      setRefNavLevel({
+                        ...refNavLevel,
+                        step: "subject",
+                        subject: "",
+                      })
+                    }
                     className="hover:text-emerald-600"
                   >
                     {refNavLevel.subject}
@@ -873,7 +1029,7 @@ const AcademicCMS = () => {
           )}
 
           {/* Step 1: Select Class */}
-          {refNavLevel.step === 'class' && (
+          {refNavLevel.step === "class" && (
             <div>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold">Select Class</h2>
@@ -888,7 +1044,9 @@ const AcademicCMS = () => {
               {referenceBooks.length === 0 ? (
                 <div className="text-center py-12 bg-gray-50 rounded-lg">
                   <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600 mb-4">No reference books added yet</p>
+                  <p className="text-gray-600 mb-4">
+                    No reference books added yet
+                  </p>
                   <button
                     onClick={() => setShowAddReferenceBook(true)}
                     className="bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700"
@@ -898,67 +1056,122 @@ const AcademicCMS = () => {
                 </div>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                  {[...new Set(referenceBooks.map(book => book.class_standard))].sort((a, b) => a - b).map(classNum => (
-                    <button
-                      key={classNum}
-                      onClick={() => setRefNavLevel({ ...refNavLevel, step: 'subject', class: classNum })}
-                      className="border-2 border-gray-300 rounded-lg p-6 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-center"
-                    >
-                      <div className="text-3xl font-bold text-gray-900">Class {classNum}</div>
-                      <div className="text-sm text-gray-600 mt-2">
-                        {referenceBooks.filter(b => b.class_standard === classNum).length} books
-                      </div>
-                    </button>
-                  ))}
+                  {[
+                    ...new Set(
+                      referenceBooks.map((book) => book.class_standard),
+                    ),
+                  ]
+                    .sort((a, b) => a - b)
+                    .map((classNum) => (
+                      <button
+                        key={classNum}
+                        onClick={() =>
+                          setRefNavLevel({
+                            ...refNavLevel,
+                            step: "subject",
+                            class: classNum,
+                          })
+                        }
+                        className="border-2 border-gray-300 rounded-lg p-6 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-center"
+                      >
+                        <div className="text-3xl font-bold text-gray-900">
+                          Class {classNum}
+                        </div>
+                        <div className="text-sm text-gray-600 mt-2">
+                          {
+                            referenceBooks.filter(
+                              (b) => b.class_standard === classNum,
+                            ).length
+                          }{" "}
+                          books
+                        </div>
+                      </button>
+                    ))}
                 </div>
               )}
             </div>
           )}
 
           {/* Step 2: Select Subject */}
-          {refNavLevel.step === 'subject' && (
+          {refNavLevel.step === "subject" && (
             <div>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold">Select Subject</h2>
                 <button
-                  onClick={() => setRefNavLevel({ ...refNavLevel, step: 'class', class: '' })}
+                  onClick={() =>
+                    setRefNavLevel({ ...refNavLevel, step: "class", class: "" })
+                  }
                   className="text-gray-600 hover:text-gray-900"
                 >
                   ← Back
                 </button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[...new Set(referenceBooks
-                  .filter(book => book.class_standard === refNavLevel.class)
-                  .map(book => book.subject)
-                )].sort().map(subject => (
-                  <button
-                    key={subject}
-                    onClick={() => setRefNavLevel({ ...refNavLevel, step: 'books', subject })}
-                    className="border-2 border-gray-300 rounded-lg p-4 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left"
-                  >
-                    <div className="text-xl font-semibold text-gray-900">{subject}</div>
-                    <div className="text-sm text-gray-600 mt-1">
-                      {referenceBooks.filter(b => b.class_standard === refNavLevel.class && b.subject === subject).length} books
-                    </div>
-                  </button>
-                ))}
+                {[
+                  ...new Set(
+                    referenceBooks
+                      .filter(
+                        (book) => book.class_standard === refNavLevel.class,
+                      )
+                      .map((book) => book.subject),
+                  ),
+                ]
+                  .sort()
+                  .map((subject) => (
+                    <button
+                      key={subject}
+                      onClick={() =>
+                        setRefNavLevel({
+                          ...refNavLevel,
+                          step: "books",
+                          subject,
+                        })
+                      }
+                      className="border-2 border-gray-300 rounded-lg p-4 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left"
+                    >
+                      <div className="text-xl font-semibold text-gray-900">
+                        {subject}
+                      </div>
+                      <div className="text-sm text-gray-600 mt-1">
+                        {
+                          referenceBooks.filter(
+                            (b) =>
+                              b.class_standard === refNavLevel.class &&
+                              b.subject === subject,
+                          ).length
+                        }{" "}
+                        books
+                      </div>
+                    </button>
+                  ))}
               </div>
             </div>
           )}
 
           {/* Step 3: View Books */}
-          {refNavLevel.step === 'books' && (
+          {refNavLevel.step === "books" && (
             <div>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold">
-                  Reference Books ({referenceBooks.filter(b => 
-                    b.class_standard === refNavLevel.class && b.subject === refNavLevel.subject
-                  ).length})
+                  Reference Books (
+                  {
+                    referenceBooks.filter(
+                      (b) =>
+                        b.class_standard === refNavLevel.class &&
+                        b.subject === refNavLevel.subject,
+                    ).length
+                  }
+                  )
                 </h2>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setRefNavLevel({ ...refNavLevel, step: 'subject', subject: '' })}
+                    onClick={() =>
+                      setRefNavLevel({
+                        ...refNavLevel,
+                        step: "subject",
+                        subject: "",
+                      })
+                    }
                     className="text-gray-600 hover:text-gray-900"
                   >
                     ← Back
@@ -967,15 +1180,15 @@ const AcademicCMS = () => {
                     onClick={() => {
                       setEditingReferenceBookId(null);
                       setReferenceBookForm({
-                        title: '',
-                        author: '',
+                        title: "",
+                        author: "",
                         subject: refNavLevel.subject,
                         class_standard: refNavLevel.class,
-                        chapter: '',
-                        board: 'CBSE',
-                        publisher: '',
-                        description: '',
-                        file_url: ''
+                        chapter: "",
+                        board: "CBSE",
+                        publisher: "",
+                        description: "",
+                        file_url: "",
                       });
                       setShowAddReferenceBook(true);
                     }}
@@ -990,11 +1203,20 @@ const AcademicCMS = () => {
               {/* Books Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {referenceBooks
-                  .filter(book => book.class_standard === refNavLevel.class && book.subject === refNavLevel.subject)
+                  .filter(
+                    (book) =>
+                      book.class_standard === refNavLevel.class &&
+                      book.subject === refNavLevel.subject,
+                  )
                   .map((book) => (
-                    <div key={book.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div
+                      key={book.id}
+                      className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                    >
                       <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-semibold text-gray-900 flex-1">{book.title}</h3>
+                        <h3 className="font-semibold text-gray-900 flex-1">
+                          {book.title}
+                        </h3>
                         <div className="flex gap-2">
                           <button
                             onClick={() => {
@@ -1004,11 +1226,11 @@ const AcademicCMS = () => {
                                 author: book.author,
                                 subject: book.subject,
                                 class_standard: book.class_standard,
-                                chapter: book.chapter || '',
-                                board: book.board || 'CBSE',
-                                publisher: book.publisher || '',
-                                description: book.description || '',
-                                file_url: book.file_url || ''
+                                chapter: book.chapter || "",
+                                board: book.board || "CBSE",
+                                publisher: book.publisher || "",
+                                description: book.description || "",
+                                file_url: book.file_url || "",
                               });
                               setShowAddReferenceBook(true);
                             }}
@@ -1045,7 +1267,11 @@ const AcademicCMS = () => {
                           </a>
                         )}
                       </div>
-                      {book.description && <p className="text-sm text-gray-500 mt-2">{book.description}</p>}
+                      {book.description && (
+                        <p className="text-sm text-gray-500 mt-2">
+                          {book.description}
+                        </p>
+                      )}
                     </div>
                   ))}
               </div>
@@ -1057,14 +1283,21 @@ const AcademicCMS = () => {
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
               <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                 <h3 className="text-lg font-semibold mb-4">
-                  {editingReferenceBookId ? 'Edit Reference Book' : 'Add New Reference Book'}
+                  {editingReferenceBookId
+                    ? "Edit Reference Book"
+                    : "Add New Reference Book"}
                 </h3>
                 <form onSubmit={handleAddReferenceBook} className="space-y-4">
                   <input
                     type="text"
                     placeholder="Book Title *"
                     value={referenceBookForm.title}
-                    onChange={(e) => setReferenceBookForm({...referenceBookForm, title: e.target.value})}
+                    onChange={(e) =>
+                      setReferenceBookForm({
+                        ...referenceBookForm,
+                        title: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 border rounded-lg"
                     required
                   />
@@ -1072,31 +1305,56 @@ const AcademicCMS = () => {
                     type="text"
                     placeholder="Author *"
                     value={referenceBookForm.author}
-                    onChange={(e) => setReferenceBookForm({...referenceBookForm, author: e.target.value})}
+                    onChange={(e) =>
+                      setReferenceBookForm({
+                        ...referenceBookForm,
+                        author: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 border rounded-lg"
                     required
                   />
                   <div className="grid grid-cols-2 gap-4">
                     <select
                       value={referenceBookForm.subject}
-                      onChange={(e) => setReferenceBookForm({...referenceBookForm, subject: e.target.value})}
+                      onChange={(e) =>
+                        setReferenceBookForm({
+                          ...referenceBookForm,
+                          subject: e.target.value,
+                        })
+                      }
                       className="w-full px-3 py-2 border rounded-lg"
                       required
                     >
                       <option value="">Select Subject *</option>
-                      {['Physics', 'Chemistry', 'Biology', 'Math', 'English'].map(s => (
-                        <option key={s} value={s}>{s}</option>
+                      {[
+                        "Physics",
+                        "Chemistry",
+                        "Biology",
+                        "Math",
+                        "English",
+                      ].map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
                       ))}
                     </select>
                     <select
                       value={referenceBookForm.class_standard}
-                      onChange={(e) => setReferenceBookForm({...referenceBookForm, class_standard: e.target.value})}
+                      onChange={(e) =>
+                        setReferenceBookForm({
+                          ...referenceBookForm,
+                          class_standard: e.target.value,
+                        })
+                      }
                       className="w-full px-3 py-2 border rounded-lg"
                       required
                     >
                       <option value="">Select Class *</option>
-                      {[9, 10, 11, 12].map(c => (
-                        <option key={c} value={c}>Class {c}</option>
+                      {[9, 10, 11, 12].map((c) => (
+                        <option key={c} value={c}>
+                          Class {c}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -1104,18 +1362,30 @@ const AcademicCMS = () => {
                     type="text"
                     placeholder="Chapter (optional)"
                     value={referenceBookForm.chapter}
-                    onChange={(e) => setReferenceBookForm({...referenceBookForm, chapter: e.target.value})}
+                    onChange={(e) =>
+                      setReferenceBookForm({
+                        ...referenceBookForm,
+                        chapter: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 border rounded-lg"
                   />
                   <textarea
                     placeholder="Description"
                     value={referenceBookForm.description}
-                    onChange={(e) => setReferenceBookForm({...referenceBookForm, description: e.target.value})}
+                    onChange={(e) =>
+                      setReferenceBookForm({
+                        ...referenceBookForm,
+                        description: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 border rounded-lg"
                     rows={3}
                   />
                   <div>
-                    <label className="block text-sm font-medium mb-2">Upload File (PDF, TXT, DOCX - Max 30MB)</label>
+                    <label className="block text-sm font-medium mb-2">
+                      Upload File (PDF, TXT, DOCX - Max 30MB)
+                    </label>
                     <input
                       type="file"
                       accept=".pdf,.txt,.docx"
@@ -1124,16 +1394,23 @@ const AcademicCMS = () => {
                         if (file) {
                           const fileUrl = await handleFileUpload(file);
                           if (fileUrl) {
-                            setReferenceBookForm({...referenceBookForm, file_url: fileUrl});
+                            setReferenceBookForm({
+                              ...referenceBookForm,
+                              file_url: fileUrl,
+                            });
                           }
                         }
                       }}
                       className="w-full px-3 py-2 border rounded-lg"
                       disabled={uploadingFile}
                     />
-                    {uploadingFile && <p className="text-sm text-blue-600 mt-1">Uploading...</p>}
+                    {uploadingFile && (
+                      <p className="text-sm text-blue-600 mt-1">Uploading...</p>
+                    )}
                     {referenceBookForm.file_url && (
-                      <p className="text-sm text-green-600 mt-1">✓ File uploaded</p>
+                      <p className="text-sm text-green-600 mt-1">
+                        ✓ File uploaded
+                      </p>
                     )}
                   </div>
                   <div className="flex gap-2">
@@ -1142,7 +1419,7 @@ const AcademicCMS = () => {
                       className="flex-1 bg-emerald-600 text-white py-2 rounded-lg hover:bg-emerald-700"
                       disabled={uploadingFile}
                     >
-                      {editingReferenceBookId ? 'Update Book' : 'Add Book'}
+                      {editingReferenceBookId ? "Update Book" : "Add Book"}
                     </button>
                     <button
                       type="button"
@@ -1163,13 +1440,20 @@ const AcademicCMS = () => {
       )}
 
       {/* Previous Years' Papers Tab */}
-      {activeTab === 'papers' && (
+      {activeTab === "papers" && (
         <div>
           {/* Breadcrumb Navigation */}
-          {paperNavLevel.step !== 'class' && (
+          {paperNavLevel.step !== "class" && (
             <div className="mb-4 flex items-center gap-2 text-sm text-gray-600">
               <button
-                onClick={() => setPaperNavLevel({ step: 'class', class: '', subject: '', year: '' })}
+                onClick={() =>
+                  setPaperNavLevel({
+                    step: "class",
+                    class: "",
+                    subject: "",
+                    year: "",
+                  })
+                }
                 className="hover:text-emerald-600"
               >
                 Classes
@@ -1177,37 +1461,52 @@ const AcademicCMS = () => {
               {paperNavLevel.class && (
                 <>
                   <span>›</span>
-                  <span className="font-medium">Class {paperNavLevel.class}</span>
+                  <span className="font-medium">
+                    Class {paperNavLevel.class}
+                  </span>
                 </>
               )}
-              {paperNavLevel.step === 'subject' && (
+              {paperNavLevel.step === "subject" && (
                 <>
                   <span>›</span>
                   <span>Select Subject</span>
                 </>
               )}
-              {paperNavLevel.subject && paperNavLevel.step !== 'subject' && (
+              {paperNavLevel.subject && paperNavLevel.step !== "subject" && (
                 <>
                   <span>›</span>
                   <button
-                    onClick={() => setPaperNavLevel({ ...paperNavLevel, step: 'subject', subject: '', year: '' })}
+                    onClick={() =>
+                      setPaperNavLevel({
+                        ...paperNavLevel,
+                        step: "subject",
+                        subject: "",
+                        year: "",
+                      })
+                    }
                     className="hover:text-emerald-600"
                   >
                     {paperNavLevel.subject}
                   </button>
                 </>
               )}
-              {paperNavLevel.step === 'year' && (
+              {paperNavLevel.step === "year" && (
                 <>
                   <span>›</span>
                   <span>Select Year</span>
                 </>
               )}
-              {paperNavLevel.year && paperNavLevel.step === 'papers' && (
+              {paperNavLevel.year && paperNavLevel.step === "papers" && (
                 <>
                   <span>›</span>
                   <button
-                    onClick={() => setPaperNavLevel({ ...paperNavLevel, step: 'year', year: '' })}
+                    onClick={() =>
+                      setPaperNavLevel({
+                        ...paperNavLevel,
+                        step: "year",
+                        year: "",
+                      })
+                    }
                     className="hover:text-emerald-600"
                   >
                     {paperNavLevel.year}
@@ -1220,7 +1519,7 @@ const AcademicCMS = () => {
           )}
 
           {/* Step 1: Select Class */}
-          {paperNavLevel.step === 'class' && (
+          {paperNavLevel.step === "class" && (
             <div>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold">Select Class</h2>
@@ -1235,7 +1534,9 @@ const AcademicCMS = () => {
               {previousPapers.length === 0 ? (
                 <div className="text-center py-12 bg-gray-50 rounded-lg">
                   <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600 mb-4">No previous year papers added yet</p>
+                  <p className="text-gray-600 mb-4">
+                    No previous year papers added yet
+                  </p>
                   <button
                     onClick={() => setShowAddPaper(true)}
                     className="bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700"
@@ -1245,105 +1546,190 @@ const AcademicCMS = () => {
                 </div>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                  {[...new Set(previousPapers.map(paper => paper.class_standard))].sort((a, b) => a - b).map(classNum => (
-                    <button
-                      key={classNum}
-                      onClick={() => setPaperNavLevel({ ...paperNavLevel, step: 'subject', class: classNum })}
-                      className="border-2 border-gray-300 rounded-lg p-6 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-center"
-                    >
-                      <div className="text-3xl font-bold text-gray-900">Class {classNum}</div>
-                      <div className="text-sm text-gray-600 mt-2">
-                        {previousPapers.filter(p => p.class_standard === classNum).length} papers
-                      </div>
-                    </button>
-                  ))}
+                  {[
+                    ...new Set(
+                      previousPapers.map((paper) => paper.class_standard),
+                    ),
+                  ]
+                    .sort((a, b) => a - b)
+                    .map((classNum) => (
+                      <button
+                        key={classNum}
+                        onClick={() =>
+                          setPaperNavLevel({
+                            ...paperNavLevel,
+                            step: "subject",
+                            class: classNum,
+                          })
+                        }
+                        className="border-2 border-gray-300 rounded-lg p-6 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-center"
+                      >
+                        <div className="text-3xl font-bold text-gray-900">
+                          Class {classNum}
+                        </div>
+                        <div className="text-sm text-gray-600 mt-2">
+                          {
+                            previousPapers.filter(
+                              (p) => p.class_standard === classNum,
+                            ).length
+                          }{" "}
+                          papers
+                        </div>
+                      </button>
+                    ))}
                 </div>
               )}
             </div>
           )}
 
           {/* Step 2: Select Subject */}
-          {paperNavLevel.step === 'subject' && (
+          {paperNavLevel.step === "subject" && (
             <div>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold">Select Subject</h2>
                 <button
-                  onClick={() => setPaperNavLevel({ ...paperNavLevel, step: 'class', class: '' })}
+                  onClick={() =>
+                    setPaperNavLevel({
+                      ...paperNavLevel,
+                      step: "class",
+                      class: "",
+                    })
+                  }
                   className="text-gray-600 hover:text-gray-900"
                 >
                   ← Back
                 </button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[...new Set(previousPapers
-                  .filter(paper => paper.class_standard === paperNavLevel.class)
-                  .map(paper => paper.subject)
-                )].sort().map(subject => (
-                  <button
-                    key={subject}
-                    onClick={() => setPaperNavLevel({ ...paperNavLevel, step: 'year', subject })}
-                    className="border-2 border-gray-300 rounded-lg p-4 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left"
-                  >
-                    <div className="text-xl font-semibold text-gray-900">{subject}</div>
-                    <div className="text-sm text-gray-600 mt-1">
-                      {previousPapers.filter(p => p.class_standard === paperNavLevel.class && p.subject === subject).length} papers
-                    </div>
-                  </button>
-                ))}
+                {[
+                  ...new Set(
+                    previousPapers
+                      .filter(
+                        (paper) => paper.class_standard === paperNavLevel.class,
+                      )
+                      .map((paper) => paper.subject),
+                  ),
+                ]
+                  .sort()
+                  .map((subject) => (
+                    <button
+                      key={subject}
+                      onClick={() =>
+                        setPaperNavLevel({
+                          ...paperNavLevel,
+                          step: "year",
+                          subject,
+                        })
+                      }
+                      className="border-2 border-gray-300 rounded-lg p-4 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left"
+                    >
+                      <div className="text-xl font-semibold text-gray-900">
+                        {subject}
+                      </div>
+                      <div className="text-sm text-gray-600 mt-1">
+                        {
+                          previousPapers.filter(
+                            (p) =>
+                              p.class_standard === paperNavLevel.class &&
+                              p.subject === subject,
+                          ).length
+                        }{" "}
+                        papers
+                      </div>
+                    </button>
+                  ))}
               </div>
             </div>
           )}
 
           {/* Step 3: Select Year */}
-          {paperNavLevel.step === 'year' && (
+          {paperNavLevel.step === "year" && (
             <div>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold">Select Exam Year</h2>
                 <button
-                  onClick={() => setPaperNavLevel({ ...paperNavLevel, step: 'subject', subject: '' })}
+                  onClick={() =>
+                    setPaperNavLevel({
+                      ...paperNavLevel,
+                      step: "subject",
+                      subject: "",
+                    })
+                  }
                   className="text-gray-600 hover:text-gray-900"
                 >
                   ← Back
                 </button>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {[...new Set(previousPapers
-                  .filter(paper => paper.class_standard === paperNavLevel.class && paper.subject === paperNavLevel.subject)
-                  .map(paper => paper.exam_year)
-                )].sort((a, b) => b - a).map(year => (
-                  <button
-                    key={year}
-                    onClick={() => setPaperNavLevel({ ...paperNavLevel, step: 'papers', year })}
-                    className="border-2 border-gray-300 rounded-lg p-6 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-center"
-                  >
-                    <div className="text-3xl font-bold text-gray-900">{year}</div>
-                    <div className="text-sm text-gray-600 mt-2">
-                      {previousPapers.filter(p => 
-                        p.class_standard === paperNavLevel.class && 
-                        p.subject === paperNavLevel.subject && 
-                        p.exam_year === year
-                      ).length} papers
-                    </div>
-                  </button>
-                ))}
+                {[
+                  ...new Set(
+                    previousPapers
+                      .filter(
+                        (paper) =>
+                          paper.class_standard === paperNavLevel.class &&
+                          paper.subject === paperNavLevel.subject,
+                      )
+                      .map((paper) => paper.exam_year),
+                  ),
+                ]
+                  .sort((a, b) => b - a)
+                  .map((year) => (
+                    <button
+                      key={year}
+                      onClick={() =>
+                        setPaperNavLevel({
+                          ...paperNavLevel,
+                          step: "papers",
+                          year,
+                        })
+                      }
+                      className="border-2 border-gray-300 rounded-lg p-6 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-center"
+                    >
+                      <div className="text-3xl font-bold text-gray-900">
+                        {year}
+                      </div>
+                      <div className="text-sm text-gray-600 mt-2">
+                        {
+                          previousPapers.filter(
+                            (p) =>
+                              p.class_standard === paperNavLevel.class &&
+                              p.subject === paperNavLevel.subject &&
+                              p.exam_year === year,
+                          ).length
+                        }{" "}
+                        papers
+                      </div>
+                    </button>
+                  ))}
               </div>
             </div>
           )}
 
           {/* Step 4: View Papers */}
-          {paperNavLevel.step === 'papers' && (
+          {paperNavLevel.step === "papers" && (
             <div>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold">
-                  Previous Years' Papers ({previousPapers.filter(p => 
-                    p.class_standard === paperNavLevel.class && 
-                    p.subject === paperNavLevel.subject && 
-                    p.exam_year === paperNavLevel.year
-                  ).length})
+                  Previous Years' Papers (
+                  {
+                    previousPapers.filter(
+                      (p) =>
+                        p.class_standard === paperNavLevel.class &&
+                        p.subject === paperNavLevel.subject &&
+                        p.exam_year === paperNavLevel.year,
+                    ).length
+                  }
+                  )
                 </h2>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setPaperNavLevel({ ...paperNavLevel, step: 'year', year: '' })}
+                    onClick={() =>
+                      setPaperNavLevel({
+                        ...paperNavLevel,
+                        step: "year",
+                        year: "",
+                      })
+                    }
                     className="text-gray-600 hover:text-gray-900"
                   >
                     ← Back
@@ -1352,13 +1738,13 @@ const AcademicCMS = () => {
                     onClick={() => {
                       setEditingPaperId(null);
                       setPaperForm({
-                        title: '',
+                        title: "",
                         subject: paperNavLevel.subject,
                         class_standard: paperNavLevel.class,
-                        chapter: '',
+                        chapter: "",
                         exam_year: paperNavLevel.year,
-                        paper_type: 'Final Exam',
-                        file_url: ''
+                        paper_type: "Final Exam",
+                        file_url: "",
                       });
                       setShowAddPaper(true);
                     }}
@@ -1373,15 +1759,21 @@ const AcademicCMS = () => {
               {/* Papers Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {previousPapers
-                  .filter(paper => 
-                    paper.class_standard === paperNavLevel.class && 
-                    paper.subject === paperNavLevel.subject && 
-                    paper.exam_year === paperNavLevel.year
+                  .filter(
+                    (paper) =>
+                      paper.class_standard === paperNavLevel.class &&
+                      paper.subject === paperNavLevel.subject &&
+                      paper.exam_year === paperNavLevel.year,
                   )
                   .map((paper) => (
-                    <div key={paper.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div
+                      key={paper.id}
+                      className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                    >
                       <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-semibold text-gray-900 flex-1">{paper.title}</h3>
+                        <h3 className="font-semibold text-gray-900 flex-1">
+                          {paper.title}
+                        </h3>
                         <div className="flex gap-2">
                           <button
                             onClick={() => {
@@ -1390,10 +1782,10 @@ const AcademicCMS = () => {
                                 title: paper.title,
                                 subject: paper.subject,
                                 class_standard: paper.class_standard,
-                                chapter: paper.chapter || '',
+                                chapter: paper.chapter || "",
                                 exam_year: paper.exam_year,
                                 paper_type: paper.paper_type,
-                                file_url: paper.file_url || ''
+                                file_url: paper.file_url || "",
                               });
                               setShowAddPaper(true);
                             }}
@@ -1443,38 +1835,59 @@ const AcademicCMS = () => {
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
               <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                 <h3 className="text-lg font-semibold mb-4">
-                  {editingPaperId ? 'Edit Previous Year Paper' : 'Add New Previous Year Paper'}
+                  {editingPaperId
+                    ? "Edit Previous Year Paper"
+                    : "Add New Previous Year Paper"}
                 </h3>
                 <form onSubmit={handleAddPaper} className="space-y-4">
                   <input
                     type="text"
                     placeholder="Paper Title *"
                     value={paperForm.title}
-                    onChange={(e) => setPaperForm({...paperForm, title: e.target.value})}
+                    onChange={(e) =>
+                      setPaperForm({ ...paperForm, title: e.target.value })
+                    }
                     className="w-full px-3 py-2 border rounded-lg"
                     required
                   />
                   <div className="grid grid-cols-2 gap-4">
                     <select
                       value={paperForm.subject}
-                      onChange={(e) => setPaperForm({...paperForm, subject: e.target.value})}
+                      onChange={(e) =>
+                        setPaperForm({ ...paperForm, subject: e.target.value })
+                      }
                       className="w-full px-3 py-2 border rounded-lg"
                       required
                     >
                       <option value="">Select Subject *</option>
-                      {['Physics', 'Chemistry', 'Biology', 'Math', 'English'].map(s => (
-                        <option key={s} value={s}>{s}</option>
+                      {[
+                        "Physics",
+                        "Chemistry",
+                        "Biology",
+                        "Math",
+                        "English",
+                      ].map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
                       ))}
                     </select>
                     <select
                       value={paperForm.class_standard}
-                      onChange={(e) => setPaperForm({...paperForm, class_standard: e.target.value})}
+                      onChange={(e) =>
+                        setPaperForm({
+                          ...paperForm,
+                          class_standard: e.target.value,
+                        })
+                      }
                       className="w-full px-3 py-2 border rounded-lg"
                       required
                     >
                       <option value="">Select Class *</option>
-                      {[9, 10, 11, 12].map(c => (
-                        <option key={c} value={c}>Class {c}</option>
+                      {[9, 10, 11, 12].map((c) => (
+                        <option key={c} value={c}>
+                          Class {c}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -1483,7 +1896,12 @@ const AcademicCMS = () => {
                       type="number"
                       placeholder="Exam Year *"
                       value={paperForm.exam_year}
-                      onChange={(e) => setPaperForm({...paperForm, exam_year: e.target.value})}
+                      onChange={(e) =>
+                        setPaperForm({
+                          ...paperForm,
+                          exam_year: e.target.value,
+                        })
+                      }
                       className="w-full px-3 py-2 border rounded-lg"
                       min="2000"
                       max={new Date().getFullYear()}
@@ -1491,7 +1909,12 @@ const AcademicCMS = () => {
                     />
                     <select
                       value={paperForm.paper_type}
-                      onChange={(e) => setPaperForm({...paperForm, paper_type: e.target.value})}
+                      onChange={(e) =>
+                        setPaperForm({
+                          ...paperForm,
+                          paper_type: e.target.value,
+                        })
+                      }
                       className="w-full px-3 py-2 border rounded-lg"
                       required
                     >
@@ -1505,11 +1928,15 @@ const AcademicCMS = () => {
                     type="text"
                     placeholder="Chapter (optional)"
                     value={paperForm.chapter}
-                    onChange={(e) => setPaperForm({...paperForm, chapter: e.target.value})}
+                    onChange={(e) =>
+                      setPaperForm({ ...paperForm, chapter: e.target.value })
+                    }
                     className="w-full px-3 py-2 border rounded-lg"
                   />
                   <div>
-                    <label className="block text-sm font-medium mb-2">Upload File (PDF, TXT, DOCX - Max 30MB)</label>
+                    <label className="block text-sm font-medium mb-2">
+                      Upload File (PDF, TXT, DOCX - Max 30MB)
+                    </label>
                     <input
                       type="file"
                       accept=".pdf,.txt,.docx"
@@ -1518,16 +1945,20 @@ const AcademicCMS = () => {
                         if (file) {
                           const fileUrl = await handleFileUpload(file);
                           if (fileUrl) {
-                            setPaperForm({...paperForm, file_url: fileUrl});
+                            setPaperForm({ ...paperForm, file_url: fileUrl });
                           }
                         }
                       }}
                       className="w-full px-3 py-2 border rounded-lg"
                       disabled={uploadingFile}
                     />
-                    {uploadingFile && <p className="text-sm text-blue-600 mt-1">Uploading...</p>}
+                    {uploadingFile && (
+                      <p className="text-sm text-blue-600 mt-1">Uploading...</p>
+                    )}
                     {paperForm.file_url && (
-                      <p className="text-sm text-green-600 mt-1">✓ File uploaded</p>
+                      <p className="text-sm text-green-600 mt-1">
+                        ✓ File uploaded
+                      </p>
                     )}
                   </div>
                   <div className="flex gap-2">
@@ -1536,7 +1967,7 @@ const AcademicCMS = () => {
                       className="flex-1 bg-emerald-600 text-white py-2 rounded-lg hover:bg-emerald-700"
                       disabled={uploadingFile}
                     >
-                      {editingPaperId ? 'Update Paper' : 'Add Paper'}
+                      {editingPaperId ? "Update Paper" : "Add Paper"}
                     </button>
                     <button
                       type="button"
@@ -1557,10 +1988,12 @@ const AcademicCMS = () => {
       )}
 
       {/* Q&A Tab */}
-      {activeTab === 'qa' && (
+      {activeTab === "qa" && (
         <div>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">Q&A Knowledge Base ({qaPairs.length})</h2>
+            <h2 className="text-lg font-semibold">
+              Q&A Knowledge Base ({qaPairs.length})
+            </h2>
             <div className="flex gap-2">
               <button
                 onClick={() => setShowBulkUpload(true)}
@@ -1573,15 +2006,15 @@ const AcademicCMS = () => {
                 onClick={() => {
                   setEditingQAId(null);
                   setQaForm({
-                    book_id: '',
-                    question: '',
-                    answer: '',
-                    subject: '',
-                    class_standard: '',
-                    question_type: 'conceptual',
-                    difficulty_level: 'medium',
-                    keywords: '',
-                    tags: ''
+                    book_id: "",
+                    question: "",
+                    answer: "",
+                    subject: "",
+                    class_standard: "",
+                    question_type: "conceptual",
+                    difficulty_level: "medium",
+                    keywords: "",
+                    tags: "",
                   });
                   setShowAddQA(true);
                 }}
@@ -1599,7 +2032,9 @@ const AcademicCMS = () => {
               <div key={qa.id} className="border rounded-lg p-4">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <p className="font-medium text-gray-900">Q: {qa.question}</p>
+                    <p className="font-medium text-gray-900">
+                      Q: {qa.question}
+                    </p>
                     <p className="text-sm text-gray-600 mt-2">A: {qa.answer}</p>
                     <div className="mt-2 flex gap-2">
                       <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
@@ -1639,24 +2074,32 @@ const AcademicCMS = () => {
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
               <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                 <h3 className="text-lg font-semibold mb-4">
-                  {editingQAId ? 'Edit Q&A Pair' : 'Add New Q&A Pair'}
+                  {editingQAId ? "Edit Q&A Pair" : "Add New Q&A Pair"}
                 </h3>
                 <form onSubmit={handleAddQA} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Question</label>
+                    <label className="block text-sm font-medium mb-1">
+                      Question
+                    </label>
                     <input
                       type="text"
                       value={qaForm.question}
-                      onChange={(e) => setQaForm({...qaForm, question: e.target.value})}
+                      onChange={(e) =>
+                        setQaForm({ ...qaForm, question: e.target.value })
+                      }
                       className="w-full px-3 py-2 border rounded-lg"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Answer</label>
+                    <label className="block text-sm font-medium mb-1">
+                      Answer
+                    </label>
                     <textarea
                       value={qaForm.answer}
-                      onChange={(e) => setQaForm({...qaForm, answer: e.target.value})}
+                      onChange={(e) =>
+                        setQaForm({ ...qaForm, answer: e.target.value })
+                      }
                       className="w-full px-3 py-2 border rounded-lg"
                       rows={4}
                       required
@@ -1664,32 +2107,47 @@ const AcademicCMS = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">Subject *</label>
+                      <label className="block text-sm font-medium mb-1">
+                        Subject *
+                      </label>
                       <input
                         type="text"
                         value={qaForm.subject}
-                        onChange={(e) => setQaForm({...qaForm, subject: e.target.value})}
+                        onChange={(e) =>
+                          setQaForm({ ...qaForm, subject: e.target.value })
+                        }
                         className="w-full px-3 py-2 border rounded-lg"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Class *</label>
+                      <label className="block text-sm font-medium mb-1">
+                        Class *
+                      </label>
                       <input
                         type="text"
                         value={qaForm.class_standard}
-                        onChange={(e) => setQaForm({...qaForm, class_standard: e.target.value})}
+                        onChange={(e) =>
+                          setQaForm({
+                            ...qaForm,
+                            class_standard: e.target.value,
+                          })
+                        }
                         className="w-full px-3 py-2 border rounded-lg"
                         required
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Chapter/Topic *</label>
+                    <label className="block text-sm font-medium mb-1">
+                      Chapter/Topic *
+                    </label>
                     <input
                       type="text"
                       value={qaForm.chapter_topic}
-                      onChange={(e) => setQaForm({...qaForm, chapter_topic: e.target.value})}
+                      onChange={(e) =>
+                        setQaForm({ ...qaForm, chapter_topic: e.target.value })
+                      }
                       className="w-full px-3 py-2 border rounded-lg"
                       placeholder="e.g., Laws of Motion, Photosynthesis, etc."
                       required
@@ -1697,10 +2155,17 @@ const AcademicCMS = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">Difficulty Level</label>
+                      <label className="block text-sm font-medium mb-1">
+                        Difficulty Level
+                      </label>
                       <select
                         value={qaForm.difficulty_level}
-                        onChange={(e) => setQaForm({...qaForm, difficulty_level: e.target.value})}
+                        onChange={(e) =>
+                          setQaForm({
+                            ...qaForm,
+                            difficulty_level: e.target.value,
+                          })
+                        }
                         className="w-full px-3 py-2 border rounded-lg"
                       >
                         <option value="easy">Easy</option>
@@ -1709,10 +2174,17 @@ const AcademicCMS = () => {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Question Type</label>
+                      <label className="block text-sm font-medium mb-1">
+                        Question Type
+                      </label>
                       <select
                         value={qaForm.question_type}
-                        onChange={(e) => setQaForm({...qaForm, question_type: e.target.value})}
+                        onChange={(e) =>
+                          setQaForm({
+                            ...qaForm,
+                            question_type: e.target.value,
+                          })
+                        }
                         className="w-full px-3 py-2 border rounded-lg"
                       >
                         <option value="conceptual">Conceptual</option>
@@ -1723,31 +2195,43 @@ const AcademicCMS = () => {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Explanation (Optional)</label>
+                    <label className="block text-sm font-medium mb-1">
+                      Explanation (Optional)
+                    </label>
                     <textarea
                       value={qaForm.explanation}
-                      onChange={(e) => setQaForm({...qaForm, explanation: e.target.value})}
+                      onChange={(e) =>
+                        setQaForm({ ...qaForm, explanation: e.target.value })
+                      }
                       className="w-full px-3 py-2 border rounded-lg"
                       rows={3}
                       placeholder="Additional explanation or context..."
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Keywords (comma-separated)</label>
+                    <label className="block text-sm font-medium mb-1">
+                      Keywords (comma-separated)
+                    </label>
                     <input
                       type="text"
                       value={qaForm.keywords}
-                      onChange={(e) => setQaForm({...qaForm, keywords: e.target.value})}
+                      onChange={(e) =>
+                        setQaForm({ ...qaForm, keywords: e.target.value })
+                      }
                       className="w-full px-3 py-2 border rounded-lg"
                       placeholder="newton, force, motion"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Examples (comma-separated)</label>
+                    <label className="block text-sm font-medium mb-1">
+                      Examples (comma-separated)
+                    </label>
                     <input
                       type="text"
                       value={qaForm.examples}
-                      onChange={(e) => setQaForm({...qaForm, examples: e.target.value})}
+                      onChange={(e) =>
+                        setQaForm({ ...qaForm, examples: e.target.value })
+                      }
                       className="w-full px-3 py-2 border rounded-lg"
                       placeholder="Example 1, Example 2"
                     />
@@ -1757,7 +2241,7 @@ const AcademicCMS = () => {
                       type="submit"
                       className="flex-1 bg-emerald-600 text-white py-2 rounded-lg hover:bg-emerald-700"
                     >
-                      {editingQAId ? 'Update Q&A' : 'Add Q&A'}
+                      {editingQAId ? "Update Q&A" : "Add Q&A"}
                     </button>
                     <button
                       type="button"
@@ -1765,16 +2249,16 @@ const AcademicCMS = () => {
                         setShowAddQA(false);
                         setEditingQAId(null);
                         setQaForm({
-                          question: '',
-                          answer: '',
-                          subject: '',
-                          class_standard: '',
-                          chapter_topic: '',
-                          question_type: 'conceptual',
-                          difficulty_level: 'medium',
-                          explanation: '',
-                          keywords: '',
-                          examples: ''
+                          question: "",
+                          answer: "",
+                          subject: "",
+                          class_standard: "",
+                          chapter_topic: "",
+                          question_type: "conceptual",
+                          difficulty_level: "medium",
+                          explanation: "",
+                          keywords: "",
+                          examples: "",
                         });
                       }}
                       className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
@@ -1791,23 +2275,50 @@ const AcademicCMS = () => {
           {showBulkUpload && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
               <div className="bg-white rounded-lg p-6 max-w-2xl w-full">
-                <h3 className="text-lg font-semibold mb-4">Bulk Upload Q&A Pairs</h3>
-                
+                <h3 className="text-lg font-semibold mb-4">
+                  Bulk Upload Q&A Pairs
+                </h3>
+
                 <div className="space-y-4">
                   {/* File Format Info */}
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h4 className="font-medium text-blue-900 mb-2">📋 File Requirements</h4>
-                    <p className="text-sm text-blue-700 mb-2">Upload Excel (.xlsx) or CSV (.csv) file with these columns:</p>
+                    <h4 className="font-medium text-blue-900 mb-2">
+                      📋 File Requirements
+                    </h4>
+                    <p className="text-sm text-blue-700 mb-2">
+                      Upload Excel (.xlsx) or CSV (.csv) file with these
+                      columns:
+                    </p>
                     <ul className="text-sm text-blue-600 list-disc list-inside space-y-1">
-                      <li><strong>question</strong> (required) - The question text</li>
-                      <li><strong>answer</strong> (required) - The answer text</li>
-                      <li><strong>subject</strong> (optional) - e.g., Physics, Math</li>
-                      <li><strong>class</strong> or <strong>class_standard</strong> (optional) - e.g., 9, 10, 11</li>
-                      <li><strong>keywords</strong> (optional) - comma-separated</li>
-                      <li><strong>difficulty</strong> or <strong>difficulty_level</strong> (optional) - easy, medium, hard</li>
-                      <li><strong>type</strong> or <strong>question_type</strong> (optional) - conceptual, numerical, etc.</li>
+                      <li>
+                        <strong>question</strong> (required) - The question text
+                      </li>
+                      <li>
+                        <strong>answer</strong> (required) - The answer text
+                      </li>
+                      <li>
+                        <strong>subject</strong> (optional) - e.g., Physics,
+                        Math
+                      </li>
+                      <li>
+                        <strong>class</strong> or{" "}
+                        <strong>class_standard</strong> (optional) - e.g., 9,
+                        10, 11
+                      </li>
+                      <li>
+                        <strong>keywords</strong> (optional) - comma-separated
+                      </li>
+                      <li>
+                        <strong>difficulty</strong> or{" "}
+                        <strong>difficulty_level</strong> (optional) - easy,
+                        medium, hard
+                      </li>
+                      <li>
+                        <strong>type</strong> or <strong>question_type</strong>{" "}
+                        (optional) - conceptual, numerical, etc.
+                      </li>
                     </ul>
-                    
+
                     {/* Download Sample Template Button */}
                     <button
                       onClick={downloadSampleTemplate}
@@ -1820,7 +2331,9 @@ const AcademicCMS = () => {
 
                   {/* File Upload */}
                   <div>
-                    <label className="block text-sm font-medium mb-2">Select File</label>
+                    <label className="block text-sm font-medium mb-2">
+                      Select File
+                    </label>
                     <input
                       type="file"
                       accept=".xlsx,.csv"
@@ -1837,21 +2350,28 @@ const AcademicCMS = () => {
                   {/* Upload Summary */}
                   {uploadSummary && (
                     <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                      <h4 className="font-medium text-green-900 mb-2">✅ Upload Summary</h4>
+                      <h4 className="font-medium text-green-900 mb-2">
+                        ✅ Upload Summary
+                      </h4>
                       <div className="text-sm text-green-700 space-y-1">
                         <p>Total rows: {uploadSummary.total_rows}</p>
                         <p>✅ Successful: {uploadSummary.successful}</p>
                         <p>⚠️ Skipped: {uploadSummary.skipped}</p>
-                        {uploadSummary.skipped_details && uploadSummary.skipped_details.length > 0 && (
-                          <div className="mt-2">
-                            <p className="font-medium">Skipped rows:</p>
-                            <ul className="list-disc list-inside">
-                              {uploadSummary.skipped_details.map((detail, index) => (
-                                <li key={index} className="text-xs">{detail}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
+                        {uploadSummary.skipped_details &&
+                          uploadSummary.skipped_details.length > 0 && (
+                            <div className="mt-2">
+                              <p className="font-medium">Skipped rows:</p>
+                              <ul className="list-disc list-inside">
+                                {uploadSummary.skipped_details.map(
+                                  (detail, index) => (
+                                    <li key={index} className="text-xs">
+                                      {detail}
+                                    </li>
+                                  ),
+                                )}
+                              </ul>
+                            </div>
+                          )}
                       </div>
                     </div>
                   )}
@@ -1863,7 +2383,7 @@ const AcademicCMS = () => {
                       disabled={!bulkUploadFile || loading}
                       className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >
-                      {loading ? 'Uploading...' : 'Upload Q&A Pairs'}
+                      {loading ? "Uploading..." : "Upload Q&A Pairs"}
                     </button>
                     <button
                       onClick={() => {
