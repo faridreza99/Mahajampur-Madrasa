@@ -22,6 +22,7 @@ import shutil
 import openpyxl
 from openpyxl.styles import Font, Alignment, PatternFill
 from reportlab.lib.pagesizes import letter, A4
+from reportlab.pdfgen import canvas
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
@@ -29,6 +30,7 @@ import tempfile
 import requests
 from twilio.rest import Client
 import io
+from io import BytesIO
 import pandas as pd
 import csv
 import cloudinary
@@ -365,7 +367,7 @@ class Student(BaseModel):
     guardian_name: str
     guardian_phone: str
     photo_url: Optional[str] = None
-    tags: List[str] = []  # Student tags for categorization
+    tags: List[str] = Field(default_factory=list)  # ✅ use default_factory
     is_active: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
@@ -385,7 +387,7 @@ class StudentCreate(BaseModel):
     address: str
     guardian_name: str
     guardian_phone: str
-    tags: List[str] = []  # Student tags for categorization
+    tags: List[str] = Field(default_factory=list)  # ✅
 
 class Tag(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -2624,6 +2626,63 @@ async def export_students(
     except Exception as e:
         logging.error(f"Failed to export students: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to export students: {str(e)}")
+
+@api_router.post("/students/{student_id}/photo", response_model=Student)
+async def upload_student_photo(
+    student_id: str,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+):
+    # Role check
+    if current_user.role not in ["super_admin", "admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    # Find student
+    student = await db.students.find_one({
+        "id": student_id,
+        "tenant_id": current_user.tenant_id,
+        "is_active": True,
+    })
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    # Validate type and size
+    if file.content_type not in ["image/jpeg", "image/jpg", "image/png"]:
+        raise HTTPException(status_code=400, detail="Invalid file type")
+
+    contents = await file.read()
+    max_size = 2 * 1024 * 1024  # 2MB
+    if len(contents) > max_size:
+        raise HTTPException(status_code=400, detail="File exceeds 2MB limit")
+
+    # Upload to Cloudinary
+    try:
+        upload_result = cloudinary.uploader.upload(
+            contents,
+            folder=f"students/{current_user.tenant_id}",
+            public_id=student["admission_no"],
+            overwrite=True,
+        )
+        photo_url = upload_result["secure_url"]
+    except Exception:
+        logging.exception("Cloudinary upload failed")
+        raise HTTPException(status_code=500, detail="Photo upload failed")
+
+    # Save URL
+    await db.students.update_one(
+        {"id": student_id, "tenant_id": current_user.tenant_id},
+        {
+            "$set": {
+                "photo_url": photo_url,
+                "updated_at": datetime.utcnow(),
+            }
+        },
+    )
+
+    updated_student = await db.students.find_one(
+        {"id": student_id, "tenant_id": current_user.tenant_id}
+    )
+    return Student(**updated_student)
 
 # ==================== TAGS ROUTES ====================
 
@@ -5300,38 +5359,54 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 async def upload_file(
     file: UploadFile = File(...),
     document_type: str = None,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
-    """Upload a file to Cloudinary and return the URL (supports PDF, TXT, DOCX, JPG, PNG up to 30MB)"""
+    """
+    Upload a file to Cloudinary and return the URL
+    (supports PDF, TXT, DOC, DOCX, JPG, PNG up to 100MB)
+    """
     try:
-        # Validate file type - Extended to support TXT and DOCX
+        # Validate file type - Extended to support TXT and DOC/DOCX
         allowed_types = [
-            'application/pdf',
-            'image/jpeg', 'image/jpg', 'image/png',
-            'text/plain',  # TXT files
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',  # DOCX
-            'application/msword'  # DOC (legacy)
+            "application/pdf",
+            "image/jpeg",
+            "image/jpg",
+            "image/png",
+            "text/plain",  # TXT files
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",  # DOCX
+            "application/msword",  # DOC (legacy)
         ]
         if file.content_type not in allowed_types:
-            raise HTTPException(status_code=400, detail="Invalid file type. Only PDF, TXT, DOC, DOCX, JPG, and PNG files are allowed")
-        
-        # Validate file size (30MB max for academic content)
-        max_size = 30 * 1024 * 1024  # 30MB
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Invalid file type. Only PDF, TXT, DOC, DOCX, JPG, and PNG "
+                    "files are allowed"
+                ),
+            )
+
+        # Validate file size (100MB max for academic content)
+        max_size = 100 * 1024 * 1024  # 100 MB
         file_content = await file.read()
         if len(file_content) > max_size:
-            raise HTTPException(status_code=400, detail="File size exceeds 30MB limit")
-        
+            raise HTTPException(
+                status_code=400,
+                detail="File size exceeds 100MB limit",
+            )
+
         # Determine resource type based on file type
-        resource_type = "image" if file.content_type.startswith("image/") else "raw"
-        
+        resource_type = (
+            "image" if file.content_type.startswith("image/") else "raw"
+        )
+
         # Extract filename components
         original_filename = Path(file.filename).stem
         file_extension = Path(file.filename).suffix
-        
-        # Upload to Cloudinary with tenant-specific folder and explicit filename (including extension)
+
+        # Upload to Cloudinary with tenant-specific folder and explicit filename
         folder = f"school-erp/{current_user.tenant_id}"
         unique_filename = f"{original_filename}_{uuid.uuid4().hex[:8]}{file_extension}"
-        
+
         upload_result = cloudinary.uploader.upload(
             io.BytesIO(file_content),
             folder=folder,
@@ -5339,27 +5414,33 @@ async def upload_file(
             public_id=unique_filename,
             overwrite=False,
             type="upload",
-            access_mode="public"
+            access_mode="public",
         )
-        
-        # Extract file URL and public ID from Cloudinary response
-        file_url = upload_result.get('secure_url')
-        public_id = upload_result.get('public_id')
-        
-        logging.info(f"File uploaded to Cloudinary: {file.filename} -> {file_url} by {current_user.full_name}")
-        
+
+        file_url = upload_result.get("secure_url")
+        public_id = upload_result.get("public_id")
+
+        logging.info(
+            f"File uploaded to Cloudinary: {file.filename} -> {file_url} "
+            f"by {current_user.full_name}"
+        )
+
         return {
             "file_url": file_url,
-            "url": file_url,  # Keep for backward compatibility
+            "url": file_url,
             "public_id": public_id,
             "filename": file.filename,
             "size": len(file_content),
-            "content_type": file.content_type
+            "content_type": file.content_type,
         }
-        
+
+    except HTTPException:
+        raise
     except Exception as e:
         logging.error(f"Failed to upload file to Cloudinary: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to upload file: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to upload file: {str(e)}"
+        )
 
 @api_router.get("/leave-types")
 async def get_leave_types(current_user: User = Depends(get_current_user)):
@@ -5422,33 +5503,178 @@ async def get_sections(class_id: Optional[str] = None, current_user: User = Depe
     sections = await db.sections.find(query).to_list(1000)
     return [Section(**section) for section in sections]
 
-@api_router.post("/sections", response_model=Section)
-async def create_section(section_data: SectionCreate, current_user: User = Depends(get_current_user)):
+@api_router.get("/sections", response_model=List[Section])
+async def list_sections(
+    class_id: Optional[str] = None,
+    active: Optional[bool] = True,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    List sections for the current tenant (optionally filter by class_id).
+    By default returns only active sections; pass active=false to include inactive.
+    """
+    query: Dict[str, Any] = {"tenant_id": current_user.tenant_id}
+    if active is not None:
+        query["is_active"] = active
+    if class_id:
+        query["class_id"] = class_id
+
+    sections = await db.sections.find(query).to_list(1000)
+    return [Section(**s) for s in sections]
+
+
+@api_router.get("/sections/{section_id}", response_model=Section)
+async def get_section(
+    section_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Get a single section by id (must belong to tenant).
+    """
+    section = await db.sections.find_one(
+        {"id": section_id, "tenant_id": current_user.tenant_id}
+    )
+    if not section:
+        raise HTTPException(status_code=404, detail="Section not found")
+    return Section(**section)
+
+
+@api_router.post("/sections", response_model=Section, status_code=201)
+async def create_section(
+    section_data: SectionCreate, current_user: User = Depends(get_current_user)
+):
+    """
+    Create a new section. Requires role: super_admin | admin | teacher
+    """
     if current_user.role not in ["super_admin", "admin", "teacher"]:
         raise HTTPException(status_code=403, detail="Not authorized")
-    
-    # Use school_id from JWT context first, then fallback
-    school_id = getattr(current_user, 'school_id', None)
-    
+
+    # Resolve school_id (same fallback pattern you use elsewhere)
+    school_id = getattr(current_user, "school_id", None)
     if not school_id:
-        schools = await db.schools.find({
-            "tenant_id": current_user.tenant_id,
-            "is_active": True
-        }).to_list(1)
+        schools = await db.schools.find(
+            {"tenant_id": current_user.tenant_id, "is_active": True}
+        ).to_list(1)
         if not schools:
             raise HTTPException(
                 status_code=422,
-                detail="No school found for tenant. Please configure school in Settings → Institution."
+                detail="No school found for tenant. Please configure school in Settings → Institution.",
             )
         school_id = schools[0]["id"]
-    
+
     section_dict = section_data.dict()
     section_dict["tenant_id"] = current_user.tenant_id
     section_dict["school_id"] = school_id
-    
+    section_dict["id"] = section_dict.get("id") or str(uuid.uuid4())
+    section_dict["is_active"] = True
+    section_dict["created_at"] = datetime.utcnow()
+    section_dict["updated_at"] = datetime.utcnow()
+
     section = Section(**section_dict)
     await db.sections.insert_one(section.dict())
     return section
+
+
+@api_router.put("/sections/{section_id}", response_model=Section)
+async def update_section(
+    section_id: str,
+    section_data: SectionCreate,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Full replace/update a section. Requires same role as create.
+    This will overwrite the stored fields with the provided data (except tenant_id/school_id/id).
+    """
+    if current_user.role not in ["super_admin", "admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    existing = await db.sections.find_one(
+        {"id": section_id, "tenant_id": current_user.tenant_id}
+    )
+    if not existing:
+        raise HTTPException(status_code=404, detail="Section not found")
+
+    # Keep tenant/school/id intact, accept other values from body
+    update_payload = section_data.dict()
+    update_payload["updated_at"] = datetime.utcnow()
+
+    # avoid changing tenant_id/school_id/id/is_active unless provided intentionally
+    update_payload["tenant_id"] = existing["tenant_id"]
+    update_payload["school_id"] = existing.get("school_id", update_payload.get("school_id"))
+    update_payload["id"] = existing["id"]
+
+    await db.sections.update_one(
+        {"id": section_id, "tenant_id": current_user.tenant_id},
+        {"$set": update_payload},
+    )
+
+    updated = await db.sections.find_one(
+        {"id": section_id, "tenant_id": current_user.tenant_id}
+    )
+    return Section(**updated)
+
+
+@api_router.patch("/sections/{section_id}", response_model=Section)
+async def patch_section(
+    section_id: str,
+    partial: Dict[str, Any],
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Partial update for a section. Accepts a JSON object with only the fields to update.
+    Useful for quick changes (e.g., change name, max_students, teacher_id).
+    """
+    if current_user.role not in ["super_admin", "admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    existing = await db.sections.find_one(
+        {"id": section_id, "tenant_id": current_user.tenant_id}
+    )
+    if not existing:
+        raise HTTPException(status_code=404, detail="Section not found")
+
+    # Prevent changing protected fields from this endpoint
+    for forbidden in ["id", "tenant_id", "school_id", "created_at"]:
+        if forbidden in partial:
+            partial.pop(forbidden, None)
+
+    partial["updated_at"] = datetime.utcnow()
+
+    await db.sections.update_one(
+        {"id": section_id, "tenant_id": current_user.tenant_id},
+        {"$set": partial},
+    )
+
+    updated = await db.sections.find_one(
+        {"id": section_id, "tenant_id": current_user.tenant_id}
+    )
+    return Section(**updated)
+
+
+@api_router.delete("/sections/{section_id}")
+async def delete_section(
+    section_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Soft-delete a section (set is_active=False). Requires same role check.
+    If you prefer hard delete remove the update and call delete_one instead.
+    """
+    if current_user.role not in ["super_admin", "admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    existing = await db.sections.find_one(
+        {"id": section_id, "tenant_id": current_user.tenant_id}
+    )
+    if not existing:
+        raise HTTPException(status_code=404, detail="Section not found")
+
+    await db.sections.update_one(
+        {"id": section_id, "tenant_id": current_user.tenant_id},
+        {"$set": {"is_active": False, "updated_at": datetime.utcnow()}},
+    )
+
+    return {"message": "Section deleted (soft) successfully", "id": section_id}
 
 @api_router.put("/classes/{class_id}", response_model=Class)
 async def update_class(class_id: str, class_data: ClassUpdate, current_user: User = Depends(get_current_user)):
@@ -6852,7 +7078,6 @@ async def assign_students_to_route(
         raise HTTPException(status_code=500, detail=f"Failed to assign students: {str(e)}")
 
 # ==================== REPORTS API ====================
-
 @api_router.get("/reports/admission-summary")
 async def generate_admission_summary_report(
     format: str = "pdf",
@@ -6864,18 +7089,84 @@ async def generate_admission_summary_report(
 ):
     """Generate admission summary report in specified format"""
     try:
-        # Build query filters
-        query = {"tenant_id": current_user.tenant_id, "is_active": True}
-        
+        from datetime import datetime
+
+        # ---------- QUERY STUDENTS ----------
+        query = {"tenant_id": current_user.tenant_id}
+        if status != "all_statuses":
+            query["is_active"] = (status == "active")
+        else:
+            query["is_active"] = True
+
         if class_filter != "all_classes":
             query["class_id"] = class_filter
         if gender != "all_genders":
             query["gender"] = gender.capitalize()
-            
-        # Fetch filtered students
+
         students = await db.students.find(query).to_list(1000)
-        
-        # Generate report data
+
+        # ---------- BUILD CLASS MAP ----------
+        # Similar to /students/export
+        classes = await db.classes.find({"tenant_id": current_user.tenant_id}).to_list(1000)
+        class_map = {}
+
+        for c in classes:
+            display_name = c.get("name") or c.get("class_name") or ""
+            standard = c.get("standard")
+            if standard:
+                display_name = f"{display_name} ({standard})"
+
+            # Map by logical id
+            if c.get("id"):
+                class_map[c["id"]] = display_name
+
+            # Map by Mongo _id as string (for cases where class_id stores _id)
+            if c.get("_id"):
+                class_map[str(c["_id"])] = display_name
+
+        # ---------- SANITIZE STUDENTS ----------
+        sanitized_students = []
+        for s in students:
+            raw_adm_date = (
+                s.get("admission_date")
+                or s.get("date_of_admission")
+                or s.get("created_at")
+            )
+
+            if isinstance(raw_adm_date, datetime):
+                adm_date_str = raw_adm_date.strftime("%Y-%m-%d")
+            else:
+                adm_date_str = raw_adm_date or ""
+
+            class_id = s.get("class_id", "")
+            # try map → fallback to any existing text field → fallback empty
+            resolved_class_name = (
+                class_map.get(class_id)
+                or class_map.get(str(class_id))
+                or s.get("class_name")
+                or s.get("class")
+                or ""
+            )
+
+            sanitized_students.append({
+                "id": str(s.get("id") or s.get("_id") or ""),
+                "admission_no": s.get("admission_no", ""),
+                "full_name": s.get("full_name") or s.get("name") or "",
+                "class_id": class_id,
+                "class_name": resolved_class_name,  # 👈 now populated
+                "gender": s.get("gender", ""),
+                "admission_date": adm_date_str,
+                "is_active": s.get("is_active", True),
+            })
+
+        total_students = len(sanitized_students)
+        male_students = len([s for s in sanitized_students if s.get("gender") == "Male"])
+        female_students = len([s for s in sanitized_students if s.get("gender") == "Female"])
+        other_gender = len([
+            s for s in sanitized_students
+            if s.get("gender") not in ("Male", "Female") and s.get("gender")
+        ])
+
         report_data = {
             "title": f"Admission Summary Report - Academic Year {year}",
             "generated_date": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
@@ -6886,44 +7177,172 @@ async def generate_admission_summary_report(
                 "status": status
             },
             "summary": {
-                "total_students": len(students),
-                "male_students": len([s for s in students if s.get("gender") == "Male"]),
-                "female_students": len([s for s in students if s.get("gender") == "Female"]),
-                "other_gender": len([s for s in students if s.get("gender") == "Other"])
+                "total_students": total_students,
+                "male_students": male_students,
+                "female_students": female_students,
+                "other_gender": other_gender
             },
-            "students": students
+            "students": sanitized_students,
         }
-        
+
         if format.lower() == "json":
             return {
                 "message": "Admission summary report generated successfully",
                 "data": report_data,
-                "format": "json"
+                "format": "json",
             }
         elif format.lower() == "excel":
-            # Generate Excel file
             filename = f"admission_summary_{year.replace('-', '_')}"
-            file_path = await generate_academic_excel_report("admission_summary", report_data, current_user, filename)
+            file_path = await generate_academic_excel_report(
+                "admission_summary", report_data, current_user, filename
+            )
             return FileResponse(
                 path=file_path,
                 filename=f"{filename}.xlsx",
                 media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                background=BackgroundTask(cleanup_temp_file, file_path)
+                background=BackgroundTask(cleanup_temp_file, file_path),
             )
-        else:  # PDF
-            # Generate PDF file
+        else:
             filename = f"admission_summary_{year.replace('-', '_')}"
-            file_path = await generate_academic_pdf_report("admission_summary", report_data, current_user, filename)
+            file_path = await generate_academic_pdf_report(
+                "admission_summary", report_data, current_user, filename
+            )
             return FileResponse(
                 path=file_path,
                 filename=f"{filename}.pdf",
                 media_type="application/pdf",
-                background=BackgroundTask(cleanup_temp_file, file_path)
+                background=BackgroundTask(cleanup_temp_file, file_path),
             )
-            
+
     except Exception as e:
         logger.error(f"Report generation failed: {e}")
         raise HTTPException(status_code=500, detail="Failed to generate report")
+
+# @api_router.get("/reports/admission-summary")
+# async def generate_admission_summary_report(
+#     format: str = "pdf",
+#             year: str = "2024-25",
+#             class_filter: str = "all_classes",
+#             gender: str = "all_genders", 
+#             status: str = "all_statuses",
+#             current_user: User = Depends(get_current_user)
+#         ):
+#             """Generate admission summary report in specified format"""
+#             try:
+#                 from datetime import datetime  # safe even if already imported above
+
+#                 # Build query filters
+#                 query = {"tenant_id": current_user.tenant_id}
+#                 # NOTE: if you want status filter to work, handle it here instead of hard-forcing is_active=True
+#                 if status != "all_statuses":
+#                     query["is_active"] = (status == "active")
+
+#                 # If you want to only show active by default:
+#                 if "is_active" not in query:
+#                     query["is_active"] = True
+
+#                 if class_filter != "all_classes":
+#                     query["class_id"] = class_filter
+#                 if gender != "all_genders":
+#                     query["gender"] = gender.capitalize()
+
+#                 # Fetch filtered students
+#                 students = await db.students.find(query).to_list(1000)
+
+#                 # ---------- SANITIZE STUDENT DATA FOR JSON ----------
+#                 sanitized_students = []
+#                 for s in students:
+#                     # admission_date might be datetime or string or missing
+#                     raw_adm_date = (
+#                         s.get("admission_date")
+#                         or s.get("date_of_admission")
+#                         or s.get("created_at")
+#                     )
+
+#                     if isinstance(raw_adm_date, datetime):
+#                         adm_date_str = raw_adm_date.strftime("%Y-%m-%d")
+#                     else:
+#                         adm_date_str = raw_adm_date or ""
+
+#                     sanitized_students.append({
+#                         "id": str(s.get("id") or s.get("_id") or ""),
+#                         "admission_no": s.get("admission_no", ""),
+#                         "full_name": s.get("full_name") or s.get("name") or "",
+#                         "class_id": s.get("class_id", ""),
+#                         "class_name": s.get("class_name") or s.get("class") or "",
+#                         "gender": s.get("gender", ""),
+#                         "admission_date": adm_date_str,
+#                         "is_active": s.get("is_active", True),
+#                     })
+#                 # ----------------------------------------------------
+
+#                 # Summary based on sanitized list
+#                 total_students = len(sanitized_students)
+#                 male_students = len([s for s in sanitized_students if s.get("gender") == "Male"])
+#                 female_students = len([s for s in sanitized_students if s.get("gender") == "Female"])
+#                 other_gender = len([
+#                     s for s in sanitized_students
+#                     if s.get("gender") not in ("Male", "Female") and s.get("gender")
+#                 ])
+
+#                 # Generate report data
+#                 report_data = {
+#                     "title": f"Admission Summary Report - Academic Year {year}",
+#                     "generated_date": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+#                     "filters": {
+#                         "academic_year": year,
+#                         "class": class_filter,
+#                         "gender": gender,
+#                         "status": status,
+#                     },
+#                     "summary": {
+#                         "total_students": total_students,
+#                         "male_students": male_students,
+#                         "female_students": female_students,
+#                         "other_gender": other_gender,
+#                     },
+#                     "students": sanitized_students,
+#                 }
+
+#                 # JSON / Excel / PDF responses
+#                 if format.lower() == "json":
+#                     return {
+#                         "message": "Admission summary report generated successfully",
+#                         "data": report_data,
+#                         "format": "json",
+#                     }
+#                 elif format.lower() == "excel":
+#                     filename = f"admission_summary_{year.replace('-', '_')}"
+#                     file_path = await generate_academic_excel_report(
+#                         "admission_summary",
+#                         report_data,
+#                         current_user,
+#                         filename,
+#                     )
+#                     return FileResponse(
+#                         path=file_path,
+#                         filename=f"{filename}.xlsx",
+#                         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+#                         background=BackgroundTask(cleanup_temp_file, file_path),
+#                     )
+#                 else:  # PDF
+#                     filename = f"admission_summary_{year.replace('-', '_')}"
+#                     file_path = await generate_academic_pdf_report(
+#                         "admission_summary",
+#                         report_data,
+#                         current_user,
+#                         filename,
+#                     )
+#                     return FileResponse(
+#                         path=file_path,
+#                         filename=f"{filename}.pdf",
+#                         media_type="application/pdf",
+#                         background=BackgroundTask(cleanup_temp_file, file_path),
+#                     )
+
+#             except Exception as e:
+#                 logger.error(f"Report generation failed: {e}")
+#                 raise HTTPException(status_code=500, detail="Failed to generate report")
 
 @api_router.get("/reports/login-activity")
 async def generate_login_activity_report(
@@ -13014,6 +13433,162 @@ async def create_payment(
         logging.error(f"Failed to create payment: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to record payment")
 
+@api_router.get("/fees/receipt/{receipt_no}")
+async def download_fee_receipt(
+    receipt_no: str,
+    format: str = "pdf",
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Download a fee payment receipt as PDF by receipt number.
+    """
+    try:
+        # 1) Fetch payment by receipt_no + tenant
+        payment = await db.payments.find_one(
+            {
+                "tenant_id": current_user.tenant_id,
+                "receipt_no": receipt_no,
+            }
+        )
+        if not payment:
+            raise HTTPException(status_code=404, detail="Receipt not found")
+
+        # 2) Try to get student info (optional, but nice)
+        student = None
+        student_id = payment.get("student_id")
+        if student_id:
+            student = await db.students.find_one(
+                {"tenant_id": current_user.tenant_id, "id": student_id}
+            )
+
+        # 3) Prepare safe strings for PDF
+        from datetime import datetime
+
+        raw_date = (
+            payment.get("payment_date")
+            or payment.get("created_at")
+            or payment.get("updated_at")
+        )
+
+        if isinstance(raw_date, datetime):
+            payment_date_str = raw_date.strftime("%Y-%m-%d")
+        else:
+            payment_date_str = str(raw_date or "")
+
+        student_name = (
+            payment.get("student_name")
+            or (student.get("full_name") if student else "")
+            or (student.get("name") if student else "")
+            or ""
+        )
+        admission_no = (
+            payment.get("admission_no")
+            or (student.get("admission_no") if student else "")
+            or ""
+        )
+        class_name = (
+            payment.get("class_name")
+            or (student.get("class_name") if student else "")
+            or (student.get("class") if student else "")
+            or ""
+        )
+
+        fee_type = payment.get("fee_type", "")
+        amount = payment.get("amount", 0)
+        payment_mode = payment.get("payment_mode", "")
+        transaction_id = payment.get("transaction_id", "") or "-"
+        remarks = payment.get("remarks", "") or "-"
+
+        # 4) Only implement PDF for now
+        if format.lower() != "pdf":
+            raise HTTPException(status_code=400, detail="Only PDF format is supported")
+
+        # 5) Build PDF safely with reportlab
+        try:
+            from reportlab.lib.pagesizes import A4
+            from reportlab.pdfgen import canvas
+        except ModuleNotFoundError:
+            # If reportlab isn't installed, fail clearly
+            raise HTTPException(
+                status_code=500,
+                detail="PDF generator (reportlab) is not installed on the server.",
+            )
+
+        buffer = BytesIO()
+        c = canvas.Canvas(buffer, pagesize=A4)
+        width, height = A4
+
+        y = height - 50
+
+        # Header
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(50, y, "Fee Payment Receipt")
+        y -= 25
+
+        c.setFont("Helvetica", 10)
+        tenant_name = getattr(current_user, "tenant_name", "") or "School ERP"
+        c.drawString(50, y, f"School: {tenant_name}")
+        y -= 15
+        c.drawString(50, y, f"Receipt No: {receipt_no}")
+        y -= 15
+        if payment_date_str:
+            c.drawString(50, y, f"Date: {payment_date_str}")
+            y -= 20
+        else:
+            y -= 5
+
+        # Student section
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(50, y, "Student Details")
+        y -= 18
+
+        c.setFont("Helvetica", 10)
+        c.drawString(50, y, f"Name: {student_name or '-'}")
+        y -= 15
+        c.drawString(50, y, f"Admission No: {admission_no or '-'}")
+        y -= 15
+        c.drawString(50, y, f"Class: {class_name or '-'}")
+        y -= 25
+
+        # Payment section
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(50, y, "Payment Details")
+        y -= 18
+
+        c.setFont("Helvetica", 10)
+        c.drawString(50, y, f"Fee Type: {fee_type or '-'}")
+        y -= 15
+        c.drawString(50, y, f"Amount: ₹{amount}")
+        y -= 15
+        c.drawString(50, y, f"Payment Mode: {payment_mode or '-'}")
+        y -= 15
+        c.drawString(50, y, f"Transaction ID: {transaction_id}")
+        y -= 15
+        c.drawString(50, y, f"Remarks: {remarks}")
+        y -= 30
+
+        c.drawString(50, y, "This is a system generated receipt.")
+        c.showPage()
+        c.save()
+
+        buffer.seek(0)
+        filename = f"{receipt_no}.pdf"
+
+        return StreamingResponse(
+            buffer,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"'
+            },
+        )
+
+    except HTTPException:
+        # let intentional HTTP errors pass through
+        raise
+    except Exception as e:
+        logger.error(f"Failed to generate receipt PDF: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate receipt PDF")
+
 @api_router.post("/fees/bulk-payments")
 @api_router.post("/payments/bulk")  # Additional route for frontend compatibility
 async def create_bulk_payment(
@@ -14655,6 +15230,7 @@ async def generate_transport_excel_report(report_type: str, report_data: dict, c
         import os
         from openpyxl import Workbook
         from openpyxl.styles import Font, PatternFill, Alignment
+        from openpyxl.utils import get_column_letter 
         
         # Create temporary file
         temp_dir = tempfile.gettempdir()
@@ -16837,35 +17413,25 @@ async def ai_voice_input(
     audio_file: UploadFile = File(...),
     current_user: User = Depends(get_current_user)
 ):
-    """
-    Voice input endpoint - Convert speech to text using Whisper
-    """
     try:
         from openai import AsyncOpenAI
-        
-        # Initialize OpenAI client
         openai_client = AsyncOpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
-        
-        # Read audio file
+
         audio_bytes = await audio_file.read()
-        
-        # Create temporary file for Whisper API
         temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
         temp_file.write(audio_bytes)
         temp_file.close()
-        
+
         try:
-            # Transcribe audio using Whisper
             with open(temp_file.name, "rb") as audio:
                 transcript = await openai_client.audio.transcriptions.create(
                     model="whisper-1",
                     file=audio,
-                    language="en"
+                    language="en",
                 )
-            
+
             transcribed_text = transcript.text
-            
-            # Log voice input activity
+
             await db.ai_logs.insert_one({
                 "tenant_id": current_user.tenant_id,
                 "school_id": current_user.school_id,
@@ -16874,22 +17440,33 @@ async def ai_voice_input(
                 "action": "voice_transcription",
                 "transcribed_text": transcribed_text,
                 "filename": audio_file.filename,
-                "created_at": datetime.now(timezone.utc)
+                "created_at": datetime.now(timezone.utc),
             })
-            
+
             return {
                 "success": True,
                 "transcribed_text": transcribed_text,
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
-            
+
         finally:
-            # Clean up temporary file
             os.unlink(temp_file.name)
-        
+
     except Exception as e:
         logger.error(f"Voice input error: {e}")
-        raise HTTPException(status_code=500, detail=f"Voice transcription failed: {str(e)}")
+
+        err_text = str(e)
+        if "insufficient_quota" in err_text or "You exceeded your current quota" in err_text:
+            # 503 = service unavailable
+            raise HTTPException(
+                status_code=503,
+                detail="Voice transcription is temporarily unavailable: AI quota exceeded on the server."
+            )
+
+        raise HTTPException(
+            status_code=500,
+            detail="Voice transcription failed due to a server error."
+        )
 
 @api_router.post("/ai-engine/voice-output")
 async def ai_voice_output(
@@ -19298,12 +19875,12 @@ async def get_academic_books(
             "school_id": current_user.school_id,
             "is_active": True
         }
-        
+
         if class_standard:
             query["class_standard"] = class_standard
         if subject:
             query["subject"] = subject
-        
+
         books = await db.academic_books.find(query).sort("class_standard", 1).to_list(1000)
         return sanitize_mongo_data(books)
     except Exception as e:
@@ -19319,8 +19896,8 @@ async def create_academic_book(
     try:
         if current_user.role not in ["super_admin", "admin", "teacher"]:
             raise HTTPException(status_code=403, detail="Not authorized")
-        
-        book_data = book.dict()
+
+        book_data = book.dict(exclude_none=True)
         book_data.update({
             "id": str(uuid.uuid4()),
             "tenant_id": current_user.tenant_id,
@@ -19331,7 +19908,7 @@ async def create_academic_book(
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow()
         })
-        
+
         await db.academic_books.insert_one(book_data)
         return sanitize_mongo_data(book_data)
     except Exception as e:
@@ -19348,18 +19925,18 @@ async def update_academic_book(
     try:
         if current_user.role not in ["super_admin", "admin", "teacher"]:
             raise HTTPException(status_code=403, detail="Not authorized")
-        
-        update_data = book.dict()
+
+        update_data = book.dict(exclude_unset=True, exclude_none=True)
         update_data["updated_at"] = datetime.utcnow()
-        
+
         result = await db.academic_books.update_one(
             {"id": book_id, "tenant_id": current_user.tenant_id},
             {"$set": update_data}
         )
-        
+
         if result.modified_count == 0:
             raise HTTPException(status_code=404, detail="Academic book not found")
-        
+
         return {"message": "Academic book updated successfully"}
     except HTTPException:
         raise
@@ -19376,15 +19953,15 @@ async def delete_academic_book(
     try:
         if current_user.role not in ["super_admin", "admin"]:
             raise HTTPException(status_code=403, detail="Not authorized")
-        
+
         result = await db.academic_books.update_one(
             {"id": book_id, "tenant_id": current_user.tenant_id},
             {"$set": {"is_active": False, "updated_at": datetime.utcnow()}}
         )
-        
+
         if result.modified_count == 0:
             raise HTTPException(status_code=404, detail="Academic book not found")
-        
+
         return {"message": "Academic book deleted successfully"}
     except HTTPException:
         raise
@@ -19407,12 +19984,12 @@ async def get_reference_books(
             "school_id": current_user.school_id,
             "is_active": True
         }
-        
+
         if class_standard:
             query["class_standard"] = class_standard
         if subject:
             query["subject"] = subject
-        
+
         books = await db.reference_books.find(query).sort("class_standard", 1).to_list(1000)
         return sanitize_mongo_data(books)
     except Exception as e:
@@ -19428,8 +20005,8 @@ async def create_reference_book(
     try:
         if current_user.role not in ["super_admin", "admin", "teacher"]:
             raise HTTPException(status_code=403, detail="Not authorized")
-        
-        book_data = book.dict()
+
+        book_data = book.dict(exclude_none=True)
         book_data.update({
             "id": str(uuid.uuid4()),
             "tenant_id": current_user.tenant_id,
@@ -19440,7 +20017,7 @@ async def create_reference_book(
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow()
         })
-        
+
         result = await db.reference_books.insert_one(book_data)
         return sanitize_mongo_data(book_data)
     except Exception as e:
@@ -19457,18 +20034,18 @@ async def update_reference_book(
     try:
         if current_user.role not in ["super_admin", "admin", "teacher"]:
             raise HTTPException(status_code=403, detail="Not authorized")
-        
-        update_data = book.dict()
+
+        update_data = book.dict(exclude_unset=True, exclude_none=True)
         update_data["updated_at"] = datetime.utcnow()
-        
+
         result = await db.reference_books.update_one(
             {"id": book_id, "tenant_id": current_user.tenant_id},
             {"$set": update_data}
         )
-        
+
         if result.modified_count == 0:
             raise HTTPException(status_code=404, detail="Reference book not found")
-        
+
         return {"message": "Reference book updated successfully"}
     except HTTPException:
         raise
@@ -19485,15 +20062,15 @@ async def delete_reference_book(
     try:
         if current_user.role not in ["super_admin", "admin"]:
             raise HTTPException(status_code=403, detail="Not authorized")
-        
+
         result = await db.reference_books.update_one(
             {"id": book_id, "tenant_id": current_user.tenant_id},
             {"$set": {"is_active": False, "updated_at": datetime.utcnow()}}
         )
-        
+
         if result.modified_count == 0:
             raise HTTPException(status_code=404, detail="Reference book not found")
-        
+
         return {"message": "Reference book deleted successfully"}
     except HTTPException:
         raise
@@ -19619,7 +20196,7 @@ async def get_qa_knowledge_base(
             "school_id": current_user.school_id,
             "is_active": True
         }
-        
+
         if class_standard:
             query["class_standard"] = class_standard
         if subject:
@@ -19628,9 +20205,9 @@ async def get_qa_knowledge_base(
             query["chapter_topic"] = chapter_topic
         if question_type:
             query["question_type"] = question_type
-        
+
         qa_items = await db.qa_knowledge_base.find(query).to_list(1000)
-        return qa_items
+        return sanitize_mongo_data(qa_items)
     except Exception as e:
         logger.error(f"Error fetching Q&A knowledge base: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch Q&A knowledge base")
@@ -19644,8 +20221,8 @@ async def create_qa_knowledge_base(
     try:
         if current_user.role not in ["super_admin", "admin", "teacher"]:
             raise HTTPException(status_code=403, detail="Not authorized")
-        
-        qa_data = qa.dict()
+
+        qa_data = qa.dict(exclude_none=True)
         qa_data.update({
             "id": str(uuid.uuid4()),
             "tenant_id": current_user.tenant_id,
@@ -19656,9 +20233,9 @@ async def create_qa_knowledge_base(
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow()
         })
-        
+
         await db.qa_knowledge_base.insert_one(qa_data)
-        return qa_data
+        return sanitize_mongo_data(qa_data)
     except Exception as e:
         logger.error(f"Error creating Q&A knowledge base entry: {e}")
         raise HTTPException(status_code=500, detail="Failed to create Q&A entry")
@@ -19673,18 +20250,18 @@ async def update_qa_knowledge_base(
     try:
         if current_user.role not in ["super_admin", "admin", "teacher"]:
             raise HTTPException(status_code=403, detail="Not authorized")
-        
-        update_data = qa.dict()
+
+        update_data = qa.dict(exclude_unset=True, exclude_none=True)
         update_data["updated_at"] = datetime.utcnow()
-        
+
         result = await db.qa_knowledge_base.update_one(
             {"id": qa_id, "tenant_id": current_user.tenant_id},
             {"$set": update_data}
         )
-        
+
         if result.modified_count == 0:
             raise HTTPException(status_code=404, detail="Q&A entry not found")
-        
+
         return {"message": "Q&A entry updated successfully"}
     except HTTPException:
         raise
@@ -19701,21 +20278,130 @@ async def delete_qa_knowledge_base(
     try:
         if current_user.role not in ["super_admin", "admin"]:
             raise HTTPException(status_code=403, detail="Not authorized")
-        
+
         result = await db.qa_knowledge_base.update_one(
             {"id": qa_id, "tenant_id": current_user.tenant_id},
             {"$set": {"is_active": False, "updated_at": datetime.utcnow()}}
         )
-        
+
         if result.modified_count == 0:
             raise HTTPException(status_code=404, detail="Q&A entry not found")
-        
+
         return {"message": "Q&A entry deleted successfully"}
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error deleting Q&A knowledge base entry: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete Q&A entry")
+
+@api_router.post("/cms/qa-knowledge-base/bulk-upload")
+async def bulk_upload_qa_pairs(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    """Bulk upload Q&A pairs from Excel (.xlsx) or CSV (.csv) file"""
+    try:
+        import pandas as pd
+        from io import BytesIO
+
+        # Validate file type
+        file_ext = file.filename.lower().split('.')[-1]
+        if file_ext not in ['xlsx', 'csv']:
+            raise HTTPException(status_code=400, detail="Only .xlsx or .csv files are supported")
+
+        # Read file content
+        file_content = await file.read()
+
+        # Parse file based on type
+        if file_ext == 'xlsx':
+            df = pd.read_excel(BytesIO(file_content))
+        else:  # csv
+            df = pd.read_csv(BytesIO(file_content))
+
+        # Validate required columns
+        required_columns = ['question', 'answer']
+        missing_columns = [col for col in required_columns if col.lower() not in [c.lower() for c in df.columns]]
+        if missing_columns:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Missing required columns: {', '.join(missing_columns)}. File must have 'question' and 'answer' columns."
+            )
+
+        # Normalize column names to lowercase (handling spaces/underscores for consistency)
+        def normalize_col_name(col):
+            return col.lower().strip().replace(' ', '_').replace('class_standard', 'class')
+
+        df.columns = [normalize_col_name(col) for col in df.columns]
+
+        # Process and validate rows
+        successful_count = 0
+        skipped_count = 0
+        skipped_reasons = []
+        qa_pairs_to_insert = []
+
+        for index, row in df.iterrows():
+            # Validate required fields
+            question = str(row.get('question', '')).strip()
+            answer = str(row.get('answer', '')).strip()
+
+            if not question or question == 'nan' or not answer or answer == 'nan':
+                skipped_count += 1
+                skipped_reasons.append(f"Row {index + 2}: Missing question or answer")
+                continue
+
+            # Extract optional fields (using normalized names)
+            subject = str(row.get('subject', '')).strip() if pd.notna(row.get('subject')) else ""
+            class_standard = str(row.get('class', '')).strip() if pd.notna(row.get('class')) else str(row.get('class_standard', '')).strip()
+            chapter_topic = str(row.get('chapter_topic', '')).strip() if pd.notna(row.get('chapter_topic')) else ""
+            keywords = str(row.get('keywords', '')).strip() if pd.notna(row.get('keywords')) else ""
+            difficulty_level = str(row.get('difficulty', row.get('difficulty_level', 'medium'))).strip() if pd.notna(row.get('difficulty')) or pd.notna(row.get('difficulty_level')) else "medium"
+            question_type = str(row.get('type', row.get('question_type', 'conceptual'))).strip() if pd.notna(row.get('type')) or pd.notna(row.get('question_type')) else "conceptual"
+
+            # Create Q&A pair document (aligned with single-create schema)
+            qa_dict = {
+                "id": str(uuid.uuid4()),
+                "tenant_id": current_user.tenant_id,
+                "school_id": current_user.school_id,
+                "question": question,
+                "answer": answer,
+                "subject": subject,
+                "class_standard": class_standard,
+                "chapter_topic": chapter_topic,
+                "difficulty_level": difficulty_level,
+                "question_type": question_type,
+                "keywords": [k.strip() for k in keywords.split(',') if k.strip()],
+                "tags": ["Q&A Knowledge Base"],
+                "source": "imported",
+                "created_by": current_user.id,
+                "is_active": True,
+                "created_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc)
+            }
+
+            qa_pairs_to_insert.append(qa_dict)
+            successful_count += 1
+
+        # Bulk insert into database
+        if qa_pairs_to_insert:
+            await db.qa_knowledge_base.insert_many(qa_pairs_to_insert)
+            logger.info(f"Bulk upload: {successful_count} Q&A knowledge base items added by {current_user.full_name}")
+
+        return {
+            "success": True,
+            "message": "Bulk upload completed",
+            "summary": {
+                "total_rows": len(df),
+                "successful": successful_count,
+                "skipped": skipped_count,
+                "skipped_details": skipped_reasons[:10]
+            }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Bulk upload error: {e}")
+        raise HTTPException(status_code=500, detail=f"Bulk upload failed: {str(e)}")
 
 # ==================== D. PREVIOUS YEARS' QUESTION PAPERS ENDPOINTS ====================
 
@@ -19834,102 +20520,125 @@ async def delete_previous_year_paper(
 
 # ==================== PAPER QUESTIONS & SOLUTIONS ENDPOINTS ====================
 
-@api_router.get("/cms/previous-year-papers/{paper_id}/questions")
-async def get_paper_questions(
-    paper_id: str,
+@api_router.get("/cms/previous-year-papers")
+async def get_previous_year_papers(
+    class_standard: Optional[str] = None,
+    subject: Optional[str] = None,
+    exam_year: Optional[str] = None,
+    paper_type: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
-    """Get all questions for a specific previous year paper"""
+    """Get previous year papers with hierarchical filtering"""
     try:
-        questions = await db.paper_questions.find({
-            "paper_id": paper_id,
+        query = {
             "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id,
             "is_active": True
-        }).to_list(1000)
-        return questions
-    except Exception as e:
-        logger.error(f"Error fetching paper questions: {e}")
-        raise HTTPException(status_code=500, detail="Failed to fetch paper questions")
+        }
 
-@api_router.post("/cms/previous-year-papers/questions")
-async def create_paper_question(
-    question: PaperQuestionCreate,
+        if class_standard:
+            query["class_standard"] = class_standard
+        if subject:
+            query["subject"] = subject
+        if exam_year:
+            query["exam_year"] = exam_year
+        if paper_type:
+            query["paper_type"] = paper_type
+
+        papers = await db.previous_year_papers.find(query).sort("exam_year", -1).to_list(1000)
+        return sanitize_mongo_data(papers)
+    except Exception as e:
+        logger.error(f"Error fetching previous year papers: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch previous year papers")
+
+@api_router.post("/cms/previous-year-papers")
+async def create_previous_year_paper(
+    paper: PreviousYearPaperCreate,
     current_user: User = Depends(get_current_user)
 ):
-    """Create a new question for a previous year paper"""
+    """Create a new previous year paper"""
     try:
         if current_user.role not in ["super_admin", "admin", "teacher"]:
             raise HTTPException(status_code=403, detail="Not authorized")
-        
-        question_data = question.dict()
-        question_data.update({
+
+        paper_data = paper.dict(exclude_none=True)
+        paper_data.update({
             "id": str(uuid.uuid4()),
             "tenant_id": current_user.tenant_id,
             "school_id": current_user.school_id,
+            "tags": ["Previous Years' Question Papers"],
             "is_active": True,
+            "created_by": current_user.id,
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow()
         })
-        
-        await db.paper_questions.insert_one(question_data)
-        return question_data
-    except Exception as e:
-        logger.error(f"Error creating paper question: {e}")
-        raise HTTPException(status_code=500, detail="Failed to create paper question")
+        # Map file_url to pdf_url for consistency
+        if paper_data.get("file_url"):
+            paper_data["pdf_url"] = paper_data.pop("file_url")
 
-@api_router.put("/cms/previous-year-papers/questions/{question_id}")
-async def update_paper_question(
-    question_id: str,
-    question: PaperQuestionCreate,
+        result = await db.previous_year_papers.insert_one(paper_data)
+        return sanitize_mongo_data(paper_data)
+    except Exception as e:
+        logger.error(f"Error creating previous year paper: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create previous year paper")
+
+@api_router.put("/cms/previous-year-papers/{paper_id}")
+async def update_previous_year_paper(
+    paper_id: str,
+    paper: PreviousYearPaperCreate,
     current_user: User = Depends(get_current_user)
 ):
-    """Update an existing paper question"""
+    """Update an existing previous year paper"""
     try:
         if current_user.role not in ["super_admin", "admin", "teacher"]:
             raise HTTPException(status_code=403, detail="Not authorized")
-        
-        update_data = question.dict()
+
+        update_data = paper.dict(exclude_unset=True, exclude_none=True)
         update_data["updated_at"] = datetime.utcnow()
-        
-        result = await db.paper_questions.update_one(
-            {"id": question_id, "tenant_id": current_user.tenant_id},
+
+        # Map file_url to pdf_url if present
+        if update_data.get("file_url"):
+            update_data["pdf_url"] = update_data.pop("file_url")
+
+        result = await db.previous_year_papers.update_one(
+            {"id": paper_id, "tenant_id": current_user.tenant_id},
             {"$set": update_data}
         )
-        
+
         if result.modified_count == 0:
-            raise HTTPException(status_code=404, detail="Paper question not found")
-        
-        return {"message": "Paper question updated successfully"}
+            raise HTTPException(status_code=404, detail="Previous year paper not found")
+
+        return {"message": "Previous year paper updated successfully"}
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error updating paper question: {e}")
-        raise HTTPException(status_code=500, detail="Failed to update paper question")
+        logger.error(f"Error updating previous year paper: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update previous year paper")
 
-@api_router.delete("/cms/previous-year-papers/questions/{question_id}")
-async def delete_paper_question(
-    question_id: str,
+@api_router.delete("/cms/previous-year-papers/{paper_id}")
+async def delete_previous_year_paper(
+    paper_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Delete a paper question (soft delete)"""
+    """Delete a previous year paper (soft delete)"""
     try:
         if current_user.role not in ["super_admin", "admin"]:
             raise HTTPException(status_code=403, detail="Not authorized")
-        
-        result = await db.paper_questions.update_one(
-            {"id": question_id, "tenant_id": current_user.tenant_id},
+
+        result = await db.previous_year_papers.update_one(
+            {"id": paper_id, "tenant_id": current_user.tenant_id},
             {"$set": {"is_active": False, "updated_at": datetime.utcnow()}}
         )
-        
+
         if result.modified_count == 0:
-            raise HTTPException(status_code=404, detail="Paper question not found")
-        
-        return {"message": "Paper question deleted successfully"}
+            raise HTTPException(status_code=404, detail="Previous year paper not found")
+
+        return {"message": "Previous year paper deleted successfully"}
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error deleting paper question: {e}")
-        raise HTTPException(status_code=500, detail="Failed to delete paper question")
+        logger.error(f"Error deleting previous year paper: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete previous year paper")
 
 # ==================== CMS DASHBOARD & HIERARCHICAL NAVIGATION ====================
 

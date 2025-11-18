@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { 
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from './ui/select';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
+} from "./ui/select";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
 import {
   Dialog,
   DialogContent,
@@ -21,8 +21,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from './ui/dialog';
-import { 
+} from "./ui/dialog";
+import {
   BarChart,
   Bar,
   XAxis,
@@ -36,11 +36,11 @@ import {
   Pie,
   Cell,
   Area,
-  AreaChart
-} from 'recharts';
-import { 
-  Users, 
-  TrendingUp, 
+  AreaChart,
+} from "recharts";
+import {
+  Users,
+  TrendingUp,
   Calendar,
   Download,
   FileText,
@@ -48,11 +48,10 @@ import {
   GraduationCap,
   BarChart3,
   PieChart as PieChartIcon,
-  Filter,
   Eye,
-  Edit
-} from 'lucide-react';
-import { toast } from 'sonner';
+  Edit,
+} from "lucide-react";
+import { toast } from "sonner";
 
 const BACKEND_URL = process.env.REACT_APP_API_URL;
 const API = BACKEND_URL;
@@ -63,20 +62,20 @@ const AdmissionSummary = () => {
     total_students: 0,
     new_admissions_this_month: 0,
     pending_applications: 0,
-    total_classes: 0
+    total_classes: 0,
   });
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedYear, setSelectedYear] = useState('2024-25');
+  const [selectedYear, setSelectedYear] = useState("2024-25");
   const [filters, setFilters] = useState({
-    class: 'all_classes',
-    gender: 'all_genders',
-    status: 'all_statuses'
+    class: "all_classes",
+    gender: "all_genders",
+    status: "all_statuses",
   });
   const [isNewAdmissionOpen, setIsNewAdmissionOpen] = useState(false);
-  const [exportFormat, setExportFormat] = useState('pdf');
-  
+  const [exportFormat, setExportFormat] = useState("pdf");
+
   // Chart data state - calculated from real student data
   const [classWiseData, setClassWiseData] = useState([]);
   const [genderDistribution, setGenderDistribution] = useState([]);
@@ -85,43 +84,56 @@ const AdmissionSummary = () => {
 
   // New admission form state
   const [newStudent, setNewStudent] = useState({
-    name: '',
-    father_name: '',
-    mother_name: '',
-    date_of_birth: '',
-    gender: '',
-    class_id: '',
-    section_id: '',
-    phone: '',
-    email: '',
-    address: '',
-    guardian_name: '',
-    guardian_phone: '',
-    admission_no: '',
-    roll_no: ''
+    name: "",
+    father_name: "",
+    mother_name: "",
+    date_of_birth: "",
+    gender: "",
+    class_id: "",
+    section_id: "",
+    phone: "",
+    email: "",
+    address: "",
+    guardian_name: "",
+    guardian_phone: "",
+    admission_no: "",
+    roll_no: "",
   });
+
+  // 🔹 NEW: photo state for new admission (UI only for now)
+  const [newStudentPhoto, setNewStudentPhoto] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
 
   useEffect(() => {
     fetchData();
   }, [selectedYear, filters]);
+
+  // Clean up object URL when photo changes/unmounts
+  useEffect(() => {
+    return () => {
+      if (photoPreview) {
+        URL.revokeObjectURL(photoPreview);
+      }
+    };
+  }, [photoPreview]);
 
   const fetchData = async () => {
     try {
       const [statsRes, studentsRes, classesRes] = await Promise.all([
         axios.get(`${API}/dashboard/stats?year=${selectedYear}`),
         axios.get(`${API}/students?year=${selectedYear}`),
-        axios.get(`${API}/classes`)
+        axios.get(`${API}/classes`),
       ]);
-      
+
       setStats(statsRes.data);
       setStudents(studentsRes.data);
       setClasses(classesRes.data);
-      
+
       // Calculate chart data from real student data
       calculateChartData(studentsRes.data, classesRes.data);
     } catch (error) {
-      console.error('Failed to fetch data:', error);
-      toast.error('Failed to load admission data');
+      console.error("Failed to fetch data:", error);
+      toast.error("Failed to load admission data");
     } finally {
       setLoading(false);
     }
@@ -131,33 +143,35 @@ const AdmissionSummary = () => {
   const calculateChartData = (studentsData, classesData) => {
     // 1. Class-wise Distribution - Use actual classes from API
     const classCount = {};
-    
+
     // Count students per class
-    studentsData.forEach(student => {
+    studentsData.forEach((student) => {
       const classId = student.class_id;
       classCount[classId] = (classCount[classId] || 0) + 1;
     });
 
     // Build chart data from actual classes in database
-    const classWise = classesData.map(cls => ({
+    const classWise = classesData.map((cls) => ({
       class: cls.name,
       students: classCount[cls.id] || 0,
-      capacity: cls.capacity || 40 // Use capacity from API or default to 40
+      capacity: cls.capacity || 40, // Use capacity from API or default to 40
     }));
-    
+
     setClassWiseData(classWise);
 
     // 2. Gender Distribution (case-insensitive)
     const genderCount = {
       Male: 0,
       Female: 0,
-      Other: 0
+      Other: 0,
     };
-    
-    studentsData.forEach(student => {
+
+    studentsData.forEach((student) => {
       if (student.gender) {
         // Normalize gender to handle case variations
-        const normalizedGender = student.gender.charAt(0).toUpperCase() + student.gender.slice(1).toLowerCase();
+        const normalizedGender =
+          student.gender.charAt(0).toUpperCase() +
+          student.gender.slice(1).toLowerCase();
         if (genderCount[normalizedGender] !== undefined) {
           genderCount[normalizedGender]++;
         }
@@ -165,26 +179,43 @@ const AdmissionSummary = () => {
     });
 
     const genderDist = [
-      { name: 'Male', value: genderCount.Male, color: '#3B82F6' },
-      { name: 'Female', value: genderCount.Female, color: '#EC4899' },
-      { name: 'Other', value: genderCount.Other, color: '#8B5CF6' }
+      { name: "Male", value: genderCount.Male, color: "#3B82F6" },
+      { name: "Female", value: genderCount.Female, color: "#EC4899" },
+      { name: "Other", value: genderCount.Other, color: "#8B5CF6" },
     ];
     setGenderDistribution(genderDist);
 
     // 3. Monthly Admissions (last 6 months)
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthNames = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
     const currentDate = new Date();
     const monthCounts = {};
-    
+
     // Initialize last 6 months
     for (let i = 5; i >= 0; i--) {
-      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+      const date = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth() - i,
+        1,
+      );
       const monthKey = `${monthNames[date.getMonth()]}`;
       monthCounts[monthKey] = 0;
     }
-    
+
     // Count admissions by month
-    studentsData.forEach(student => {
+    studentsData.forEach((student) => {
       if (student.created_at) {
         const admissionDate = new Date(student.created_at);
         const monthKey = monthNames[admissionDate.getMonth()];
@@ -194,17 +225,17 @@ const AdmissionSummary = () => {
       }
     });
 
-    const monthlyAdm = Object.keys(monthCounts).map(month => ({
+    const monthlyAdm = Object.keys(monthCounts).map((month) => ({
       month,
-      count: monthCounts[month]
+      count: monthCounts[month],
     }));
     setMonthlyAdmissions(monthlyAdm);
 
     // 4. Admission Trends (monthly with applications estimate)
-    const trendData = Object.keys(monthCounts).map(month => ({
+    const trendData = Object.keys(monthCounts).map((month) => ({
       month,
       admissions: monthCounts[month],
-      applications: Math.ceil(monthCounts[month] * 1.15) // Estimate 15% more applications than admissions
+      applications: Math.ceil(monthCounts[month] * 1.15), // Estimate 15% more applications than admissions
     }));
     setAdmissionTrendData(trendData);
   };
@@ -212,40 +243,47 @@ const AdmissionSummary = () => {
   // Export functionality
   const handleExport = async () => {
     try {
-      console.log('🔄 Starting export with format:', exportFormat);
-      
+      console.log("🔄 Starting export with format:", exportFormat);
+
       const response = await axios.get(`${API}/reports/admission-summary`, {
-        params: { 
+        params: {
           format: exportFormat,
           year: selectedYear,
-          ...filters
+          class_filter: filters.class,
+          gender: filters.gender,
+          status: filters.status,
         },
-        responseType: 'blob'
+        responseType: "blob",
       });
 
       // Create blob and download
       const blob = new Blob([response.data], {
-        type: exportFormat === 'pdf' ? 'application/pdf' : 'application/vnd.ms-excel'
+        type:
+          exportFormat === "pdf"
+            ? "application/pdf"
+            : "application/vnd.ms-excel",
       });
-      
+
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
       link.download = `admission-summary-${selectedYear}.${exportFormat}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
-      toast.success(`Report exported successfully as ${exportFormat.toUpperCase()}`);
+
+      toast.success(
+        `Report exported successfully as ${exportFormat.toUpperCase()}`,
+      );
     } catch (error) {
-      console.error('Export failed:', error);
-      
+      console.error("Export failed:", error);
+
       // Fallback: Generate CSV client-side
-      if (exportFormat === 'csv') {
+      if (exportFormat === "csv") {
         generateCSVFallback();
       } else {
-        toast.error('Export failed. Please try again.');
+        toast.error("Export failed. Please try again.");
       }
     }
   };
@@ -253,91 +291,106 @@ const AdmissionSummary = () => {
   const generateCSVFallback = () => {
     try {
       const csvData = [
-        ['Student Name', 'Admission No', 'Class', 'Father Name', 'Phone', 'Admission Date'],
-        ...students.map(student => [
+        [
+          "Student Name",
+          "Admission No",
+          "Class",
+          "Father Name",
+          "Phone",
+          "Admission Date",
+        ],
+        ...students.map((student) => [
           student.name,
           student.admission_no,
           getClassName(student.class_id),
           student.father_name,
           student.phone,
-          new Date(student.created_at).toLocaleDateString()
-        ])
+          new Date(student.created_at).toLocaleDateString(),
+        ]),
       ];
 
-      const csvContent = csvData.map(row => row.join(',')).join('\n');
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
+      const csvContent = csvData.map((row) => row.join(",")).join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `admission-summary-${selectedYear}.csv`);
-      link.style.visibility = 'hidden';
+      link.setAttribute("href", url);
+      link.setAttribute("download", `admission-summary-${selectedYear}.csv`);
+      link.style.visibility = "hidden";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
-      toast.success('CSV report generated successfully');
+
+      toast.success("CSV report generated successfully");
     } catch (error) {
-      console.error('CSV generation failed:', error);
-      toast.error('Failed to generate CSV report');
+      console.error("CSV generation failed:", error);
+      toast.error("Failed to generate CSV report");
     }
   };
 
   // New admission functionality
   const handleNewAdmission = () => {
-    console.log('🔄 Opening new admission form');
+    console.log("🔄 Opening new admission form");
     setIsNewAdmissionOpen(true);
   };
 
   const handleSubmitNewAdmission = async (e) => {
     e.preventDefault();
-    
+
     try {
+      // Right now we only send the text fields.
+      // When your backend is ready, you can add a separate photo upload call here.
       await axios.post(`${API}/students`, newStudent);
-      toast.success('New admission added successfully!');
+
+      toast.success("New admission added successfully!");
       setIsNewAdmissionOpen(false);
       resetNewStudentForm();
       fetchData(); // Refresh data
     } catch (error) {
-      console.error('Failed to add new admission:', error);
-      toast.error(error.response?.data?.detail || 'Failed to add admission');
+      console.error("Failed to add new admission:", error);
+      toast.error(error.response?.data?.detail || "Failed to add admission");
     }
   };
 
   const resetNewStudentForm = () => {
     setNewStudent({
-      name: '',
-      father_name: '',
-      mother_name: '',
-      date_of_birth: '',
-      gender: '',
-      class_id: '',
-      section_id: '',
-      phone: '',
-      email: '',
-      address: '',
-      guardian_name: '',
-      guardian_phone: '',
-      admission_no: '',
-      roll_no: ''
+      name: "",
+      father_name: "",
+      mother_name: "",
+      date_of_birth: "",
+      gender: "",
+      class_id: "",
+      section_id: "",
+      phone: "",
+      email: "",
+      address: "",
+      guardian_name: "",
+      guardian_phone: "",
+      admission_no: "",
+      roll_no: "",
     });
+    setNewStudentPhoto(null);
+    if (photoPreview) {
+      URL.revokeObjectURL(photoPreview);
+    }
+    setPhotoPreview(null);
   };
 
   // Academic year change handler
   const handleYearChange = (year) => {
-    console.log('🔄 Academic year changed to:', year);
+    console.log("🔄 Academic year changed to:", year);
     setSelectedYear(year);
     toast.success(`Switched to Academic Year ${year}`);
   };
 
   // Chart interaction handlers
   const handleChartClick = (data, chartType) => {
-    console.log('📊 Chart clicked:', chartType, data);
-    
-    if (chartType === 'classwise' && data) {
+    console.log("📊 Chart clicked:", chartType, data);
+
+    if (chartType === "classwise" && data) {
       // Navigate to students page with class filter
       navigate(`/students?class=${data.class}`);
       toast.info(`Viewing students in ${data.class}`);
-    } else if (chartType === 'gender' && data) {
+    } else if (chartType === "gender" && data) {
       // Navigate to students page with gender filter
       navigate(`/students?gender=${data.name}`);
       toast.info(`Viewing ${data.name.toLowerCase()} students`);
@@ -345,8 +398,8 @@ const AdmissionSummary = () => {
   };
 
   const getClassName = (classId) => {
-    const cls = classes.find(c => c.id === classId);
-    return cls ? cls.name : 'Unknown';
+    const cls = classes.find((c) => c.id === classId);
+    return cls ? cls.name : "Unknown";
   };
 
   if (loading) {
@@ -370,13 +423,15 @@ const AdmissionSummary = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Admission Summary</h1>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Admission Summary
+          </h1>
           <p className="text-gray-600 mt-1">
             Comprehensive overview of student admissions and analytics
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <Select value={selectedYear} onValueChange={handleYearChange}>
+          {/* <Select value={selectedYear} onValueChange={handleYearChange}>
             <SelectTrigger className="w-48">
               <Calendar className="h-4 w-4 mr-2" />
               <SelectValue />
@@ -386,8 +441,9 @@ const AdmissionSummary = () => {
               <SelectItem value="2023-24">Academic Year 2023-24</SelectItem>
               <SelectItem value="2022-23">Academic Year 2022-23</SelectItem>
             </SelectContent>
-          </Select>
-          
+          </Select> */}
+
+          {/* Export Dialog */}
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm">
@@ -405,7 +461,10 @@ const AdmissionSummary = () => {
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="format">Export Format</Label>
-                  <Select value={exportFormat} onValueChange={setExportFormat}>
+                  <Select
+                    value={exportFormat}
+                    onValueChange={(value) => setExportFormat(value)}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -419,9 +478,11 @@ const AdmissionSummary = () => {
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <Label>Class Filter</Label>
-                    <Select 
-                      value={filters.class} 
-                      onValueChange={(value) => setFilters({...filters, class: value})}
+                    <Select
+                      value={filters.class}
+                      onValueChange={(value) =>
+                        setFilters({ ...filters, class: value })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -438,9 +499,11 @@ const AdmissionSummary = () => {
                   </div>
                   <div>
                     <Label>Gender Filter</Label>
-                    <Select 
-                      value={filters.gender} 
-                      onValueChange={(value) => setFilters({...filters, gender: value})}
+                    <Select
+                      value={filters.gender}
+                      onValueChange={(value) =>
+                        setFilters({ ...filters, gender: value })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -455,9 +518,11 @@ const AdmissionSummary = () => {
                   </div>
                   <div>
                     <Label>Status Filter</Label>
-                    <Select 
-                      value={filters.status} 
-                      onValueChange={(value) => setFilters({...filters, status: value})}
+                    <Select
+                      value={filters.status}
+                      onValueChange={(value) =>
+                        setFilters({ ...filters, status: value })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -473,20 +538,33 @@ const AdmissionSummary = () => {
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setExportFormat('pdf')}>
+                <Button
+                  variant="outline"
+                  onClick={() => setExportFormat("pdf")}
+                >
                   Cancel
                 </Button>
-                <Button onClick={handleExport} className="bg-emerald-500 hover:bg-emerald-600">
+                <Button
+                  onClick={handleExport}
+                  className="bg-emerald-500 hover:bg-emerald-600"
+                >
                   <Download className="h-4 w-4 mr-2" />
                   Export {exportFormat.toUpperCase()}
                 </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
-          
-          <Dialog open={isNewAdmissionOpen} onOpenChange={setIsNewAdmissionOpen}>
+
+          {/* New Admission Dialog */}
+          <Dialog
+            open={isNewAdmissionOpen}
+            onOpenChange={(open) => {
+              setIsNewAdmissionOpen(open);
+              if (!open) resetNewStudentForm();
+            }}
+          >
             <DialogTrigger asChild>
-              <Button 
+              <Button
                 className="bg-emerald-500 hover:bg-emerald-600"
                 onClick={handleNewAdmission}
               >
@@ -502,32 +580,96 @@ const AdmissionSummary = () => {
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmitNewAdmission} className="space-y-4">
+                {/* 🔹 Photo + basic IDs */}
+                <div className="flex items-center gap-4 mb-2">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                      {photoPreview ? (
+                        <img
+                          src={photoPreview}
+                          alt="Student preview"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-xs text-gray-500 text-center px-2">
+                          No Photo
+                        </span>
+                      )}
+                    </div>
+                    <div className="w-full text-center">
+                      <Label
+                        htmlFor="student_photo"
+                        className="cursor-pointer text-xs inline-flex items-center justify-center px-3 py-1 rounded border border-dashed border-gray-300 hover:bg-gray-50"
+                      >
+                        Upload Photo
+                      </Label>
+                      <Input
+                        id="student_photo"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null;
+                          setNewStudentPhoto(file);
+                          if (photoPreview) {
+                            URL.revokeObjectURL(photoPreview);
+                          }
+                          if (file) {
+                            const url = URL.createObjectURL(file);
+                            setPhotoPreview(url);
+                          } else {
+                            setPhotoPreview(null);
+                          }
+                        }}
+                      />
+                      <p className="mt-1 text-[10px] text-gray-500">
+                        JPG/PNG, recommended square image
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="admission_no">Admission Number *</Label>
+                      <Input
+                        id="admission_no"
+                        value={newStudent.admission_no}
+                        onChange={(e) =>
+                          setNewStudent({
+                            ...newStudent,
+                            admission_no: e.target.value,
+                          })
+                        }
+                        placeholder="Auto-generated if empty"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="roll_no">Roll Number *</Label>
+                      <Input
+                        id="roll_no"
+                        value={newStudent.roll_no}
+                        onChange={(e) =>
+                          setNewStudent({
+                            ...newStudent,
+                            roll_no: e.target.value,
+                          })
+                        }
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Rest of form */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="admission_no">Admission Number *</Label>
-                    <Input
-                      id="admission_no"
-                      value={newStudent.admission_no}
-                      onChange={(e) => setNewStudent({...newStudent, admission_no: e.target.value})}
-                      placeholder="Auto-generated if empty"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="roll_no">Roll Number *</Label>
-                    <Input
-                      id="roll_no"
-                      value={newStudent.roll_no}
-                      onChange={(e) => setNewStudent({...newStudent, roll_no: e.target.value})}
-                      required
-                    />
-                  </div>
                   <div className="md:col-span-2">
                     <Label htmlFor="student_name">Student Name *</Label>
                     <Input
                       id="student_name"
                       value={newStudent.name}
-                      onChange={(e) => setNewStudent({...newStudent, name: e.target.value})}
+                      onChange={(e) =>
+                        setNewStudent({ ...newStudent, name: e.target.value })
+                      }
                       required
                     />
                   </div>
@@ -536,7 +678,12 @@ const AdmissionSummary = () => {
                     <Input
                       id="father_name"
                       value={newStudent.father_name}
-                      onChange={(e) => setNewStudent({...newStudent, father_name: e.target.value})}
+                      onChange={(e) =>
+                        setNewStudent({
+                          ...newStudent,
+                          father_name: e.target.value,
+                        })
+                      }
                       required
                     />
                   </div>
@@ -545,7 +692,12 @@ const AdmissionSummary = () => {
                     <Input
                       id="mother_name"
                       value={newStudent.mother_name}
-                      onChange={(e) => setNewStudent({...newStudent, mother_name: e.target.value})}
+                      onChange={(e) =>
+                        setNewStudent({
+                          ...newStudent,
+                          mother_name: e.target.value,
+                        })
+                      }
                       required
                     />
                   </div>
@@ -555,15 +707,22 @@ const AdmissionSummary = () => {
                       id="dob"
                       type="date"
                       value={newStudent.date_of_birth}
-                      onChange={(e) => setNewStudent({...newStudent, date_of_birth: e.target.value})}
+                      onChange={(e) =>
+                        setNewStudent({
+                          ...newStudent,
+                          date_of_birth: e.target.value,
+                        })
+                      }
                       required
                     />
                   </div>
                   <div>
                     <Label htmlFor="gender">Gender *</Label>
-                    <Select 
-                      value={newStudent.gender} 
-                      onValueChange={(value) => setNewStudent({...newStudent, gender: value})}
+                    <Select
+                      value={newStudent.gender}
+                      onValueChange={(value) =>
+                        setNewStudent({ ...newStudent, gender: value })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select gender" />
@@ -577,9 +736,11 @@ const AdmissionSummary = () => {
                   </div>
                   <div>
                     <Label htmlFor="class">Class *</Label>
-                    <Select 
-                      value={newStudent.class_id} 
-                      onValueChange={(value) => setNewStudent({...newStudent, class_id: value})}
+                    <Select
+                      value={newStudent.class_id}
+                      onValueChange={(value) =>
+                        setNewStudent({ ...newStudent, class_id: value })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select class" />
@@ -598,7 +759,9 @@ const AdmissionSummary = () => {
                     <Input
                       id="phone"
                       value={newStudent.phone}
-                      onChange={(e) => setNewStudent({...newStudent, phone: e.target.value})}
+                      onChange={(e) =>
+                        setNewStudent({ ...newStudent, phone: e.target.value })
+                      }
                       required
                     />
                   </div>
@@ -607,7 +770,12 @@ const AdmissionSummary = () => {
                     <Input
                       id="guardian_name"
                       value={newStudent.guardian_name}
-                      onChange={(e) => setNewStudent({...newStudent, guardian_name: e.target.value})}
+                      onChange={(e) =>
+                        setNewStudent({
+                          ...newStudent,
+                          guardian_name: e.target.value,
+                        })
+                      }
                       required
                     />
                   </div>
@@ -616,7 +784,12 @@ const AdmissionSummary = () => {
                     <Input
                       id="guardian_phone"
                       value={newStudent.guardian_phone}
-                      onChange={(e) => setNewStudent({...newStudent, guardian_phone: e.target.value})}
+                      onChange={(e) =>
+                        setNewStudent({
+                          ...newStudent,
+                          guardian_phone: e.target.value,
+                        })
+                      }
                       required
                     />
                   </div>
@@ -625,7 +798,12 @@ const AdmissionSummary = () => {
                     <Input
                       id="address"
                       value={newStudent.address}
-                      onChange={(e) => setNewStudent({...newStudent, address: e.target.value})}
+                      onChange={(e) =>
+                        setNewStudent({
+                          ...newStudent,
+                          address: e.target.value,
+                        })
+                      }
                       required
                     />
                   </div>
@@ -641,7 +819,10 @@ const AdmissionSummary = () => {
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600">
+                  <Button
+                    type="submit"
+                    className="bg-emerald-500 hover:bg-emerald-600"
+                  >
                     Add Admission
                   </Button>
                 </DialogFooter>
@@ -657,9 +838,13 @@ const AdmissionSummary = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Students</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Students
+                </p>
                 <div className="flex items-center space-x-2 mt-2">
-                  <p className="text-3xl font-bold text-gray-900">{stats.total_students}</p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {stats.total_students}
+                  </p>
                   <Badge variant="secondary" className="text-xs">
                     <TrendingUp className="h-3 w-3 mr-1" />
                     +12%
@@ -677,7 +862,9 @@ const AdmissionSummary = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">New Admissions</p>
+                <p className="text-sm font-medium text-gray-600">
+                  New Admissions
+                </p>
                 <div className="flex items-center space-x-2 mt-2">
                   <p className="text-3xl font-bold text-gray-900">71</p>
                   <Badge variant="secondary" className="text-xs">
@@ -698,7 +885,9 @@ const AdmissionSummary = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Pending Applications</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Pending Applications
+                </p>
                 <div className="flex items-center space-x-2 mt-2">
                   <p className="text-3xl font-bold text-gray-900">15</p>
                   <Badge variant="outline" className="text-xs text-orange-600">
@@ -717,9 +906,13 @@ const AdmissionSummary = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Classes</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Classes
+                </p>
                 <div className="flex items-center space-x-2 mt-2">
-                  <p className="text-3xl font-bold text-gray-900">{stats.total_classes}</p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {stats.total_classes}
+                  </p>
                   <Badge variant="secondary" className="text-xs">
                     Active
                   </Badge>
@@ -790,8 +983,8 @@ const AdmissionSummary = () => {
                   outerRadius={100}
                   paddingAngle={5}
                   dataKey="value"
-                  onClick={(data) => handleChartClick(data, 'gender')}
-                  style={{ cursor: 'pointer' }}
+                  onClick={(data) => handleChartClick(data, "gender")}
+                  style={{ cursor: "pointer" }}
                 >
                   {genderDistribution.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
@@ -802,10 +995,10 @@ const AdmissionSummary = () => {
             </ResponsiveContainer>
             <div className="flex justify-center space-x-6 mt-4">
               {genderDistribution.map((entry, index) => (
-                <div 
-                  key={index} 
+                <div
+                  key={index}
                   className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-2 rounded"
-                  onClick={() => handleChartClick(entry, 'gender')}
+                  onClick={() => handleChartClick(entry, "gender")}
                 >
                   <div
                     className="w-3 h-3 rounded-full"
@@ -832,31 +1025,34 @@ const AdmissionSummary = () => {
                 <span>Class-wise Student Distribution</span>
               </div>
               <Badge variant="outline" className="text-xs">
-                Current Capacity: {classWiseData.reduce((acc, curr) => acc + curr.students, 0)} / {classWiseData.reduce((acc, curr) => acc + curr.capacity, 0)}
+                Current Capacity:{" "}
+                {classWiseData.reduce((acc, curr) => acc + curr.students, 0)} /{" "}
+                {classWiseData.reduce((acc, curr) => acc + curr.capacity, 0)}
               </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={400}>
-              <BarChart 
-                data={classWiseData} 
+              <BarChart
+                data={classWiseData}
                 margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                onClick={(data) => handleChartClick(data?.activePayload?.[0]?.payload, 'classwise')}
+                onClick={(data) =>
+                  handleChartClick(
+                    data?.activePayload?.[0]?.payload,
+                    "classwise",
+                  )
+                }
               >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="class" />
                 <YAxis />
-                <Tooltip cursor={{ fill: 'rgba(16, 185, 129, 0.1)' }} />
-                <Bar 
-                  dataKey="capacity" 
-                  fill="#e2e8f0" 
-                  name="Capacity"
-                />
-                <Bar 
-                  dataKey="students" 
-                  fill="#8b5cf6" 
+                <Tooltip cursor={{ fill: "rgba(16, 185, 129, 0.1)" }} />
+                <Bar dataKey="capacity" fill="#e2e8f0" name="Capacity" />
+                <Bar
+                  dataKey="students"
+                  fill="#8b5cf6"
                   name="Current Students"
-                  style={{ cursor: 'pointer' }}
+                  style={{ cursor: "pointer" }}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -872,10 +1068,10 @@ const AdmissionSummary = () => {
               <Users className="h-5 w-5 text-emerald-500" />
               <span>Recent Admissions</span>
             </div>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
-              onClick={() => navigate('/students')}
+              onClick={() => navigate("/students")}
             >
               View All
             </Button>
@@ -888,19 +1084,33 @@ const AdmissionSummary = () => {
                 No recent admissions found
               </div>
             ) : (
-              students.slice(0, 5).map((student, index) => (
-                <div key={student.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+              students.slice(0, 5).map((student) => (
+                <div
+                  key={student.id}
+                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                >
                   <div className="flex items-center space-x-3">
-                    <div className="bg-emerald-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-semibold">
-                      {student.name.charAt(0)}
+                    <div className="bg-emerald-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-semibold overflow-hidden">
+                      {/* If you later add photo_url, you can show the image here */}
+                      {student.photo_url ? (
+                        <img
+                          src={student.photo_url}
+                          alt={student.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        student.name.charAt(0)
+                      )}
                     </div>
                     <div>
                       <p className="font-medium">{student.name}</p>
                       <p className="text-sm text-gray-600">
-                        Admission No: {student.admission_no} | Class: {getClassName(student.class_id)}
+                        Admission No: {student.admission_no} | Class:{" "}
+                        {getClassName(student.class_id)}
                       </p>
                       <p className="text-xs text-gray-500">
-                        Father: {student.father_name} | Guardian: {student.guardian_name}
+                        Father: {student.father_name} | Guardian:{" "}
+                        {student.guardian_name}
                       </p>
                     </div>
                   </div>
@@ -912,16 +1122,16 @@ const AdmissionSummary = () => {
                       <p className="text-sm text-gray-500">
                         {new Date(student.created_at).toLocaleDateString()}
                       </p>
-                      <Badge 
-                        variant="outline" 
+                      <Badge
+                        variant="outline"
                         className="text-xs bg-emerald-100 text-emerald-800 mt-1"
                       >
                         Approved
                       </Badge>
                     </div>
                     <div className="flex flex-col space-y-1">
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         variant="outline"
                         onClick={() => {
                           navigate(`/students?id=${student.id}`);
@@ -931,8 +1141,8 @@ const AdmissionSummary = () => {
                         <Eye className="h-3 w-3 mr-1" />
                         View
                       </Button>
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         variant="outline"
                         onClick={() => {
                           navigate(`/students?edit=${student.id}`);
@@ -971,7 +1181,7 @@ const AdmissionSummary = () => {
                 dataKey="count"
                 stroke="#3b82f6"
                 strokeWidth={3}
-                dot={{ fill: '#3b82f6', strokeWidth: 2, r: 6 }}
+                dot={{ fill: "#3b82f6", strokeWidth: 2, r: 6 }}
               />
             </LineChart>
           </ResponsiveContainer>

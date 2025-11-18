@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../App';
-import { 
+import React, { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../App";
+import {
   Home,
   Users,
   UserCheck,
@@ -23,11 +23,14 @@ import {
   ClipboardCheck,
   Sparkles,
   Target,
-  FileText
-} from 'lucide-react';
-import { Button } from './ui/button';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
-import { ScrollArea } from './ui/scroll-area';
+  FileText,
+} from "lucide-react";
+import { Button } from "./ui/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "./ui/collapsible";
 
 const Sidebar = () => {
   const navigate = useNavigate();
@@ -37,238 +40,236 @@ const Sidebar = () => {
   const [openMenus, setOpenMenus] = useState({});
 
   const toggleMenu = (menuKey) => {
-    setOpenMenus(prev => ({
+    setOpenMenus((prev) => ({
       ...prev,
-      [menuKey]: !prev[menuKey]
+      [menuKey]: !prev[menuKey],
     }));
   };
 
   const menuItems = [
     {
-      key: 'home',
-      title: 'Home',
+      key: "home",
+      title: "Home",
       icon: Home,
-      path: '/dashboard',
-      roles: ['super_admin', 'admin', 'teacher', 'student', 'parent']
+      path: "/dashboard",
+      roles: ["super_admin", "admin", "teacher", "student", "parent"],
     },
     {
-      key: 'admission',
-      title: 'Admission Summary',
+      key: "admission",
+      title: "Admission Summary",
       icon: GraduationCap,
-      path: '/admission-summary',
-      roles: ['super_admin', 'admin', 'teacher']
+      path: "/admission-summary",
+      roles: ["super_admin", "admin", "teacher"],
     },
     {
-      key: 'students',
-      title: 'Students',
+      key: "students",
+      title: "Students",
       icon: Users,
-      roles: ['super_admin', 'admin', 'teacher'],
+      roles: ["super_admin", "admin", "teacher"],
       subItems: [
-        { title: 'Student List', path: '/students' },
-        { title: 'Add Student', path: '/students/add' },
-        { title: 'Bulk Import', path: '/students/import' },
-        { title: 'Photo Upload', path: '/students/photos' },
-        { title: 'Attendance', path: '/students/attendance/mark' }
-      ]
+        { title: "Student List", path: "/students" },
+        { title: "Add Student", path: "/students/add" },
+        { title: "Bulk Import", path: "/students/import" },
+        { title: "Photo Upload", path: "/students/photos" },
+        { title: "Attendance", path: "/students/attendance/mark" },
+      ],
     },
     {
-      key: 'staff',
-      title: 'Staff',
+      key: "staff",
+      title: "Staff",
       icon: UserCheck,
-      roles: ['super_admin', 'admin'],
+      roles: ["super_admin", "admin"],
       subItems: [
-        { title: 'Staff List', path: '/staff' },
-        { title: 'Add Staff', path: '/staff/add' },
-        { title: 'Leave Requests', path: '/staff/leave-requests' },
-        { title: 'Attendance', path: '/staff/attendance' }
-      ]
+        { title: "Staff List", path: "/staff" },
+        { title: "Add Staff", path: "/staff/add" },
+        { title: "Leave Requests", path: "/staff/leave-requests" },
+        { title: "Attendance", path: "/staff/attendance" },
+      ],
     },
     {
-      key: 'class',
-      title: 'Classes',
+      key: "class",
+      title: "Classes",
       icon: BookOpen,
-      path: '/classes',
-      roles: ['super_admin', 'admin', 'teacher']
+      path: "/classes",
+      roles: ["super_admin", "admin", "teacher"],
     },
     {
-      key: 'attendance',
-      title: 'Attendance',
+      key: "attendance",
+      title: "Attendance",
       icon: ClipboardCheck,
-      roles: ['super_admin', 'admin', 'teacher'],
+      roles: ["super_admin", "admin", "teacher"],
       subItems: [
-        { title: 'Mark Attendance', path: '/attendance/mark' },
-        { title: 'Attendance Report', path: '/attendance/report' }
-      ]
+        { title: "Mark Attendance", path: "/attendance/mark" },
+        { title: "Attendance Report", path: "/attendance/report" },
+      ],
     },
     {
-      key: 'hss',
-      title: 'HSS Module',
+      key: "hss",
+      title: "HSS Module",
       icon: Award,
-      roles: ['super_admin', 'admin', 'teacher'],
+      roles: ["super_admin", "admin", "teacher"],
       subItems: [
-        { title: 'Enroll Student', path: '/hss/enroll' },
-        { title: 'Admission Register', path: '/hss/register' },
-        { title: 'Transfer Certificate', path: '/hss/transfer' },
-        { title: 'Conduct Certificate', path: '/hss/conduct' },
-        { title: 'Consolidated Report', path: '/hss/consolidated' },
-        { title: 'Set Tags', path: '/hss/tags' }
-      ]
+        { title: "Enroll Student", path: "/hss/enroll" },
+        { title: "Admission Register", path: "/hss/register" },
+        { title: "Transfer Certificate", path: "/hss/transfer" },
+        { title: "Conduct Certificate", path: "/hss/conduct" },
+        { title: "Consolidated Report", path: "/hss/consolidated" },
+        { title: "Set Tags", path: "/hss/tags" },
+      ],
     },
     {
-      key: 'fees',
-      title: 'Fees',
+      key: "fees",
+      title: "Fees",
       icon: DollarSign,
-      roles: ['super_admin', 'admin', 'teacher'],
+      roles: ["super_admin", "admin", "teacher"],
       subItems: [
-        { title: 'Manage Fees', path: '/fees/manage' },
-        { title: 'Student Specific', path: '/fees/student-specific' },
-        { title: 'Fee Due', path: '/fees/due' },
-        { title: 'Select Student', path: '/fees/select-student' },
-        { title: 'Fee Collection', path: '/fees/collection' }
-      ]
+        { title: "Manage Fees", path: "/fees/manage" },
+        { title: "Student Specific", path: "/fees/student-specific" },
+        { title: "Fee Due", path: "/fees/due" },
+        { title: "Select Student", path: "/fees/select-student" },
+        { title: "Fee Collection", path: "/fees/collection" },
+      ],
     },
     {
-      key: 'accounts',
-      title: 'Accounts',
+      key: "accounts",
+      title: "Accounts",
       icon: Calculator,
-      path: '/accounts',
-      roles: ['super_admin', 'admin']
+      path: "/accounts",
+      roles: ["super_admin", "admin"],
     },
     {
-      key: 'certificates',
-      title: 'Certificates',
+      key: "certificates",
+      title: "Certificates",
       icon: Award,
-      roles: ['super_admin', 'admin', 'teacher'],
+      roles: ["super_admin", "admin", "teacher"],
       subItems: [
-        { title: 'Course Certificate', path: '/certificates/course' },
-        { title: 'Transfer Certificate', path: '/certificates/transfer' },
-        { title: 'Progress Report', path: '/certificates/progress' },
-        { title: 'Adhar Extract', path: '/certificates/adhar' },
-        { title: 'Bonafide', path: '/certificates/bonafide' },
-        { title: 'ID Cards', path: '/certificates/id-cards' }
-      ]
+        { title: "Course Certificate", path: "/certificates/course" },
+        { title: "Transfer Certificate", path: "/certificates/transfer" },
+        { title: "Progress Report", path: "/certificates/progress" },
+        { title: "Adhar Extract", path: "/certificates/adhar" },
+        { title: "Bonafide", path: "/certificates/bonafide" },
+        { title: "ID Cards", path: "/certificates/id-cards" },
+      ],
     },
     {
-      key: 'vehicle',
-      title: 'Vehicle',
+      key: "vehicle",
+      title: "Vehicle",
       icon: Car,
-      roles: ['super_admin', 'admin'],
+      roles: ["super_admin", "admin"],
       subItems: [
-        { title: 'Vehicle Management', path: '/vehicle/manage' },
-        { title: 'Vehicle List', path: '/vehicle/list' },
-        { title: 'Routes', path: '/vehicle/routes' },
-        { title: 'Boarding Points', path: '/vehicle/boarding' },
-        { title: 'Student List', path: '/vehicle/students' },
-        { title: 'Vehicle Report', path: '/vehicle/report' }
-      ]
+        { title: "Vehicle Management", path: "/vehicle/manage" },
+        { title: "Vehicle List", path: "/vehicle/list" },
+        { title: "Routes", path: "/vehicle/routes" },
+        { title: "Boarding Points", path: "/vehicle/boarding" },
+        { title: "Student List", path: "/vehicle/students" },
+        { title: "Vehicle Report", path: "/vehicle/report" },
+      ],
     },
     {
-      key: 'cms',
-      title: 'Academic CMS',
+      key: "cms",
+      title: "Academic CMS",
       icon: BookOpen,
-      roles: ['super_admin', 'admin'],
-      subItems: [
-        { title: 'Manage Content', path: '/cms' }
-      ]
+      roles: ["super_admin", "admin"],
+      subItems: [{ title: "Manage Content", path: "/cms" }],
     },
     {
-      key: 'ai-assistant',
-      title: 'AI Assistant',
+      key: "ai-assistant",
+      title: "AI Assistant",
       icon: Sparkles,
-      roles: ['super_admin', 'admin', 'teacher', 'student'],
+      roles: ["super_admin", "admin", "teacher", "student"],
       subItems: [
-        { title: 'Chat Assistant', path: '/ai-assistant' },
-        { title: 'AI Activity Logs', path: '/ai-assistant/logs' }
-      ]
+        { title: "Chat Assistant", path: "/ai-assistant" },
+        { title: "AI Activity Logs", path: "/ai-assistant/logs" },
+      ],
     },
     {
-      key: 'quiz-tool',
-      title: 'Quiz Tool',
+      key: "quiz-tool",
+      title: "Quiz Tool",
       icon: Target,
-      path: '/quiz-tool',
-      roles: ['super_admin', 'admin', 'teacher', 'student']
+      path: "/quiz-tool",
+      roles: ["super_admin", "admin", "teacher", "student"],
     },
     {
-      key: 'test-generator',
-      title: 'Test Generator',
+      key: "test-generator",
+      title: "Test Generator",
       icon: FileText,
-      path: '/test-generator',
-      roles: ['super_admin', 'admin', 'teacher']
+      path: "/test-generator",
+      roles: ["super_admin", "admin", "teacher"],
     },
     {
-      key: 'ai-summary',
-      title: 'AI Summary',
+      key: "ai-summary",
+      title: "AI Summary",
       icon: BookOpen,
-      path: '/ai-summary',
-      roles: ['super_admin', 'admin', 'teacher', 'student']
+      path: "/ai-summary",
+      roles: ["super_admin", "admin", "teacher", "student"],
     },
     {
-      key: 'ai-notes',
-      title: 'AI Notes',
+      key: "ai-notes",
+      title: "AI Notes",
       icon: FileText,
-      path: '/ai-notes',
-      roles: ['super_admin', 'admin', 'teacher', 'student']
+      path: "/ai-notes",
+      roles: ["super_admin", "admin", "teacher", "student"],
     },
     {
-      key: 'reports',
-      title: 'Reports',
+      key: "reports",
+      title: "Reports",
       icon: BarChart3,
-      roles: ['super_admin', 'admin', 'teacher'],
+      roles: ["super_admin", "admin", "teacher"],
       subItems: [
-        { title: 'Admission Report', path: '/reports/admission' },
-        { title: 'Login Report', path: '/reports/login' },
-        { title: 'Student Information', path: '/reports/students' },
-        { title: 'Cross Counting', path: '/reports/cross-count' },
-        { title: 'Teacher List', path: '/reports/teachers' },
-        { title: 'Attendance Report', path: '/reports/attendance' },
-        { title: 'Consolidated Marksheet', path: '/reports/marksheet' },
-        { title: 'Staff Attendance', path: '/reports/staff-attendance' }
-      ]
+        { title: "Admission Report", path: "/reports/admission" },
+        { title: "Login Report", path: "/reports/login" },
+        { title: "Student Information", path: "/reports/students" },
+        { title: "Cross Counting", path: "/reports/cross-count" },
+        { title: "Teacher List", path: "/reports/teachers" },
+        { title: "Attendance Report", path: "/reports/attendance" },
+        { title: "Consolidated Marksheet", path: "/reports/marksheet" },
+        { title: "Staff Attendance", path: "/reports/staff-attendance" },
+      ],
     },
     {
-      key: 'biometric',
-      title: 'Biometric Devices',
+      key: "biometric",
+      title: "Biometric Devices",
       icon: Fingerprint,
-      roles: ['super_admin', 'admin'],
+      roles: ["super_admin", "admin"],
       subItems: [
-        { title: 'Devices Overview', path: '/biometric/overview' },
-        { title: 'Staff List', path: '/biometric/staff' },
-        { title: 'Punch Log', path: '/biometric/punch-log' },
-        { title: 'Registered Devices', path: '/biometric/devices' },
-        { title: 'Calendar', path: '/biometric/calendar' },
-        { title: 'Status Report', path: '/biometric/status' }
-      ]
+        { title: "Devices Overview", path: "/biometric/overview" },
+        { title: "Staff List", path: "/biometric/staff" },
+        { title: "Punch Log", path: "/biometric/punch-log" },
+        { title: "Registered Devices", path: "/biometric/devices" },
+        { title: "Calendar", path: "/biometric/calendar" },
+        { title: "Status Report", path: "/biometric/status" },
+      ],
     },
     {
-      key: 'online-admission',
-      title: 'Online Admission',
+      key: "online-admission",
+      title: "Online Admission",
       icon: UserPlus,
-      roles: ['super_admin', 'admin'],
+      roles: ["super_admin", "admin"],
       subItems: [
-        { title: 'Online Admission', path: '/online-admission' },
-        { title: 'Admission Settings', path: '/online-admission/settings' }
-      ]
+        { title: "Online Admission", path: "/online-admission" },
+        { title: "Admission Settings", path: "/online-admission/settings" },
+      ],
     },
     {
-      key: 'settings',
-      title: 'Settings',
+      key: "settings",
+      title: "Settings",
       icon: Settings,
-      roles: ['super_admin', 'admin'],
+      roles: ["super_admin", "admin"],
       subItems: [
-        { title: 'Academic Periods', path: '/settings/academic' },
-        { title: 'Manage Classes', path: '/settings/classes' },
-        { title: 'Time Table', path: '/settings/timetable' },
-        { title: 'Manage Grades', path: '/settings/grades' },
-        { title: 'Manage Curriculum', path: '/settings/curriculum' },
-        { title: 'Institution Details', path: '/settings/institution' },
-        { title: 'Staff Settings', path: '/settings/staff' },
-        { title: 'Permissions', path: '/settings/permissions' }
-      ]
-    }
+        { title: "Academic Periods", path: "/settings/academic" },
+        { title: "Manage Classes", path: "/settings/classes" },
+        { title: "Time Table", path: "/settings/timetable" },
+        { title: "Manage Grades", path: "/settings/grades" },
+        { title: "Manage Curriculum", path: "/settings/curriculum" },
+        { title: "Institution Details", path: "/settings/institution" },
+        { title: "Staff Settings", path: "/settings/staff" },
+        { title: "Permissions", path: "/settings/permissions" },
+      ],
+    },
   ];
 
-  const filteredMenuItems = menuItems.filter(item => 
-    item.roles.includes(user?.role)
+  const filteredMenuItems = menuItems.filter((item) =>
+    item.roles.includes(user?.role),
   );
 
   const isActiveMenu = (item) => {
@@ -276,7 +277,9 @@ const Sidebar = () => {
       return location.pathname === item.path;
     }
     if (item.subItems) {
-      return item.subItems.some(subItem => location.pathname === subItem.path);
+      return item.subItems.some(
+        (subItem) => location.pathname === subItem.path,
+      );
     }
     return false;
   };
@@ -290,7 +293,7 @@ const Sidebar = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate("/login");
     setIsMobileOpen(false);
   };
 
@@ -309,12 +312,12 @@ const Sidebar = () => {
         </div>
       </div>
 
-      {/* Navigation */}
-      <ScrollArea className="flex-1 px-4">
+      {/* Navigation (own scroll container) */}
+      <div className="flex-1 px-4 overflow-y-auto">
         <nav className="py-4 space-y-2">
           {filteredMenuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = isActiveMenu(item);
+            const active = isActiveMenu(item);
             const isOpen = openMenus[item.key];
 
             if (item.subItems) {
@@ -325,9 +328,13 @@ const Sidebar = () => {
                   onOpenChange={() => toggleMenu(item.key)}
                 >
                   <CollapsibleTrigger asChild>
-                    <button className={`w-full flex items-center justify-between p-3 rounded-lg transition-all hover:bg-white/10 ${
-                      isActive ? 'bg-emerald-500/20 text-emerald-300' : 'text-gray-300 hover:text-white'
-                    }`}>
+                    <button
+                      className={`w-full flex items-center justify-between p-3 rounded-lg transition-all hover:bg-white/10 ${
+                        active
+                          ? "bg-emerald-500/20 text-emerald-300"
+                          : "text-gray-300 hover:text-white"
+                      }`}
+                    >
                       <div className="flex items-center space-x-3">
                         <Icon className="h-5 w-5" />
                         <span className="font-medium">{item.title}</span>
@@ -346,8 +353,8 @@ const Sidebar = () => {
                         onClick={() => handleNavigation(subItem.path)}
                         className={`w-full text-left p-2 rounded-md text-sm transition-all hover:bg-white/10 ${
                           location.pathname === subItem.path
-                            ? 'bg-emerald-500/20 text-emerald-300'
-                            : 'text-gray-400 hover:text-white'
+                            ? "bg-emerald-500/20 text-emerald-300"
+                            : "text-gray-400 hover:text-white"
                         }`}
                       >
                         {subItem.title}
@@ -363,7 +370,9 @@ const Sidebar = () => {
                 key={item.key}
                 onClick={() => handleNavigation(item.path)}
                 className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-all hover:bg-white/10 ${
-                  isActive ? 'bg-emerald-500/20 text-emerald-300' : 'text-gray-300 hover:text-white'
+                  active
+                    ? "bg-emerald-500/20 text-emerald-300"
+                    : "text-gray-300 hover:text-white"
                 }`}
               >
                 <Icon className="h-5 w-5" />
@@ -372,7 +381,7 @@ const Sidebar = () => {
             );
           })}
         </nav>
-      </ScrollArea>
+      </div>
 
       {/* Footer */}
       <div className="p-4 border-t border-white/10">
@@ -400,9 +409,9 @@ const Sidebar = () => {
         <Menu className="h-5 w-5" />
       </Button>
 
-      {/* Desktop sidebar */}
-      <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 z-40 overflow-y-auto">
-        <div className="glass-sidebar min-h-full">
+      {/* Desktop sidebar (fixed) */}
+      <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 z-40">
+        <div className="glass-sidebar min-h-full flex flex-col">
           <SidebarContent />
         </div>
       </div>
@@ -410,7 +419,10 @@ const Sidebar = () => {
       {/* Mobile sidebar */}
       {isMobileOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setIsMobileOpen(false)} />
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setIsMobileOpen(false)}
+          />
           <div className="relative flex w-64 h-full glass-sidebar overflow-y-auto">
             <div className="flex flex-col w-full min-h-full">
               <div className="flex items-center justify-between p-4">
@@ -439,11 +451,6 @@ const Sidebar = () => {
           </div>
         </div>
       )}
-
-      {/* Main content offset for desktop */}
-      <div className="md:pl-64">
-        {/* Content goes here */}
-      </div>
     </>
   );
 };

@@ -1,22 +1,28 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { 
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-} from './ui/table';
-import { toast } from 'sonner';
-import { 
+} from "./ui/table";
+import { toast } from "sonner";
+import {
   BarChart3,
   FileText,
   Download,
@@ -28,36 +34,37 @@ import {
   UserCheck,
   Filter,
   Loader2,
-  FileDown
-} from 'lucide-react';
+  FileDown,
+} from "lucide-react";
 
 const Reports = () => {
   // Router-controlled tabs - same pattern as Fees module
-  const { '*': reportSlug } = useParams();
+  const { "*": reportSlug } = useParams();
   const navigate = useNavigate();
-  
+
   // Map report slugs to tabs
   const slugToTabMap = {
-    'admission': 'administrative',
-    'login': 'administrative',
-    'students': 'administrative',
-    'cross-count': 'administrative',
-    'teachers': 'administrative',
-    'marksheet': 'academic',
-    'attendance': 'attendance',
-    'staff-attendance': 'attendance'
+    admission: "administrative",
+    login: "administrative",
+    students: "administrative",
+    "cross-count": "administrative",
+    teachers: "administrative",
+    marksheet: "academic",
+    attendance: "attendance",
+    "staff-attendance": "attendance",
   };
-  
+
   // Determine current tab from URL slug, default to 'academic'
-  const currentTab = slugToTabMap[reportSlug] || 'academic';
-  
+  const currentTab = slugToTabMap[reportSlug] || "academic";
+
   // Tab change handler - same pattern as Fees
   const handleTabChange = (newTab) => {
     navigate(`/reports`); // Navigate to base reports page
   };
-  
+
   const [activeReports, setActiveReports] = useState(8);
-  const [showDailyAttendanceModal, setShowDailyAttendanceModal] = useState(false);
+  const [showDailyAttendanceModal, setShowDailyAttendanceModal] =
+    useState(false);
   const [dailyAttendanceData, setDailyAttendanceData] = useState([]);
   const [loadingDailyAttendance, setLoadingDailyAttendance] = useState(false);
 
@@ -65,50 +72,52 @@ const Reports = () => {
   const [admissionData, setAdmissionData] = useState([]);
   const [loginActivityData, setLoginActivityData] = useState([]);
   const [studentInfoData, setStudentInfoData] = useState([]);
-  
+
   // Separate loading states for each report type
   const [admissionLoading, setAdmissionLoading] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
   const [studentLoading, setStudentLoading] = useState(false);
-  
+
   // Report filters state
   const [admissionFilters, setAdmissionFilters] = useState({
-    year: '2024-25',
-    class: 'all_classes',
-    gender: 'all_genders',
-    status: 'all_statuses'
+    year: "2024-25",
+    class: "all_classes",
+    gender: "all_genders",
+    status: "all_statuses",
   });
-  
+
   const [loginFilters, setLoginFilters] = useState({
-    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    endDate: new Date().toISOString().split('T')[0],
-    status: 'all'
+    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0],
+    endDate: new Date().toISOString().split("T")[0],
+    status: "all",
   });
-  
+
   const [studentFilters, setStudentFilters] = useState({
-    class: 'all_classes',
-    section: 'all_sections',
-    status: 'all_statuses',
-    search: ''
+    class: "all_classes",
+    section: "all_sections",
+    status: "all_statuses",
+    search: "",
   });
-  
+
   // Cross Counting Report state
   const [crossCountData, setCrossCountData] = useState([]);
   const [crossCountLoading, setCrossCountLoading] = useState(false);
   const [crossCountFilters, setCrossCountFilters] = useState({
-    year: '2024-25',
-    department: 'all',
-    class: 'all_classes'
+    year: "2024-25",
+    department: "all",
+    class: "all_classes",
   });
-  
+
   // Teacher List Report state
   const [teacherData, setTeacherData] = useState([]);
   const [teacherLoading, setTeacherLoading] = useState(false);
   const [teacherFilters, setTeacherFilters] = useState({
-    department: 'all',
-    designation: 'all',
-    status: 'active',
-    search: ''
+    department: "all",
+    designation: "all",
+    status: "active",
+    search: "",
   });
 
   // API base URL from environment
@@ -116,7 +125,7 @@ const Reports = () => {
 
   // Helper function to get auth token
   const getAuthToken = () => {
-    return localStorage.getItem('token');
+    return localStorage.getItem("token");
   };
 
   // Academic Report API Functions
@@ -124,39 +133,44 @@ const Reports = () => {
     try {
       const token = getAuthToken();
       if (!token) {
-        toast.error('Please log in to generate reports');
+        toast.error("Please log in to generate reports");
         return;
       }
 
-      toast.info('Generating consolidated marksheet... Please wait');
-      
-      const response = await fetch(`${API}/reports/academic/consolidated-marksheet?format=pdf`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      toast.info("Generating consolidated marksheet... Please wait");
+
+      const response = await fetch(
+        `${API}/reports/academic/consolidated-marksheet?format=pdf`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
 
       if (!response.ok) {
-        throw new Error(`Failed to generate consolidated marksheet: ${response.statusText}`);
+        throw new Error(
+          `Failed to generate consolidated marksheet: ${response.statusText}`,
+        );
       }
 
       // Get the blob and create download link
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.download = `consolidated_marksheet_${new Date().toISOString().split('T')[0].replace(/-/g, '')}.pdf`;
-      link.style.display = 'none';
-      
+      link.download = `consolidated_marksheet_${new Date().toISOString().split("T")[0].replace(/-/g, "")}.pdf`;
+      link.style.display = "none";
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
-      toast.success('Consolidated marksheet downloaded successfully!');
+
+      toast.success("Consolidated marksheet downloaded successfully!");
     } catch (error) {
-      console.error('Error generating consolidated marksheet:', error);
-      toast.error('Failed to generate consolidated marksheet');
+      console.error("Error generating consolidated marksheet:", error);
+      toast.error("Failed to generate consolidated marksheet");
     }
   };
 
@@ -164,43 +178,48 @@ const Reports = () => {
     try {
       const token = getAuthToken();
       if (!token) {
-        toast.error('Please log in to generate reports');
+        toast.error("Please log in to generate reports");
         return;
       }
 
-      toast.info('Generating monthly attendance report... Please wait');
-      
+      toast.info("Generating monthly attendance report... Please wait");
+
       const currentDate = new Date();
       const year = currentDate.getFullYear();
-      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-      
-      const response = await fetch(`${API}/reports/attendance/monthly-summary?format=pdf&year=${year}&month=${month}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const month = String(currentDate.getMonth() + 1).padStart(2, "0");
+
+      const response = await fetch(
+        `${API}/reports/attendance/monthly-summary?format=pdf&year=${year}&month=${month}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
 
       if (!response.ok) {
-        throw new Error(`Failed to generate monthly attendance report: ${response.statusText}`);
+        throw new Error(
+          `Failed to generate monthly attendance report: ${response.statusText}`,
+        );
       }
 
       // Get the blob and create download link
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
       link.download = `monthly_attendance_${year}_${month}.pdf`;
-      link.style.display = 'none';
-      
+      link.style.display = "none";
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
-      toast.success('Monthly attendance report downloaded successfully!');
+
+      toast.success("Monthly attendance report downloaded successfully!");
     } catch (error) {
-      console.error('Error generating monthly attendance report:', error);
-      toast.error('Failed to generate monthly attendance report');
+      console.error("Error generating monthly attendance report:", error);
+      toast.error("Failed to generate monthly attendance report");
     }
   };
 
@@ -208,49 +227,55 @@ const Reports = () => {
     try {
       const token = getAuthToken();
       if (!token) {
-        toast.error('Please log in to generate reports');
+        toast.error("Please log in to generate reports");
         return;
       }
 
-      toast.info('Generating staff attendance report... Please wait');
-      
+      toast.info("Generating staff attendance report... Please wait");
+
       const currentDate = new Date();
       const year = currentDate.getFullYear();
-      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-      
+      const month = String(currentDate.getMonth() + 1).padStart(2, "0");
+
       // Default to current month date range
       const startDate = `${year}-${month}-01`;
-      const nextMonth = currentDate.getMonth() === 11 ? 1 : currentDate.getMonth() + 2;
+      const nextMonth =
+        currentDate.getMonth() === 11 ? 1 : currentDate.getMonth() + 2;
       const nextYear = currentDate.getMonth() === 11 ? year + 1 : year;
-      const endDate = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
-      
-      const response = await fetch(`${API}/reports/attendance/staff-attendance?format=pdf&start_date=${startDate}&end_date=${endDate}&department=all_departments`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const endDate = `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`;
+
+      const response = await fetch(
+        `${API}/reports/attendance/staff-attendance?format=pdf&start_date=${startDate}&end_date=${endDate}&department=all_departments`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
 
       if (!response.ok) {
-        throw new Error(`Failed to generate staff attendance report: ${response.statusText}`);
+        throw new Error(
+          `Failed to generate staff attendance report: ${response.statusText}`,
+        );
       }
 
       // Get the blob and create download link
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.download = `staff_attendance_${startDate.replace(/-/g, '_')}_${endDate.replace(/-/g, '_')}.pdf`;
-      link.style.display = 'none';
-      
+      link.download = `staff_attendance_${startDate.replace(/-/g, "_")}_${endDate.replace(/-/g, "_")}.pdf`;
+      link.style.display = "none";
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
-      toast.success('Staff attendance report downloaded successfully!');
+
+      toast.success("Staff attendance report downloaded successfully!");
     } catch (error) {
-      console.error('Error generating staff attendance report:', error);
-      toast.error('Failed to generate staff attendance report');
+      console.error("Error generating staff attendance report:", error);
+      toast.error("Failed to generate staff attendance report");
     }
   };
 
@@ -260,29 +285,33 @@ const Reports = () => {
       setLoadingDailyAttendance(true);
       const token = getAuthToken();
       if (!token) {
-        toast.error('Please log in to view attendance');
+        toast.error("Please log in to view attendance");
         return;
       }
 
-      const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-      
-      const response = await fetch(`${API}/attendance?date=${currentDate}&type=staff`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const currentDate = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
+
+      const response = await fetch(
+        `${API}/attendance?date=${currentDate}&type=staff`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch daily attendance: ${response.statusText}`);
+        throw new Error(
+          `Failed to fetch daily attendance: ${response.statusText}`,
+        );
       }
 
       const data = await response.json();
       setDailyAttendanceData(data);
       setShowDailyAttendanceModal(true);
-      
     } catch (error) {
-      console.error('Error fetching daily attendance:', error);
-      toast.error('Failed to fetch daily attendance data');
+      console.error("Error fetching daily attendance:", error);
+      toast.error("Failed to fetch daily attendance data");
     } finally {
       setLoadingDailyAttendance(false);
     }
@@ -297,18 +326,18 @@ const Reports = () => {
     try {
       const token = getAuthToken();
       if (!token) {
-        toast.error('Please log in to create sample data');
+        toast.error("Please log in to create sample data");
         return;
       }
 
-      toast.info('Creating sample attendance data... Please wait');
-      
+      toast.info("Creating sample attendance data... Please wait");
+
       const response = await fetch(`${API}/attendance/create-sample-data`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
 
       if (!response.ok) {
@@ -316,11 +345,12 @@ const Reports = () => {
       }
 
       const data = await response.json();
-      toast.success(`Successfully created ${data.records_count} sample attendance records!`);
-      
+      toast.success(
+        `Successfully created ${data.records_count} sample attendance records!`,
+      );
     } catch (error) {
-      console.error('Error creating sample attendance data:', error);
-      toast.error('Failed to create sample attendance data');
+      console.error("Error creating sample attendance data:", error);
+      toast.error("Failed to create sample attendance data");
     }
   };
 
@@ -328,39 +358,44 @@ const Reports = () => {
     try {
       const token = getAuthToken();
       if (!token) {
-        toast.error('Please log in to generate reports');
+        toast.error("Please log in to generate reports");
         return;
       }
 
-      toast.info('Generating subject-wise analysis... Please wait');
-      
-      const response = await fetch(`${API}/reports/academic/subject-wise-analysis?format=pdf`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      toast.info("Generating subject-wise analysis... Please wait");
+
+      const response = await fetch(
+        `${API}/reports/academic/subject-wise-analysis?format=pdf`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
 
       if (!response.ok) {
-        throw new Error(`Failed to generate subject-wise analysis: ${response.statusText}`);
+        throw new Error(
+          `Failed to generate subject-wise analysis: ${response.statusText}`,
+        );
       }
 
       // Get the blob and create download link
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.download = `subject_wise_analysis_${new Date().toISOString().split('T')[0].replace(/-/g, '')}.pdf`;
-      link.style.display = 'none';
-      
+      link.download = `subject_wise_analysis_${new Date().toISOString().split("T")[0].replace(/-/g, "")}.pdf`;
+      link.style.display = "none";
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
-      toast.success('Subject-wise analysis downloaded successfully!');
+
+      toast.success("Subject-wise analysis downloaded successfully!");
     } catch (error) {
-      console.error('Error generating subject-wise analysis:', error);
-      toast.error('Failed to generate subject-wise analysis');
+      console.error("Error generating subject-wise analysis:", error);
+      toast.error("Failed to generate subject-wise analysis");
     }
   };
 
@@ -368,39 +403,44 @@ const Reports = () => {
     try {
       const token = getAuthToken();
       if (!token) {
-        toast.error('Please log in to generate reports');
+        toast.error("Please log in to generate reports");
         return;
       }
 
-      toast.info('Generating class performance report... Please wait');
-      
-      const response = await fetch(`${API}/reports/academic/class-performance?format=pdf`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      toast.info("Generating class performance report... Please wait");
+
+      const response = await fetch(
+        `${API}/reports/academic/class-performance?format=pdf`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
 
       if (!response.ok) {
-        throw new Error(`Failed to generate class performance report: ${response.statusText}`);
+        throw new Error(
+          `Failed to generate class performance report: ${response.statusText}`,
+        );
       }
 
       // Get the blob and create download link
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.download = `class_performance_${new Date().toISOString().split('T')[0].replace(/-/g, '')}.pdf`;
-      link.style.display = 'none';
-      
+      link.download = `class_performance_${new Date().toISOString().split("T")[0].replace(/-/g, "")}.pdf`;
+      link.style.display = "none";
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
-      toast.success('Class performance report downloaded successfully!');
+
+      toast.success("Class performance report downloaded successfully!");
     } catch (error) {
-      console.error('Error generating class performance report:', error);
-      toast.error('Failed to generate class performance report');
+      console.error("Error generating class performance report:", error);
+      toast.error("Failed to generate class performance report");
     }
   };
 
@@ -409,48 +449,53 @@ const Reports = () => {
     try {
       const token = getAuthToken();
       if (!token) {
-        toast.error('Please log in to generate reports');
+        toast.error("Please log in to generate reports");
         return;
       }
 
-      toast.info('Generating admission report... Please wait');
-      
+      toast.info("Generating admission report... Please wait");
+
       // Include current filter parameters in PDF export
       const params = new URLSearchParams({
-        format: 'pdf',
+        format: "pdf",
         year: admissionFilters.year,
         class_filter: admissionFilters.class,
         gender: admissionFilters.gender,
-        status: admissionFilters.status
-      });
-      
-      const response = await fetch(`${API}/reports/admission-summary?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        status: admissionFilters.status,
       });
 
+      const response = await fetch(
+        `${API}/reports/admission-summary?${params}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
       if (!response.ok) {
-        throw new Error(`Failed to generate admission report: ${response.statusText}`);
+        throw new Error(
+          `Failed to generate admission report: ${response.statusText}`,
+        );
       }
 
       // Get the blob and create download link
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.download = `admission_report_${new Date().toISOString().split('T')[0].replace(/-/g, '')}.pdf`;
-      link.style.display = 'none';
-      
+      link.download = `admission_report_${new Date().toISOString().split("T")[0].replace(/-/g, "")}.pdf`;
+      link.style.display = "none";
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
-      toast.success('Admission report downloaded successfully!');
+
+      toast.success("Admission report downloaded successfully!");
     } catch (error) {
-      console.error('Error generating admission report:', error);
-      toast.error('Failed to generate admission report');
+      console.error("Error generating admission report:", error);
+      toast.error("Failed to generate admission report");
     }
   };
 
@@ -459,46 +504,48 @@ const Reports = () => {
     try {
       const token = getAuthToken();
       if (!token) {
-        toast.error('Please log in to generate reports');
+        toast.error("Please log in to generate reports");
         return;
       }
 
-      toast.info('Generating login activity report... Please wait');
-      
+      toast.info("Generating login activity report... Please wait");
+
       // Include current filter parameters in PDF export
       const params = new URLSearchParams({
-        format: 'pdf',
+        format: "pdf",
         start_date: loginFilters.startDate,
-        end_date: loginFilters.endDate
+        end_date: loginFilters.endDate,
       });
-      
+
       const response = await fetch(`${API}/reports/login-activity?${params}`, {
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to generate login activity report: ${response.statusText}`);
+        throw new Error(
+          `Failed to generate login activity report: ${response.statusText}`,
+        );
       }
 
       // Get the blob and create download link
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.download = `login_activity_${new Date().toISOString().split('T')[0].replace(/-/g, '')}.pdf`;
-      link.style.display = 'none';
-      
+      link.download = `login_activity_${new Date().toISOString().split("T")[0].replace(/-/g, "")}.pdf`;
+      link.style.display = "none";
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
-      toast.success('Login activity report downloaded successfully!');
+
+      toast.success("Login activity report downloaded successfully!");
     } catch (error) {
-      console.error('Error generating login activity report:', error);
-      toast.error('Failed to generate login activity report');
+      console.error("Error generating login activity report:", error);
+      toast.error("Failed to generate login activity report");
     }
   };
 
@@ -507,46 +554,51 @@ const Reports = () => {
     try {
       const token = getAuthToken();
       if (!token) {
-        toast.error('Please log in to generate reports');
+        toast.error("Please log in to generate reports");
         return;
       }
 
-      toast.info('Generating student information report... Please wait');
-      
+      toast.info("Generating student information report... Please wait");
+
       // Include current filter parameters in Excel export
       const params = new URLSearchParams({
-        format: 'excel',
+        format: "excel",
         class_filter: studentFilters.class,
-        status: studentFilters.status
-      });
-      
-      const response = await fetch(`${API}/reports/student-information?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        status: studentFilters.status,
       });
 
+      const response = await fetch(
+        `${API}/reports/student-information?${params}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
       if (!response.ok) {
-        throw new Error(`Failed to generate student information report: ${response.statusText}`);
+        throw new Error(
+          `Failed to generate student information report: ${response.statusText}`,
+        );
       }
 
       // Get the blob and create download link
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.download = `student_information_${new Date().toISOString().split('T')[0].replace(/-/g, '')}.xlsx`;
-      link.style.display = 'none';
-      
+      link.download = `student_information_${new Date().toISOString().split("T")[0].replace(/-/g, "")}.xlsx`;
+      link.style.display = "none";
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
-      toast.success('Student information report downloaded successfully!');
+
+      toast.success("Student information report downloaded successfully!");
     } catch (error) {
-      console.error('Error generating student information report:', error);
-      toast.error('Failed to generate student information report');
+      console.error("Error generating student information report:", error);
+      toast.error("Failed to generate student information report");
     }
   };
 
@@ -556,39 +608,41 @@ const Reports = () => {
     try {
       const token = getAuthToken();
       if (!token) {
-        toast.error('Please log in to generate reports');
+        toast.error("Please log in to generate reports");
         return;
       }
 
-      toast.info('Generating vehicle report... Please wait');
-      
+      toast.info("Generating vehicle report... Please wait");
+
       const response = await fetch(`${API}/reports/vehicle?format=pdf`, {
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to generate vehicle report: ${response.statusText}`);
+        throw new Error(
+          `Failed to generate vehicle report: ${response.statusText}`,
+        );
       }
 
       // Get the blob and create download link
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.download = `vehicle_report_${new Date().toISOString().split('T')[0].replace(/-/g, '')}.pdf`;
-      link.style.display = 'none';
-      
+      link.download = `vehicle_report_${new Date().toISOString().split("T")[0].replace(/-/g, "")}.pdf`;
+      link.style.display = "none";
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
-      toast.success('Vehicle report downloaded successfully!');
+
+      toast.success("Vehicle report downloaded successfully!");
     } catch (error) {
-      console.error('Error generating vehicle report:', error);
-      toast.error('Failed to generate vehicle report');
+      console.error("Error generating vehicle report:", error);
+      toast.error("Failed to generate vehicle report");
     }
   };
 
@@ -596,39 +650,44 @@ const Reports = () => {
     try {
       const token = getAuthToken();
       if (!token) {
-        toast.error('Please log in to generate reports');
+        toast.error("Please log in to generate reports");
         return;
       }
 
-      toast.info('Generating route efficiency report... Please wait');
-      
-      const response = await fetch(`${API}/reports/route-efficiency?format=excel`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      toast.info("Generating route efficiency report... Please wait");
+
+      const response = await fetch(
+        `${API}/reports/route-efficiency?format=excel`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
 
       if (!response.ok) {
-        throw new Error(`Failed to generate route efficiency report: ${response.statusText}`);
+        throw new Error(
+          `Failed to generate route efficiency report: ${response.statusText}`,
+        );
       }
 
       // Get the blob and create download link
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.download = `route_efficiency_${new Date().toISOString().split('T')[0].replace(/-/g, '')}.xlsx`;
-      link.style.display = 'none';
-      
+      link.download = `route_efficiency_${new Date().toISOString().split("T")[0].replace(/-/g, "")}.xlsx`;
+      link.style.display = "none";
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
-      toast.success('Route efficiency report downloaded successfully!');
+
+      toast.success("Route efficiency report downloaded successfully!");
     } catch (error) {
-      console.error('Error generating route efficiency report:', error);
-      toast.error('Failed to generate route efficiency report');
+      console.error("Error generating route efficiency report:", error);
+      toast.error("Failed to generate route efficiency report");
     }
   };
 
@@ -636,98 +695,100 @@ const Reports = () => {
     try {
       const token = getAuthToken();
       if (!token) {
-        toast.error('Please log in to generate reports');
+        toast.error("Please log in to generate reports");
         return;
       }
 
-      toast.info('Generating transport fees report... Please wait');
-      
+      toast.info("Generating transport fees report... Please wait");
+
       const response = await fetch(`${API}/reports/transport-fees?format=pdf`, {
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to generate transport fees report: ${response.statusText}`);
+        throw new Error(
+          `Failed to generate transport fees report: ${response.statusText}`,
+        );
       }
 
       // Get the blob and create download link
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.download = `transport_fees_${new Date().toISOString().split('T')[0].replace(/-/g, '')}.pdf`;
-      link.style.display = 'none';
-      
+      link.download = `transport_fees_${new Date().toISOString().split("T")[0].replace(/-/g, "")}.pdf`;
+      link.style.display = "none";
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
-      toast.success('Transport fees report downloaded successfully!');
+
+      toast.success("Transport fees report downloaded successfully!");
     } catch (error) {
-      console.error('Error generating transport fees report:', error);
-      toast.error('Failed to generate transport fees report');
+      console.error("Error generating transport fees report:", error);
+      toast.error("Failed to generate transport fees report");
     }
   };
 
   const reportCategories = [
     {
-      title: 'Academic Reports',
+      title: "Academic Reports",
       icon: GraduationCap,
-      color: 'text-blue-500',
-      bgColor: 'bg-blue-100',
+      color: "text-blue-500",
+      bgColor: "bg-blue-100",
       reports: [
-        'Student Performance Report',
-        'Class-wise Academic Summary', 
-        'Subject-wise Analysis',
-        'Consolidated Marksheet'
-      ]
+        "Student Performance Report",
+        "Class-wise Academic Summary",
+        "Subject-wise Analysis",
+        "Consolidated Marksheet",
+      ],
     },
     {
-      title: 'Attendance Reports',
+      title: "Attendance Reports",
       icon: UserCheck,
-      color: 'text-emerald-500',
-      bgColor: 'bg-emerald-100',
+      color: "text-emerald-500",
+      bgColor: "bg-emerald-100",
       reports: [
-        'Daily Attendance Report',
-        'Monthly Attendance Summary',
-        'Staff Attendance Report',
-        'Class-wise Attendance'
-      ]
+        "Daily Attendance Report",
+        "Monthly Attendance Summary",
+        "Staff Attendance Report",
+        "Class-wise Attendance",
+      ],
     },
     {
-      title: 'Administrative Reports',
+      title: "Administrative Reports",
       icon: FileText,
-      color: 'text-purple-500',
-      bgColor: 'bg-purple-100',
+      color: "text-purple-500",
+      bgColor: "bg-purple-100",
       reports: [
-        'Admission Report',
-        'Login Activity Report',
-        'Fee Collection Report',
-        'Student Information Report'
-      ]
+        "Admission Report",
+        "Login Activity Report",
+        "Fee Collection Report",
+        "Student Information Report",
+      ],
     },
     {
-      title: 'Transport Reports',
+      title: "Transport Reports",
       icon: BarChart3,
-      color: 'text-orange-500',
-      bgColor: 'bg-orange-100',
+      color: "text-orange-500",
+      bgColor: "bg-orange-100",
       reports: [
-        'Vehicle Utilization Report',
-        'Route Efficiency Report',
-        'Transport Fee Report',
-        'Driver Performance Report'
-      ]
-    }
+        "Vehicle Utilization Report",
+        "Route Efficiency Report",
+        "Transport Fee Report",
+        "Driver Performance Report",
+      ],
+    },
   ];
 
   const quickReports = [
-    { name: 'Today\'s Attendance', icon: UserCheck, count: '245/280' },
-    { name: 'New Admissions', icon: Users, count: '12' },
-    { name: 'Fee Collection', icon: TrendingUp, count: '₹2.3L' },
-    { name: 'Pending Reports', icon: Clock, count: '5' }
+    { name: "Today's Attendance", icon: UserCheck, count: "245/280" },
+    { name: "New Admissions", icon: Users, count: "12" },
+    { name: "Fee Collection", icon: TrendingUp, count: "₹2.3L" },
+    { name: "Pending Reports", icon: Clock, count: "5" },
   ];
 
   // DATA FETCHING FUNCTIONS - Similar to Fees module pattern
@@ -736,29 +797,33 @@ const Reports = () => {
       setAdmissionLoading(true);
       const token = getAuthToken();
       if (!token) {
-        toast.error('Please log in to view reports');
+        toast.error("Please log in to view reports");
         return;
       }
 
       const params = new URLSearchParams({
-        format: 'json',
+        format: "json",
         year: admissionFilters.year,
         class_filter: admissionFilters.class,
         gender: admissionFilters.gender,
-        status: admissionFilters.status
+        status: admissionFilters.status,
       });
 
-      const response = await fetch(`${API}/reports/admission-summary?${params}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await fetch(
+        `${API}/reports/admission-summary?${params}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      console.log("Admission response:", response);
 
-      if (!response.ok) throw new Error('Failed to fetch admission data');
+      if (!response.ok) throw new Error("Failed to fetch admission data");
 
       const result = await response.json();
       setAdmissionData(result.data?.students || []);
     } catch (error) {
-      console.error('Error fetching admission data:', error);
-      toast.error('Failed to load admission data');
+      console.error("Error fetching admission data:", error);
+      toast.error("Failed to load admission data");
     } finally {
       setAdmissionLoading(false);
     }
@@ -771,22 +836,22 @@ const Reports = () => {
       if (!token) return;
 
       const params = new URLSearchParams({
-        format: 'json',
+        format: "json",
         start_date: loginFilters.startDate,
-        end_date: loginFilters.endDate
+        end_date: loginFilters.endDate,
       });
 
       const response = await fetch(`${API}/reports/login-activity?${params}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (!response.ok) throw new Error('Failed to fetch login data');
+      if (!response.ok) throw new Error("Failed to fetch login data");
 
       const result = await response.json();
       setLoginActivityData(result.data?.login_activities || []);
     } catch (error) {
-      console.error('Error fetching login data:', error);
-      toast.error('Failed to load login activity data');
+      console.error("Error fetching login data:", error);
+      toast.error("Failed to load login activity data");
     } finally {
       setLoginLoading(false);
     }
@@ -799,22 +864,25 @@ const Reports = () => {
       if (!token) return;
 
       const params = new URLSearchParams({
-        format: 'json',
+        format: "json",
         class_filter: studentFilters.class,
-        status: studentFilters.status
+        status: studentFilters.status,
       });
 
-      const response = await fetch(`${API}/reports/student-information?${params}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await fetch(
+        `${API}/reports/student-information?${params}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
 
-      if (!response.ok) throw new Error('Failed to fetch student data');
+      if (!response.ok) throw new Error("Failed to fetch student data");
 
       const result = await response.json();
       setStudentInfoData(result.data?.students || []);
     } catch (error) {
-      console.error('Error fetching student data:', error);
-      toast.error('Failed to load student information');
+      console.error("Error fetching student data:", error);
+      toast.error("Failed to load student information");
     } finally {
       setStudentLoading(false);
     }
@@ -828,22 +896,25 @@ const Reports = () => {
 
       // Use student information endpoint to get data for cross counting
       const params = new URLSearchParams({
-        format: 'json',
+        format: "json",
         class_filter: crossCountFilters.class,
-        status: 'active'
+        status: "active",
       });
 
-      const response = await fetch(`${API}/reports/student-information?${params}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await fetch(
+        `${API}/reports/student-information?${params}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
 
-      if (!response.ok) throw new Error('Failed to fetch cross count data');
+      if (!response.ok) throw new Error("Failed to fetch cross count data");
 
       const result = await response.json();
       setCrossCountData(result.data?.students || []);
     } catch (error) {
-      console.error('Error fetching cross count data:', error);
-      toast.error('Failed to load cross counting data');
+      console.error("Error fetching cross count data:", error);
+      toast.error("Failed to load cross counting data");
     } finally {
       setCrossCountLoading(false);
     }
@@ -856,16 +927,16 @@ const Reports = () => {
       if (!token) return;
 
       const response = await fetch(`${API}/staff`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (!response.ok) throw new Error('Failed to fetch teacher data');
+      if (!response.ok) throw new Error("Failed to fetch teacher data");
 
       const result = await response.json();
       setTeacherData(result || []);
     } catch (error) {
-      console.error('Error fetching teacher data:', error);
-      toast.error('Failed to load teacher information');
+      console.error("Error fetching teacher data:", error);
+      toast.error("Failed to load teacher information");
     } finally {
       setTeacherLoading(false);
     }
@@ -873,31 +944,31 @@ const Reports = () => {
 
   // Load report data when specific report slug is accessed
   useEffect(() => {
-    if (reportSlug === 'admission') {
+    if (reportSlug === "admission") {
       fetchAdmissionData();
     }
   }, [reportSlug, admissionFilters]);
-  
+
   useEffect(() => {
-    if (reportSlug === 'login') {
+    if (reportSlug === "login") {
       fetchLoginActivityData();
     }
   }, [reportSlug, loginFilters]);
-  
+
   useEffect(() => {
-    if (reportSlug === 'students') {
+    if (reportSlug === "students") {
       fetchStudentInfoData();
     }
   }, [reportSlug, studentFilters]);
-  
+
   useEffect(() => {
-    if (reportSlug === 'cross-count') {
+    if (reportSlug === "cross-count") {
       fetchCrossCountData();
     }
   }, [reportSlug, crossCountFilters]);
-  
+
   useEffect(() => {
-    if (reportSlug === 'teachers') {
+    if (reportSlug === "teachers") {
       fetchTeacherData();
     }
   }, [reportSlug, teacherFilters]);
@@ -905,16 +976,23 @@ const Reports = () => {
   // Show guidance toast when a specific report is accessed via sidebar
   useEffect(() => {
     const reportMessages = {
-      'admission': 'Administrative tab opened. Click "Generate" to download Admission Report',
-      'login': 'Administrative tab opened. Click "Generate" to download Login Activity Report',
-      'students': 'Administrative tab opened. Click "Generate" to download Student Information Report',
-      'cross-count': 'Administrative tab opened. View student cross-counting by class and gender',
-      'teachers': 'Administrative tab opened. View comprehensive teacher information',
-      'marksheet': 'Academic tab opened. Click "Generate" to download Consolidated Marksheet',
-      'attendance': 'Attendance tab opened. Select a report to generate',
-      'staff-attendance': 'Attendance tab opened. Click "Generate" to download Staff Attendance Report'
+      admission:
+        'Administrative tab opened. Click "Generate" to download Admission Report',
+      login:
+        'Administrative tab opened. Click "Generate" to download Login Activity Report',
+      students:
+        'Administrative tab opened. Click "Generate" to download Student Information Report',
+      "cross-count":
+        "Administrative tab opened. View student cross-counting by class and gender",
+      teachers:
+        "Administrative tab opened. View comprehensive teacher information",
+      marksheet:
+        'Academic tab opened. Click "Generate" to download Consolidated Marksheet',
+      attendance: "Attendance tab opened. Select a report to generate",
+      "staff-attendance":
+        'Attendance tab opened. Click "Generate" to download Staff Attendance Report',
     };
-    
+
     if (reportSlug && reportMessages[reportSlug]) {
       toast.info(reportMessages[reportSlug]);
     }
@@ -926,7 +1004,9 @@ const Reports = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Reports</h1>
-          <p className="text-gray-600 mt-1">Comprehensive reporting and analytics dashboard</p>
+          <p className="text-gray-600 mt-1">
+            Comprehensive reporting and analytics dashboard
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Button variant="outline" size="sm">
@@ -951,8 +1031,12 @@ const Reports = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">{report.name}</p>
-                  <p className="text-2xl font-bold text-gray-900">{report.count}</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    {report.name}
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {report.count}
+                  </p>
                 </div>
                 <report.icon className="h-8 w-8 text-emerald-500" />
               </div>
@@ -962,7 +1046,11 @@ const Reports = () => {
       </div>
 
       {/* Report Categories */}
-      <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
+      <Tabs
+        value={currentTab}
+        onValueChange={handleTabChange}
+        className="w-full"
+      >
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="academic">Academic</TabsTrigger>
           <TabsTrigger value="attendance">Attendance</TabsTrigger>
@@ -982,22 +1070,42 @@ const Reports = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <Card className="border border-gray-200 hover:border-blue-300 transition-colors cursor-pointer">
                   <CardContent className="p-4">
-                    <h3 className="font-semibold mb-2">Consolidated Marksheet</h3>
-                    <p className="text-sm text-gray-600 mb-3">Complete academic performance report</p>
+                    <h3 className="font-semibold mb-2">
+                      Consolidated Marksheet
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-3">
+                      Complete academic performance report
+                    </p>
                     <div className="flex justify-between items-center">
                       <Badge variant="secondary">Ready</Badge>
-                      <Button size="sm" variant="outline" onClick={generateConsolidatedMarksheet}>Generate</Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={generateConsolidatedMarksheet}
+                      >
+                        Generate
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
 
                 <Card className="border border-gray-200 hover:border-blue-300 transition-colors cursor-pointer">
                   <CardContent className="p-4">
-                    <h3 className="font-semibold mb-2">Subject-wise Analysis</h3>
-                    <p className="text-sm text-gray-600 mb-3">Performance analysis by subjects</p>
+                    <h3 className="font-semibold mb-2">
+                      Subject-wise Analysis
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-3">
+                      Performance analysis by subjects
+                    </p>
                     <div className="flex justify-between items-center">
                       <Badge variant="secondary">Ready</Badge>
-                      <Button size="sm" variant="outline" onClick={generateSubjectWiseAnalysis}>Generate</Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={generateSubjectWiseAnalysis}
+                      >
+                        Generate
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -1005,10 +1113,18 @@ const Reports = () => {
                 <Card className="border border-gray-200 hover:border-blue-300 transition-colors cursor-pointer">
                   <CardContent className="p-4">
                     <h3 className="font-semibold mb-2">Class Performance</h3>
-                    <p className="text-sm text-gray-600 mb-3">Class-wise academic summary</p>
+                    <p className="text-sm text-gray-600 mb-3">
+                      Class-wise academic summary
+                    </p>
                     <div className="flex justify-between items-center">
                       <Badge variant="secondary">Ready</Badge>
-                      <Button size="sm" variant="outline" onClick={generateClassPerformance}>Generate</Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={generateClassPerformance}
+                      >
+                        Generate
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -1025,9 +1141,9 @@ const Reports = () => {
                   <UserCheck className="h-5 w-5 text-emerald-500" />
                   <span>Attendance Reports</span>
                 </div>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
+                <Button
+                  size="sm"
+                  variant="outline"
                   onClick={createSampleAttendanceData}
                   className="text-xs bg-yellow-50 border-yellow-300 text-yellow-700 hover:bg-yellow-100"
                 >
@@ -1040,16 +1156,23 @@ const Reports = () => {
                 <Card className="border border-gray-200 hover:border-emerald-300 transition-colors cursor-pointer">
                   <CardContent className="p-4">
                     <h3 className="font-semibold mb-2">Daily Attendance</h3>
-                    <p className="text-sm text-gray-600 mb-3">Today's attendance summary</p>
+                    <p className="text-sm text-gray-600 mb-3">
+                      Today's attendance summary
+                    </p>
                     <div className="flex justify-between items-center">
-                      <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">Live</Badge>
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
+                      <Badge
+                        variant="secondary"
+                        className="bg-emerald-100 text-emerald-800"
+                      >
+                        Live
+                      </Badge>
+                      <Button
+                        size="sm"
+                        variant="outline"
                         onClick={handleViewDailyAttendance}
                         disabled={loadingDailyAttendance}
                       >
-                        {loadingDailyAttendance ? 'Loading...' : 'View'}
+                        {loadingDailyAttendance ? "Loading..." : "View"}
                       </Button>
                     </div>
                   </CardContent>
@@ -1058,10 +1181,18 @@ const Reports = () => {
                 <Card className="border border-gray-200 hover:border-emerald-300 transition-colors cursor-pointer">
                   <CardContent className="p-4">
                     <h3 className="font-semibold mb-2">Monthly Summary</h3>
-                    <p className="text-sm text-gray-600 mb-3">Complete month attendance report</p>
+                    <p className="text-sm text-gray-600 mb-3">
+                      Complete month attendance report
+                    </p>
                     <div className="flex justify-between items-center">
                       <Badge variant="secondary">Ready</Badge>
-                      <Button size="sm" variant="outline" onClick={generateMonthlyAttendanceReport}>Generate</Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={generateMonthlyAttendanceReport}
+                      >
+                        Generate
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -1069,10 +1200,18 @@ const Reports = () => {
                 <Card className="border border-gray-200 hover:border-emerald-300 transition-colors cursor-pointer">
                   <CardContent className="p-4">
                     <h3 className="font-semibold mb-2">Staff Attendance</h3>
-                    <p className="text-sm text-gray-600 mb-3">Employee attendance tracking</p>
+                    <p className="text-sm text-gray-600 mb-3">
+                      Employee attendance tracking
+                    </p>
                     <div className="flex justify-between items-center">
                       <Badge variant="secondary">Ready</Badge>
-                      <Button size="sm" variant="outline" onClick={generateStaffAttendanceReport}>Generate</Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={generateStaffAttendanceReport}
+                      >
+                        Generate
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -1083,13 +1222,15 @@ const Reports = () => {
 
         <TabsContent value="administrative" className="space-y-4">
           {/* INTERACTIVE ADMISSION REPORT TABLE */}
-          {reportSlug === 'admission' && (
+          {reportSlug === "admission" && (
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center space-x-2">
                     <FileText className="h-5 w-5 text-purple-500" />
-                    <span>Admission Report - Academic Year {admissionFilters.year}</span>
+                    <span>
+                      Admission Report - Academic Year {admissionFilters.year}
+                    </span>
                   </CardTitle>
                   <Button onClick={generateAdmissionReport} className="gap-2">
                     <FileDown className="h-4 w-4" />
@@ -1102,9 +1243,14 @@ const Reports = () => {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
                   <div className="space-y-2">
                     <Label>Academic Year</Label>
-                    <Select 
-                      value={admissionFilters.year} 
-                      onValueChange={(value) => setAdmissionFilters({...admissionFilters, year: value})}
+                    <Select
+                      value={admissionFilters.year}
+                      onValueChange={(value) =>
+                        setAdmissionFilters({
+                          ...admissionFilters,
+                          year: value,
+                        })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -1118,9 +1264,14 @@ const Reports = () => {
                   </div>
                   <div className="space-y-2">
                     <Label>Class</Label>
-                    <Select 
-                      value={admissionFilters.class} 
-                      onValueChange={(value) => setAdmissionFilters({...admissionFilters, class: value})}
+                    <Select
+                      value={admissionFilters.class}
+                      onValueChange={(value) =>
+                        setAdmissionFilters({
+                          ...admissionFilters,
+                          class: value,
+                        })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -1135,9 +1286,14 @@ const Reports = () => {
                   </div>
                   <div className="space-y-2">
                     <Label>Gender</Label>
-                    <Select 
-                      value={admissionFilters.gender} 
-                      onValueChange={(value) => setAdmissionFilters({...admissionFilters, gender: value})}
+                    <Select
+                      value={admissionFilters.gender}
+                      onValueChange={(value) =>
+                        setAdmissionFilters({
+                          ...admissionFilters,
+                          gender: value,
+                        })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -1152,15 +1308,22 @@ const Reports = () => {
                   </div>
                   <div className="space-y-2">
                     <Label>Status</Label>
-                    <Select 
-                      value={admissionFilters.status} 
-                      onValueChange={(value) => setAdmissionFilters({...admissionFilters, status: value})}
+                    <Select
+                      value={admissionFilters.status}
+                      onValueChange={(value) =>
+                        setAdmissionFilters({
+                          ...admissionFilters,
+                          status: value,
+                        })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all_statuses">All Statuses</SelectItem>
+                        <SelectItem value="all_statuses">
+                          All Statuses
+                        </SelectItem>
                         <SelectItem value="active">Active</SelectItem>
                         <SelectItem value="inactive">Inactive</SelectItem>
                       </SelectContent>
@@ -1172,36 +1335,54 @@ const Reports = () => {
                 {admissionLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
-                    <span className="ml-3 text-gray-600">Loading admission data...</span>
+                    <span className="ml-3 text-gray-600">
+                      Loading admission data...
+                    </span>
                   </div>
                 ) : admissionData.length === 0 ? (
                   <div className="text-center py-12">
                     <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                    <p className="text-gray-500">No admission records found with current filters</p>
+                    <p className="text-gray-500">
+                      No admission records found with current filters
+                    </p>
                   </div>
                 ) : (
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                       <Card className="bg-blue-50">
                         <CardContent className="p-4 text-center">
-                          <div className="text-2xl font-bold text-blue-600">{admissionData.length}</div>
-                          <div className="text-sm text-gray-600">Total Students</div>
+                          <div className="text-2xl font-bold text-blue-600">
+                            {admissionData.length}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            Total Students
+                          </div>
                         </CardContent>
                       </Card>
                       <Card className="bg-green-50">
                         <CardContent className="p-4 text-center">
                           <div className="text-2xl font-bold text-green-600">
-                            {admissionData.filter(s => s.gender === 'Male').length}
+                            {
+                              admissionData.filter((s) => s.gender === "Male")
+                                .length
+                            }
                           </div>
-                          <div className="text-sm text-gray-600">Male Students</div>
+                          <div className="text-sm text-gray-600">
+                            Male Students
+                          </div>
                         </CardContent>
                       </Card>
                       <Card className="bg-pink-50">
                         <CardContent className="p-4 text-center">
                           <div className="text-2xl font-bold text-pink-600">
-                            {admissionData.filter(s => s.gender === 'Female').length}
+                            {
+                              admissionData.filter((s) => s.gender === "Female")
+                                .length
+                            }
                           </div>
-                          <div className="text-sm text-gray-600">Female Students</div>
+                          <div className="text-sm text-gray-600">
+                            Female Students
+                          </div>
                         </CardContent>
                       </Card>
                     </div>
@@ -1221,14 +1402,26 @@ const Reports = () => {
                         <TableBody>
                           {admissionData.slice(0, 50).map((student, index) => (
                             <TableRow key={index}>
-                              <TableCell className="font-medium">{student.admission_no || 'N/A'}</TableCell>
-                              <TableCell>{student.full_name || student.name || 'N/A'}</TableCell>
-                              <TableCell>{student.class_name || student.class || 'N/A'}</TableCell>
-                              <TableCell>{student.gender || 'N/A'}</TableCell>
-                              <TableCell>{student.admission_date || 'N/A'}</TableCell>
+                              <TableCell className="font-medium">
+                                {student.admission_no || "N/A"}
+                              </TableCell>
                               <TableCell>
-                                <Badge variant={student.is_active ? "success" : "secondary"}>
-                                  {student.is_active ? 'Active' : 'Inactive'}
+                                {student.full_name || student.name || "N/A"}
+                              </TableCell>
+                              <TableCell>
+                                {student.class_name || student.class || "N/A"}
+                              </TableCell>
+                              <TableCell>{student.gender || "N/A"}</TableCell>
+                              <TableCell>
+                                {student.admission_date || "N/A"}
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant={
+                                    student.is_active ? "success" : "secondary"
+                                  }
+                                >
+                                  {student.is_active ? "Active" : "Inactive"}
                                 </Badge>
                               </TableCell>
                             </TableRow>
@@ -1238,7 +1431,8 @@ const Reports = () => {
                     </div>
                     {admissionData.length > 50 && (
                       <p className="text-sm text-gray-500 text-center mt-2">
-                        Showing first 50 of {admissionData.length} records. Export to see all data.
+                        Showing first 50 of {admissionData.length} records.
+                        Export to see all data.
                       </p>
                     )}
                   </>
@@ -1248,7 +1442,7 @@ const Reports = () => {
           )}
 
           {/* INTERACTIVE LOGIN ACTIVITY REPORT TABLE */}
-          {reportSlug === 'login' && (
+          {reportSlug === "login" && (
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -1270,7 +1464,12 @@ const Reports = () => {
                     <Input
                       type="date"
                       value={loginFilters.startDate}
-                      onChange={(e) => setLoginFilters({...loginFilters, startDate: e.target.value})}
+                      onChange={(e) =>
+                        setLoginFilters({
+                          ...loginFilters,
+                          startDate: e.target.value,
+                        })
+                      }
                     />
                   </div>
                   <div className="space-y-2">
@@ -1278,14 +1477,21 @@ const Reports = () => {
                     <Input
                       type="date"
                       value={loginFilters.endDate}
-                      onChange={(e) => setLoginFilters({...loginFilters, endDate: e.target.value})}
+                      onChange={(e) =>
+                        setLoginFilters({
+                          ...loginFilters,
+                          endDate: e.target.value,
+                        })
+                      }
                     />
                   </div>
                   <div className="space-y-2">
                     <Label>Status</Label>
-                    <Select 
-                      value={loginFilters.status} 
-                      onValueChange={(value) => setLoginFilters({...loginFilters, status: value})}
+                    <Select
+                      value={loginFilters.status}
+                      onValueChange={(value) =>
+                        setLoginFilters({ ...loginFilters, status: value })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -1303,34 +1509,52 @@ const Reports = () => {
                 {loginLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
-                    <span className="ml-3 text-gray-600">Loading login activity data...</span>
+                    <span className="ml-3 text-gray-600">
+                      Loading login activity data...
+                    </span>
                   </div>
                 ) : loginActivityData.length === 0 ? (
                   <div className="text-center py-12">
                     <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                    <p className="text-gray-500">No login activity records found</p>
+                    <p className="text-gray-500">
+                      No login activity records found
+                    </p>
                   </div>
                 ) : (
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                       <Card className="bg-blue-50">
                         <CardContent className="p-4 text-center">
-                          <div className="text-2xl font-bold text-blue-600">{loginActivityData.length}</div>
-                          <div className="text-sm text-gray-600">Total Logins</div>
+                          <div className="text-2xl font-bold text-blue-600">
+                            {loginActivityData.length}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            Total Logins
+                          </div>
                         </CardContent>
                       </Card>
                       <Card className="bg-green-50">
                         <CardContent className="p-4 text-center">
                           <div className="text-2xl font-bold text-green-600">
-                            {loginActivityData.filter(l => l.status === 'Success').length}
+                            {
+                              loginActivityData.filter(
+                                (l) => l.status === "Success",
+                              ).length
+                            }
                           </div>
-                          <div className="text-sm text-gray-600">Successful</div>
+                          <div className="text-sm text-gray-600">
+                            Successful
+                          </div>
                         </CardContent>
                       </Card>
                       <Card className="bg-red-50">
                         <CardContent className="p-4 text-center">
                           <div className="text-2xl font-bold text-red-600">
-                            {loginActivityData.filter(l => l.status === 'Failed').length}
+                            {
+                              loginActivityData.filter(
+                                (l) => l.status === "Failed",
+                              ).length
+                            }
                           </div>
                           <div className="text-sm text-gray-600">Failed</div>
                         </CardContent>
@@ -1351,28 +1575,61 @@ const Reports = () => {
                         </TableHeader>
                         <TableBody>
                           {loginActivityData
-                            .filter(login => loginFilters.status === 'all' || login.status?.toLowerCase() === loginFilters.status.toLowerCase())
+                            .filter(
+                              (login) =>
+                                loginFilters.status === "all" ||
+                                login.status?.toLowerCase() ===
+                                  loginFilters.status.toLowerCase(),
+                            )
                             .slice(0, 50)
                             .map((login, index) => (
-                            <TableRow key={index}>
-                              <TableCell className="font-medium">{login.user_email || 'N/A'}</TableCell>
-                              <TableCell>{login.login_date || 'N/A'}</TableCell>
-                              <TableCell>{login.login_time || 'N/A'}</TableCell>
-                              <TableCell>{login.ip_address || 'N/A'}</TableCell>
-                              <TableCell>{login.device || 'N/A'}</TableCell>
-                              <TableCell>
-                                <Badge variant={login.status === 'Success' ? "success" : "destructive"}>
-                                  {login.status || 'N/A'}
-                                </Badge>
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                              <TableRow key={index}>
+                                <TableCell className="font-medium">
+                                  {login.user_email || "N/A"}
+                                </TableCell>
+                                <TableCell>
+                                  {login.login_date || "N/A"}
+                                </TableCell>
+                                <TableCell>
+                                  {login.login_time || "N/A"}
+                                </TableCell>
+                                <TableCell>
+                                  {login.ip_address || "N/A"}
+                                </TableCell>
+                                <TableCell>{login.device || "N/A"}</TableCell>
+                                <TableCell>
+                                  <Badge
+                                    variant={
+                                      login.status === "Success"
+                                        ? "success"
+                                        : "destructive"
+                                    }
+                                  >
+                                    {login.status || "N/A"}
+                                  </Badge>
+                                </TableCell>
+                              </TableRow>
+                            ))}
                         </TableBody>
                       </Table>
                     </div>
-                    {loginActivityData.filter(l => loginFilters.status === 'all' || l.status?.toLowerCase() === loginFilters.status.toLowerCase()).length > 50 && (
+                    {loginActivityData.filter(
+                      (l) =>
+                        loginFilters.status === "all" ||
+                        l.status?.toLowerCase() ===
+                          loginFilters.status.toLowerCase(),
+                    ).length > 50 && (
                       <p className="text-sm text-gray-500 text-center mt-2">
-                        Showing first 50 of {loginActivityData.filter(l => loginFilters.status === 'all' || l.status?.toLowerCase() === loginFilters.status.toLowerCase()).length} records. Export to see all data.
+                        Showing first 50 of{" "}
+                        {
+                          loginActivityData.filter(
+                            (l) =>
+                              loginFilters.status === "all" ||
+                              l.status?.toLowerCase() ===
+                                loginFilters.status.toLowerCase(),
+                          ).length
+                        }{" "}
+                        records. Export to see all data.
                       </p>
                     )}
                   </>
@@ -1382,7 +1639,7 @@ const Reports = () => {
           )}
 
           {/* INTERACTIVE STUDENT INFORMATION REPORT TABLE */}
-          {reportSlug === 'students' && (
+          {reportSlug === "students" && (
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -1391,7 +1648,11 @@ const Reports = () => {
                     <span>Student Information Report</span>
                   </CardTitle>
                   <div className="flex gap-2">
-                    <Button onClick={generateStudentInformation} variant="outline" className="gap-2">
+                    <Button
+                      onClick={generateStudentInformation}
+                      variant="outline"
+                      className="gap-2"
+                    >
                       <FileDown className="h-4 w-4" />
                       Generate Excel
                     </Button>
@@ -1403,9 +1664,11 @@ const Reports = () => {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
                   <div className="space-y-2">
                     <Label>Class</Label>
-                    <Select 
-                      value={studentFilters.class} 
-                      onValueChange={(value) => setStudentFilters({...studentFilters, class: value})}
+                    <Select
+                      value={studentFilters.class}
+                      onValueChange={(value) =>
+                        setStudentFilters({ ...studentFilters, class: value })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -1422,15 +1685,19 @@ const Reports = () => {
                   </div>
                   <div className="space-y-2">
                     <Label>Section</Label>
-                    <Select 
-                      value={studentFilters.section} 
-                      onValueChange={(value) => setStudentFilters({...studentFilters, section: value})}
+                    <Select
+                      value={studentFilters.section}
+                      onValueChange={(value) =>
+                        setStudentFilters({ ...studentFilters, section: value })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all_sections">All Sections</SelectItem>
+                        <SelectItem value="all_sections">
+                          All Sections
+                        </SelectItem>
                         <SelectItem value="A">Section A</SelectItem>
                         <SelectItem value="B">Section B</SelectItem>
                         <SelectItem value="C">Section C</SelectItem>
@@ -1439,9 +1706,11 @@ const Reports = () => {
                   </div>
                   <div className="space-y-2">
                     <Label>Status</Label>
-                    <Select 
-                      value={studentFilters.status} 
-                      onValueChange={(value) => setStudentFilters({...studentFilters, status: value})}
+                    <Select
+                      value={studentFilters.status}
+                      onValueChange={(value) =>
+                        setStudentFilters({ ...studentFilters, status: value })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -1458,7 +1727,12 @@ const Reports = () => {
                     <Input
                       type="text"
                       placeholder="Search by name or roll no..."
-                      onChange={(e) => setStudentFilters({...studentFilters, search: e.target.value})}
+                      onChange={(e) =>
+                        setStudentFilters({
+                          ...studentFilters,
+                          search: e.target.value,
+                        })
+                      }
                     />
                   </div>
                 </div>
@@ -1467,34 +1741,51 @@ const Reports = () => {
                 {studentLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
-                    <span className="ml-3 text-gray-600">Loading student information...</span>
+                    <span className="ml-3 text-gray-600">
+                      Loading student information...
+                    </span>
                   </div>
                 ) : studentInfoData.length === 0 ? (
                   <div className="text-center py-12">
                     <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                    <p className="text-gray-500">No student records found with current filters</p>
+                    <p className="text-gray-500">
+                      No student records found with current filters
+                    </p>
                   </div>
                 ) : (
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                       <Card className="bg-blue-50">
                         <CardContent className="p-4 text-center">
-                          <div className="text-2xl font-bold text-blue-600">{studentInfoData.length}</div>
-                          <div className="text-sm text-gray-600">Total Students</div>
+                          <div className="text-2xl font-bold text-blue-600">
+                            {studentInfoData.length}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            Total Students
+                          </div>
                         </CardContent>
                       </Card>
                       <Card className="bg-green-50">
                         <CardContent className="p-4 text-center">
                           <div className="text-2xl font-bold text-green-600">
-                            {studentInfoData.filter(s => s.is_active || s.status === 'active').length}
+                            {
+                              studentInfoData.filter(
+                                (s) => s.is_active || s.status === "active",
+                              ).length
+                            }
                           </div>
-                          <div className="text-sm text-gray-600">Active Students</div>
+                          <div className="text-sm text-gray-600">
+                            Active Students
+                          </div>
                         </CardContent>
                       </Card>
                       <Card className="bg-purple-50">
                         <CardContent className="p-4 text-center">
                           <div className="text-2xl font-bold text-purple-600">
-                            {studentInfoData.filter(s => s.gender === 'Male').length}
+                            {
+                              studentInfoData.filter((s) => s.gender === "Male")
+                                .length
+                            }
                           </div>
                           <div className="text-sm text-gray-600">Male</div>
                         </CardContent>
@@ -1502,7 +1793,11 @@ const Reports = () => {
                       <Card className="bg-pink-50">
                         <CardContent className="p-4 text-center">
                           <div className="text-2xl font-bold text-pink-600">
-                            {studentInfoData.filter(s => s.gender === 'Female').length}
+                            {
+                              studentInfoData.filter(
+                                (s) => s.gender === "Female",
+                              ).length
+                            }
                           </div>
                           <div className="text-sm text-gray-600">Female</div>
                         </CardContent>
@@ -1524,43 +1819,94 @@ const Reports = () => {
                         </TableHeader>
                         <TableBody>
                           {studentInfoData
-                            .filter(student => {
-                              const search = studentFilters.search?.toLowerCase() || '';
-                              const matchesSearch = !search || 
-                                student.full_name?.toLowerCase().includes(search) || 
+                            .filter((student) => {
+                              const search =
+                                studentFilters.search?.toLowerCase() || "";
+                              const matchesSearch =
+                                !search ||
+                                student.full_name
+                                  ?.toLowerCase()
+                                  .includes(search) ||
                                 student.name?.toLowerCase().includes(search) ||
-                                student.roll_no?.toLowerCase().includes(search) ||
-                                student.admission_no?.toLowerCase().includes(search);
+                                student.roll_no
+                                  ?.toLowerCase()
+                                  .includes(search) ||
+                                student.admission_no
+                                  ?.toLowerCase()
+                                  .includes(search);
                               return matchesSearch;
                             })
                             .slice(0, 50)
                             .map((student, index) => (
-                            <TableRow key={index}>
-                              <TableCell className="font-medium">{student.roll_no || student.admission_no || 'N/A'}</TableCell>
-                              <TableCell>{student.full_name || student.name || 'N/A'}</TableCell>
-                              <TableCell>{student.class_name || student.class || 'N/A'}</TableCell>
-                              <TableCell>{student.section || 'N/A'}</TableCell>
-                              <TableCell>{student.stream || student.department || 'N/A'}</TableCell>
-                              <TableCell>{student.admission_date || student.date_of_admission || 'N/A'}</TableCell>
-                              <TableCell>
-                                <Badge variant={(student.is_active || student.status === 'active') ? "success" : "secondary"}>
-                                  {(student.is_active || student.status === 'active') ? 'Active' : 'Inactive'}
-                                </Badge>
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                              <TableRow key={index}>
+                                <TableCell className="font-medium">
+                                  {student.roll_no ||
+                                    student.admission_no ||
+                                    "N/A"}
+                                </TableCell>
+                                <TableCell>
+                                  {student.full_name || student.name || "N/A"}
+                                </TableCell>
+                                <TableCell>
+                                  {student.class_name || student.class || "N/A"}
+                                </TableCell>
+                                <TableCell>
+                                  {student.section || "N/A"}
+                                </TableCell>
+                                <TableCell>
+                                  {student.stream ||
+                                    student.department ||
+                                    "N/A"}
+                                </TableCell>
+                                <TableCell>
+                                  {student.admission_date ||
+                                    student.date_of_admission ||
+                                    "N/A"}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
+                                    variant={
+                                      student.is_active ||
+                                      student.status === "active"
+                                        ? "success"
+                                        : "secondary"
+                                    }
+                                  >
+                                    {student.is_active ||
+                                    student.status === "active"
+                                      ? "Active"
+                                      : "Inactive"}
+                                  </Badge>
+                                </TableCell>
+                              </TableRow>
+                            ))}
                         </TableBody>
                       </Table>
                     </div>
-                    {studentInfoData.filter(s => {
-                      const search = studentFilters.search?.toLowerCase() || '';
-                      return !search || s.full_name?.toLowerCase().includes(search) || s.name?.toLowerCase().includes(search) || s.roll_no?.toLowerCase().includes(search);
+                    {studentInfoData.filter((s) => {
+                      const search = studentFilters.search?.toLowerCase() || "";
+                      return (
+                        !search ||
+                        s.full_name?.toLowerCase().includes(search) ||
+                        s.name?.toLowerCase().includes(search) ||
+                        s.roll_no?.toLowerCase().includes(search)
+                      );
                     }).length > 50 && (
                       <p className="text-sm text-gray-500 text-center mt-2">
-                        Showing first 50 of {studentInfoData.filter(s => {
-                          const search = studentFilters.search?.toLowerCase() || '';
-                          return !search || s.full_name?.toLowerCase().includes(search) || s.name?.toLowerCase().includes(search) || s.roll_no?.toLowerCase().includes(search);
-                        }).length} records. Export to see all data.
+                        Showing first 50 of{" "}
+                        {
+                          studentInfoData.filter((s) => {
+                            const search =
+                              studentFilters.search?.toLowerCase() || "";
+                            return (
+                              !search ||
+                              s.full_name?.toLowerCase().includes(search) ||
+                              s.name?.toLowerCase().includes(search) ||
+                              s.roll_no?.toLowerCase().includes(search)
+                            );
+                          }).length
+                        }{" "}
+                        records. Export to see all data.
                       </p>
                     )}
                   </>
@@ -1570,7 +1916,7 @@ const Reports = () => {
           )}
 
           {/* INTERACTIVE CROSS COUNTING REPORT TABLE */}
-          {reportSlug === 'cross-count' && (
+          {reportSlug === "cross-count" && (
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -1585,9 +1931,14 @@ const Reports = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
                   <div className="space-y-2">
                     <Label>Academic Year</Label>
-                    <Select 
-                      value={crossCountFilters.year} 
-                      onValueChange={(value) => setCrossCountFilters({...crossCountFilters, year: value})}
+                    <Select
+                      value={crossCountFilters.year}
+                      onValueChange={(value) =>
+                        setCrossCountFilters({
+                          ...crossCountFilters,
+                          year: value,
+                        })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -1601,9 +1952,14 @@ const Reports = () => {
                   </div>
                   <div className="space-y-2">
                     <Label>Department</Label>
-                    <Select 
-                      value={crossCountFilters.department} 
-                      onValueChange={(value) => setCrossCountFilters({...crossCountFilters, department: value})}
+                    <Select
+                      value={crossCountFilters.department}
+                      onValueChange={(value) =>
+                        setCrossCountFilters({
+                          ...crossCountFilters,
+                          department: value,
+                        })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -1618,9 +1974,14 @@ const Reports = () => {
                   </div>
                   <div className="space-y-2">
                     <Label>Class Filter</Label>
-                    <Select 
-                      value={crossCountFilters.class} 
-                      onValueChange={(value) => setCrossCountFilters({...crossCountFilters, class: value})}
+                    <Select
+                      value={crossCountFilters.class}
+                      onValueChange={(value) =>
+                        setCrossCountFilters({
+                          ...crossCountFilters,
+                          class: value,
+                        })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -1639,12 +2000,16 @@ const Reports = () => {
                 {crossCountLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
-                    <span className="ml-3 text-gray-600">Loading cross counting data...</span>
+                    <span className="ml-3 text-gray-600">
+                      Loading cross counting data...
+                    </span>
                   </div>
                 ) : crossCountData.length === 0 ? (
                   <div className="text-center py-12">
                     <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                    <p className="text-gray-500">No student records found for cross counting</p>
+                    <p className="text-gray-500">
+                      No student records found for cross counting
+                    </p>
                   </div>
                 ) : (
                   <>
@@ -1652,32 +2017,55 @@ const Reports = () => {
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                       <Card className="bg-blue-50">
                         <CardContent className="p-4 text-center">
-                          <div className="text-2xl font-bold text-blue-600">{crossCountData.length}</div>
-                          <div className="text-sm text-gray-600">Total Students</div>
+                          <div className="text-2xl font-bold text-blue-600">
+                            {crossCountData.length}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            Total Students
+                          </div>
                         </CardContent>
                       </Card>
                       <Card className="bg-green-50">
                         <CardContent className="p-4 text-center">
                           <div className="text-2xl font-bold text-green-600">
-                            {crossCountData.filter(s => s.gender === 'Male').length}
+                            {
+                              crossCountData.filter((s) => s.gender === "Male")
+                                .length
+                            }
                           </div>
-                          <div className="text-sm text-gray-600">Male Students</div>
+                          <div className="text-sm text-gray-600">
+                            Male Students
+                          </div>
                         </CardContent>
                       </Card>
                       <Card className="bg-pink-50">
                         <CardContent className="p-4 text-center">
                           <div className="text-2xl font-bold text-pink-600">
-                            {crossCountData.filter(s => s.gender === 'Female').length}
+                            {
+                              crossCountData.filter(
+                                (s) => s.gender === "Female",
+                              ).length
+                            }
                           </div>
-                          <div className="text-sm text-gray-600">Female Students</div>
+                          <div className="text-sm text-gray-600">
+                            Female Students
+                          </div>
                         </CardContent>
                       </Card>
                       <Card className="bg-purple-50">
                         <CardContent className="p-4 text-center">
                           <div className="text-2xl font-bold text-purple-600">
-                            {new Set(crossCountData.map(s => s.class_name || s.class)).size}
+                            {
+                              new Set(
+                                crossCountData.map(
+                                  (s) => s.class_name || s.class,
+                                ),
+                              ).size
+                            }
                           </div>
-                          <div className="text-sm text-gray-600">Total Classes</div>
+                          <div className="text-sm text-gray-600">
+                            Total Classes
+                          </div>
                         </CardContent>
                       </Card>
                     </div>
@@ -1688,31 +2076,54 @@ const Reports = () => {
                         <TableHeader>
                           <TableRow>
                             <TableHead className="font-bold">Class</TableHead>
-                            <TableHead className="text-center font-bold">Male</TableHead>
-                            <TableHead className="text-center font-bold">Female</TableHead>
-                            <TableHead className="text-center font-bold">Other</TableHead>
-                            <TableHead className="text-center font-bold">Total</TableHead>
+                            <TableHead className="text-center font-bold">
+                              Male
+                            </TableHead>
+                            <TableHead className="text-center font-bold">
+                              Female
+                            </TableHead>
+                            <TableHead className="text-center font-bold">
+                              Other
+                            </TableHead>
+                            <TableHead className="text-center font-bold">
+                              Total
+                            </TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {(() => {
                             // Group students by class
                             const classCounts = {};
-                            crossCountData.forEach(student => {
-                              const className = student.class_name || student.class || 'Unassigned';
+                            crossCountData.forEach((student) => {
+                              const className =
+                                student.class_name ||
+                                student.class ||
+                                "Unassigned";
                               if (!classCounts[className]) {
-                                classCounts[className] = { male: 0, female: 0, other: 0, total: 0 };
+                                classCounts[className] = {
+                                  male: 0,
+                                  female: 0,
+                                  other: 0,
+                                  total: 0,
+                                };
                               }
                               const gender = student.gender?.toLowerCase();
-                              if (gender === 'male') classCounts[className].male++;
-                              else if (gender === 'female') classCounts[className].female++;
+                              if (gender === "male")
+                                classCounts[className].male++;
+                              else if (gender === "female")
+                                classCounts[className].female++;
                               else classCounts[className].other++;
                               classCounts[className].total++;
                             });
-                            
+
                             // Calculate totals
-                            const grandTotal = { male: 0, female: 0, other: 0, total: 0 };
-                            Object.values(classCounts).forEach(counts => {
+                            const grandTotal = {
+                              male: 0,
+                              female: 0,
+                              other: 0,
+                              total: 0,
+                            };
+                            Object.values(classCounts).forEach((counts) => {
                               grandTotal.male += counts.male;
                               grandTotal.female += counts.female;
                               grandTotal.other += counts.other;
@@ -1724,20 +2135,38 @@ const Reports = () => {
                                 {Object.entries(classCounts)
                                   .sort(([a], [b]) => a.localeCompare(b))
                                   .map(([className, counts]) => (
-                                  <TableRow key={className}>
-                                    <TableCell className="font-medium">{className}</TableCell>
-                                    <TableCell className="text-center">{counts.male}</TableCell>
-                                    <TableCell className="text-center">{counts.female}</TableCell>
-                                    <TableCell className="text-center">{counts.other}</TableCell>
-                                    <TableCell className="text-center font-semibold">{counts.total}</TableCell>
-                                  </TableRow>
-                                ))}
+                                    <TableRow key={className}>
+                                      <TableCell className="font-medium">
+                                        {className}
+                                      </TableCell>
+                                      <TableCell className="text-center">
+                                        {counts.male}
+                                      </TableCell>
+                                      <TableCell className="text-center">
+                                        {counts.female}
+                                      </TableCell>
+                                      <TableCell className="text-center">
+                                        {counts.other}
+                                      </TableCell>
+                                      <TableCell className="text-center font-semibold">
+                                        {counts.total}
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
                                 <TableRow className="bg-gray-100 font-bold">
                                   <TableCell>Grand Total</TableCell>
-                                  <TableCell className="text-center">{grandTotal.male}</TableCell>
-                                  <TableCell className="text-center">{grandTotal.female}</TableCell>
-                                  <TableCell className="text-center">{grandTotal.other}</TableCell>
-                                  <TableCell className="text-center">{grandTotal.total}</TableCell>
+                                  <TableCell className="text-center">
+                                    {grandTotal.male}
+                                  </TableCell>
+                                  <TableCell className="text-center">
+                                    {grandTotal.female}
+                                  </TableCell>
+                                  <TableCell className="text-center">
+                                    {grandTotal.other}
+                                  </TableCell>
+                                  <TableCell className="text-center">
+                                    {grandTotal.total}
+                                  </TableCell>
                                 </TableRow>
                               </>
                             );
@@ -1748,29 +2177,53 @@ const Reports = () => {
 
                     {/* Gender Distribution Chart Info */}
                     <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                      <h3 className="font-semibold text-blue-900 mb-2">Gender Distribution Summary</h3>
+                      <h3 className="font-semibold text-blue-900 mb-2">
+                        Gender Distribution Summary
+                      </h3>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
                         <div className="flex justify-between">
                           <span>Male Percentage:</span>
                           <span className="font-semibold">
-                            {crossCountData.length > 0 
-                              ? ((crossCountData.filter(s => s.gender === 'Male').length / crossCountData.length) * 100).toFixed(1)
-                              : 0}%
+                            {crossCountData.length > 0
+                              ? (
+                                  (crossCountData.filter(
+                                    (s) => s.gender === "Male",
+                                  ).length /
+                                    crossCountData.length) *
+                                  100
+                                ).toFixed(1)
+                              : 0}
+                            %
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>Female Percentage:</span>
                           <span className="font-semibold">
-                            {crossCountData.length > 0 
-                              ? ((crossCountData.filter(s => s.gender === 'Female').length / crossCountData.length) * 100).toFixed(1)
-                              : 0}%
+                            {crossCountData.length > 0
+                              ? (
+                                  (crossCountData.filter(
+                                    (s) => s.gender === "Female",
+                                  ).length /
+                                    crossCountData.length) *
+                                  100
+                                ).toFixed(1)
+                              : 0}
+                            %
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>Gender Ratio (M:F):</span>
                           <span className="font-semibold">
-                            {crossCountData.filter(s => s.gender === 'Male').length}:
-                            {crossCountData.filter(s => s.gender === 'Female').length}
+                            {
+                              crossCountData.filter((s) => s.gender === "Male")
+                                .length
+                            }
+                            :
+                            {
+                              crossCountData.filter(
+                                (s) => s.gender === "Female",
+                              ).length
+                            }
                           </span>
                         </div>
                       </div>
@@ -1782,7 +2235,7 @@ const Reports = () => {
           )}
 
           {/* INTERACTIVE TEACHER LIST REPORT TABLE */}
-          {reportSlug === 'teachers' && (
+          {reportSlug === "teachers" && (
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -1797,9 +2250,14 @@ const Reports = () => {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
                   <div className="space-y-2">
                     <Label>Department</Label>
-                    <Select 
-                      value={teacherFilters.department} 
-                      onValueChange={(value) => setTeacherFilters({...teacherFilters, department: value})}
+                    <Select
+                      value={teacherFilters.department}
+                      onValueChange={(value) =>
+                        setTeacherFilters({
+                          ...teacherFilters,
+                          department: value,
+                        })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -1809,16 +2267,23 @@ const Reports = () => {
                         <SelectItem value="science">Science</SelectItem>
                         <SelectItem value="mathematics">Mathematics</SelectItem>
                         <SelectItem value="english">English</SelectItem>
-                        <SelectItem value="social_studies">Social Studies</SelectItem>
+                        <SelectItem value="social_studies">
+                          Social Studies
+                        </SelectItem>
                         <SelectItem value="arts">Arts</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>Designation</Label>
-                    <Select 
-                      value={teacherFilters.designation} 
-                      onValueChange={(value) => setTeacherFilters({...teacherFilters, designation: value})}
+                    <Select
+                      value={teacherFilters.designation}
+                      onValueChange={(value) =>
+                        setTeacherFilters({
+                          ...teacherFilters,
+                          designation: value,
+                        })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -1826,19 +2291,27 @@ const Reports = () => {
                       <SelectContent>
                         <SelectItem value="all">All Designations</SelectItem>
                         <SelectItem value="principal">Principal</SelectItem>
-                        <SelectItem value="vice_principal">Vice Principal</SelectItem>
+                        <SelectItem value="vice_principal">
+                          Vice Principal
+                        </SelectItem>
                         <SelectItem value="hod">HOD</SelectItem>
-                        <SelectItem value="senior_teacher">Senior Teacher</SelectItem>
+                        <SelectItem value="senior_teacher">
+                          Senior Teacher
+                        </SelectItem>
                         <SelectItem value="teacher">Teacher</SelectItem>
-                        <SelectItem value="assistant_teacher">Assistant Teacher</SelectItem>
+                        <SelectItem value="assistant_teacher">
+                          Assistant Teacher
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>Status</Label>
-                    <Select 
-                      value={teacherFilters.status} 
-                      onValueChange={(value) => setTeacherFilters({...teacherFilters, status: value})}
+                    <Select
+                      value={teacherFilters.status}
+                      onValueChange={(value) =>
+                        setTeacherFilters({ ...teacherFilters, status: value })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -1856,7 +2329,12 @@ const Reports = () => {
                       type="text"
                       placeholder="Search by name or ID..."
                       value={teacherFilters.search}
-                      onChange={(e) => setTeacherFilters({...teacherFilters, search: e.target.value})}
+                      onChange={(e) =>
+                        setTeacherFilters({
+                          ...teacherFilters,
+                          search: e.target.value,
+                        })
+                      }
                     />
                   </div>
                 </div>
@@ -1865,7 +2343,9 @@ const Reports = () => {
                 {teacherLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
-                    <span className="ml-3 text-gray-600">Loading teacher information...</span>
+                    <span className="ml-3 text-gray-600">
+                      Loading teacher information...
+                    </span>
                   </div>
                 ) : teacherData.length === 0 ? (
                   <div className="text-center py-12">
@@ -1877,24 +2357,40 @@ const Reports = () => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                       <Card className="bg-blue-50">
                         <CardContent className="p-4 text-center">
-                          <div className="text-2xl font-bold text-blue-600">{teacherData.length}</div>
-                          <div className="text-sm text-gray-600">Total Teachers</div>
+                          <div className="text-2xl font-bold text-blue-600">
+                            {teacherData.length}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            Total Teachers
+                          </div>
                         </CardContent>
                       </Card>
                       <Card className="bg-green-50">
                         <CardContent className="p-4 text-center">
                           <div className="text-2xl font-bold text-green-600">
-                            {teacherData.filter(t => t.is_active || t.status === 'active').length}
+                            {
+                              teacherData.filter(
+                                (t) => t.is_active || t.status === "active",
+                              ).length
+                            }
                           </div>
-                          <div className="text-sm text-gray-600">Active Teachers</div>
+                          <div className="text-sm text-gray-600">
+                            Active Teachers
+                          </div>
                         </CardContent>
                       </Card>
                       <Card className="bg-red-50">
                         <CardContent className="p-4 text-center">
                           <div className="text-2xl font-bold text-red-600">
-                            {teacherData.filter(t => !t.is_active && t.status !== 'active').length}
+                            {
+                              teacherData.filter(
+                                (t) => !t.is_active && t.status !== "active",
+                              ).length
+                            }
                           </div>
-                          <div className="text-sm text-gray-600">Inactive Teachers</div>
+                          <div className="text-sm text-gray-600">
+                            Inactive Teachers
+                          </div>
                         </CardContent>
                       </Card>
                     </div>
@@ -1914,63 +2410,131 @@ const Reports = () => {
                         </TableHeader>
                         <TableBody>
                           {teacherData
-                            .filter(teacher => {
+                            .filter((teacher) => {
                               // Filter by department
-                              if (teacherFilters.department !== 'all' && teacher.department?.toLowerCase() !== teacherFilters.department.toLowerCase()) {
+                              if (
+                                teacherFilters.department !== "all" &&
+                                teacher.department?.toLowerCase() !==
+                                  teacherFilters.department.toLowerCase()
+                              ) {
                                 return false;
                               }
                               // Filter by designation
-                              if (teacherFilters.designation !== 'all' && teacher.designation?.toLowerCase() !== teacherFilters.designation.toLowerCase()) {
+                              if (
+                                teacherFilters.designation !== "all" &&
+                                teacher.designation?.toLowerCase() !==
+                                  teacherFilters.designation.toLowerCase()
+                              ) {
                                 return false;
                               }
                               // Filter by status
-                              if (teacherFilters.status !== 'all') {
-                                const isActive = teacher.is_active || teacher.status === 'active';
-                                if (teacherFilters.status === 'active' && !isActive) return false;
-                                if (teacherFilters.status === 'inactive' && isActive) return false;
+                              if (teacherFilters.status !== "all") {
+                                const isActive =
+                                  teacher.is_active ||
+                                  teacher.status === "active";
+                                if (
+                                  teacherFilters.status === "active" &&
+                                  !isActive
+                                )
+                                  return false;
+                                if (
+                                  teacherFilters.status === "inactive" &&
+                                  isActive
+                                )
+                                  return false;
                               }
                               // Filter by search
-                              const search = teacherFilters.search?.toLowerCase() || '';
+                              const search =
+                                teacherFilters.search?.toLowerCase() || "";
                               if (search) {
-                                const matchesSearch = 
-                                  teacher.full_name?.toLowerCase().includes(search) ||
-                                  teacher.name?.toLowerCase().includes(search) ||
-                                  teacher.employee_id?.toLowerCase().includes(search) ||
-                                  teacher.staff_id?.toLowerCase().includes(search);
+                                const matchesSearch =
+                                  teacher.full_name
+                                    ?.toLowerCase()
+                                    .includes(search) ||
+                                  teacher.name
+                                    ?.toLowerCase()
+                                    .includes(search) ||
+                                  teacher.employee_id
+                                    ?.toLowerCase()
+                                    .includes(search) ||
+                                  teacher.staff_id
+                                    ?.toLowerCase()
+                                    .includes(search);
                                 if (!matchesSearch) return false;
                               }
                               return true;
                             })
                             .slice(0, 50)
                             .map((teacher, index) => (
-                            <TableRow key={index}>
-                              <TableCell className="font-medium">{teacher.employee_id || teacher.staff_id || 'N/A'}</TableCell>
-                              <TableCell>{teacher.full_name || teacher.name || 'N/A'}</TableCell>
-                              <TableCell>{teacher.department || 'N/A'}</TableCell>
-                              <TableCell>{teacher.subject || teacher.subjects?.join(', ') || 'N/A'}</TableCell>
-                              <TableCell>{teacher.designation || teacher.role || 'N/A'}</TableCell>
-                              <TableCell>{teacher.joining_date || teacher.date_of_joining || 'N/A'}</TableCell>
-                              <TableCell>
-                                <Badge variant={(teacher.is_active || teacher.status === 'active') ? "success" : "secondary"}>
-                                  {(teacher.is_active || teacher.status === 'active') ? 'Active' : 'Inactive'}
-                                </Badge>
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                              <TableRow key={index}>
+                                <TableCell className="font-medium">
+                                  {teacher.employee_id ||
+                                    teacher.staff_id ||
+                                    "N/A"}
+                                </TableCell>
+                                <TableCell>
+                                  {teacher.full_name || teacher.name || "N/A"}
+                                </TableCell>
+                                <TableCell>
+                                  {teacher.department || "N/A"}
+                                </TableCell>
+                                <TableCell>
+                                  {teacher.subject ||
+                                    teacher.subjects?.join(", ") ||
+                                    "N/A"}
+                                </TableCell>
+                                <TableCell>
+                                  {teacher.designation || teacher.role || "N/A"}
+                                </TableCell>
+                                <TableCell>
+                                  {teacher.joining_date ||
+                                    teacher.date_of_joining ||
+                                    "N/A"}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
+                                    variant={
+                                      teacher.is_active ||
+                                      teacher.status === "active"
+                                        ? "success"
+                                        : "secondary"
+                                    }
+                                  >
+                                    {teacher.is_active ||
+                                    teacher.status === "active"
+                                      ? "Active"
+                                      : "Inactive"}
+                                  </Badge>
+                                </TableCell>
+                              </TableRow>
+                            ))}
                         </TableBody>
                       </Table>
                     </div>
-                    {teacherData.filter(teacher => {
-                      if (teacherFilters.department !== 'all' && teacher.department?.toLowerCase() !== teacherFilters.department.toLowerCase()) return false;
-                      if (teacherFilters.designation !== 'all' && teacher.designation?.toLowerCase() !== teacherFilters.designation.toLowerCase()) return false;
-                      if (teacherFilters.status !== 'all') {
-                        const isActive = teacher.is_active || teacher.status === 'active';
-                        if (teacherFilters.status === 'active' && !isActive) return false;
-                        if (teacherFilters.status === 'inactive' && isActive) return false;
+                    {teacherData.filter((teacher) => {
+                      if (
+                        teacherFilters.department !== "all" &&
+                        teacher.department?.toLowerCase() !==
+                          teacherFilters.department.toLowerCase()
+                      )
+                        return false;
+                      if (
+                        teacherFilters.designation !== "all" &&
+                        teacher.designation?.toLowerCase() !==
+                          teacherFilters.designation.toLowerCase()
+                      )
+                        return false;
+                      if (teacherFilters.status !== "all") {
+                        const isActive =
+                          teacher.is_active || teacher.status === "active";
+                        if (teacherFilters.status === "active" && !isActive)
+                          return false;
+                        if (teacherFilters.status === "inactive" && isActive)
+                          return false;
                       }
-                      const search = teacherFilters.search?.toLowerCase() || '';
+                      const search = teacherFilters.search?.toLowerCase() || "";
                       if (search) {
-                        const matchesSearch = 
+                        const matchesSearch =
                           teacher.full_name?.toLowerCase().includes(search) ||
                           teacher.name?.toLowerCase().includes(search) ||
                           teacher.employee_id?.toLowerCase().includes(search);
@@ -1979,10 +2543,14 @@ const Reports = () => {
                       return true;
                     }).length > 50 && (
                       <p className="text-sm text-gray-500 text-center mt-2">
-                        Showing first 50 of {teacherData.filter(t => {
-                          // Same filters applied
-                          return true;
-                        }).length} records.
+                        Showing first 50 of{" "}
+                        {
+                          teacherData.filter((t) => {
+                            // Same filters applied
+                            return true;
+                          }).length
+                        }{" "}
+                        records.
                       </p>
                     )}
                   </>
@@ -2005,10 +2573,18 @@ const Reports = () => {
                   <Card className="border border-gray-200 hover:border-purple-300 transition-colors cursor-pointer">
                     <CardContent className="p-4">
                       <h3 className="font-semibold mb-2">Admission Report</h3>
-                      <p className="text-sm text-gray-600 mb-3">New admissions and trends</p>
+                      <p className="text-sm text-gray-600 mb-3">
+                        New admissions and trends
+                      </p>
                       <div className="flex justify-between items-center">
                         <Badge variant="secondary">Ready</Badge>
-                        <Button size="sm" variant="outline" onClick={() => navigate('/reports/admission')}>View</Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => navigate("/reports/admission")}
+                        >
+                          View
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -2016,21 +2592,39 @@ const Reports = () => {
                   <Card className="border border-gray-200 hover:border-purple-300 transition-colors cursor-pointer">
                     <CardContent className="p-4">
                       <h3 className="font-semibold mb-2">Login Activity</h3>
-                      <p className="text-sm text-gray-600 mb-3">System access and usage report</p>
+                      <p className="text-sm text-gray-600 mb-3">
+                        System access and usage report
+                      </p>
                       <div className="flex justify-between items-center">
                         <Badge variant="secondary">Ready</Badge>
-                        <Button size="sm" variant="outline" onClick={() => navigate('/reports/login')}>View</Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => navigate("/reports/login")}
+                        >
+                          View
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
 
                   <Card className="border border-gray-200 hover:border-purple-300 transition-colors cursor-pointer">
                     <CardContent className="p-4">
-                      <h3 className="font-semibold mb-2">Student Information</h3>
-                      <p className="text-sm text-gray-600 mb-3">Comprehensive student database</p>
+                      <h3 className="font-semibold mb-2">
+                        Student Information
+                      </h3>
+                      <p className="text-sm text-gray-600 mb-3">
+                        Comprehensive student database
+                      </p>
                       <div className="flex justify-between items-center">
                         <Badge variant="secondary">Ready</Badge>
-                        <Button size="sm" variant="outline" onClick={() => navigate('/reports/students')}>View</Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => navigate("/reports/students")}
+                        >
+                          View
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -2053,10 +2647,18 @@ const Reports = () => {
                 <Card className="border border-gray-200 hover:border-orange-300 transition-colors cursor-pointer">
                   <CardContent className="p-4">
                     <h3 className="font-semibold mb-2">Vehicle Report</h3>
-                    <p className="text-sm text-gray-600 mb-3">Fleet utilization and maintenance</p>
+                    <p className="text-sm text-gray-600 mb-3">
+                      Fleet utilization and maintenance
+                    </p>
                     <div className="flex justify-between items-center">
                       <Badge variant="secondary">Ready</Badge>
-                      <Button size="sm" variant="outline" onClick={generateVehicleReport}>Generate</Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={generateVehicleReport}
+                      >
+                        Generate
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -2064,10 +2666,18 @@ const Reports = () => {
                 <Card className="border border-gray-200 hover:border-orange-300 transition-colors cursor-pointer">
                   <CardContent className="p-4">
                     <h3 className="font-semibold mb-2">Route Efficiency</h3>
-                    <p className="text-sm text-gray-600 mb-3">Route performance analysis</p>
+                    <p className="text-sm text-gray-600 mb-3">
+                      Route performance analysis
+                    </p>
                     <div className="flex justify-between items-center">
                       <Badge variant="secondary">Ready</Badge>
-                      <Button size="sm" variant="outline" onClick={generateRouteEfficiencyReport}>Generate</Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={generateRouteEfficiencyReport}
+                      >
+                        Generate
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -2075,10 +2685,18 @@ const Reports = () => {
                 <Card className="border border-gray-200 hover:border-orange-300 transition-colors cursor-pointer">
                   <CardContent className="p-4">
                     <h3 className="font-semibold mb-2">Transport Fees</h3>
-                    <p className="text-sm text-gray-600 mb-3">Transport fee collection report</p>
+                    <p className="text-sm text-gray-600 mb-3">
+                      Transport fee collection report
+                    </p>
                     <div className="flex justify-between items-center">
                       <Badge variant="secondary">Ready</Badge>
-                      <Button size="sm" variant="outline" onClick={generateTransportFeesReport}>Generate</Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={generateTransportFeesReport}
+                      >
+                        Generate
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -2093,22 +2711,27 @@ const Reports = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Daily Attendance - {new Date().toLocaleDateString()}</h2>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <h2 className="text-xl font-semibold">
+                Daily Attendance - {new Date().toLocaleDateString()}
+              </h2>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setShowDailyAttendanceModal(false)}
               >
                 ✕
               </Button>
             </div>
-            
+
             {dailyAttendanceData.length === 0 ? (
               <div className="text-center py-8">
                 <UserCheck className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                <p className="text-gray-500">No attendance records found for today.</p>
+                <p className="text-gray-500">
+                  No attendance records found for today.
+                </p>
                 <p className="text-sm text-gray-400 mt-2">
-                  Attendance data may not have been marked yet or there might be no staff records in the system.
+                  Attendance data may not have been marked yet or there might be
+                  no staff records in the system.
                 </p>
               </div>
             ) : (
@@ -2117,7 +2740,11 @@ const Reports = () => {
                   <Card>
                     <CardContent className="p-4 text-center">
                       <div className="text-2xl font-bold text-green-600">
-                        {dailyAttendanceData.filter(record => record.status === 'present').length}
+                        {
+                          dailyAttendanceData.filter(
+                            (record) => record.status === "present",
+                          ).length
+                        }
                       </div>
                       <div className="text-sm text-gray-600">Present</div>
                     </CardContent>
@@ -2125,7 +2752,11 @@ const Reports = () => {
                   <Card>
                     <CardContent className="p-4 text-center">
                       <div className="text-2xl font-bold text-red-600">
-                        {dailyAttendanceData.filter(record => record.status === 'absent').length}
+                        {
+                          dailyAttendanceData.filter(
+                            (record) => record.status === "absent",
+                          ).length
+                        }
                       </div>
                       <div className="text-sm text-gray-600">Absent</div>
                     </CardContent>
@@ -2133,7 +2764,11 @@ const Reports = () => {
                   <Card>
                     <CardContent className="p-4 text-center">
                       <div className="text-2xl font-bold text-yellow-600">
-                        {dailyAttendanceData.filter(record => record.status === 'late').length}
+                        {
+                          dailyAttendanceData.filter(
+                            (record) => record.status === "late",
+                          ).length
+                        }
                       </div>
                       <div className="text-sm text-gray-600">Late</div>
                     </CardContent>
@@ -2147,42 +2782,67 @@ const Reports = () => {
                     </CardContent>
                   </Card>
                 </div>
-                
+
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse border border-gray-300">
                     <thead>
                       <tr className="bg-gray-50">
-                        <th className="border border-gray-300 px-4 py-2 text-left">Staff Name</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">Department</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">Status</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">Notes</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">Marked By</th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">
+                          Staff Name
+                        </th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">
+                          Department
+                        </th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">
+                          Status
+                        </th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">
+                          Notes
+                        </th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">
+                          Marked By
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {dailyAttendanceData.map((record, index) => (
                         <tr key={index} className="hover:bg-gray-50">
-                          <td className="border border-gray-300 px-4 py-2">{record.staff_name || 'N/A'}</td>
-                          <td className="border border-gray-300 px-4 py-2">{record.department || 'N/A'}</td>
                           <td className="border border-gray-300 px-4 py-2">
-                            <Badge 
+                            {record.staff_name || "N/A"}
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2">
+                            {record.department || "N/A"}
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2">
+                            <Badge
                               variant={
-                                record.status === 'present' ? 'default' : 
-                                record.status === 'absent' ? 'destructive' :
-                                record.status === 'late' ? 'secondary' : 'outline'
+                                record.status === "present"
+                                  ? "default"
+                                  : record.status === "absent"
+                                    ? "destructive"
+                                    : record.status === "late"
+                                      ? "secondary"
+                                      : "outline"
                               }
                               className={
-                                record.status === 'present' ? 'bg-green-100 text-green-800' :
-                                record.status === 'absent' ? 'bg-red-100 text-red-800' :
-                                record.status === 'late' ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-blue-100 text-blue-800'
+                                record.status === "present"
+                                  ? "bg-green-100 text-green-800"
+                                  : record.status === "absent"
+                                    ? "bg-red-100 text-red-800"
+                                    : record.status === "late"
+                                      ? "bg-yellow-100 text-yellow-800"
+                                      : "bg-blue-100 text-blue-800"
                               }
                             >
-                              {record.status || 'Unknown'}
+                              {record.status || "Unknown"}
                             </Badge>
                           </td>
-                          <td className="border border-gray-300 px-4 py-2">{record.notes || '-'}</td>
-                          <td className="border border-gray-300 px-4 py-2">{record.marked_by_name || 'System'}</td>
+                          <td className="border border-gray-300 px-4 py-2">
+                            {record.notes || "-"}
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2">
+                            {record.marked_by_name || "System"}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
