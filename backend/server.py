@@ -1032,24 +1032,35 @@ class BookChapter(BaseModel):
     school_id: str
     book_id: str  # Links to AcademicBook or ReferenceBook
     book_type: str  # "academic" or "reference"
-    
+
     # Chapter Details
     chapter_number: int
     chapter_title: str
+
+    # 🔸 NEW: file fields for chapter PDF/etc.
+    file_url: Optional[str] = None
+    file_name: Optional[str] = None
+
     description: Optional[str] = None
     learning_objectives: List[str] = []
     key_concepts: List[str] = []
     content: Optional[str] = None  # Main chapter content
-    
+
     is_active: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
 
 class BookChapterCreate(BaseModel):
     book_id: str
     book_type: str  # "academic" or "reference"
     chapter_number: int
     chapter_title: str
+
+    # 🔸 NEW: file fields for chapter PDF/etc.
+    file_url: Optional[str] = None
+    file_name: Optional[str] = None
+
     description: Optional[str] = None
     learning_objectives: List[str] = []
     key_concepts: List[str] = []

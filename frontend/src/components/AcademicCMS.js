@@ -1,15 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import {
   Book,
   Plus,
   Edit,
   Trash2,
-  Search,
   FileText,
   Upload,
   Download,
   BookOpen,
+  X,
+  File,
 } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
@@ -19,14 +20,12 @@ const API_BASE_URL =
 
 // Helper function to format API validation errors
 const formatErrorMessage = (error, fallbackMsg) => {
-  const detail = error.response?.data?.detail;
+  const detail = error?.response?.data?.detail;
 
-  // If detail is a string, return it
   if (typeof detail === "string") {
     return detail;
   }
 
-  // If detail is an array of validation errors (Pydantic format)
   if (Array.isArray(detail)) {
     const messages = detail.map((err) => {
       const field = err.loc ? err.loc.join(".") : "field";
@@ -35,318 +34,618 @@ const formatErrorMessage = (error, fallbackMsg) => {
     return messages.join(", ");
   }
 
-  // If detail is an object with msg property
   if (detail && typeof detail === "object" && detail.msg) {
     return detail.msg;
   }
 
-  // Fallback to the provided message
   return fallbackMsg;
+};
+
+// --- Initial States ---
+
+const initialChapter = {
+  chapter_number: 1,
+  title: "Chapter 1",
+  file_url: "", // ADDED: Field for file URL
+  file_name: "", // ADDED: Field for file Name
+  id: null, // ADDED: To track if chapter exists in DB
+};
+
+const initialBookForm = {
+  title: "",
+  author: "",
+  subject: "",
+  class_standard: "",
+  board: "CBSE",
+  prelims_file_url: "",
+  prelims_file_name: "",
+  chapters: [initialChapter],
+  bulk_upload_file: null,
+};
+
+const initialQAForm = {
+  question: "",
+  answer: "",
+  subject: "",
+  class_standard: "",
+  chapter: "",
+  question_type: "conceptual",
+  difficulty_level: "medium",
+  keywords: "",
+};
+
+const initialPaperForm = {
+  title: "",
+  subject: "",
+  class_standard: "",
+  chapter: "",
+  exam_year: new Date().getFullYear().toString(),
+  paper_type: "Final Exam",
+  file_url: "",
 };
 
 const AcademicCMS = () => {
   const [activeTab, setActiveTab] = useState("books");
+
   const [books, setBooks] = useState([]);
-  const [qaPairs, setQaPairs] = useState([]);
   const [referenceBooks, setReferenceBooks] = useState([]);
+  const [qaPairs, setQaPairs] = useState([]);
   const [previousPapers, setPreviousPapers] = useState([]);
+
   const [loading, setLoading] = useState(false);
-  const [showAddBook, setShowAddBook] = useState(false);
-  const [showAddQA, setShowAddQA] = useState(false);
-  const [showAddReferenceBook, setShowAddReferenceBook] = useState(false);
-  const [showAddPaper, setShowAddPaper] = useState(false);
-  const [showBulkUpload, setShowBulkUpload] = useState(false);
-  const [bulkUploadFile, setBulkUploadFile] = useState(null);
-  const [uploadSummary, setUploadSummary] = useState(null);
-  const [editingBookId, setEditingBookId] = useState(null);
-  const [editingQAId, setEditingQAId] = useState(null);
-  const [editingReferenceBookId, setEditingReferenceBookId] = useState(null);
-  const [editingPaperId, setEditingPaperId] = useState(null);
   const [uploadingFile, setUploadingFile] = useState(false);
 
-  // Navigation states for hierarchical flow
+  const [showAddBook, setShowAddBook] = useState(false);
+  const [showAddReferenceBook, setShowAddReferenceBook] = useState(false);
+  const [showAddQA, setShowAddQA] = useState(false);
+  const [showAddPaper, setShowAddPaper] = useState(false);
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
+
+  const [bulkUploadFile, setBulkUploadFile] = useState(null);
+  const [uploadSummary, setUploadSummary] = useState(null);
+
+  const [editingBookId, setEditingBookId] = useState(null);
+  const [editingReferenceBookId, setEditingReferenceBookId] = useState(null);
+  const [editingQAId, setEditingQAId] = useState(null);
+  const [editingPaperId, setEditingPaperId] = useState(null);
+
+  const [bookForm, setBookForm] = useState(initialBookForm);
+  const [referenceBookForm, setReferenceBookForm] = useState(initialBookForm);
+  const [qaForm, setQaForm] = useState(initialQAForm);
+  const [paperForm, setPaperForm] = useState(initialPaperForm);
+
+  // Academic Books navigation (class -> subject -> books)
+  const [bookNavLevel, setBookNavLevel] = useState({
+    step: "class",
+    class: "",
+    subject: "",
+  });
+
+  // Reference Books navigation (class -> subject -> books)
   const [refNavLevel, setRefNavLevel] = useState({
     step: "class",
     class: "",
     subject: "",
-    book: "",
-  });
-  const [paperNavLevel, setPaperNavLevel] = useState({
-    step: "class",
-    class: "",
-    subject: "",
-    year: "",
   });
 
-  // Form states
-  const [bookForm, setBookForm] = useState({
-    title: "",
-    author: "",
-    subject: "",
-    class_standard: "",
-    board: "CBSE",
-    publisher: "",
-    description: "",
-    file_url: "", // Added for file upload support
+  // Chapter modal (for both academic & reference books)
+  const [showChapterModal, setShowChapterModal] = useState(false);
+  const [chapterModalData, setChapterModalData] = useState({
+    bookTitle: "",
+    chapters: [],
   });
+  const [chapterLoading, setChapterLoading] = useState(false);
 
-  const [qaForm, setQaForm] = useState({
-    question: "",
-    answer: "",
-    subject: "",
-    class_standard: "",
-    chapter_topic: "",
-    question_type: "conceptual",
-    difficulty_level: "medium",
-    explanation: "",
-    keywords: "",
-    examples: "",
-  });
+  // --- Helper Functions ---
 
-  const [referenceBookForm, setReferenceBookForm] = useState({
-    title: "",
-    author: "",
-    subject: "",
-    class_standard: "",
-    chapter: "",
-    board: "CBSE",
-    publisher: "",
-    description: "",
-    file_url: "",
-  });
+  const handleFileUpload = useCallback(async (file, onSuccess) => {
+    if (!file) return null;
 
-  const [paperForm, setPaperForm] = useState({
-    title: "",
-    subject: "",
-    class_standard: "",
-    chapter: "",
-    exam_year: new Date().getFullYear().toString(),
-    paper_type: "Final Exam",
-    file_url: "",
-  });
+    const maxSize = 100 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error("File size must be less than 100MB");
+      return null;
+    }
 
-  // Fetch books
-  const fetchBooks = async () => {
-    setLoading(true);
+    const allowedTypes = [
+      "application/pdf",
+      "text/plain",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/msword",
+    ];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Only PDF, TXT, and DOCX/DOC files are allowed");
+      return null;
+    }
+
+    setUploadingFile(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get(`${API_BASE_URL}/cms/books`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await axios.post(`${API_BASE_URL}/files/upload`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
       });
-      setBooks(response.data.books || []);
-    } catch (error) {
-      toast.error("Failed to load books");
-      console.error(error);
+
+      const url = res.data.file_url;
+      toast.success("File uploaded successfully");
+      if (onSuccess) onSuccess(url, file.name);
+      return url;
+    } catch (err) {
+      toast.error(formatErrorMessage(err, "File upload failed"));
+      console.error(err);
+      return null;
+    } finally {
+      setUploadingFile(false);
     }
-    setLoading(false);
+  }, []);
+
+  const handleFormChange = (formType, field, value) => {
+    if (formType === "book") {
+      setBookForm((prev) => ({ ...prev, [field]: value }));
+    } else if (formType === "reference") {
+      setReferenceBookForm((prev) => ({ ...prev, [field]: value }));
+    } else if (formType === "qa") {
+      setQaForm((prev) => ({ ...prev, [field]: value }));
+    } else if (formType === "paper") {
+      setPaperForm((prev) => ({ ...prev, [field]: value }));
+    }
   };
 
-  // Fetch Q&A pairs
-  const fetchQAPairs = async () => {
+  const handleChapterChange = (
+    formType,
+    index,
+    field,
+    value,
+    fileName = null,
+  ) => {
+    const setForm = formType === "book" ? setBookForm : setReferenceBookForm;
+
+    setForm((prev) => {
+      const chapters = [...prev.chapters];
+      if (!chapters[index]) return prev;
+
+      chapters[index] = {
+        ...chapters[index],
+        [field]: value,
+        ...(fileName && { file_name: fileName }),
+        ...(field === "file_url" && !value && { file_name: "" }),
+      };
+
+      if (
+        field === "file_url" &&
+        value &&
+        !chapters[index].title.trim() &&
+        fileName
+      ) {
+        chapters[index].title = fileName.split(".").slice(0, -1).join(".");
+      }
+
+      return { ...prev, chapters };
+    });
+  };
+
+  const addChapterField = (formType) => {
+    const setForm = formType === "book" ? setBookForm : setReferenceBookForm;
+
+    setForm((prev) => {
+      const newIndex = prev.chapters.length;
+      if (newIndex >= 20) {
+        toast.warning("Maximum of 20 chapters allowed");
+        return prev;
+      }
+      return {
+        ...prev,
+        chapters: [
+          ...prev.chapters,
+          {
+            chapter_number: newIndex + 1,
+            title: `Chapter ${newIndex + 1}`,
+            file_url: "",
+            file_name: "",
+          },
+        ],
+      };
+    });
+  };
+
+  const removeChapterField = (formType, index) => {
+    const setForm = formType === "book" ? setBookForm : setReferenceBookForm;
+
+    setForm((prev) => {
+      const filtered = prev.chapters.filter((_, i) => i !== index);
+      const renumbered = filtered.map((c, i) => ({
+        ...c,
+        chapter_number: i + 1,
+        title: c.title.startsWith("Chapter ") ? `Chapter ${i + 1}` : c.title,
+      }));
+      return { ...prev, chapters: renumbered };
+    });
+  };
+
+  const resetForm = (formType) => {
+    if (formType === "book") {
+      setBookForm(initialBookForm);
+      setEditingBookId(null);
+    } else if (formType === "reference") {
+      setReferenceBookForm(initialBookForm);
+      setEditingReferenceBookId(null);
+    } else if (formType === "qa") {
+      setQaForm(initialQAForm);
+      setEditingQAId(null);
+    } else if (formType === "paper") {
+      setPaperForm(initialPaperForm);
+      setEditingPaperId(null);
+    }
+  };
+
+  // --- Fetch chapters from backend ---
+
+  const fetchBookChapters = useCallback(async (bookId, bookType) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(
+        `${API_BASE_URL}/cms/books/${bookId}/chapters`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          params: { book_type: bookType },
+        },
+      );
+      return res.data || [];
+    } catch (err) {
+      toast.error(formatErrorMessage(err, "Failed to load chapters"));
+      console.error("Error fetching book chapters:", err);
+      return [];
+    }
+  }, []);
+
+  const openChapterModal = async (book, bookType) => {
+    setShowChapterModal(true);
+    setChapterLoading(true);
+    setChapterModalData({
+      bookTitle: book.title || "",
+      chapters: [],
+    });
+
+    const chapters = await fetchBookChapters(book.id, bookType);
+
+    setChapterModalData({
+      bookTitle: book.title || "",
+      chapters,
+    });
+    setChapterLoading(false);
+  };
+
+  // --- Fetch Functions ---
+
+  const fetchBooks = useCallback(async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get(`${API_BASE_URL}/cms/qa-pairs`, {
+      const res = await axios.get(`${API_BASE_URL}/cms/academic-books`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setQaPairs(response.data || []);  // Backend returns array directly, not wrapped
-    } catch (error) {
+      setBooks(res.data || []);
+    } catch (err) {
+      toast.error("Failed to load academic books");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchReferenceBooks = useCallback(async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(`${API_BASE_URL}/cms/reference-books`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setReferenceBooks(res.data || []);
+    } catch (err) {
+      toast.error("Failed to load reference books");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchQAPairs = useCallback(async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(`${API_BASE_URL}/cms/qa-knowledge-base`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setQaPairs(res.data || []);
+    } catch (err) {
       toast.error("Failed to load Q&A pairs");
-      console.error(error);
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  };
+  }, []);
 
-  // Add or Update book
+  const fetchPreviousPapers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(`${API_BASE_URL}/cms/previous-year-papers`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setPreviousPapers(res.data || []);
+    } catch (err) {
+      toast.error("Failed to load previous year papers");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchBooks();
+    fetchReferenceBooks();
+    fetchQAPairs();
+    fetchPreviousPapers();
+  }, [fetchBooks, fetchReferenceBooks, fetchQAPairs, fetchPreviousPapers]);
+
+  // --- CRUD: Academic Books ---
+
   const handleAddBook = async (e) => {
     e.preventDefault();
     const isEditing = editingBookId !== null;
 
     try {
       const token = localStorage.getItem("token");
+      const endpoint = `${API_BASE_URL}/cms/academic-books`;
+
+      const payload = {
+        ...bookForm,
+        chapters: bookForm.chapters.filter(
+          (c) => c.title.trim() && c.file_url.trim(),
+        ),
+        pdf_url: bookForm.prelims_file_url,
+        cover_image_url: bookForm.prelims_file_url,
+      };
 
       if (isEditing) {
-        // UPDATE existing book
-        await axios.put(
-          `${API_BASE_URL}/cms/books/${editingBookId}`,
-          bookForm,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        );
-        toast.success("✅ Book updated successfully!");
-      } else {
-        // CREATE new book
-        await axios.post(`${API_BASE_URL}/cms/books`, bookForm, {
+        await axios.put(`${endpoint}/${editingBookId}`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast.success("✅ Book added successfully!");
+        toast.success("Academic book updated successfully");
+      } else {
+        await axios.post(endpoint, payload, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        toast.success("Academic book added successfully");
       }
 
       setShowAddBook(false);
-      setEditingBookId(null);
-      setBookForm({
-        title: "",
-        author: "",
-        subject: "",
-        class_standard: "",
-        board: "CBSE",
-        publisher: "",
-        description: "",
-        file_url: "",
-      });
+      resetForm("book");
       fetchBooks();
-    } catch (error) {
-      const errorMsg = isEditing
-        ? "Failed to update book"
-        : "Failed to add book";
-      toast.error(formatErrorMessage(error, errorMsg));
-      console.error(error);
+    } catch (err) {
+      const msg = isEditing
+        ? "Failed to update academic book"
+        : "Failed to add academic book";
+      toast.error(formatErrorMessage(err, msg));
+      console.error(err);
     }
   };
 
-  // Edit book
-  const handleEditBook = (book) => {
+  const handleEditBook = async (book) => {
+    // ADDED async
+    // Fetch Chapters for this book
+    const existingChapters = await fetchBookChapters(book.id, "academic"); // ADDED: API Call
+
     setEditingBookId(book.id);
     setBookForm({
-      title: book.title,
-      author: book.author,
-      subject: book.subject,
-      class_standard: book.class_standard,
+      title: book.title || "",
+      author: book.author || "",
+      subject: book.subject || "",
+      class_standard: book.class_standard || "",
       board: book.board || "CBSE",
-      publisher: book.publisher || "",
-      description: book.description || "",
-      file_url: book.file_url || book.pdf_url || "", // Support both file_url and pdf_url
+      prelims_file_url: book.prelims_file_url || book.pdf_url || "",
+      prelims_file_name: book.prelims_file_name || "",
+      chapters: (existingChapters.length > 0
+        ? existingChapters
+        : [initialChapter]
+      ).map((c, i) => ({
+        id: c.id, // Keep existing chapter ID for updates
+        chapter_number: c.chapter_number || i + 1,
+        title:
+          c.chapter_title || c.title || `Chapter ${c.chapter_number || i + 1}`, // Mapped from backend field
+        file_url: c.file_url || "",
+        file_name: c.file_name || "",
+      })),
+      bulk_upload_file: null,
     });
     setShowAddBook(true);
   };
 
-  // Delete book
-  const handleDeleteBook = async (bookId) => {
-    if (!window.confirm("Are you sure you want to delete this book?")) {
-      return;
-    }
+  const handleDeleteBook = async (id) => {
+    if (!window.confirm("Delete this academic book?")) return;
 
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`${API_BASE_URL}/cms/books/${bookId}`, {
+      await axios.delete(`${API_BASE_URL}/cms/academic-books/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      toast.success("✅ Book deleted successfully!");
+      toast.success("Academic book deleted");
       fetchBooks();
-    } catch (error) {
-      toast.error(formatErrorMessage(error, "Failed to delete book"));
-      console.error(error);
+    } catch (err) {
+      toast.error(formatErrorMessage(err, "Failed to delete academic book"));
+      console.error(err);
     }
   };
 
-  // Add or Update Q&A pair
+  // --- CRUD: Reference Books ---
+
+  const handleAddReferenceBook = async (e) => {
+    e.preventDefault();
+    const isEditing = editingReferenceBookId !== null;
+
+    try {
+      const token = localStorage.getItem("token");
+      const endpoint = `${API_BASE_URL}/cms/reference-books`;
+
+      const payload = {
+        ...referenceBookForm,
+        chapters: referenceBookForm.chapters.filter(
+          (c) => c.title.trim() && c.file_url.trim(),
+        ),
+        pdf_url: referenceBookForm.prelims_file_url,
+      };
+
+      if (isEditing) {
+        await axios.put(`${endpoint}/${editingReferenceBookId}`, payload, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        toast.success("Reference book updated successfully");
+      } else {
+        await axios.post(endpoint, payload, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        toast.success("Reference book added successfully");
+      }
+
+      setShowAddReferenceBook(false);
+      resetForm("reference");
+      fetchReferenceBooks();
+    } catch (err) {
+      const msg = isEditing
+        ? "Failed to update reference book"
+        : "Failed to add reference book";
+      toast.error(formatErrorMessage(err, msg));
+      console.error(err);
+    }
+  };
+
+  const handleEditReferenceBook = async (book) => {
+    // ADDED async
+    // Fetch Chapters for this book
+    const existingChapters = await fetchBookChapters(book.id, "reference"); // ADDED: API Call
+
+    setEditingReferenceBookId(book.id);
+    setReferenceBookForm({
+      title: book.title || "",
+      author: book.author || "",
+      subject: book.subject || "",
+      class_standard: book.class_standard || "",
+      board: book.board || "CBSE",
+      prelims_file_url: book.prelims_file_url || book.pdf_url || "",
+      prelims_file_name: book.prelims_file_name || "",
+      chapters: (existingChapters.length > 0
+        ? existingChapters
+        : [initialChapter]
+      ).map((c, i) => ({
+        id: c.id, // Keep existing chapter ID for updates
+        chapter_number: c.chapter_number || i + 1,
+        title:
+          c.chapter_title || c.title || `Chapter ${c.chapter_number || i + 1}`, // Mapped from backend field
+        file_url: c.file_url || "",
+        file_name: c.file_name || "",
+      })),
+      bulk_upload_file: null,
+    });
+    setShowAddReferenceBook(true);
+  };
+
+  const handleDeleteReferenceBook = async (id) => {
+    if (!window.confirm("Delete this reference book?")) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`${API_BASE_URL}/cms/reference-books/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      toast.success("Reference book deleted");
+      fetchReferenceBooks();
+    } catch (err) {
+      toast.error(formatErrorMessage(err, "Failed to delete reference book"));
+      console.error(err);
+    }
+  };
+
+  // --- CRUD: Q&A ---
+
   const handleAddQA = async (e) => {
     e.preventDefault();
     const isEditing = editingQAId !== null;
 
     try {
       const token = localStorage.getItem("token");
-      // Explicitly construct payload with only backend-supported fields
+      const endpoint = `${API_BASE_URL}/cms/qa-knowledge-base`;
+
       const qaData = {
-        class_standard: qaForm.class_standard,
-        subject: qaForm.subject,
-        chapter_topic: qaForm.chapter_topic,
-        question_type: qaForm.question_type,
-        question: qaForm.question,
-        answer: qaForm.answer,
-        explanation: qaForm.explanation || "",
-        examples: qaForm.examples
-          .split(",")
-          .map((ex) => ex.trim())
-          .filter((ex) => ex),
-        difficulty_level: qaForm.difficulty_level,
+        ...qaForm,
         keywords: qaForm.keywords
           .split(",")
           .map((k) => k.trim())
-          .filter((k) => k),
+          .filter(Boolean),
+        chapter_topic: qaForm.chapter || "",
       };
 
       if (isEditing) {
-        // UPDATE existing Q&A
-        await axios.put(`${API_BASE_URL}/cms/qa-pairs/${editingQAId}`, qaData, {
+        await axios.put(`${endpoint}/${editingQAId}`, qaData, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast.success("✅ Q&A pair updated successfully!");
+        toast.success("Q&A pair updated");
       } else {
-        // CREATE new Q&A
-        await axios.post(`${API_BASE_URL}/cms/qa-pairs`, qaData, {
+        await axios.post(endpoint, qaData, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast.success("✅ Q&A pair added successfully!");
+        toast.success("Q&A pair added");
       }
 
       setShowAddQA(false);
-      setEditingQAId(null);
-      setQaForm({
-        question: "",
-        answer: "",
-        subject: "",
-        class_standard: "",
-        chapter_topic: "",
-        question_type: "conceptual",
-        difficulty_level: "medium",
-        explanation: "",
-        keywords: "",
-        examples: "",
-      });
+      resetForm("qa");
       fetchQAPairs();
-    } catch (error) {
-      const errorMsg = isEditing
+    } catch (err) {
+      const msg = isEditing
         ? "Failed to update Q&A pair"
         : "Failed to add Q&A pair";
-      toast.error(formatErrorMessage(error, errorMsg));
-      console.error(error);
+      toast.error(formatErrorMessage(err, msg));
+      console.error(err);
     }
   };
 
-  // Edit Q&A pair
   const handleEditQA = (qa) => {
     setEditingQAId(qa.id);
     setQaForm({
-      question: qa.question,
-      answer: qa.answer,
-      subject: qa.subject,
-      class_standard: qa.class_standard,
-      chapter_topic: qa.chapter_topic || "",
+      question: qa.question || "",
+      answer: qa.answer || "",
+      subject: qa.subject || "",
+      class_standard: qa.class_standard || "",
+      chapter: qa.chapter_topic || "",
       question_type: qa.question_type || "conceptual",
       difficulty_level: qa.difficulty_level || "medium",
-      explanation: qa.explanation || "",
       keywords: Array.isArray(qa.keywords)
         ? qa.keywords.join(", ")
         : qa.keywords || "",
-      examples: Array.isArray(qa.examples)
-        ? qa.examples.join(", ")
-        : qa.examples || "",
     });
     setShowAddQA(true);
   };
 
-  // Delete Q&A pair
-  const handleDeleteQA = async (qaId) => {
-    if (!window.confirm("Are you sure you want to delete this Q&A pair?")) {
-      return;
-    }
+  const handleDeleteQA = async (id) => {
+    if (!window.confirm("Delete this Q&A pair?")) return;
 
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`${API_BASE_URL}/cms/qa-pairs/${qaId}`, {
+      await axios.delete(`${API_BASE_URL}/cms/qa-knowledge-base/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      toast.success("✅ Q&A pair deleted successfully!");
+      toast.success("Q&A pair deleted");
       fetchQAPairs();
-    } catch (error) {
-      toast.error(formatErrorMessage(error, "Failed to delete Q&A pair"));
-      console.error(error);
+    } catch (err) {
+      toast.error(formatErrorMessage(err, "Failed to delete Q&A pair"));
+      console.error(err);
     }
   };
 
-  // Bulk upload Q&A pairs
   const handleBulkUpload = async () => {
     if (!bulkUploadFile) {
       toast.error("Please select a file to upload");
@@ -359,7 +658,7 @@ const AcademicCMS = () => {
       const formData = new FormData();
       formData.append("file", bulkUploadFile);
 
-      const response = await axios.post(
+      const res = await axios.post(
         `${API_BASE_URL}/cms/qa-knowledge-base/bulk-upload`,
         formData,
         {
@@ -370,319 +669,413 @@ const AcademicCMS = () => {
         },
       );
 
-      setUploadSummary(response.data.summary);
+      setUploadSummary(res.data.summary);
       toast.success(
-        `✅ ${response.data.summary.successful} Q&A pairs uploaded successfully!`,
+        `${res.data.summary.successful} Q&A pairs uploaded successfully`,
       );
       setBulkUploadFile(null);
       fetchQAPairs();
-    } catch (error) {
-      toast.error(formatErrorMessage(error, "Bulk upload failed"));
-      console.error(error);
+    } catch (err) {
+      toast.error(formatErrorMessage(err, "Bulk upload failed"));
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  // Download sample template (aligned with QAKnowledgeBaseCreate schema)
   const downloadSampleTemplate = () => {
-    // Sample data with all required and optional fields
     const sampleData = [
       {
-        class_standard: "9",
-        subject: "Physics",
-        chapter_topic: "Laws of Motion",
         question: "What is Newton's Second Law?",
         answer: "Force = mass × acceleration (F = m × a)",
-        explanation:
-          "This law relates the net force on an object to its mass and acceleration. Higher mass requires more force for the same acceleration.",
-        examples: "Pushing a cart, Rocket propulsion",
-        difficulty_level: "medium",
-        question_type: "conceptual",
-        keywords: "newton, force, motion, acceleration",
+        subject: "Physics",
+        class: "9",
+        chapter_topic: "Laws of Motion",
+        keywords: "newton, force, motion",
+        difficulty: "medium",
+        type: "conceptual",
       },
       {
-        class_standard: "9",
-        subject: "Math",
-        chapter_topic: "Linear Equations",
         question: "Solve: 2x + 5 = 15",
         answer: "x = 5",
-        explanation:
-          "Subtract 5 from both sides to get 2x = 10, then divide by 2 to get x = 5",
-        examples: "3x + 2 = 11, 5x - 3 = 12",
-        difficulty_level: "easy",
-        question_type: "numerical",
-        keywords: "algebra, equations, solving",
-      },
-      {
-        class_standard: "10",
-        subject: "Biology",
-        chapter_topic: "Photosynthesis",
-        question: "What is photosynthesis?",
-        answer:
-          "Photosynthesis is the process by which plants use sunlight, water and carbon dioxide to produce oxygen and energy in the form of sugar.",
-        explanation:
-          "This process occurs in chloroplasts and is essential for plant growth and oxygen production on Earth.",
-        examples: "Green plants, Algae, Some bacteria",
-        difficulty_level: "medium",
-        question_type: "conceptual",
-        keywords: "photosynthesis, plants, chlorophyll, oxygen",
+        subject: "Math",
+        class: "9",
+        chapter_topic: "Linear Equations",
+        keywords: "algebra, equations",
+        difficulty: "easy",
+        type: "numerical",
       },
     ];
 
-    // Create worksheet
-    const worksheet = XLSX.utils.json_to_sheet(sampleData);
-
-    // Create workbook
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Q&A Template");
-
-    // Generate Excel file and download
-    XLSX.writeFile(workbook, "sample_qa_template.xlsx");
-
-    toast.success("📄 Sample template downloaded with new schema!");
+    const ws = XLSX.utils.json_to_sheet(sampleData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Q&A Template");
+    XLSX.writeFile(wb, "sample_qa_template.xlsx");
+    toast.success("Sample template downloaded");
   };
 
-  // Fetch reference books
-  const fetchReferenceBooks = async () => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(`${API_BASE_URL}/cms/reference-books`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setReferenceBooks(response.data || []);
-    } catch (error) {
-      toast.error("Failed to load reference books");
-      console.error(error);
-    }
-    setLoading(false);
-  };
+  // --- CRUD: Papers ---
 
-  // Add or Update reference book
-  const handleAddReferenceBook = async (e) => {
-    e.preventDefault();
-    const isEditing = editingReferenceBookId !== null;
-
-    try {
-      const token = localStorage.getItem("token");
-
-      if (isEditing) {
-        await axios.put(
-          `${API_BASE_URL}/cms/reference-books/${editingReferenceBookId}`,
-          referenceBookForm,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        );
-        toast.success("✅ Reference book updated successfully!");
-      } else {
-        await axios.post(
-          `${API_BASE_URL}/cms/reference-books`,
-          referenceBookForm,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        );
-        toast.success("✅ Reference book added successfully!");
-      }
-
-      setShowAddReferenceBook(false);
-      setEditingReferenceBookId(null);
-      setReferenceBookForm({
-        title: "",
-        author: "",
-        subject: "",
-        class_standard: "",
-        chapter: "",
-        board: "CBSE",
-        publisher: "",
-        description: "",
-        file_url: "",
-      });
-      fetchReferenceBooks();
-    } catch (error) {
-      const errorMsg = isEditing
-        ? "Failed to update reference book"
-        : "Failed to add reference book";
-      toast.error(formatErrorMessage(error, errorMsg));
-      console.error(error);
-    }
-  };
-
-  // Delete reference book
-  const handleDeleteReferenceBook = async (bookId) => {
-    if (
-      !window.confirm("Are you sure you want to delete this reference book?")
-    ) {
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-      await axios.delete(`${API_BASE_URL}/cms/reference-books/${bookId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      toast.success("✅ Reference book deleted successfully!");
-      fetchReferenceBooks();
-    } catch (error) {
-      toast.error(formatErrorMessage(error, "Failed to delete reference book"));
-      console.error(error);
-    }
-  };
-
-  // Fetch previous papers
-  const fetchPreviousPapers = async () => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(
-        `${API_BASE_URL}/cms/previous-year-papers`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-      setPreviousPapers(response.data || []);
-    } catch (error) {
-      toast.error("Failed to load previous year papers");
-      console.error(error);
-    }
-    setLoading(false);
-  };
-
-  // Add or Update previous paper
   const handleAddPaper = async (e) => {
     e.preventDefault();
     const isEditing = editingPaperId !== null;
 
     try {
       const token = localStorage.getItem("token");
+      const endpoint = `${API_BASE_URL}/cms/previous-year-papers`;
 
       if (isEditing) {
-        await axios.put(
-          `${API_BASE_URL}/cms/previous-year-papers/${editingPaperId}`,
-          paperForm,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        );
-        toast.success("✅ Previous year paper updated successfully!");
+        await axios.put(`${endpoint}/${editingPaperId}`, paperForm, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        toast.success("Previous year paper updated");
       } else {
-        await axios.post(
-          `${API_BASE_URL}/cms/previous-year-papers`,
-          paperForm,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        );
-        toast.success("✅ Previous year paper added successfully!");
+        await axios.post(endpoint, paperForm, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        toast.success("Previous year paper added");
       }
 
       setShowAddPaper(false);
-      setEditingPaperId(null);
-      setPaperForm({
-        title: "",
-        subject: "",
-        class_standard: "",
-        chapter: "",
-        exam_year: new Date().getFullYear().toString(),
-        paper_type: "Final Exam",
-        file_url: "",
+      resetForm("paper");
+      fetchPreviousPapers();
+    } catch (err) {
+      const msg = isEditing ? "Failed to update paper" : "Failed to add paper";
+      toast.error(formatErrorMessage(err, msg));
+      console.error(err);
+    }
+  };
+
+  const handleEditPaper = (paper) => {
+    setEditingPaperId(paper.id);
+    setPaperForm({
+      title: paper.title || "",
+      subject: paper.subject || "",
+      class_standard: paper.class_standard || "",
+      chapter: paper.chapter || "",
+      exam_year: paper.exam_year || new Date().getFullYear().toString(),
+      paper_type: paper.paper_type || "Final Exam",
+      file_url: paper.pdf_url || paper.file_url || "",
+    });
+    setShowAddPaper(true);
+  };
+
+  const handleDeletePaper = async (id) => {
+    if (!window.confirm("Delete this paper?")) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`${API_BASE_URL}/cms/previous-year-papers/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
+      toast.success("Previous year paper deleted");
       fetchPreviousPapers();
-    } catch (error) {
-      const errorMsg = isEditing
-        ? "Failed to update paper"
-        : "Failed to add paper";
-      toast.error(formatErrorMessage(error, errorMsg));
-      console.error(error);
+    } catch (err) {
+      toast.error(formatErrorMessage(err, "Failed to delete paper"));
+      console.error(err);
     }
   };
 
-  // Delete previous paper
-  const handleDeletePaper = async (paperId) => {
-    if (!window.confirm("Are you sure you want to delete this paper?")) {
-      return;
-    }
+  // --- Shared Book Modal (Academic + Reference) ---
 
-    try {
-      const token = localStorage.getItem("token");
-      await axios.delete(
-        `${API_BASE_URL}/cms/previous-year-papers/${paperId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-      toast.success("✅ Previous year paper deleted successfully!");
-      fetchPreviousPapers();
-    } catch (error) {
-      toast.error(formatErrorMessage(error, "Failed to delete paper"));
-      console.error(error);
-    }
+  const renderBookModal = (
+    isReference,
+    showModal,
+    setShowModal,
+    formState,
+    setFormState,
+    handleAddFunction,
+    editingId,
+    resetFormFn,
+  ) => {
+    if (!showModal) return null;
+
+    const formType = isReference ? "reference" : "book";
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-bold text-gray-900">
+              {editingId
+                ? `Edit ${isReference ? "Reference" : "Academic"} Book`
+                : `Add New ${isReference ? "Reference" : "Academic"} Book`}
+            </h3>
+            <button
+              onClick={() => {
+                setShowModal(false);
+                resetFormFn(formType);
+              }}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          <form onSubmit={handleAddFunction} className="space-y-4">
+            {/* Title / Author */}
+            <div className="grid grid-cols-2 gap-4">
+              <input
+                type="text"
+                placeholder="BOOK TITLE *"
+                value={formState.title}
+                onChange={(e) =>
+                  handleFormChange(formType, "title", e.target.value)
+                }
+                className="w-full px-3 py-2 border rounded-lg"
+                required
+              />
+              <input
+                type="text"
+                placeholder="AUTHOR *"
+                value={formState.author}
+                onChange={(e) =>
+                  handleFormChange(formType, "author", e.target.value)
+                }
+                className="w-full px-3 py-2 border rounded-lg"
+                required
+              />
+            </div>
+
+            {/* Class / Subject */}
+            <div className="grid grid-cols-2 gap-4">
+              <select
+                value={formState.class_standard}
+                onChange={(e) =>
+                  handleFormChange(formType, "class_standard", e.target.value)
+                }
+                className="w-full px-3 py-2 border rounded-lg"
+                required
+              >
+                <option value="">SELECT CLASS (5-12) *</option>
+                {[5, 6, 7, 8, 9, 10, 11, 12].map((c) => (
+                  <option key={c} value={c}>
+                    Class {c}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={formState.subject}
+                onChange={(e) =>
+                  handleFormChange(formType, "subject", e.target.value)
+                }
+                className="w-full px-3 py-2 border rounded-lg"
+                required
+              >
+                <option value="">SELECT SUBJECTS *</option>
+                {["Physics", "Chemistry", "Biology", "Math", "English"].map(
+                  (s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ),
+                )}
+              </select>
+            </div>
+
+            {/* Prelims Upload */}
+            <div className="border p-4 rounded-lg bg-gray-50">
+              <label className="block text-xs font-medium mb-2 text-gray-600 flex justify-between items-center">
+                <span>
+                  PRELIMS / Full Book File (PDF, TXT, DOCX - Max 100MB)
+                </span>
+                {formState.prelims_file_url && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleFormChange(formType, "prelims_file_url", "")
+                    }
+                    className="text-red-500 hover:text-red-700 text-xs flex items-center gap-1"
+                  >
+                    <X className="w-3 h-3" /> Clear File
+                  </button>
+                )}
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="file"
+                  accept=".pdf,.txt,.docx,.doc"
+                  onChange={async (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      await handleFileUpload(file, (url, fileName) => {
+                        handleFormChange(formType, "prelims_file_url", url);
+                        handleFormChange(
+                          formType,
+                          "prelims_file_name",
+                          fileName,
+                        );
+                      });
+                    }
+                  }}
+                  className="flex-1 text-sm border p-1 rounded"
+                  disabled={uploadingFile || formState.prelims_file_url}
+                />
+                <div className="text-xs w-1/3">
+                  {uploadingFile ? (
+                    <span className="text-blue-600">Uploading...</span>
+                  ) : formState.prelims_file_name ? (
+                    <span className="text-green-600 flex items-center gap-1">
+                      <File className="w-3 h-3" /> {formState.prelims_file_name}
+                    </span>
+                  ) : (
+                    <span className="text-gray-500">No file chosen</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Chapters */}
+            <div className="space-y-3 p-4 border rounded-lg bg-white shadow-inner">
+              <h4 className="text-base font-semibold text-gray-800 border-b pb-2 mb-3">
+                Chapters (1-{formState.chapters.length})
+              </h4>
+              {formState.chapters.map((chapter, index) => (
+                <div
+                  key={index}
+                  className="flex items-center gap-2 border p-3 rounded-lg bg-gray-50"
+                >
+                  <span className="font-bold text-gray-700 min-w-[85px] text-sm">
+                    CHAPTER {index + 1}:
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Chapter Title"
+                    value={chapter.title}
+                    onChange={(e) =>
+                      handleChapterChange(
+                        formType,
+                        index,
+                        "title",
+                        e.target.value,
+                      )
+                    }
+                    className="w-1/3 px-2 py-1 border rounded-lg text-sm"
+                    required
+                  />
+
+                  <div className="flex items-center w-1/3 text-xs">
+                    <input
+                      type="file"
+                      accept=".pdf,.txt,.docx,.doc"
+                      onChange={async (e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          await handleFileUpload(file, (url, fileName) => {
+                            handleChapterChange(
+                              formType,
+                              index,
+                              "file_url",
+                              url,
+                              fileName,
+                            );
+                          });
+                        }
+                      }}
+                      className="text-sm flex-1"
+                      disabled={uploadingFile || chapter.file_url}
+                    />
+                  </div>
+
+                  <div className="w-1/3 text-xs flex items-center justify-end gap-2">
+                    {uploadingFile && (
+                      <span className="text-blue-600">Uploading...</span>
+                    )}
+                    {chapter.file_name && (
+                      <span className="text-green-600 flex items-center gap-1">
+                        <File className="w-3 h-3" /> File
+                      </span>
+                    )}
+                    {chapter.file_url && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleChapterChange(formType, index, "file_url", "")
+                        }
+                        className="text-red-500 hover:text-red-700 p-1"
+                        title="Clear Chapter File"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                    {formState.chapters.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeChapterField(formType, index)}
+                        className="text-red-600 hover:text-red-800 p-1 rounded-full"
+                        title="Remove Chapter"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {formState.chapters.length < 20 && (
+                <button
+                  type="button"
+                  onClick={() => addChapterField(formType)}
+                  className="flex items-center gap-1 text-emerald-600 hover:text-emerald-700 mt-2 font-bold text-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  CHAPTER ADD
+                </button>
+              )}
+            </div>
+
+            {/* Bulk Upload Placeholder */}
+            <div className="border p-4 rounded-lg bg-gray-50">
+              <label className="block text-xs font-medium mb-2 text-gray-600 flex items-center gap-2">
+                <Upload className="w-4 h-4" />
+                BULK UPLOAD (All Chapters in One File - Max 100MB)
+              </label>
+              <input
+                type="file"
+                accept=".pdf,.txt,.docx,.doc"
+                onChange={(e) =>
+                  setFormState({
+                    ...formState,
+                    bulk_upload_file: e.target.files[0],
+                  })
+                }
+                className="w-full px-3 py-2 border rounded-lg text-sm"
+                disabled={uploadingFile}
+              />
+              {formState.bulk_upload_file && (
+                <p className="text-sm text-gray-600 mt-2">
+                  Selected: {formState.bulk_upload_file.name}
+                </p>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2 pt-4">
+              <button
+                type="submit"
+                className="flex-1 bg-emerald-600 text-white py-2 rounded-lg hover:bg-emerald-700 disabled:bg-gray-400"
+                disabled={uploadingFile}
+              >
+                {editingId ? "Update Book" : "Add Book"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowModal(false);
+                  resetFormFn(formType);
+                }}
+                className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
   };
 
-  // Handle file upload
-  const handleFileUpload = async (file) => {
-    if (!file) return null;
-
-    // Validate file size (max 30MB)
-    const maxSize = 30 * 1024 * 1024;
-    if (file.size > maxSize) {
-      toast.error("File size must be less than 30MB");
-      return null;
-    }
-
-    // Validate file type
-    const allowedTypes = [
-      "application/pdf",
-      "text/plain",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error("Only PDF, TXT, and DOCX files are allowed");
-      return null;
-    }
-
-    setUploadingFile(true);
-    try {
-      const token = localStorage.getItem("token");
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await axios.post(
-        `${API_BASE_URL}/files/upload`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        },
-      );
-
-      toast.success("File uploaded successfully!");
-      return response.data.file_url;
-    } catch (error) {
-      toast.error(formatErrorMessage(error, "File upload failed"));
-      console.error(error);
-      return null;
-    } finally {
-      setUploadingFile(false);
-    }
-  };
-
-  useEffect(() => {
-    if (activeTab === "books") {
-      fetchBooks();
-    } else if (activeTab === "qa") {
-      fetchQAPairs();
-    } else if (activeTab === "reference") {
-      fetchReferenceBooks();
-      setRefNavLevel({ step: "class", class: "", subject: "", book: "" });
-    } else if (activeTab === "papers") {
-      fetchPreviousPapers();
-      setPaperNavLevel({ step: "class", class: "", subject: "", year: "" });
-    }
-  }, [activeTab]);
+  // --- Render ---
 
   return (
     <div className="p-6">
@@ -692,7 +1085,7 @@ const AcademicCMS = () => {
           Academic Content CMS
         </h1>
         <p className="text-gray-600">
-          Manage academic books and Q&A knowledge base for AI Assistant
+          Manage academic books, reference books, Q&A and previous papers
         </p>
       </div>
 
@@ -746,249 +1139,300 @@ const AcademicCMS = () => {
         </nav>
       </div>
 
-      {/* Books Tab */}
+      {/* Academic Books Tab: class -> subject -> books */}
       {activeTab === "books" && (
         <div>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">
-              Academic Books ({books.length})
-            </h2>
-            <button
-              onClick={() => {
-                setEditingBookId(null);
-                setBookForm({
-                  title: "",
-                  author: "",
-                  subject: "",
-                  class_standard: "",
-                  board: "CBSE",
-                  publisher: "",
-                  description: "",
-                  file_url: "",
-                });
-                setShowAddBook(true);
-              }}
-              className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700"
-            >
-              <Plus className="w-4 h-4" />
-              Add Book
-            </button>
-          </div>
-
-          {/* Books Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {books.map((book) => (
-              <div
-                key={book.id}
-                className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+          {/* Breadcrumb */}
+          {bookNavLevel.step !== "class" && (
+            <div className="mb-4 flex items-center gap-2 text-sm text-gray-600">
+              <button
+                onClick={() =>
+                  setBookNavLevel({ step: "class", class: "", subject: "" })
+                }
+                className="hover:text-emerald-600"
               >
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-semibold text-gray-900 flex-1">
-                    {book.title}
-                  </h3>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleEditBook(book)}
-                      className="text-blue-600 hover:text-blue-800 p-1"
-                      title="Edit Book"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteBook(book.id)}
-                      className="text-red-600 hover:text-red-800 p-1"
-                      title="Delete Book"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600">by {book.author}</p>
-                <div className="mt-2 flex gap-2">
-                  <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
-                    {book.subject}
+                Classes
+              </button>
+              {bookNavLevel.class && (
+                <>
+                  <span>›</span>
+                  <span className="font-medium">
+                    Class {bookNavLevel.class}
                   </span>
-                  <span className="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">
-                    Class {book.class_standard}
-                  </span>
-                </div>
-                <p className="text-sm text-gray-500 mt-2">{book.description}</p>
+                </>
+              )}
+              {bookNavLevel.step === "subject" && (
+                <>
+                  <span>›</span>
+                  <span>Select Subject</span>
+                </>
+              )}
+              {bookNavLevel.step === "books" && bookNavLevel.subject && (
+                <>
+                  <span>›</span>
+                  <span>{bookNavLevel.subject}</span>
+                </>
+              )}
+            </div>
+          )}
 
-                {/* File link(s) if present */}
-                {(book.file_url || book.pdf_url) && (
-                  <div className="mt-3 flex gap-2 flex-wrap">
-                    <a
-                      href={book.file_url || book.pdf_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded hover:bg-orange-200"
-                      title="Open uploaded file"
-                    >
-                      <FileText className="w-3 h-3" />
-                      View File
-                    </a>
-                    <a
-                      href={book.file_url || book.pdf_url}
-                      download
-                      className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 text-xs px-2 py-1 rounded hover:bg-emerald-200"
-                      title="Download file"
-                    >
-                      <Download className="w-3 h-3" />
-                      Download
-                    </a>
-                  </div>
-                )}
+          {/* Step 1: Classes */}
+          {bookNavLevel.step === "class" && (
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold">Select Class (5-12)</h2>
+                <button
+                  onClick={() => {
+                    resetForm("book");
+                    setShowAddBook(true);
+                  }}
+                  className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add New Book
+                </button>
               </div>
-            ))}
-          </div>
+              {books.length === 0 ? (
+                <div className="text-center py-12 bg-gray-50 rounded-lg">
+                  <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-4">
+                    No academic books added yet
+                  </p>
+                  <button
+                    onClick={() => setShowAddBook(true)}
+                    className="bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700"
+                  >
+                    Add Your First Book
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                  {[...new Set(books.map((b) => b.class_standard))]
+                    .filter(Boolean)
+                    .sort((a, b) => Number(a) - Number(b))
+                    .map((classNum) => (
+                      <button
+                        key={classNum}
+                        onClick={() =>
+                          setBookNavLevel({
+                            step: "subject",
+                            class: classNum,
+                            subject: "",
+                          })
+                        }
+                        className="border-2 border-gray-300 rounded-lg p-6 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-center"
+                      >
+                        <div className="text-3xl font-bold text-gray-900">
+                          Class {classNum}
+                        </div>
+                        <div className="text-sm text-gray-600 mt-2">
+                          {
+                            books.filter((b) => b.class_standard === classNum)
+                              .length
+                          }{" "}
+                          books
+                        </div>
+                      </button>
+                    ))}
+                </div>
+              )}
+            </div>
+          )}
 
-          {/* Add/Edit Book Modal */}
-          {showAddBook && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-              <div className="bg-white rounded-lg p-6 max-w-md w-full">
-                <h3 className="text-lg font-semibold mb-4">
-                  {editingBookId ? "Edit Book" : "Add New Book"}
-                </h3>
-                <form onSubmit={handleAddBook} className="space-y-4">
-                  <input
-                    type="text"
-                    placeholder="Book Title"
-                    value={bookForm.title}
-                    onChange={(e) =>
-                      setBookForm({ ...bookForm, title: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg"
-                    required
-                  />
-                  <input
-                    type="text"
-                    placeholder="Author"
-                    value={bookForm.author}
-                    onChange={(e) =>
-                      setBookForm({ ...bookForm, author: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg"
-                    required
-                  />
-                  <input
-                    type="text"
-                    placeholder="Subject (e.g., Mathematics)"
-                    value={bookForm.subject}
-                    onChange={(e) =>
-                      setBookForm({ ...bookForm, subject: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg"
-                    required
-                  />
-                  <input
-                    type="text"
-                    placeholder="Class (e.g., 10th)"
-                    value={bookForm.class_standard}
-                    onChange={(e) =>
-                      setBookForm({
-                        ...bookForm,
-                        class_standard: e.target.value,
+          {/* Step 2 & 3: Subject / Books */}
+          {(bookNavLevel.step === "subject" ||
+            bookNavLevel.step === "books") && (
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold">
+                  {bookNavLevel.step === "subject"
+                    ? `Select Subject (Class ${bookNavLevel.class})`
+                    : `Academic Books (Class ${bookNavLevel.class} - ${bookNavLevel.subject})`}
+                </h2>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() =>
+                      setBookNavLevel({
+                        step: "class",
+                        class: "",
+                        subject: "",
                       })
                     }
-                    className="w-full px-3 py-2 border rounded-lg"
-                    required
-                  />
-                  <textarea
-                    placeholder="Description"
-                    value={bookForm.description}
-                    onChange={(e) =>
-                      setBookForm({ ...bookForm, description: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg"
-                    rows={3}
-                  />
-
-                  {/* File Upload */}
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Upload File (PDF, TXT, DOCX - Max 30MB)
-                    </label>
-                    <input
-                      type="file"
-                      accept=".pdf,.txt,.docx"
-                      onChange={async (e) => {
-                        const file = e.target.files[0];
-                        if (file) {
-                          const fileUrl = await handleFileUpload(file);
-                          if (fileUrl) {
-                            setBookForm({ ...bookForm, file_url: fileUrl });
-                          }
-                        }
-                      }}
-                      className="w-full px-3 py-2 border rounded-lg"
-                      disabled={uploadingFile}
-                    />
-                    {uploadingFile && (
-                      <p className="text-sm text-blue-600 mt-1">Uploading...</p>
-                    )}
-                    {bookForm.file_url && (
-                      <a
-                        href={bookForm.file_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm inline-flex items-center gap-1 text-emerald-700 mt-1 underline"
-                        title="Preview uploaded file"
-                      >
-                        <FileText className="w-3 h-3" />
-                        Preview uploaded file
-                      </a>
-                    )}
-                  </div>
-
-                  <div className="flex gap-2">
+                    className="text-gray-600 hover:text-gray-900"
+                  >
+                    ← Back to Classes
+                  </button>
+                  {bookNavLevel.step === "books" && (
                     <button
-                      type="submit"
-                      className="flex-1 bg-emerald-600 text-white py-2 rounded-lg hover:bg-emerald-700"
-                    >
-                      {editingBookId ? "Update Book" : "Add Book"}
-                    </button>
-                    <button
-                      type="button"
                       onClick={() => {
-                        setShowAddBook(false);
-                        setEditingBookId(null);
-                        setBookForm({
-                          title: "",
-                          author: "",
-                          subject: "",
-                          class_standard: "",
-                          board: "CBSE",
-                          publisher: "",
-                          description: "",
-                          file_url: "",
-                        });
+                        resetForm("book");
+                        setBookForm((prev) => ({
+                          ...prev,
+                          subject: bookNavLevel.subject,
+                          class_standard: bookNavLevel.class,
+                        }));
+                        setShowAddBook(true);
                       }}
-                      className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
+                      className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700"
                     >
-                      Cancel
+                      <Plus className="w-4 h-4" />
+                      Add Book
                     </button>
-                  </div>
-                </form>
+                  )}
+                </div>
               </div>
+
+              {bookNavLevel.step === "subject" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[
+                    ...new Set(
+                      books
+                        .filter((b) => b.class_standard === bookNavLevel.class)
+                        .map((b) => b.subject),
+                    ),
+                  ]
+                    .filter(Boolean)
+                    .sort()
+                    .map((subject) => (
+                      <button
+                        key={subject}
+                        onClick={() =>
+                          setBookNavLevel({
+                            step: "books",
+                            class: bookNavLevel.class,
+                            subject,
+                          })
+                        }
+                        className="border-2 border-gray-300 rounded-lg p-4 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left"
+                      >
+                        <div className="text-xl font-semibold text-gray-900">
+                          {subject}
+                        </div>
+                        <div className="text-sm text-gray-600 mt-1">
+                          {
+                            books.filter(
+                              (b) =>
+                                b.class_standard === bookNavLevel.class &&
+                                b.subject === subject,
+                            ).length
+                          }{" "}
+                          books
+                        </div>
+                      </button>
+                    ))}
+                </div>
+              )}
+
+              {bookNavLevel.step === "books" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {books
+                    .filter(
+                      (b) =>
+                        b.class_standard === bookNavLevel.class &&
+                        b.subject === bookNavLevel.subject,
+                    )
+                    .map((book) => {
+                      const hasPrelims = book.prelims_file_url || book.pdf_url;
+                      const chapterCount =
+                        book.chapter_count ||
+                        (book.chapters ? book.chapters.length : 0);
+
+                      return (
+                        <div
+                          key={book.id}
+                          className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <h3 className="font-semibold text-gray-900 flex-1">
+                              {book.title}
+                            </h3>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleEditBook(book)}
+                                className="text-blue-600 hover:text-blue-800 p-1"
+                                title="Edit Book"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteBook(book.id)}
+                                className="text-red-600 hover:text-red-800 p-1"
+                                title="Delete Book"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                          <p className="text-sm text-gray-600">
+                            by {book.author}
+                          </p>
+                          <div className="mt-2 flex gap-2 flex-wrap">
+                            <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                              {book.subject}
+                            </span>
+                            <span className="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">
+                              Class {book.class_standard}
+                            </span>
+                            {chapterCount > 0 && (
+                              <span className="inline-block bg-emerald-100 text-emerald-800 text-xs px-2 py-1 rounded">
+                                {chapterCount} Chapters
+                              </span>
+                            )}
+                          </div>
+
+                          {/* View buttons */}
+                          <div className="mt-3 flex gap-2 flex-wrap">
+                            {hasPrelims && (
+                              <a
+                                href={book.prelims_file_url || book.pdf_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 bg-yellow-100 text-yellow-800 text-xs px-3 py-1 rounded hover:bg-yellow-200"
+                              >
+                                <FileText className="w-3 h-3" />
+                                View Book
+                              </a>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => openChapterModal(book, "academic")}
+                              className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 text-xs px-3 py-1 rounded hover:bg-emerald-200"
+                            >
+                              <BookOpen className="w-3 h-3" />
+                              View Chapters
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
             </div>
+          )}
+
+          {renderBookModal(
+            false,
+            showAddBook,
+            setShowAddBook,
+            bookForm,
+            setBookForm,
+            handleAddBook,
+            editingBookId,
+            resetForm,
           )}
         </div>
       )}
 
-      {/* Reference Books Tab */}
+      {/* Reference Books Tab: class -> subject -> books */}
       {activeTab === "reference" && (
         <div>
-          {/* Breadcrumb Navigation */}
+          {/* Breadcrumb */}
           {refNavLevel.step !== "class" && (
             <div className="mb-4 flex items-center gap-2 text-sm text-gray-600">
               <button
                 onClick={() =>
-                  setRefNavLevel({
-                    step: "class",
-                    class: "",
-                    subject: "",
-                    book: "",
-                  })
+                  setRefNavLevel({ step: "class", class: "", subject: "" })
                 }
                 className="hover:text-emerald-600"
               >
@@ -1006,38 +1450,22 @@ const AcademicCMS = () => {
                   <span>Select Subject</span>
                 </>
               )}
-              {refNavLevel.subject && refNavLevel.step === "books" && (
-                <>
-                  <span>›</span>
-                  <button
-                    onClick={() =>
-                      setRefNavLevel({
-                        ...refNavLevel,
-                        step: "subject",
-                        subject: "",
-                      })
-                    }
-                    className="hover:text-emerald-600"
-                  >
-                    {refNavLevel.subject}
-                  </button>
-                  <span>›</span>
-                  <span>Books</span>
-                </>
-              )}
             </div>
           )}
 
-          {/* Step 1: Select Class */}
+          {/* Step 1: Classes */}
           {refNavLevel.step === "class" && (
             <div>
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold">Select Class</h2>
+                <h2 className="text-lg font-semibold">Select Class (5-12)</h2>
                 <button
-                  onClick={() => setShowAddReferenceBook(true)}
+                  onClick={() => {
+                    resetForm("reference");
+                    setShowAddReferenceBook(true);
+                  }}
                   className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 flex items-center gap-2"
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus className="w-4 h-4" />
                   Add New Book
                 </button>
               </div>
@@ -1056,20 +1484,17 @@ const AcademicCMS = () => {
                 </div>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                  {[
-                    ...new Set(
-                      referenceBooks.map((book) => book.class_standard),
-                    ),
-                  ]
-                    .sort((a, b) => a - b)
+                  {[...new Set(referenceBooks.map((b) => b.class_standard))]
+                    .filter(Boolean)
+                    .sort((a, b) => Number(a) - Number(b))
                     .map((classNum) => (
                       <button
                         key={classNum}
                         onClick={() =>
                           setRefNavLevel({
-                            ...refNavLevel,
                             step: "subject",
                             class: classNum,
+                            subject: "",
                           })
                         }
                         className="border-2 border-gray-300 rounded-lg p-6 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-center"
@@ -1092,349 +1517,184 @@ const AcademicCMS = () => {
             </div>
           )}
 
-          {/* Step 2: Select Subject */}
-          {refNavLevel.step === "subject" && (
-            <div>
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold">Select Subject</h2>
-                <button
-                  onClick={() =>
-                    setRefNavLevel({ ...refNavLevel, step: "class", class: "" })
-                  }
-                  className="text-gray-600 hover:text-gray-900"
-                >
-                  ← Back
-                </button>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[
-                  ...new Set(
-                    referenceBooks
-                      .filter(
-                        (book) => book.class_standard === refNavLevel.class,
-                      )
-                      .map((book) => book.subject),
-                  ),
-                ]
-                  .sort()
-                  .map((subject) => (
-                    <button
-                      key={subject}
-                      onClick={() =>
-                        setRefNavLevel({
-                          ...refNavLevel,
-                          step: "books",
-                          subject,
-                        })
-                      }
-                      className="border-2 border-gray-300 rounded-lg p-4 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left"
-                    >
-                      <div className="text-xl font-semibold text-gray-900">
-                        {subject}
-                      </div>
-                      <div className="text-sm text-gray-600 mt-1">
-                        {
-                          referenceBooks.filter(
-                            (b) =>
-                              b.class_standard === refNavLevel.class &&
-                              b.subject === subject,
-                          ).length
-                        }{" "}
-                        books
-                      </div>
-                    </button>
-                  ))}
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: View Books */}
-          {refNavLevel.step === "books" && (
+          {/* Step 2 & 3: Subject / Books */}
+          {(refNavLevel.step === "subject" || refNavLevel.step === "books") && (
             <div>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold">
-                  Reference Books (
-                  {
-                    referenceBooks.filter(
-                      (b) =>
-                        b.class_standard === refNavLevel.class &&
-                        b.subject === refNavLevel.subject,
-                    ).length
-                  }
-                  )
+                  {refNavLevel.step === "subject"
+                    ? `Select Subject (Class ${refNavLevel.class})`
+                    : `Reference Books (Class ${refNavLevel.class} - ${refNavLevel.subject})`}
                 </h2>
                 <div className="flex gap-2">
                   <button
                     onClick={() =>
                       setRefNavLevel({
-                        ...refNavLevel,
-                        step: "subject",
+                        step: "class",
+                        class: "",
                         subject: "",
                       })
                     }
                     className="text-gray-600 hover:text-gray-900"
                   >
-                    ← Back
+                    ← Back to Classes
                   </button>
-                  <button
-                    onClick={() => {
-                      setEditingReferenceBookId(null);
-                      setReferenceBookForm({
-                        title: "",
-                        author: "",
-                        subject: refNavLevel.subject,
-                        class_standard: refNavLevel.class,
-                        chapter: "",
-                        board: "CBSE",
-                        publisher: "",
-                        description: "",
-                        file_url: "",
-                      });
-                      setShowAddReferenceBook(true);
-                    }}
-                    className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add Reference Book
-                  </button>
+                  {refNavLevel.step === "books" && (
+                    <button
+                      onClick={() => {
+                        resetForm("reference");
+                        setReferenceBookForm((prev) => ({
+                          ...prev,
+                          subject: refNavLevel.subject,
+                          class_standard: refNavLevel.class,
+                        }));
+                        setShowAddReferenceBook(true);
+                      }}
+                      className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Book
+                    </button>
+                  )}
                 </div>
               </div>
 
-              {/* Books Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {referenceBooks
-                  .filter(
-                    (book) =>
-                      book.class_standard === refNavLevel.class &&
-                      book.subject === refNavLevel.subject,
-                  )
-                  .map((book) => (
-                    <div
-                      key={book.id}
-                      className="border rounded-lg p-4 hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-semibold text-gray-900 flex-1">
-                          {book.title}
-                        </h3>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => {
-                              setEditingReferenceBookId(book.id);
-                              setReferenceBookForm({
-                                title: book.title,
-                                author: book.author,
-                                subject: book.subject,
-                                class_standard: book.class_standard,
-                                chapter: book.chapter || "",
-                                board: book.board || "CBSE",
-                                publisher: book.publisher || "",
-                                description: book.description || "",
-                                file_url: book.file_url || "",
-                              });
-                              setShowAddReferenceBook(true);
-                            }}
-                            className="text-blue-600 hover:text-blue-800 p-1"
-                            title="Edit Book"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteReferenceBook(book.id)}
-                            className="text-red-600 hover:text-red-800 p-1"
-                            title="Delete Book"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+              {refNavLevel.step === "subject" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[
+                    ...new Set(
+                      referenceBooks
+                        .filter((b) => b.class_standard === refNavLevel.class)
+                        .map((b) => b.subject),
+                    ),
+                  ]
+                    .filter(Boolean)
+                    .sort()
+                    .map((subject) => (
+                      <button
+                        key={subject}
+                        onClick={() =>
+                          setRefNavLevel({
+                            step: "books",
+                            class: refNavLevel.class,
+                            subject,
+                          })
+                        }
+                        className="border-2 border-gray-300 rounded-lg p-4 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left"
+                      >
+                        <div className="text-xl font-semibold text-gray-900">
+                          {subject}
                         </div>
-                      </div>
-                      <p className="text-sm text-gray-600">by {book.author}</p>
-                      <div className="mt-2 flex gap-2 flex-wrap">
-                        {book.chapter && (
-                          <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
-                            {book.chapter}
-                          </span>
-                        )}
-                        {book.file_url && (
-                          <a
-                            href={book.file_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded hover:bg-orange-200"
-                          >
-                            <FileText className="w-3 h-3" />
-                            View File
-                          </a>
-                        )}
-                      </div>
-                      {book.description && (
-                        <p className="text-sm text-gray-500 mt-2">
-                          {book.description}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-              </div>
+                        <div className="text-sm text-gray-600 mt-1">
+                          {
+                            referenceBooks.filter(
+                              (b) =>
+                                b.class_standard === refNavLevel.class &&
+                                b.subject === subject,
+                            ).length
+                          }{" "}
+                          books
+                        </div>
+                      </button>
+                    ))}
+                </div>
+              )}
+
+              {refNavLevel.step === "books" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {referenceBooks
+                    .filter(
+                      (b) =>
+                        b.class_standard === refNavLevel.class &&
+                        b.subject === refNavLevel.subject,
+                    )
+                    .map((book) => {
+                      const hasPrelims = book.prelims_file_url || book.pdf_url;
+                      const chapterCount =
+                        book.chapter_count ||
+                        (book.chapters ? book.chapters.length : 0);
+
+                      return (
+                        <div
+                          key={book.id}
+                          className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <h3 className="font-semibold text-gray-900 flex-1">
+                              {book.title}
+                            </h3>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleEditReferenceBook(book)}
+                                className="text-blue-600 hover:text-blue-800 p-1"
+                                title="Edit Book"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() =>
+                                  handleDeleteReferenceBook(book.id)
+                                }
+                                className="text-red-600 hover:text-red-800 p-1"
+                                title="Delete Book"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                          <p className="text-sm text-gray-600">
+                            by {book.author}
+                          </p>
+                          <div className="mt-2 flex gap-2 flex-wrap">
+                            {chapterCount > 0 && (
+                              <span className="inline-block bg-emerald-100 text-emerald-800 text-xs px-2 py-1 rounded">
+                                {chapterCount} Chapters
+                              </span>
+                            )}
+                          </div>
+
+                          {/* View buttons */}
+                          <div className="mt-3 flex gap-2 flex-wrap">
+                            {hasPrelims && (
+                              <a
+                                href={book.prelims_file_url || book.pdf_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 bg-orange-100 text-orange-800 text-xs px-3 py-1 rounded hover:bg-orange-200"
+                              >
+                                <FileText className="w-3 h-3" />
+                                View Book
+                              </a>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openChapterModal(book, "reference")
+                              }
+                              className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 text-xs px-3 py-1 rounded hover:bg-emerald-200"
+                            >
+                              <BookOpen className="w-3 h-3" />
+                              View Chapters
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
             </div>
           )}
 
-          {/* Add/Edit Reference Book Modal */}
-          {showAddReferenceBook && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-              <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                <h3 className="text-lg font-semibold mb-4">
-                  {editingReferenceBookId
-                    ? "Edit Reference Book"
-                    : "Add New Reference Book"}
-                </h3>
-                <form onSubmit={handleAddReferenceBook} className="space-y-4">
-                  <input
-                    type="text"
-                    placeholder="Book Title *"
-                    value={referenceBookForm.title}
-                    onChange={(e) =>
-                      setReferenceBookForm({
-                        ...referenceBookForm,
-                        title: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg"
-                    required
-                  />
-                  <input
-                    type="text"
-                    placeholder="Author *"
-                    value={referenceBookForm.author}
-                    onChange={(e) =>
-                      setReferenceBookForm({
-                        ...referenceBookForm,
-                        author: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg"
-                    required
-                  />
-                  <div className="grid grid-cols-2 gap-4">
-                    <select
-                      value={referenceBookForm.subject}
-                      onChange={(e) =>
-                        setReferenceBookForm({
-                          ...referenceBookForm,
-                          subject: e.target.value,
-                        })
-                      }
-                      className="w-full px-3 py-2 border rounded-lg"
-                      required
-                    >
-                      <option value="">Select Subject *</option>
-                      {[
-                        "Physics",
-                        "Chemistry",
-                        "Biology",
-                        "Math",
-                        "English",
-                      ].map((s) => (
-                        <option key={s} value={s}>
-                          {s}
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      value={referenceBookForm.class_standard}
-                      onChange={(e) =>
-                        setReferenceBookForm({
-                          ...referenceBookForm,
-                          class_standard: e.target.value,
-                        })
-                      }
-                      className="w-full px-3 py-2 border rounded-lg"
-                      required
-                    >
-                      <option value="">Select Class *</option>
-                      {[9, 10, 11, 12].map((c) => (
-                        <option key={c} value={c}>
-                          Class {c}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Chapter (optional)"
-                    value={referenceBookForm.chapter}
-                    onChange={(e) =>
-                      setReferenceBookForm({
-                        ...referenceBookForm,
-                        chapter: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg"
-                  />
-                  <textarea
-                    placeholder="Description"
-                    value={referenceBookForm.description}
-                    onChange={(e) =>
-                      setReferenceBookForm({
-                        ...referenceBookForm,
-                        description: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg"
-                    rows={3}
-                  />
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Upload File (PDF, TXT, DOCX - Max 30MB)
-                    </label>
-                    <input
-                      type="file"
-                      accept=".pdf,.txt,.docx"
-                      onChange={async (e) => {
-                        const file = e.target.files[0];
-                        if (file) {
-                          const fileUrl = await handleFileUpload(file);
-                          if (fileUrl) {
-                            setReferenceBookForm({
-                              ...referenceBookForm,
-                              file_url: fileUrl,
-                            });
-                          }
-                        }
-                      }}
-                      className="w-full px-3 py-2 border rounded-lg"
-                      disabled={uploadingFile}
-                    />
-                    {uploadingFile && (
-                      <p className="text-sm text-blue-600 mt-1">Uploading...</p>
-                    )}
-                    {referenceBookForm.file_url && (
-                      <p className="text-sm text-green-600 mt-1">
-                        ✓ File uploaded
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="submit"
-                      className="flex-1 bg-emerald-600 text-white py-2 rounded-lg hover:bg-emerald-700"
-                      disabled={uploadingFile}
-                    >
-                      {editingReferenceBookId ? "Update Book" : "Add Book"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowAddReferenceBook(false);
-                        setEditingReferenceBookId(null);
-                      }}
-                      className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
+          {renderBookModal(
+            true,
+            showAddReferenceBook,
+            setShowAddReferenceBook,
+            referenceBookForm,
+            setReferenceBookForm,
+            handleAddReferenceBook,
+            editingReferenceBookId,
+            resetForm,
           )}
         </div>
       )}
@@ -1442,395 +1702,75 @@ const AcademicCMS = () => {
       {/* Previous Years' Papers Tab */}
       {activeTab === "papers" && (
         <div>
-          {/* Breadcrumb Navigation */}
-          {paperNavLevel.step !== "class" && (
-            <div className="mb-4 flex items-center gap-2 text-sm text-gray-600">
-              <button
-                onClick={() =>
-                  setPaperNavLevel({
-                    step: "class",
-                    class: "",
-                    subject: "",
-                    year: "",
-                  })
-                }
-                className="hover:text-emerald-600"
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold">
+              Previous Years' Papers ({previousPapers.length}) (5-12)
+            </h2>
+            <button
+              onClick={() => {
+                resetForm("paper");
+                setShowAddPaper(true);
+              }}
+              className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Add New Paper
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {previousPapers.map((paper) => (
+              <div
+                key={paper.id}
+                className="border rounded-lg p-4 hover:shadow-md transition-shadow"
               >
-                Classes
-              </button>
-              {paperNavLevel.class && (
-                <>
-                  <span>›</span>
-                  <span className="font-medium">
-                    Class {paperNavLevel.class}
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="font-semibold text-gray-900 flex-1">
+                    {paper.title}
+                  </h3>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleEditPaper(paper)}
+                      className="text-blue-600 hover:text-blue-800 p-1"
+                      title="Edit Paper"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeletePaper(paper.id)}
+                      className="text-red-600 hover:text-red-800 p-1"
+                      title="Delete Paper"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-2 flex gap-2 flex-wrap">
+                  <span className="inline-block bg-pink-100 text-pink-800 text-xs px-2 py-1 rounded">
+                    Class {paper.class_standard}
                   </span>
-                </>
-              )}
-              {paperNavLevel.step === "subject" && (
-                <>
-                  <span>›</span>
-                  <span>Select Subject</span>
-                </>
-              )}
-              {paperNavLevel.subject && paperNavLevel.step !== "subject" && (
-                <>
-                  <span>›</span>
-                  <button
-                    onClick={() =>
-                      setPaperNavLevel({
-                        ...paperNavLevel,
-                        step: "subject",
-                        subject: "",
-                        year: "",
-                      })
-                    }
-                    className="hover:text-emerald-600"
-                  >
-                    {paperNavLevel.subject}
-                  </button>
-                </>
-              )}
-              {paperNavLevel.step === "year" && (
-                <>
-                  <span>›</span>
-                  <span>Select Year</span>
-                </>
-              )}
-              {paperNavLevel.year && paperNavLevel.step === "papers" && (
-                <>
-                  <span>›</span>
-                  <button
-                    onClick={() =>
-                      setPaperNavLevel({
-                        ...paperNavLevel,
-                        step: "year",
-                        year: "",
-                      })
-                    }
-                    className="hover:text-emerald-600"
-                  >
-                    {paperNavLevel.year}
-                  </button>
-                  <span>›</span>
-                  <span>Papers</span>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* Step 1: Select Class */}
-          {paperNavLevel.step === "class" && (
-            <div>
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold">Select Class</h2>
-                <button
-                  onClick={() => setShowAddPaper(true)}
-                  className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 flex items-center gap-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add New Paper
-                </button>
-              </div>
-              {previousPapers.length === 0 ? (
-                <div className="text-center py-12 bg-gray-50 rounded-lg">
-                  <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600 mb-4">
-                    No previous year papers added yet
-                  </p>
-                  <button
-                    onClick={() => setShowAddPaper(true)}
-                    className="bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700"
-                  >
-                    Add Your First Paper
-                  </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                  {[
-                    ...new Set(
-                      previousPapers.map((paper) => paper.class_standard),
-                    ),
-                  ]
-                    .sort((a, b) => a - b)
-                    .map((classNum) => (
-                      <button
-                        key={classNum}
-                        onClick={() =>
-                          setPaperNavLevel({
-                            ...paperNavLevel,
-                            step: "subject",
-                            class: classNum,
-                          })
-                        }
-                        className="border-2 border-gray-300 rounded-lg p-6 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-center"
-                      >
-                        <div className="text-3xl font-bold text-gray-900">
-                          Class {classNum}
-                        </div>
-                        <div className="text-sm text-gray-600 mt-2">
-                          {
-                            previousPapers.filter(
-                              (p) => p.class_standard === classNum,
-                            ).length
-                          }{" "}
-                          papers
-                        </div>
-                      </button>
-                    ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Step 2: Select Subject */}
-          {paperNavLevel.step === "subject" && (
-            <div>
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold">Select Subject</h2>
-                <button
-                  onClick={() =>
-                    setPaperNavLevel({
-                      ...paperNavLevel,
-                      step: "class",
-                      class: "",
-                    })
-                  }
-                  className="text-gray-600 hover:text-gray-900"
-                >
-                  ← Back
-                </button>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[
-                  ...new Set(
-                    previousPapers
-                      .filter(
-                        (paper) => paper.class_standard === paperNavLevel.class,
-                      )
-                      .map((paper) => paper.subject),
-                  ),
-                ]
-                  .sort()
-                  .map((subject) => (
-                    <button
-                      key={subject}
-                      onClick={() =>
-                        setPaperNavLevel({
-                          ...paperNavLevel,
-                          step: "year",
-                          subject,
-                        })
-                      }
-                      className="border-2 border-gray-300 rounded-lg p-4 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left"
+                  <span className="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">
+                    {paper.subject}
+                  </span>
+                  <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
+                    {paper.exam_year}
+                  </span>
+                  {paper.file_url && (
+                    <a
+                      href={paper.file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded hover:bg-orange-200"
                     >
-                      <div className="text-xl font-semibold text-gray-900">
-                        {subject}
-                      </div>
-                      <div className="text-sm text-gray-600 mt-1">
-                        {
-                          previousPapers.filter(
-                            (p) =>
-                              p.class_standard === paperNavLevel.class &&
-                              p.subject === subject,
-                          ).length
-                        }{" "}
-                        papers
-                      </div>
-                    </button>
-                  ))}
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Select Year */}
-          {paperNavLevel.step === "year" && (
-            <div>
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold">Select Exam Year</h2>
-                <button
-                  onClick={() =>
-                    setPaperNavLevel({
-                      ...paperNavLevel,
-                      step: "subject",
-                      subject: "",
-                    })
-                  }
-                  className="text-gray-600 hover:text-gray-900"
-                >
-                  ← Back
-                </button>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {[
-                  ...new Set(
-                    previousPapers
-                      .filter(
-                        (paper) =>
-                          paper.class_standard === paperNavLevel.class &&
-                          paper.subject === paperNavLevel.subject,
-                      )
-                      .map((paper) => paper.exam_year),
-                  ),
-                ]
-                  .sort((a, b) => b - a)
-                  .map((year) => (
-                    <button
-                      key={year}
-                      onClick={() =>
-                        setPaperNavLevel({
-                          ...paperNavLevel,
-                          step: "papers",
-                          year,
-                        })
-                      }
-                      className="border-2 border-gray-300 rounded-lg p-6 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-center"
-                    >
-                      <div className="text-3xl font-bold text-gray-900">
-                        {year}
-                      </div>
-                      <div className="text-sm text-gray-600 mt-2">
-                        {
-                          previousPapers.filter(
-                            (p) =>
-                              p.class_standard === paperNavLevel.class &&
-                              p.subject === paperNavLevel.subject &&
-                              p.exam_year === year,
-                          ).length
-                        }{" "}
-                        papers
-                      </div>
-                    </button>
-                  ))}
-              </div>
-            </div>
-          )}
-
-          {/* Step 4: View Papers */}
-          {paperNavLevel.step === "papers" && (
-            <div>
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold">
-                  Previous Years' Papers (
-                  {
-                    previousPapers.filter(
-                      (p) =>
-                        p.class_standard === paperNavLevel.class &&
-                        p.subject === paperNavLevel.subject &&
-                        p.exam_year === paperNavLevel.year,
-                    ).length
-                  }
-                  )
-                </h2>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() =>
-                      setPaperNavLevel({
-                        ...paperNavLevel,
-                        step: "year",
-                        year: "",
-                      })
-                    }
-                    className="text-gray-600 hover:text-gray-900"
-                  >
-                    ← Back
-                  </button>
-                  <button
-                    onClick={() => {
-                      setEditingPaperId(null);
-                      setPaperForm({
-                        title: "",
-                        subject: paperNavLevel.subject,
-                        class_standard: paperNavLevel.class,
-                        chapter: "",
-                        exam_year: paperNavLevel.year,
-                        paper_type: "Final Exam",
-                        file_url: "",
-                      });
-                      setShowAddPaper(true);
-                    }}
-                    className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add Paper
-                  </button>
+                      <FileText className="w-3 h-3" />
+                      View File
+                    </a>
+                  )}
                 </div>
               </div>
+            ))}
+          </div>
 
-              {/* Papers Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {previousPapers
-                  .filter(
-                    (paper) =>
-                      paper.class_standard === paperNavLevel.class &&
-                      paper.subject === paperNavLevel.subject &&
-                      paper.exam_year === paperNavLevel.year,
-                  )
-                  .map((paper) => (
-                    <div
-                      key={paper.id}
-                      className="border rounded-lg p-4 hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-semibold text-gray-900 flex-1">
-                          {paper.title}
-                        </h3>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => {
-                              setEditingPaperId(paper.id);
-                              setPaperForm({
-                                title: paper.title,
-                                subject: paper.subject,
-                                class_standard: paper.class_standard,
-                                chapter: paper.chapter || "",
-                                exam_year: paper.exam_year,
-                                paper_type: paper.paper_type,
-                                file_url: paper.file_url || "",
-                              });
-                              setShowAddPaper(true);
-                            }}
-                            className="text-blue-600 hover:text-blue-800 p-1"
-                            title="Edit Paper"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeletePaper(paper.id)}
-                            className="text-red-600 hover:text-red-800 p-1"
-                            title="Delete Paper"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                      <div className="mt-2 flex gap-2 flex-wrap">
-                        <span className="inline-block bg-pink-100 text-pink-800 text-xs px-2 py-1 rounded">
-                          {paper.paper_type}
-                        </span>
-                        {paper.chapter && (
-                          <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
-                            {paper.chapter}
-                          </span>
-                        )}
-                        {paper.file_url && (
-                          <a
-                            href={paper.file_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded hover:bg-orange-200"
-                          >
-                            <FileText className="w-3 h-3" />
-                            View File
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          )}
-
-          {/* Add/Edit Paper Modal */}
           {showAddPaper && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
               <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -1854,7 +1794,10 @@ const AcademicCMS = () => {
                     <select
                       value={paperForm.subject}
                       onChange={(e) =>
-                        setPaperForm({ ...paperForm, subject: e.target.value })
+                        setPaperForm({
+                          ...paperForm,
+                          subject: e.target.value,
+                        })
                       }
                       className="w-full px-3 py-2 border rounded-lg"
                       required
@@ -1884,7 +1827,7 @@ const AcademicCMS = () => {
                       required
                     >
                       <option value="">Select Class *</option>
-                      {[9, 10, 11, 12].map((c) => (
+                      {[5, 6, 7, 8, 9, 10, 11, 12].map((c) => (
                         <option key={c} value={c}>
                           Class {c}
                         </option>
@@ -1929,24 +1872,26 @@ const AcademicCMS = () => {
                     placeholder="Chapter (optional)"
                     value={paperForm.chapter}
                     onChange={(e) =>
-                      setPaperForm({ ...paperForm, chapter: e.target.value })
+                      setPaperForm({
+                        ...paperForm,
+                        chapter: e.target.value,
+                      })
                     }
                     className="w-full px-3 py-2 border rounded-lg"
                   />
                   <div>
                     <label className="block text-sm font-medium mb-2">
-                      Upload File (PDF, TXT, DOCX - Max 30MB)
+                      Upload File (PDF, TXT, DOCX/DOC - Max 100MB)
                     </label>
                     <input
                       type="file"
-                      accept=".pdf,.txt,.docx"
+                      accept=".pdf,.txt,.docx,.doc"
                       onChange={async (e) => {
                         const file = e.target.files[0];
                         if (file) {
-                          const fileUrl = await handleFileUpload(file);
-                          if (fileUrl) {
-                            setPaperForm({ ...paperForm, file_url: fileUrl });
-                          }
+                          await handleFileUpload(file, (url) => {
+                            setPaperForm({ ...paperForm, file_url: url });
+                          });
                         }
                       }}
                       className="w-full px-3 py-2 border rounded-lg"
@@ -1957,7 +1902,16 @@ const AcademicCMS = () => {
                     )}
                     {paperForm.file_url && (
                       <p className="text-sm text-green-600 mt-1">
-                        ✓ File uploaded
+                        ✓ File uploaded{" "}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPaperForm({ ...paperForm, file_url: "" })
+                          }
+                          className="text-red-500 hover:text-red-700 ml-2"
+                        >
+                          <X className="w-4 h-4 inline-block" /> Clear
+                        </button>
                       </p>
                     )}
                   </div>
@@ -1973,7 +1927,7 @@ const AcademicCMS = () => {
                       type="button"
                       onClick={() => {
                         setShowAddPaper(false);
-                        setEditingPaperId(null);
+                        resetForm("paper");
                       }}
                       className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
                     >
@@ -1992,11 +1946,14 @@ const AcademicCMS = () => {
         <div>
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">
-              Q&A Knowledge Base ({qaPairs.length})
+              Q&A Knowledge Base ({qaPairs.length}) (5-12)
             </h2>
             <div className="flex gap-2">
               <button
-                onClick={() => setShowBulkUpload(true)}
+                onClick={() => {
+                  setShowBulkUpload(true);
+                  setUploadSummary(null);
+                }}
                 className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
               >
                 <Upload className="w-4 h-4" />
@@ -2004,18 +1961,7 @@ const AcademicCMS = () => {
               </button>
               <button
                 onClick={() => {
-                  setEditingQAId(null);
-                  setQaForm({
-                    book_id: "",
-                    question: "",
-                    answer: "",
-                    subject: "",
-                    class_standard: "",
-                    question_type: "conceptual",
-                    difficulty_level: "medium",
-                    keywords: "",
-                    tags: "",
-                  });
+                  resetForm("qa");
                   setShowAddQA(true);
                 }}
                 className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700"
@@ -2036,13 +1982,18 @@ const AcademicCMS = () => {
                       Q: {qa.question}
                     </p>
                     <p className="text-sm text-gray-600 mt-2">A: {qa.answer}</p>
-                    <div className="mt-2 flex gap-2">
+                    <div className="mt-2 flex gap-2 flex-wrap">
                       <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
                         {qa.subject}
                       </span>
                       <span className="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">
                         Class {qa.class_standard}
                       </span>
+                      {qa.chapter_topic && (
+                        <span className="inline-block bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">
+                          {qa.chapter_topic}
+                        </span>
+                      )}
                       <span className="inline-block bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded">
                         {qa.difficulty_level}
                       </span>
@@ -2085,7 +2036,7 @@ const AcademicCMS = () => {
                       type="text"
                       value={qaForm.question}
                       onChange={(e) =>
-                        setQaForm({ ...qaForm, question: e.target.value })
+                        handleFormChange("qa", "question", e.target.value)
                       }
                       className="w-full px-3 py-2 border rounded-lg"
                       required
@@ -2098,23 +2049,23 @@ const AcademicCMS = () => {
                     <textarea
                       value={qaForm.answer}
                       onChange={(e) =>
-                        setQaForm({ ...qaForm, answer: e.target.value })
+                        handleFormChange("qa", "answer", e.target.value)
                       }
                       className="w-full px-3 py-2 border rounded-lg"
                       rows={4}
                       required
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-1">
-                        Subject *
+                        Subject
                       </label>
                       <input
                         type="text"
                         value={qaForm.subject}
                         onChange={(e) =>
-                          setQaForm({ ...qaForm, subject: e.target.value })
+                          handleFormChange("qa", "subject", e.target.value)
                         }
                         className="w-full px-3 py-2 border rounded-lg"
                         required
@@ -2122,36 +2073,36 @@ const AcademicCMS = () => {
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">
-                        Class *
+                        Class
                       </label>
                       <input
                         type="text"
                         value={qaForm.class_standard}
                         onChange={(e) =>
-                          setQaForm({
-                            ...qaForm,
-                            class_standard: e.target.value,
-                          })
+                          handleFormChange(
+                            "qa",
+                            "class_standard",
+                            e.target.value,
+                          )
                         }
                         className="w-full px-3 py-2 border rounded-lg"
                         required
                       />
                     </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">
-                      Chapter/Topic *
-                    </label>
-                    <input
-                      type="text"
-                      value={qaForm.chapter_topic}
-                      onChange={(e) =>
-                        setQaForm({ ...qaForm, chapter_topic: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border rounded-lg"
-                      placeholder="e.g., Laws of Motion, Photosynthesis, etc."
-                      required
-                    />
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        Chapter/Topic
+                      </label>
+                      <input
+                        type="text"
+                        value={qaForm.chapter}
+                        onChange={(e) =>
+                          handleFormChange("qa", "chapter", e.target.value)
+                        }
+                        className="w-full px-3 py-2 border rounded-lg"
+                        placeholder="e.g. Thermodynamics"
+                      />
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -2161,10 +2112,11 @@ const AcademicCMS = () => {
                       <select
                         value={qaForm.difficulty_level}
                         onChange={(e) =>
-                          setQaForm({
-                            ...qaForm,
-                            difficulty_level: e.target.value,
-                          })
+                          handleFormChange(
+                            "qa",
+                            "difficulty_level",
+                            e.target.value,
+                          )
                         }
                         className="w-full px-3 py-2 border rounded-lg"
                       >
@@ -2180,10 +2132,11 @@ const AcademicCMS = () => {
                       <select
                         value={qaForm.question_type}
                         onChange={(e) =>
-                          setQaForm({
-                            ...qaForm,
-                            question_type: e.target.value,
-                          })
+                          handleFormChange(
+                            "qa",
+                            "question_type",
+                            e.target.value,
+                          )
                         }
                         className="w-full px-3 py-2 border rounded-lg"
                       >
@@ -2196,44 +2149,16 @@ const AcademicCMS = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">
-                      Explanation (Optional)
-                    </label>
-                    <textarea
-                      value={qaForm.explanation}
-                      onChange={(e) =>
-                        setQaForm({ ...qaForm, explanation: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border rounded-lg"
-                      rows={3}
-                      placeholder="Additional explanation or context..."
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">
                       Keywords (comma-separated)
                     </label>
                     <input
                       type="text"
                       value={qaForm.keywords}
                       onChange={(e) =>
-                        setQaForm({ ...qaForm, keywords: e.target.value })
+                        handleFormChange("qa", "keywords", e.target.value)
                       }
                       className="w-full px-3 py-2 border rounded-lg"
                       placeholder="newton, force, motion"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">
-                      Examples (comma-separated)
-                    </label>
-                    <input
-                      type="text"
-                      value={qaForm.examples}
-                      onChange={(e) =>
-                        setQaForm({ ...qaForm, examples: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border rounded-lg"
-                      placeholder="Example 1, Example 2"
                     />
                   </div>
                   <div className="flex gap-2">
@@ -2247,19 +2172,7 @@ const AcademicCMS = () => {
                       type="button"
                       onClick={() => {
                         setShowAddQA(false);
-                        setEditingQAId(null);
-                        setQaForm({
-                          question: "",
-                          answer: "",
-                          subject: "",
-                          class_standard: "",
-                          chapter_topic: "",
-                          question_type: "conceptual",
-                          difficulty_level: "medium",
-                          explanation: "",
-                          keywords: "",
-                          examples: "",
-                        });
+                        resetForm("qa");
                       }}
                       className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
                     >
@@ -2280,7 +2193,6 @@ const AcademicCMS = () => {
                 </h3>
 
                 <div className="space-y-4">
-                  {/* File Format Info */}
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <h4 className="font-medium text-blue-900 mb-2">
                       📋 File Requirements
@@ -2291,35 +2203,33 @@ const AcademicCMS = () => {
                     </p>
                     <ul className="text-sm text-blue-600 list-disc list-inside space-y-1">
                       <li>
-                        <strong>question</strong> (required) - The question text
+                        <strong>question</strong> (required)
                       </li>
                       <li>
-                        <strong>answer</strong> (required) - The answer text
+                        <strong>answer</strong> (required)
                       </li>
                       <li>
-                        <strong>subject</strong> (optional) - e.g., Physics,
-                        Math
+                        <strong>subject</strong> (optional)
                       </li>
                       <li>
                         <strong>class</strong> or{" "}
-                        <strong>class_standard</strong> (optional) - e.g., 9,
-                        10, 11
+                        <strong>class_standard</strong> (optional)
                       </li>
                       <li>
-                        <strong>keywords</strong> (optional) - comma-separated
+                        <strong>chapter_topic</strong> (optional)
+                      </li>
+                      <li>
+                        <strong>keywords</strong> (optional)
                       </li>
                       <li>
                         <strong>difficulty</strong> or{" "}
-                        <strong>difficulty_level</strong> (optional) - easy,
-                        medium, hard
+                        <strong>difficulty_level</strong> (optional)
                       </li>
                       <li>
                         <strong>type</strong> or <strong>question_type</strong>{" "}
-                        (optional) - conceptual, numerical, etc.
+                        (optional)
                       </li>
                     </ul>
-
-                    {/* Download Sample Template Button */}
                     <button
                       onClick={downloadSampleTemplate}
                       className="mt-3 w-full bg-emerald-600 text-white py-2 px-4 rounded-lg hover:bg-emerald-700 flex items-center justify-center gap-2"
@@ -2329,7 +2239,6 @@ const AcademicCMS = () => {
                     </button>
                   </div>
 
-                  {/* File Upload */}
                   <div>
                     <label className="block text-sm font-medium mb-2">
                       Select File
@@ -2347,7 +2256,6 @@ const AcademicCMS = () => {
                     )}
                   </div>
 
-                  {/* Upload Summary */}
                   {uploadSummary && (
                     <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                       <h4 className="font-medium text-green-900 mb-2">
@@ -2376,7 +2284,6 @@ const AcademicCMS = () => {
                     </div>
                   )}
 
-                  {/* Action Buttons */}
                   <div className="flex gap-2">
                     <button
                       onClick={handleBulkUpload}
@@ -2386,6 +2293,7 @@ const AcademicCMS = () => {
                       {loading ? "Uploading..." : "Upload Q&A Pairs"}
                     </button>
                     <button
+                      type="button"
                       onClick={() => {
                         setShowBulkUpload(false);
                         setBulkUploadFile(null);
@@ -2400,6 +2308,71 @@ const AcademicCMS = () => {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Chapter Modal (Academic + Reference) */}
+      {showChapterModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
+          <div className="bg-white rounded-lg p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">
+                Chapters - {chapterModalData.bookTitle}
+              </h3>
+              <button
+                onClick={() => setShowChapterModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {chapterLoading ? (
+              <p className="text-sm text-blue-600">Loading chapters...</p>
+            ) : chapterModalData.chapters.length === 0 ? (
+              <p className="text-sm text-gray-600">
+                No chapters found for this book.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {chapterModalData.chapters.map((chap, idx) => (
+                  <div
+                    key={idx}
+                    className="border rounded-lg p-3 flex items-center justify-between"
+                  >
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        {chap.chapter_number
+                          ? `Chapter ${chap.chapter_number}: `
+                          : ""}
+                        {chap.title || "Untitled Chapter"}
+                      </p>
+                      {chap.file_name && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          {chap.file_name}
+                        </p>
+                      )}
+                    </div>
+                    {chap.file_url ? (
+                      <a
+                        href={chap.file_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 text-xs px-3 py-1 rounded hover:bg-emerald-200"
+                      >
+                        <FileText className="w-3 h-3" />
+                        Open
+                      </a>
+                    ) : (
+                      <span className="text-xs text-gray-400">
+                        No file uploaded
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
