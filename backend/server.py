@@ -19648,35 +19648,67 @@ async def delete_book_chapter(
 # ==================== C. Q&A KNOWLEDGE BASE ENDPOINTS ====================
 
 @api_router.get("/cms/qa-knowledge-base")
-async def get_qa_knowledge_base(
-    class_standard: Optional[str] = None,
-    subject: Optional[str] = None,
-    chapter_topic: Optional[str] = None,
-    question_type: Optional[str] = None,
-    current_user: User = Depends(get_current_user)
+async def list_qa_knowledge_base(
+    current_user: User = Depends(get_current_user),
 ):
-    """Get Q&A knowledge base with hierarchical filtering"""
+    """
+    List all active Q&A entries for this tenant.
+    We explicitly clean Mongo documents to avoid ObjectId / non-JSON types.
+    """
     try:
-        query = {
-            "tenant_id": current_user.tenant_id,
-            "school_id": current_user.school_id,
-            "is_active": True
-        }
-        
-        if class_standard:
-            query["class_standard"] = class_standard
-        if subject:
-            query["subject"] = subject
-        if chapter_topic:
-            query["chapter_topic"] = chapter_topic
-        if question_type:
-            query["question_type"] = question_type
-        
-        qa_items = await db.qa_knowledge_base.find(query).to_list(1000)
-        return qa_items
+        collection = db.get_collection("qa_knowledge_base")
+
+        cursor = collection.find(
+            {
+                "tenant_id": current_user.tenant_id,
+                "school_id": current_user.school_id,
+                "is_active": True,
+            }
+        ).sort("created_at", -1)
+
+        raw_items = await cursor.to_list(length=1000)
+
+        cleaned_items = []
+        for doc in raw_items:
+            # Make sure it's a dict
+            if not isinstance(doc, dict):
+                continue
+
+            # Convert id / _id to plain string id
+            doc_id = doc.get("id") or doc.get("_id")
+            if doc_id is not None:
+                doc_id = str(doc_id)
+
+            # keywords should always be a list of strings
+            raw_keywords = doc.get("keywords") or []
+            if not isinstance(raw_keywords, list):
+                raw_keywords = [str(raw_keywords)]
+            keywords = [str(k) for k in raw_keywords]
+
+            cleaned_items.append(
+                {
+                    "id": doc_id,
+                    "question": doc.get("question", ""),
+                    "answer": doc.get("answer", ""),
+                    "subject": doc.get("subject"),
+                    "class_standard": doc.get("class_standard"),
+                    "chapter_topic": doc.get("chapter_topic"),
+                    "question_type": doc.get("question_type", "conceptual"),
+                    "difficulty_level": doc.get("difficulty_level", "medium"),
+                    "keywords": keywords,
+                    # optional: send timestamps if you want
+                    "created_at": str(doc.get("created_at")) if doc.get("created_at") else None,
+                    "updated_at": str(doc.get("updated_at")) if doc.get("updated_at") else None,
+                }
+            )
+
+        # This is now a plain list[dict[str, simple types]] → safe for JSON
+        return cleaned_items
+
     except Exception as e:
-        logger.error(f"Error fetching Q&A knowledge base: {e}")
-        raise HTTPException(status_code=500, detail="Failed to fetch Q&A knowledge base")
+        logger.error(f"Error loading Q&A knowledge base: {e}")
+        # Return empty array instead of 500 so frontend still works
+        return []
 
 @api_router.post("/cms/qa-knowledge-base")
 async def create_qa_knowledge_base(
