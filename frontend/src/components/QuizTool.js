@@ -102,8 +102,13 @@ const QuizTool = () => {
 
   // --------- Generate Quiz ----------
   const handleGenerateQuiz = async () => {
-    if (!filters.class_standard || !filters.subject) {
-      toast.error("Please select class and subject");
+    if (
+      !filters.class_standard ||
+      !filters.subject ||
+      !filters.chapter ||
+      !filters.chapter.trim()
+    ) {
+      toast.error("Please select class, subject and chapter");
       return;
     }
 
@@ -158,7 +163,6 @@ const QuizTool = () => {
       const token = localStorage.getItem("token");
       const formattedAnswers = currentQuiz.questions.map((q) => ({
         question_id: q.id,
-        // For MCQ we store selected option (e.g. "A"); for text, the typed answer
         student_answer: answers[q.id] || "",
       }));
 
@@ -436,16 +440,18 @@ const QuizTool = () => {
               </select>
             </div>
 
-            {/* Chapter */}
+            {/* Chapter – now required */}
             <div>
-              <label className="block text-sm font-medium mb-2">Chapter</label>
+              <label className="block text-sm font-medium mb-2">
+                Chapter *
+              </label>
               <input
                 type="text"
                 value={filters.chapter}
                 onChange={(e) =>
                   setFilters({ ...filters, chapter: e.target.value })
                 }
-                placeholder="Optional"
+                placeholder="Enter chapter name or number"
                 className="w-full px-3 py-2 border rounded-lg"
               />
             </div>

@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { 
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Button } from "./ui/button";
+import {
   Brain,
   FileQuestion,
   FileText,
@@ -14,10 +14,21 @@ import {
   Activity,
   GraduationCap,
   Download,
-  Share2
-} from 'lucide-react';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { toast } from 'sonner';
+  Share2,
+} from "lucide-react";
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+import { toast } from "sonner";
 
 const BACKEND_URL = process.env.REACT_APP_API_URL;
 const API = BACKEND_URL;
@@ -27,9 +38,9 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [giniAnalytics, setGiniAnalytics] = useState(null);
   const [timePeriod, setTimePeriod] = useState(7); // 7 or 30 days
-  const [selectedClass, setSelectedClass] = useState('all');
-  const [selectedSubject, setSelectedSubject] = useState('all');
-  const [activeModule, setActiveModule] = useState('all');
+  const [selectedClass, setSelectedClass] = useState("all");
+  const [selectedSubject, setSelectedSubject] = useState("all");
+  const [activeModule, setActiveModule] = useState("all");
   const [classes, setClasses] = useState([]);
   const [subjects, setSubjects] = useState([]);
 
@@ -41,17 +52,17 @@ const Dashboard = () => {
   const fetchGiniAnalytics = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const response = await axios.get(
         `${API}/gini/usage/analytics?days=${timePeriod}`,
         {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }
+          headers: { Authorization: `Bearer ${token}` },
+        },
       );
       setGiniAnalytics(response.data);
     } catch (error) {
-      console.error('❌ Failed to fetch GiNi analytics:', error);
-      toast.error('Failed to load analytics data');
+      console.error("❌ Failed to fetch GiNi analytics:", error);
+      toast.error("Failed to load analytics data");
     } finally {
       setLoading(false);
     }
@@ -59,15 +70,19 @@ const Dashboard = () => {
 
   const fetchClassesAndSubjects = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const [classesRes, subjectsRes] = await Promise.all([
-        axios.get(`${API}/classes`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        axios.get(`${API}/subjects`, { headers: { 'Authorization': `Bearer ${token}` } })
+        axios.get(`${API}/classes`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${API}/subjects`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
       ]);
       setClasses(classesRes.data || []);
       setSubjects(subjectsRes.data || []);
     } catch (error) {
-      console.error('Failed to fetch classes/subjects:', error);
+      console.error("Failed to fetch classes/subjects:", error);
     }
   };
 
@@ -78,50 +93,52 @@ const Dashboard = () => {
         totalStudents: 0,
         totalInteractions: 0,
         activeClasses: 0,
-        weeklyGrowth: 0
+        weeklyGrowth: 0,
       };
     }
 
     const modules = giniAnalytics.analytics;
     const totalInteractions = Object.values(modules).reduce(
-      (sum, module) => sum + (module.total_interactions || 0), 0
+      (sum, module) => sum + (module.total_interactions || 0),
+      0,
     );
 
     const uniqueClasses = new Set();
-    Object.values(modules).forEach(module => {
+    Object.values(modules).forEach((module) => {
       if (module.class_wise) {
-        Object.keys(module.class_wise).forEach(cls => uniqueClasses.add(cls));
+        Object.keys(module.class_wise).forEach((cls) => uniqueClasses.add(cls));
       }
     });
 
-    // Calculate growth (mock calculation - should be from backend)
+    // Mock growth (ideally from backend)
     const weeklyGrowth = timePeriod === 7 ? 18 : 24;
 
     return {
-      totalStudents: 256, // Mock data - should come from backend
+      totalStudents: 256, // Mock – swap with backend value when you have it
       totalInteractions,
       activeClasses: uniqueClasses.size,
-      weeklyGrowth
+      weeklyGrowth,
     };
   };
 
-  // Prepare chart data for usage trend
+  // Usage trend chart
   const getUsageTrendData = () => {
     if (!giniAnalytics || !giniAnalytics.analytics) return [];
-    
+
     const dateLabels = giniAnalytics.date_labels || [];
     const modules = giniAnalytics.analytics;
-    
+
     return dateLabels.map((date, index) => {
       const dataPoint = { date };
-      
-      if (activeModule === 'all') {
+
+      if (activeModule === "all") {
         Object.entries(modules).forEach(([moduleName, moduleData]) => {
           const dailyData = moduleData.daily || [];
           dataPoint[moduleName] = dailyData[index] || 0;
         });
-        dataPoint.total = Object.values(dataPoint).reduce((sum, val) => 
-          typeof val === 'number' ? sum + val : sum, 0
+        dataPoint.total = Object.values(dataPoint).reduce(
+          (sum, val) => (typeof val === "number" ? sum + val : sum),
+          0,
         );
       } else {
         const moduleData = modules[activeModule];
@@ -129,20 +146,20 @@ const Dashboard = () => {
           dataPoint.interactions = moduleData.daily[index] || 0;
         }
       }
-      
+
       return dataPoint;
     });
   };
 
-  // Prepare class-wise data
+  // Class-wise bar chart
   const getClassWiseData = () => {
     if (!giniAnalytics || !giniAnalytics.analytics) return [];
 
     const classData = {};
-    Object.values(giniAnalytics.analytics).forEach(module => {
+    Object.values(giniAnalytics.analytics).forEach((module) => {
       if (module.class_wise) {
         Object.entries(module.class_wise).forEach(([cls, count]) => {
-          if (selectedClass === 'all' || cls === selectedClass) {
+          if (selectedClass === "all" || cls === selectedClass) {
             classData[cls] = (classData[cls] || 0) + count;
           }
         });
@@ -155,15 +172,15 @@ const Dashboard = () => {
       .slice(0, 10);
   };
 
-  // Prepare subject-wise data
+  // Subject-wise bar chart
   const getSubjectWiseData = () => {
     if (!giniAnalytics || !giniAnalytics.analytics) return [];
 
     const subjectData = {};
-    Object.values(giniAnalytics.analytics).forEach(module => {
+    Object.values(giniAnalytics.analytics).forEach((module) => {
       if (module.subject_wise) {
         Object.entries(module.subject_wise).forEach(([subject, count]) => {
-          if (selectedSubject === 'all' || subject === selectedSubject) {
+          if (selectedSubject === "all" || subject === selectedSubject) {
             subjectData[subject] = (subjectData[subject] || 0) + count;
           }
         });
@@ -176,27 +193,31 @@ const Dashboard = () => {
       .slice(0, 10);
   };
 
-  // Prepare table data
+  // Table data
   const getTableData = () => {
     if (!giniAnalytics || !giniAnalytics.analytics) return [];
 
     const tableRows = [];
     const modules = giniAnalytics.analytics;
 
-    Object.values(modules).forEach(module => {
+    Object.values(modules).forEach((module) => {
       if (module.class_wise && module.subject_wise) {
-        Object.entries(module.class_wise).forEach(([cls, _]) => {
-          Object.entries(module.subject_wise).forEach(([subject, interactions]) => {
-            if ((selectedClass === 'all' || cls === selectedClass) &&
-                (selectedSubject === 'all' || subject === selectedSubject)) {
-              tableRows.push({
-                class: cls,
-                subject,
-                totalInteractions: interactions,
-                activeStudents: Math.floor(interactions / 3) // Mock calculation
-              });
-            }
-          });
+        Object.entries(module.class_wise).forEach(([cls]) => {
+          Object.entries(module.subject_wise).forEach(
+            ([subject, interactions]) => {
+              if (
+                (selectedClass === "all" || cls === selectedClass) &&
+                (selectedSubject === "all" || subject === selectedSubject)
+              ) {
+                tableRows.push({
+                  class: cls,
+                  subject,
+                  totalInteractions: interactions,
+                  activeStudents: Math.floor(interactions / 3), // Mock
+                });
+              }
+            },
+          );
         });
       }
     });
@@ -215,12 +236,42 @@ const Dashboard = () => {
   const tableData = getTableData();
 
   const modules = [
-    { id: 'all', name: 'All Modules', icon: Activity, color: 'bg-gray-100 text-gray-700' },
-    { id: 'ai_assistant', name: 'AI Assistant', icon: Brain, color: 'bg-purple-100 text-purple-700' },
-    { id: 'quiz', name: 'Quiz', icon: FileQuestion, color: 'bg-blue-100 text-blue-700' },
-    { id: 'test_generator', name: 'Test Generator', icon: ListChecks, color: 'bg-emerald-100 text-emerald-700' },
-    { id: 'summary', name: 'Summary', icon: FileText, color: 'bg-orange-100 text-orange-700' },
-    { id: 'notes', name: 'Notes', icon: Lightbulb, color: 'bg-pink-100 text-pink-700' }
+    {
+      id: "all",
+      name: "All Modules",
+      icon: Activity,
+      color: "bg-gray-100 text-gray-700",
+    },
+    {
+      id: "ai_assistant",
+      name: "AI Assistant",
+      icon: Brain,
+      color: "bg-purple-100 text-purple-700",
+    },
+    {
+      id: "quiz",
+      name: "Quiz",
+      icon: FileQuestion,
+      color: "bg-blue-100 text-blue-700",
+    },
+    {
+      id: "test_generator",
+      name: "Test Generator",
+      icon: ListChecks,
+      color: "bg-emerald-100 text-emerald-700",
+    },
+    {
+      id: "summary",
+      name: "Summary",
+      icon: FileText,
+      color: "bg-orange-100 text-orange-700",
+    },
+    {
+      id: "notes",
+      name: "Notes",
+      icon: Lightbulb,
+      color: "bg-pink-100 text-pink-700",
+    },
   ];
 
   return (
@@ -228,15 +279,22 @@ const Dashboard = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">GiNi School Dashboard</h1>
-          <p className="text-sm text-gray-600 mt-1">Academic Year 2024-25 | Admin Profile</p>
+          <h1 className="text-3xl font-bold text-gray-900">
+            GiNi School Dashboard
+          </h1>
+          <p className="text-sm text-gray-600 mt-1">
+            Academic Year 2024-25 | Admin Profile
+          </p>
         </div>
       </div>
 
       {/* Filters Row */}
       <div className="flex flex-wrap items-center gap-4 bg-white p-4 rounded-lg shadow-sm border">
+        {/* Time period */}
         <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-gray-700">Time Period:</label>
+          <label className="text-sm font-medium text-gray-700">
+            Time Period:
+          </label>
           <select
             className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
             value={timePeriod}
@@ -247,6 +305,7 @@ const Dashboard = () => {
           </select>
         </div>
 
+        {/* Class filter – from API */}
         <div className="flex items-center gap-2">
           <label className="text-sm font-medium text-gray-700">Class:</label>
           <select
@@ -255,12 +314,20 @@ const Dashboard = () => {
             onChange={(e) => setSelectedClass(e.target.value)}
           >
             <option value="all">All Classes</option>
-            {['8', '9', '10', '11', '12'].map(cls => (
-              <option key={cls} value={cls}>Class {cls}</option>
-            ))}
+            {classes.map((cls) => {
+              // backend usually exposes standard & name
+              const value = cls.standard?.toString() || cls.name;
+              if (!value) return null;
+              return (
+                <option key={cls.id} value={value}>
+                  {cls.name || `Class ${value}`}
+                </option>
+              );
+            })}
           </select>
         </div>
 
+        {/* Subject filter – from API */}
         <div className="flex items-center gap-2">
           <label className="text-sm font-medium text-gray-700">Subject:</label>
           <select
@@ -269,9 +336,16 @@ const Dashboard = () => {
             onChange={(e) => setSelectedSubject(e.target.value)}
           >
             <option value="all">All Subjects</option>
-            {['Mathematics', 'Science', 'English', 'Physics', 'Chemistry', 'Biology'].map(subject => (
-              <option key={subject} value={subject}>{subject}</option>
-            ))}
+            {subjects.map((subj) => {
+              const value =
+                subj.name || subj.title || subj.subject_name || subj.code;
+              if (!value) return null;
+              return (
+                <option key={subj.id} value={value}>
+                  {value}
+                </option>
+              );
+            })}
           </select>
         </div>
       </div>
@@ -282,8 +356,12 @@ const Dashboard = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Students Using AI</p>
-                <p className="text-4xl font-bold text-gray-900 mt-2">{stats.totalStudents}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Students Using AI
+                </p>
+                <p className="text-4xl font-bold text-gray-900 mt-2">
+                  {stats.totalStudents}
+                </p>
               </div>
               <div className="p-3 bg-blue-100 rounded-full">
                 <Users className="h-8 w-8 text-blue-600" />
@@ -296,8 +374,12 @@ const Dashboard = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total AI Interactions</p>
-                <p className="text-4xl font-bold text-gray-900 mt-2">{stats.totalInteractions.toLocaleString()}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Total AI Interactions
+                </p>
+                <p className="text-4xl font-bold text-gray-900 mt-2">
+                  {stats.totalInteractions.toLocaleString()}
+                </p>
               </div>
               <div className="p-3 bg-purple-100 rounded-full">
                 <Activity className="h-8 w-8 text-purple-600" />
@@ -310,8 +392,12 @@ const Dashboard = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Active Classes</p>
-                <p className="text-4xl font-bold text-gray-900 mt-2">{stats.activeClasses}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Active Classes
+                </p>
+                <p className="text-4xl font-bold text-gray-900 mt-2">
+                  {stats.activeClasses}
+                </p>
               </div>
               <div className="p-3 bg-emerald-100 rounded-full">
                 <GraduationCap className="h-8 w-8 text-emerald-600" />
@@ -324,8 +410,12 @@ const Dashboard = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Weekly Growth</p>
-                <p className="text-4xl font-bold text-emerald-600 mt-2">+{stats.weeklyGrowth}%</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Weekly Growth
+                </p>
+                <p className="text-4xl font-bold text-emerald-600 mt-2">
+                  +{stats.weeklyGrowth}%
+                </p>
               </div>
               <div className="p-3 bg-emerald-100 rounded-full">
                 <TrendingUp className="h-8 w-8 text-emerald-600" />
@@ -337,13 +427,15 @@ const Dashboard = () => {
 
       {/* Module Tabs */}
       <div className="flex flex-wrap gap-2">
-        {modules.map(module => {
+        {modules.map((module) => {
           const Icon = module.icon;
           return (
             <Button
               key={module.id}
               variant={activeModule === module.id ? "default" : "outline"}
-              className={`${activeModule === module.id ? module.color : 'bg-white'} font-medium`}
+              className={`${
+                activeModule === module.id ? module.color : "bg-white"
+              } font-medium`}
               onClick={() => setActiveModule(module.id)}
             >
               <Icon className="h-4 w-4 mr-2" />
@@ -378,10 +470,20 @@ const Dashboard = () => {
                   <XAxis dataKey="date" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 10 }} />
                   <Tooltip />
-                  {activeModule === 'all' ? (
-                    <Line type="monotone" dataKey="total" stroke="#8b5cf6" strokeWidth={2} />
+                  {activeModule === "all" ? (
+                    <Line
+                      type="monotone"
+                      dataKey="total"
+                      stroke="#8b5cf6"
+                      strokeWidth={2}
+                    />
                   ) : (
-                    <Line type="monotone" dataKey="interactions" stroke="#10b981" strokeWidth={2} />
+                    <Line
+                      type="monotone"
+                      dataKey="interactions"
+                      stroke="#10b981"
+                      strokeWidth={2}
+                    />
                   )}
                 </LineChart>
               </ResponsiveContainer>
@@ -436,10 +538,18 @@ const Dashboard = () => {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b">
                 <tr>
-                  <th className="text-left p-3 font-semibold text-gray-700">Class</th>
-                  <th className="text-left p-3 font-semibold text-gray-700">Subject</th>
-                  <th className="text-left p-3 font-semibold text-gray-700">Total Interactions</th>
-                  <th className="text-left p-3 font-semibold text-gray-700">Active Students</th>
+                  <th className="text-left p-3 font-semibold text-gray-700">
+                    Class
+                  </th>
+                  <th className="text-left p-3 font-semibold text-gray-700">
+                    Subject
+                  </th>
+                  <th className="text-left p-3 font-semibold text-gray-700">
+                    Total Interactions
+                  </th>
+                  <th className="text-left p-3 font-semibold text-gray-700">
+                    Active Students
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -448,7 +558,9 @@ const Dashboard = () => {
                     <tr key={index} className="border-b hover:bg-gray-50">
                       <td className="p-3">Class {row.class}</td>
                       <td className="p-3">{row.subject}</td>
-                      <td className="p-3 font-medium">{row.totalInteractions}</td>
+                      <td className="p-3 font-medium">
+                        {row.totalInteractions}
+                      </td>
                       <td className="p-3">{row.activeStudents}</td>
                     </tr>
                   ))
@@ -470,7 +582,7 @@ const Dashboard = () => {
         <Button
           variant="outline"
           className="gap-2"
-          onClick={() => handleExport('PDF')}
+          onClick={() => handleExport("PDF")}
         >
           <Download className="h-4 w-4" />
           Export PDF
@@ -478,7 +590,7 @@ const Dashboard = () => {
         <Button
           variant="outline"
           className="gap-2"
-          onClick={() => handleExport('Excel')}
+          onClick={() => handleExport("Excel")}
         >
           <Download className="h-4 w-4" />
           Export Excel
@@ -486,7 +598,7 @@ const Dashboard = () => {
         <Button
           variant="outline"
           className="gap-2"
-          onClick={() => handleExport('Share')}
+          onClick={() => handleExport("Share")}
         >
           <Share2 className="h-4 w-4" />
           Share Report
