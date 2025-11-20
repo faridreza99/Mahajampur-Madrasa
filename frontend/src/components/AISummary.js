@@ -407,7 +407,6 @@ Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
                   {/* Demo fallback if no backend subjects */}
                   {subjectsOptions.length === 0 && !subjectsLoading && (
                     <>
-                      <option disabled>──────── Demo Subjects ────────</option>
                       <option value="Mathematics">Mathematics</option>
                       <option value="Physics">Physics</option>
                       <option value="Chemistry">Chemistry</option>

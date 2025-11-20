@@ -773,17 +773,10 @@ const AcademicCMS = () => {
   const openChaptersModal = async (book, bookType) => {
     try {
       setChapterViewIndex(0);
-
-      // If API response already has chapters embedded (like your screenshot), use them directly
-      if (book.chapters && book.chapters.length > 0) {
-        setSelectedBookForChapters({ ...book, bookType });
-        setShowChaptersModal(true);
-        return;
-      }
-
-      // Otherwise, try to fetch from /cms/books/{book_id}/chapters
       setChapterLoading(true);
+
       const token = localStorage.getItem("token");
+
       const response = await axios.get(
         `${API_BASE_URL}/cms/books/${book.id}/chapters`,
         {
@@ -792,14 +785,16 @@ const AcademicCMS = () => {
         },
       );
 
-      const chapters = response.data || [];
-      if (!chapters.length) {
+      const apiChapters = response.data || [];
+      const chaptersSource =
+        apiChapters.length > 0 ? apiChapters : book.chapters || [];
+
+      if (!chaptersSource.length) {
         toast.info("No chapters found for this book");
         return;
       }
 
-      // Normalize chapter structure a bit for viewer
-      const normalized = chapters.map((c, idx) => ({
+      const normalized = chaptersSource.map((c, idx) => ({
         chapter_number: c.chapter_number || idx + 1,
         title:
           c.title ||
