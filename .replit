@@ -80,7 +80,6 @@ build = ["bash", "build.sh"]
 [userenv]
 
 [userenv.shared]
-MONGO_URL = "mongodb://localhost:27017/"
 DB_NAME = "school_erp_dev"
 JWT_SECRET_KEY = "e7e9bb9ff5ba8f831a54e0efdf07c21ae277c7967901aab2841eefb5d2548dd2"
 CORS_ORIGINS = "http://localhost:5000,http://0.0.0.0:5000"
