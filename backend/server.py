@@ -1863,6 +1863,14 @@ async def get_audit_logs(
         {"tenant_id": current_user.tenant_id}
     ).sort("created_at", -1).limit(limit).to_list(limit)
     
+    # Remove MongoDB _id field (not JSON serializable)
+    for log in logs:
+        log.pop("_id", None)
+        # Ensure created_at is serializable
+        if log.get("created_at") and hasattr(log["created_at"], "isoformat"):
+            log["created_at"] = log["created_at"].isoformat()
+    
+    logging.info(f"Returning {len(logs)} audit logs for tenant {current_user.tenant_id}")
     return {"logs": logs}
 
 @api_router.post("/system/reset")
