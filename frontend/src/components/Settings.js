@@ -922,21 +922,27 @@ const Settings = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       
-      // Fetch teachers for dropdown
-      const teachersResponse = await axios.get(`${API_BASE_URL}/users`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const teacherList = teachersResponse.data.filter(user => user.role === 'teacher');
-      setTeachers(teacherList);
+      // Fetch teachers for dropdown (optional - don't fail if unavailable)
+      try {
+        const teachersResponse = await axios.get(`${API_BASE_URL}/admin/users`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const teacherList = (teachersResponse.data || []).filter(user => user.role === 'teacher');
+        setTeachers(teacherList);
+      } catch (err) {
+        console.log('Could not fetch teachers list');
+        setTeachers([]);
+      }
       
-      // Fetch subjects for this class
+      // Fetch subjects for this class (optional)
       try {
         const subjectsResponse = await axios.get(`${API_BASE_URL}/subjects`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setSubjects(subjectsResponse.data);
+        setSubjects(subjectsResponse.data || []);
       } catch (err) {
         console.log('No subjects found');
+        setSubjects([]);
       }
       
       setSelectedTimetable(timetable);
