@@ -98,7 +98,7 @@ const Sidebar = () => {
       subItems: [
         { title: 'Mark Attendance', path: '/attendance/mark' },
         { title: 'Attendance Report', path: '/attendance/report' },
-        { title: 'Calendar', path: '/calendar' }
+        { title: 'School Calendar', path: '/calendar' }
       ]
     },
     {
@@ -236,7 +236,7 @@ const Sidebar = () => {
         { title: 'Staff List', path: '/biometric/staff' },
         { title: 'Punch Log', path: '/biometric/punch-log' },
         { title: 'Registered Devices', path: '/biometric/devices' },
-        { title: 'Calendar', path: '/biometric/calendar' },
+        { title: 'Attendance Calendar', path: '/biometric/calendar' },
         { title: 'Status Report', path: '/biometric/status' }
       ]
     },
