@@ -97,7 +97,8 @@ const Sidebar = () => {
       roles: ['super_admin', 'admin', 'teacher'],
       subItems: [
         { title: 'Mark Attendance', path: '/attendance/mark' },
-        { title: 'Attendance Report', path: '/attendance/report' }
+        { title: 'Attendance Report', path: '/attendance/report' },
+        { title: 'Calendar', path: '/calendar' }
       ]
     },
     {

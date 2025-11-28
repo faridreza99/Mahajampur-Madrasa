@@ -6598,6 +6598,209 @@ async def delete_role(role_id: str, current_user: User = Depends(get_current_use
     logging.info(f"Role deleted: {existing_role.get('role_name', 'Unknown')} (ID: {role_id}) by {current_user.full_name}")
     return {"message": "Role deleted successfully", "role_id": role_id}
 
+# ==================== CALENDAR / EVENTS MANAGEMENT ====================
+
+class CalendarEvent(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    school_id: Optional[str] = None
+    title: str
+    description: Optional[str] = None
+    event_type: str = "holiday"  # holiday, school_event, function, exam, meeting, sports, cultural, other
+    start_date: str
+    end_date: Optional[str] = None
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    location: Optional[str] = None
+    is_all_day: bool = True
+    color: Optional[str] = "#10b981"
+    created_by: Optional[str] = None
+    created_by_name: Optional[str] = None
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class CalendarEventCreate(BaseModel):
+    title: str
+    description: Optional[str] = None
+    event_type: str = "holiday"
+    start_date: str
+    end_date: Optional[str] = None
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    location: Optional[str] = None
+    is_all_day: bool = True
+    color: Optional[str] = "#10b981"
+
+class CalendarEventUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    event_type: Optional[str] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    location: Optional[str] = None
+    is_all_day: Optional[bool] = None
+    color: Optional[str] = None
+
+@api_router.get("/calendar/events")
+async def get_calendar_events(
+    year: Optional[int] = None,
+    month: Optional[int] = None,
+    event_type: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get calendar events (all roles can view)"""
+    query = {
+        "tenant_id": current_user.tenant_id,
+        "is_active": True
+    }
+    
+    if event_type:
+        query["event_type"] = event_type
+    
+    if year and month:
+        start_of_month = f"{year}-{str(month).zfill(2)}-01"
+        if month == 12:
+            end_of_month = f"{year + 1}-01-01"
+        else:
+            end_of_month = f"{year}-{str(month + 1).zfill(2)}-01"
+        
+        query["$or"] = [
+            {"start_date": {"$gte": start_of_month, "$lt": end_of_month}},
+            {"end_date": {"$gte": start_of_month, "$lt": end_of_month}},
+            {"$and": [
+                {"start_date": {"$lte": start_of_month}},
+                {"end_date": {"$gte": start_of_month}}
+            ]}
+        ]
+    
+    events = await db.calendar_events.find(query).sort("start_date", 1).to_list(500)
+    
+    for event in events:
+        event.pop("_id", None)
+    
+    return {"events": events}
+
+@api_router.get("/calendar/events/{event_id}")
+async def get_calendar_event(
+    event_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get a specific calendar event"""
+    event = await db.calendar_events.find_one({
+        "id": event_id,
+        "tenant_id": current_user.tenant_id,
+        "is_active": True
+    })
+    
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    event.pop("_id", None)
+    return event
+
+@api_router.post("/calendar/events")
+async def create_calendar_event(
+    event_data: CalendarEventCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new calendar event (Admin/Super Admin only)"""
+    if current_user.role not in ["admin", "super_admin"]:
+        raise HTTPException(status_code=403, detail="Only Admins can create calendar events")
+    
+    school_id = getattr(current_user, 'school_id', None)
+    if not school_id:
+        schools = await db.schools.find({
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        }).to_list(1)
+        if schools:
+            school_id = schools[0]["id"]
+    
+    event = CalendarEvent(
+        **event_data.dict(),
+        tenant_id=current_user.tenant_id,
+        school_id=school_id,
+        created_by=current_user.id,
+        created_by_name=current_user.full_name
+    )
+    
+    if not event.end_date:
+        event.end_date = event.start_date
+    
+    await db.calendar_events.insert_one(event.dict())
+    
+    logging.info(f"Calendar event created: {event.title} by {current_user.full_name}")
+    return {"message": "Event created successfully", "event_id": event.id}
+
+@api_router.put("/calendar/events/{event_id}")
+async def update_calendar_event(
+    event_id: str,
+    event_data: CalendarEventUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update a calendar event (Admin/Super Admin only)"""
+    if current_user.role not in ["admin", "super_admin"]:
+        raise HTTPException(status_code=403, detail="Only Admins can update calendar events")
+    
+    existing_event = await db.calendar_events.find_one({
+        "id": event_id,
+        "tenant_id": current_user.tenant_id,
+        "is_active": True
+    })
+    
+    if not existing_event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    if existing_event.get("tenant_id") != current_user.tenant_id:
+        raise HTTPException(status_code=403, detail="Not authorized to modify this event")
+    
+    update_data = {k: v for k, v in event_data.dict().items() if v is not None}
+    
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No update data provided")
+    
+    update_data["updated_at"] = datetime.utcnow()
+    
+    await db.calendar_events.update_one(
+        {"id": event_id, "tenant_id": current_user.tenant_id},
+        {"$set": update_data}
+    )
+    
+    logging.info(f"Calendar event updated: {event_id} by {current_user.full_name}")
+    return {"message": "Event updated successfully"}
+
+@api_router.delete("/calendar/events/{event_id}")
+async def delete_calendar_event(
+    event_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a calendar event (Admin/Super Admin only)"""
+    if current_user.role not in ["admin", "super_admin"]:
+        raise HTTPException(status_code=403, detail="Only Admins can delete calendar events")
+    
+    existing_event = await db.calendar_events.find_one({
+        "id": event_id,
+        "tenant_id": current_user.tenant_id,
+        "is_active": True
+    })
+    
+    if not existing_event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    if existing_event.get("tenant_id") != current_user.tenant_id:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this event")
+    
+    await db.calendar_events.update_one(
+        {"id": event_id, "tenant_id": current_user.tenant_id},
+        {"$set": {"is_active": False, "updated_at": datetime.utcnow()}}
+    )
+    
+    logging.info(f"Calendar event deleted: {existing_event.get('title', 'Unknown')} (ID: {event_id}) by {current_user.full_name}")
+    return {"message": "Event deleted successfully"}
+
 # ==================== VEHICLE MANAGEMENT ====================
 
 @api_router.get("/vehicles", response_model=List[Vehicle])

@@ -20,6 +20,7 @@ import BiometricDevices from './components/BiometricDevices';
 import OnlineAdmission from './components/OnlineAdmission';
 import Attendance from './components/Attendance';
 import StudentAttendance from './components/StudentAttendance';
+import Calendar from './components/Calendar';
 import Settings from './components/Settings';
 import AIAssistant from './components/AIAssistant';
 import AILogs from './components/AILogs';
@@ -286,6 +287,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Attendance />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/calendar" 
+                element={
+                  <ProtectedRoute>
+                    <Calendar />
                   </ProtectedRoute>
                 } 
               />
