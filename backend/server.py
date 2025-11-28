@@ -5727,6 +5727,94 @@ async def update_timetable(timetable_id: str, timetable_data: TimetableUpdate, c
     update_data = {k: v for k, v in timetable_data.dict().items() if v is not None}
     
     if update_data:
+        # Check if total_periods_per_day is being changed
+        new_periods_per_day = update_data.get("total_periods_per_day")
+        old_periods_per_day = existing_timetable.get("total_periods_per_day", 8)
+        break_periods = update_data.get("break_periods", existing_timetable.get("break_periods", [4, 7]))
+        
+        # Only adjust if new_periods_per_day is explicitly provided and different from old
+        if new_periods_per_day is not None and new_periods_per_day > 0 and new_periods_per_day != old_periods_per_day:
+            # Automatically adjust period slots for each day
+            current_weekly_schedule = existing_timetable.get("weekly_schedule", [])
+            adjusted_schedule = []
+            
+            # Days for the schedule (Monday to Saturday)
+            all_days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
+            
+            for day in all_days:
+                # Find existing day schedule or create new one
+                existing_day = next((d for d in current_weekly_schedule if d.get("day", "").lower() == day), None)
+                existing_periods = existing_day.get("periods", []) if existing_day else []
+                
+                new_periods = []
+                
+                for period_num in range(1, new_periods_per_day + 1):
+                    # Check if this period exists in the current schedule
+                    existing_period = next((p for p in existing_periods if p.get("period_number") == period_num), None)
+                    
+                    if existing_period:
+                        # Keep existing period data (preserve subject/teacher assignments)
+                        # Create a copy to avoid mutating the original
+                        period_copy = dict(existing_period)
+                        # Update is_break status if break_periods changed
+                        is_break = period_num in break_periods
+                        period_copy["is_break"] = is_break
+                        if is_break:
+                            if period_num == 4:
+                                period_copy["subject"] = "Morning Break"
+                            elif period_num == 7:
+                                period_copy["subject"] = "Lunch Break"
+                            else:
+                                period_copy["subject"] = "Break"
+                        new_periods.append(period_copy)
+                    else:
+                        # Create new period slot with all required fields
+                        is_break = period_num in break_periods
+                        if is_break:
+                            if period_num == 4:
+                                break_name = "Morning Break"
+                                start_time = "10:30"
+                                end_time = "10:45"
+                            elif period_num == 7:
+                                break_name = "Lunch Break"
+                                start_time = "13:00"
+                                end_time = "13:30"
+                            else:
+                                break_name = "Break"
+                                start_time = f"{8 + period_num}:00"
+                                end_time = f"{8 + period_num}:15"
+                            
+                            new_period = {
+                                "period_number": period_num,
+                                "start_time": start_time,
+                                "end_time": end_time,
+                                "subject": break_name,
+                                "teacher_id": None,
+                                "teacher_name": "",
+                                "room_number": "",
+                                "is_break": True
+                            }
+                        else:
+                            new_period = {
+                                "period_number": period_num,
+                                "start_time": f"{8 + period_num}:00",
+                                "end_time": f"{8 + period_num}:45",
+                                "subject": "Unassigned",
+                                "teacher_id": None,
+                                "teacher_name": "",
+                                "room_number": "",
+                                "is_break": False
+                            }
+                        new_periods.append(new_period)
+                
+                adjusted_schedule.append({
+                    "day": day,
+                    "periods": new_periods
+                })
+            
+            update_data["weekly_schedule"] = adjusted_schedule
+            logging.info(f"Timetable periods adjusted from {old_periods_per_day} to {new_periods_per_day} for class {existing_timetable.get('class_name')}")
+        
         update_data["updated_at"] = datetime.utcnow()
         
         await db.timetables.update_one(
