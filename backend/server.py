@@ -6889,6 +6889,712 @@ async def delete_calendar_event(
     logging.info(f"Calendar event deleted: {existing_event.get('title', 'Unknown')} (ID: {event_id}) by {current_user.full_name}")
     return {"message": "Event deleted successfully"}
 
+# ==================== NOTIFICATION MODULE ====================
+
+class Notification(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    school_id: Optional[str] = None
+    title: str
+    body: str
+    notification_type: str = "custom"  # timetable_upgrade, exam_date, progress_report, custom
+    template_id: Optional[str] = None
+    target_role: str = "all"  # all, admin, teacher, student, parent
+    target_class: Optional[str] = None  # Class filter
+    target_section: Optional[str] = None  # Section filter
+    target_subject: Optional[str] = None  # Subject filter
+    target_user_ids: List[str] = []  # Specific user IDs if targeted
+    priority: str = "normal"  # low, normal, high, urgent
+    is_read_by: List[str] = []  # User IDs who have read
+    created_by: Optional[str] = None
+    created_by_name: Optional[str] = None
+    scheduled_at: Optional[datetime] = None
+    expires_at: Optional[datetime] = None
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class NotificationCreate(BaseModel):
+    title: str
+    body: str
+    notification_type: str = "custom"
+    target_role: str = "all"
+    target_class: Optional[str] = None
+    target_section: Optional[str] = None
+    target_subject: Optional[str] = None
+    target_user_ids: List[str] = []
+    priority: str = "normal"
+    scheduled_at: Optional[datetime] = None
+    expires_at: Optional[datetime] = None
+
+class NotificationUpdate(BaseModel):
+    title: Optional[str] = None
+    body: Optional[str] = None
+    notification_type: Optional[str] = None
+    target_role: Optional[str] = None
+    target_class: Optional[str] = None
+    target_section: Optional[str] = None
+    target_subject: Optional[str] = None
+    priority: Optional[str] = None
+    scheduled_at: Optional[datetime] = None
+    expires_at: Optional[datetime] = None
+
+class NotificationTemplate(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    template_name: str
+    template_type: str  # timetable_upgrade, exam_date, progress_report, custom
+    title_template: str
+    body_template: str
+    variables: List[str] = []  # Available variables like {class_name}, {exam_date}
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+@api_router.get("/notifications")
+async def get_notifications(
+    notification_type: Optional[str] = None,
+    target_role: Optional[str] = None,
+    target_class: Optional[str] = None,
+    unread_only: bool = False,
+    current_user: User = Depends(get_current_user)
+):
+    """Get notifications based on user role and filters"""
+    query = {
+        "tenant_id": current_user.tenant_id,
+        "is_active": True
+    }
+    
+    # Filter based on user role - students only see notifications targeted to them
+    if current_user.role == "student":
+        query["$or"] = [
+            {"target_role": "all"},
+            {"target_role": "student"},
+            {"target_user_ids": current_user.id}
+        ]
+    elif current_user.role == "teacher":
+        query["$or"] = [
+            {"target_role": "all"},
+            {"target_role": "teacher"},
+            {"target_user_ids": current_user.id}
+        ]
+    elif current_user.role == "parent":
+        query["$or"] = [
+            {"target_role": "all"},
+            {"target_role": "parent"},
+            {"target_user_ids": current_user.id}
+        ]
+    # Admin and super_admin see all notifications
+    
+    if notification_type:
+        query["notification_type"] = notification_type
+    
+    if target_role and current_user.role in ["admin", "super_admin"]:
+        query["target_role"] = target_role
+    
+    if target_class:
+        query["target_class"] = target_class
+    
+    if unread_only:
+        query["is_read_by"] = {"$nin": [current_user.id]}
+    
+    notifications = await db.notifications.find(query).sort("created_at", -1).to_list(100)
+    
+    # Add is_read flag for current user
+    for notif in notifications:
+        notif["is_read"] = current_user.id in notif.get("is_read_by", [])
+    
+    return notifications
+
+@api_router.get("/notifications/{notification_id}")
+async def get_notification(notification_id: str, current_user: User = Depends(get_current_user)):
+    """Get a specific notification"""
+    notification = await db.notifications.find_one({
+        "id": notification_id,
+        "tenant_id": current_user.tenant_id,
+        "is_active": True
+    })
+    
+    if not notification:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    
+    notification["is_read"] = current_user.id in notification.get("is_read_by", [])
+    return notification
+
+@api_router.post("/notifications")
+async def create_notification(
+    notification_data: NotificationCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new notification (Admin/Teacher only)"""
+    if current_user.role not in ["admin", "super_admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Only Admins and Teachers can create notifications")
+    
+    school_id = getattr(current_user, 'school_id', None)
+    if not school_id:
+        schools = await db.schools.find({"tenant_id": current_user.tenant_id, "is_active": True}).to_list(1)
+        if schools:
+            school_id = schools[0]["id"]
+    
+    notification_dict = notification_data.dict()
+    notification_dict["tenant_id"] = current_user.tenant_id
+    notification_dict["school_id"] = school_id
+    notification_dict["created_by"] = current_user.id
+    notification_dict["created_by_name"] = current_user.full_name
+    
+    notification = Notification(**notification_dict)
+    await db.notifications.insert_one(notification.dict())
+    
+    logging.info(f"Notification created: {notification.title} by {current_user.full_name}")
+    return {"message": "Notification created successfully", "notification_id": notification.id}
+
+@api_router.put("/notifications/{notification_id}")
+async def update_notification(
+    notification_id: str,
+    notification_data: NotificationUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update a notification (Admin/Teacher only)"""
+    if current_user.role not in ["admin", "super_admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Only Admins and Teachers can update notifications")
+    
+    existing = await db.notifications.find_one({
+        "id": notification_id,
+        "tenant_id": current_user.tenant_id,
+        "is_active": True
+    })
+    
+    if not existing:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    
+    # Teachers can only edit their own notifications
+    if current_user.role == "teacher" and existing.get("created_by") != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only edit your own notifications")
+    
+    update_data = {k: v for k, v in notification_data.dict().items() if v is not None}
+    if update_data:
+        update_data["updated_at"] = datetime.utcnow()
+        await db.notifications.update_one(
+            {"id": notification_id, "tenant_id": current_user.tenant_id},
+            {"$set": update_data}
+        )
+    
+    logging.info(f"Notification updated: {notification_id} by {current_user.full_name}")
+    return {"message": "Notification updated successfully"}
+
+@api_router.delete("/notifications/{notification_id}")
+async def delete_notification(notification_id: str, current_user: User = Depends(get_current_user)):
+    """Delete a notification (Admin/Teacher only)"""
+    if current_user.role not in ["admin", "super_admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Only Admins and Teachers can delete notifications")
+    
+    existing = await db.notifications.find_one({
+        "id": notification_id,
+        "tenant_id": current_user.tenant_id,
+        "is_active": True
+    })
+    
+    if not existing:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    
+    # Teachers can only delete their own notifications
+    if current_user.role == "teacher" and existing.get("created_by") != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only delete your own notifications")
+    
+    await db.notifications.update_one(
+        {"id": notification_id, "tenant_id": current_user.tenant_id},
+        {"$set": {"is_active": False, "updated_at": datetime.utcnow()}}
+    )
+    
+    logging.info(f"Notification deleted: {existing.get('title')} by {current_user.full_name}")
+    return {"message": "Notification deleted successfully"}
+
+@api_router.post("/notifications/{notification_id}/mark-read")
+async def mark_notification_read(notification_id: str, current_user: User = Depends(get_current_user)):
+    """Mark a notification as read"""
+    result = await db.notifications.update_one(
+        {"id": notification_id, "tenant_id": current_user.tenant_id, "is_active": True},
+        {"$addToSet": {"is_read_by": current_user.id}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    
+    return {"message": "Notification marked as read"}
+
+@api_router.post("/notifications/mark-all-read")
+async def mark_all_notifications_read(current_user: User = Depends(get_current_user)):
+    """Mark all notifications as read for current user"""
+    await db.notifications.update_many(
+        {"tenant_id": current_user.tenant_id, "is_active": True},
+        {"$addToSet": {"is_read_by": current_user.id}}
+    )
+    
+    return {"message": "All notifications marked as read"}
+
+@api_router.get("/notifications/unread-count")
+async def get_unread_count(current_user: User = Depends(get_current_user)):
+    """Get count of unread notifications for current user"""
+    query = {
+        "tenant_id": current_user.tenant_id,
+        "is_active": True,
+        "is_read_by": {"$nin": [current_user.id]}
+    }
+    
+    # Apply role-based filtering
+    if current_user.role == "student":
+        query["$or"] = [
+            {"target_role": "all"},
+            {"target_role": "student"},
+            {"target_user_ids": current_user.id}
+        ]
+    elif current_user.role == "teacher":
+        query["$or"] = [
+            {"target_role": "all"},
+            {"target_role": "teacher"},
+            {"target_user_ids": current_user.id}
+        ]
+    
+    count = await db.notifications.count_documents(query)
+    return {"unread_count": count}
+
+@api_router.get("/notification-templates")
+async def get_notification_templates(current_user: User = Depends(get_current_user)):
+    """Get notification templates"""
+    if current_user.role not in ["admin", "super_admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    templates = await db.notification_templates.find({
+        "tenant_id": current_user.tenant_id,
+        "is_active": True
+    }).to_list(50)
+    
+    # Add default templates if none exist
+    if not templates:
+        default_templates = [
+            {
+                "id": str(uuid.uuid4()),
+                "tenant_id": current_user.tenant_id,
+                "template_name": "Timetable Upgrade",
+                "template_type": "timetable_upgrade",
+                "title_template": "Timetable Updated for {class_name}",
+                "body_template": "The timetable for {class_name} has been updated. Please check the new schedule effective from {effective_date}.",
+                "variables": ["class_name", "effective_date"],
+                "is_active": True,
+                "created_at": datetime.utcnow()
+            },
+            {
+                "id": str(uuid.uuid4()),
+                "tenant_id": current_user.tenant_id,
+                "template_name": "Exam Date Alert",
+                "template_type": "exam_date",
+                "title_template": "Upcoming Exam: {subject_name}",
+                "body_template": "Reminder: {exam_type} examination for {subject_name} is scheduled on {exam_date}. Please prepare accordingly.",
+                "variables": ["subject_name", "exam_type", "exam_date"],
+                "is_active": True,
+                "created_at": datetime.utcnow()
+            },
+            {
+                "id": str(uuid.uuid4()),
+                "tenant_id": current_user.tenant_id,
+                "template_name": "Progress Report Update",
+                "template_type": "progress_report",
+                "title_template": "Progress Report Available",
+                "body_template": "The progress report for {term_name} is now available. Overall grade: {grade}. Please review the detailed report.",
+                "variables": ["term_name", "grade", "student_name"],
+                "is_active": True,
+                "created_at": datetime.utcnow()
+            },
+            {
+                "id": str(uuid.uuid4()),
+                "tenant_id": current_user.tenant_id,
+                "template_name": "Custom Notification",
+                "template_type": "custom",
+                "title_template": "{title}",
+                "body_template": "{message}",
+                "variables": ["title", "message"],
+                "is_active": True,
+                "created_at": datetime.utcnow()
+            }
+        ]
+        for template in default_templates:
+            await db.notification_templates.insert_one(template)
+        templates = default_templates
+    
+    return templates
+
+# ==================== RATING/REVIEW POP-UP MODULE ====================
+
+class RatingOption(BaseModel):
+    value: int
+    label: str
+
+class MCQOption(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    text: str
+    order: int = 0
+
+class RatingSurvey(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    school_id: Optional[str] = None
+    title: str
+    description: Optional[str] = None
+    survey_type: str = "rating_text"  # rating_text, rating_only, mcq
+    target_role: str = "all"  # all, admin, teacher, student
+    target_class: Optional[str] = None
+    target_user_ids: List[str] = []
+    is_mandatory: bool = True
+    rating_scale: int = 5  # 1-5 or 1-10
+    rating_labels: List[RatingOption] = []
+    mcq_options: List[MCQOption] = []
+    mcq_allow_multiple: bool = False
+    text_required: bool = False
+    text_placeholder: str = "Share your feedback..."
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    responses_count: int = 0
+    average_rating: float = 0.0
+    created_by: Optional[str] = None
+    created_by_name: Optional[str] = None
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class RatingSurveyCreate(BaseModel):
+    title: str
+    description: Optional[str] = None
+    survey_type: str = "rating_text"
+    target_role: str = "all"
+    target_class: Optional[str] = None
+    target_user_ids: List[str] = []
+    is_mandatory: bool = True
+    rating_scale: int = 5
+    rating_labels: List[RatingOption] = []
+    mcq_options: List[MCQOption] = []
+    mcq_allow_multiple: bool = False
+    text_required: bool = False
+    text_placeholder: str = "Share your feedback..."
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+
+class SurveyResponse(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    survey_id: str
+    user_id: str
+    user_name: str
+    user_role: str
+    rating: Optional[int] = None
+    text_response: Optional[str] = None
+    mcq_responses: List[str] = []  # Selected option IDs
+    submitted_at: datetime = Field(default_factory=datetime.utcnow)
+
+class SurveyResponseCreate(BaseModel):
+    rating: Optional[int] = None
+    text_response: Optional[str] = None
+    mcq_responses: List[str] = []
+
+@api_router.get("/rating-surveys")
+async def get_rating_surveys(
+    include_inactive: bool = False,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all rating surveys (Admin/Teacher) or pending surveys (Student)"""
+    query = {"tenant_id": current_user.tenant_id}
+    
+    if not include_inactive or current_user.role not in ["admin", "super_admin"]:
+        query["is_active"] = True
+    
+    # For students, only show surveys they need to respond to
+    if current_user.role == "student":
+        query["$or"] = [
+            {"target_role": "all"},
+            {"target_role": "student"},
+            {"target_user_ids": current_user.id}
+        ]
+    elif current_user.role == "teacher":
+        query["$or"] = [
+            {"target_role": "all"},
+            {"target_role": "teacher"},
+            {"target_user_ids": current_user.id},
+            {"created_by": current_user.id}  # Teachers can see surveys they created
+        ]
+    
+    surveys = await db.rating_surveys.find(query).sort("created_at", -1).to_list(100)
+    
+    # Check if user has already responded
+    for survey in surveys:
+        response = await db.survey_responses.find_one({
+            "survey_id": survey["id"],
+            "user_id": current_user.id
+        })
+        survey["has_responded"] = response is not None
+    
+    return surveys
+
+@api_router.get("/rating-surveys/pending")
+async def get_pending_surveys(current_user: User = Depends(get_current_user)):
+    """Get pending mandatory surveys that user hasn't responded to"""
+    query = {
+        "tenant_id": current_user.tenant_id,
+        "is_active": True,
+        "is_mandatory": True,
+        "$or": [
+            {"target_role": "all"},
+            {"target_role": current_user.role},
+            {"target_user_ids": current_user.id}
+        ]
+    }
+    
+    # Add date filter
+    now = datetime.utcnow()
+    query["$and"] = [
+        {"$or": [{"start_date": None}, {"start_date": {"$lte": now}}]},
+        {"$or": [{"end_date": None}, {"end_date": {"$gte": now}}]}
+    ]
+    
+    surveys = await db.rating_surveys.find(query).to_list(100)
+    
+    # Filter out surveys user has already responded to
+    pending_surveys = []
+    for survey in surveys:
+        response = await db.survey_responses.find_one({
+            "survey_id": survey["id"],
+            "user_id": current_user.id
+        })
+        if not response:
+            pending_surveys.append(survey)
+    
+    return pending_surveys
+
+@api_router.get("/rating-surveys/{survey_id}")
+async def get_rating_survey(survey_id: str, current_user: User = Depends(get_current_user)):
+    """Get a specific rating survey with response stats"""
+    survey = await db.rating_surveys.find_one({
+        "id": survey_id,
+        "tenant_id": current_user.tenant_id
+    })
+    
+    if not survey:
+        raise HTTPException(status_code=404, detail="Survey not found")
+    
+    # Check if user has responded
+    response = await db.survey_responses.find_one({
+        "survey_id": survey_id,
+        "user_id": current_user.id
+    })
+    survey["has_responded"] = response is not None
+    survey["user_response"] = response
+    
+    # For admin/teacher, include response statistics
+    if current_user.role in ["admin", "super_admin", "teacher"]:
+        responses = await db.survey_responses.find({"survey_id": survey_id}).to_list(1000)
+        survey["all_responses"] = responses
+        
+        # Calculate stats
+        ratings = [r["rating"] for r in responses if r.get("rating")]
+        if ratings:
+            survey["average_rating"] = sum(ratings) / len(ratings)
+            survey["responses_count"] = len(responses)
+    
+    return survey
+
+@api_router.post("/rating-surveys")
+async def create_rating_survey(
+    survey_data: RatingSurveyCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new rating survey (Admin/Teacher only)"""
+    if current_user.role not in ["admin", "super_admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Only Admins and Teachers can create surveys")
+    
+    school_id = getattr(current_user, 'school_id', None)
+    if not school_id:
+        schools = await db.schools.find({"tenant_id": current_user.tenant_id, "is_active": True}).to_list(1)
+        if schools:
+            school_id = schools[0]["id"]
+    
+    # Set default rating labels if not provided
+    survey_dict = survey_data.dict()
+    if not survey_dict.get("rating_labels") and survey_dict["survey_type"] in ["rating_text", "rating_only"]:
+        scale = survey_dict.get("rating_scale", 5)
+        if scale == 5:
+            survey_dict["rating_labels"] = [
+                {"value": 1, "label": "Very Poor"},
+                {"value": 2, "label": "Poor"},
+                {"value": 3, "label": "Average"},
+                {"value": 4, "label": "Good"},
+                {"value": 5, "label": "Excellent"}
+            ]
+        elif scale == 10:
+            survey_dict["rating_labels"] = [{"value": i, "label": str(i)} for i in range(1, 11)]
+    
+    survey_dict["tenant_id"] = current_user.tenant_id
+    survey_dict["school_id"] = school_id
+    survey_dict["created_by"] = current_user.id
+    survey_dict["created_by_name"] = current_user.full_name
+    
+    survey = RatingSurvey(**survey_dict)
+    await db.rating_surveys.insert_one(survey.dict())
+    
+    logging.info(f"Rating survey created: {survey.title} by {current_user.full_name}")
+    return {"message": "Survey created successfully", "survey_id": survey.id}
+
+@api_router.put("/rating-surveys/{survey_id}")
+async def update_rating_survey(
+    survey_id: str,
+    survey_data: RatingSurveyCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update a rating survey (Admin only)"""
+    if current_user.role not in ["admin", "super_admin"]:
+        raise HTTPException(status_code=403, detail="Only Admins can update surveys")
+    
+    existing = await db.rating_surveys.find_one({
+        "id": survey_id,
+        "tenant_id": current_user.tenant_id
+    })
+    
+    if not existing:
+        raise HTTPException(status_code=404, detail="Survey not found")
+    
+    update_data = survey_data.dict()
+    update_data["updated_at"] = datetime.utcnow()
+    
+    await db.rating_surveys.update_one(
+        {"id": survey_id, "tenant_id": current_user.tenant_id},
+        {"$set": update_data}
+    )
+    
+    logging.info(f"Rating survey updated: {survey_id} by {current_user.full_name}")
+    return {"message": "Survey updated successfully"}
+
+@api_router.delete("/rating-surveys/{survey_id}")
+async def delete_rating_survey(survey_id: str, current_user: User = Depends(get_current_user)):
+    """Delete a rating survey (Admin only)"""
+    if current_user.role not in ["admin", "super_admin"]:
+        raise HTTPException(status_code=403, detail="Only Admins can delete surveys")
+    
+    existing = await db.rating_surveys.find_one({
+        "id": survey_id,
+        "tenant_id": current_user.tenant_id
+    })
+    
+    if not existing:
+        raise HTTPException(status_code=404, detail="Survey not found")
+    
+    await db.rating_surveys.update_one(
+        {"id": survey_id, "tenant_id": current_user.tenant_id},
+        {"$set": {"is_active": False, "updated_at": datetime.utcnow()}}
+    )
+    
+    logging.info(f"Rating survey deleted: {existing.get('title')} by {current_user.full_name}")
+    return {"message": "Survey deleted successfully"}
+
+@api_router.post("/rating-surveys/{survey_id}/respond")
+async def submit_survey_response(
+    survey_id: str,
+    response_data: SurveyResponseCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Submit a response to a rating survey"""
+    survey = await db.rating_surveys.find_one({
+        "id": survey_id,
+        "tenant_id": current_user.tenant_id,
+        "is_active": True
+    })
+    
+    if not survey:
+        raise HTTPException(status_code=404, detail="Survey not found")
+    
+    # Check if user has already responded
+    existing_response = await db.survey_responses.find_one({
+        "survey_id": survey_id,
+        "user_id": current_user.id
+    })
+    
+    if existing_response:
+        raise HTTPException(status_code=400, detail="You have already responded to this survey")
+    
+    # Validate response based on survey type
+    survey_type = survey.get("survey_type", "rating_text")
+    
+    if survey_type in ["rating_text", "rating_only"]:
+        if response_data.rating is None:
+            raise HTTPException(status_code=400, detail="Rating is required")
+        if response_data.rating < 1 or response_data.rating > survey.get("rating_scale", 5):
+            raise HTTPException(status_code=400, detail=f"Rating must be between 1 and {survey.get('rating_scale', 5)}")
+    
+    if survey_type == "rating_text" and survey.get("text_required") and not response_data.text_response:
+        raise HTTPException(status_code=400, detail="Text feedback is required")
+    
+    if survey_type == "mcq" and not response_data.mcq_responses:
+        raise HTTPException(status_code=400, detail="Please select an option")
+    
+    # Create response
+    response = SurveyResponse(
+        tenant_id=current_user.tenant_id,
+        survey_id=survey_id,
+        user_id=current_user.id,
+        user_name=current_user.full_name,
+        user_role=current_user.role,
+        rating=response_data.rating,
+        text_response=response_data.text_response,
+        mcq_responses=response_data.mcq_responses
+    )
+    
+    await db.survey_responses.insert_one(response.dict())
+    
+    # Update survey stats
+    responses = await db.survey_responses.find({"survey_id": survey_id}).to_list(1000)
+    ratings = [r["rating"] for r in responses if r.get("rating")]
+    avg_rating = sum(ratings) / len(ratings) if ratings else 0
+    
+    await db.rating_surveys.update_one(
+        {"id": survey_id},
+        {"$set": {
+            "responses_count": len(responses),
+            "average_rating": avg_rating,
+            "updated_at": datetime.utcnow()
+        }}
+    )
+    
+    logging.info(f"Survey response submitted for {survey.get('title')} by {current_user.full_name}")
+    return {"message": "Response submitted successfully"}
+
+@api_router.get("/rating-surveys/{survey_id}/responses")
+async def get_survey_responses(survey_id: str, current_user: User = Depends(get_current_user)):
+    """Get all responses for a survey (Admin/Teacher only)"""
+    if current_user.role not in ["admin", "super_admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    survey = await db.rating_surveys.find_one({
+        "id": survey_id,
+        "tenant_id": current_user.tenant_id
+    })
+    
+    if not survey:
+        raise HTTPException(status_code=404, detail="Survey not found")
+    
+    # Teachers can only see responses to surveys they created
+    if current_user.role == "teacher" and survey.get("created_by") != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only view responses to your own surveys")
+    
+    responses = await db.survey_responses.find({"survey_id": survey_id}).to_list(1000)
+    
+    # Calculate statistics
+    ratings = [r["rating"] for r in responses if r.get("rating")]
+    stats = {
+        "total_responses": len(responses),
+        "average_rating": sum(ratings) / len(ratings) if ratings else 0,
+        "rating_distribution": {}
+    }
+    
+    for i in range(1, survey.get("rating_scale", 5) + 1):
+        stats["rating_distribution"][str(i)] = len([r for r in ratings if r == i])
+    
+    return {"survey": survey, "responses": responses, "stats": stats}
+
 # ==================== VEHICLE MANAGEMENT ====================
 
 @api_router.get("/vehicles", response_model=List[Vehicle])

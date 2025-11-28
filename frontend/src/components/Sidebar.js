@@ -23,7 +23,10 @@ import {
   ClipboardCheck,
   Sparkles,
   Target,
-  FileText
+  FileText,
+  Bell,
+  Star,
+  MessageSquare
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
@@ -264,6 +267,16 @@ const Sidebar = () => {
         { title: 'Institution Details', path: '/settings/institution' },
         { title: 'Staff Settings', path: '/settings/staff' },
         { title: 'Permissions', path: '/settings/permissions' }
+      ]
+    },
+    {
+      key: 'communication',
+      title: 'Communication',
+      icon: MessageSquare,
+      roles: ['super_admin', 'admin', 'teacher', 'student'],
+      subItems: [
+        { title: 'Notifications', path: '/notifications' },
+        { title: 'Rating & Reviews', path: '/rating-surveys' }
       ]
     }
   ];

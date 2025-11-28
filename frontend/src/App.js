@@ -29,6 +29,8 @@ import QuizTool from './components/QuizTool';
 import TestGenerator from './components/TestGenerator';
 import AISummary from './components/AISummary';
 import AINotes from './components/AINotes';
+import Notifications from './components/Notifications';
+import RatingSurveys from './components/RatingSurveys';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import { Toaster } from './components/ui/sonner';
@@ -295,6 +297,22 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Calendar />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/notifications" 
+                element={
+                  <ProtectedRoute>
+                    <Notifications />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/rating-surveys" 
+                element={
+                  <ProtectedRoute>
+                    <RatingSurveys />
                   </ProtectedRoute>
                 } 
               />
