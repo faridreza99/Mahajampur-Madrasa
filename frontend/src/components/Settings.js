@@ -166,6 +166,22 @@ const Settings = () => {
     end_time: ''
   });
   const [teachers, setTeachers] = useState([]);
+  
+  // Day Structure Mode State (Class-wise Timetable)
+  const [dayStructureClass, setDayStructureClass] = useState('');
+  const [dayStructureSection, setDayStructureSection] = useState('A');
+  const [dayStructurePeriodsPerDay, setDayStructurePeriodsPerDay] = useState(6);
+  const [dayStructureEditMode, setDayStructureEditMode] = useState(false);
+  const [dayStructureLoading, setDayStructureLoading] = useState(false);
+  const [dayStructureSchedule, setDayStructureSchedule] = useState({
+    monday: [],
+    tuesday: [],
+    wednesday: [],
+    thursday: [],
+    friday: [],
+    saturday: []
+  });
+  const [originalDayStructureSchedule, setOriginalDayStructureSchedule] = useState(null);
 
   // Grading System State
   const [isViewGradesModalOpen, setIsViewGradesModalOpen] = useState(false);
@@ -1046,6 +1062,204 @@ const Settings = () => {
   const formatDayName = (day) => {
     return day.charAt(0).toUpperCase() + day.slice(1);
   };
+
+  // ==================== DAY STRUCTURE MODE HANDLERS ====================
+  
+  const initializeDayStructureSchedule = (periodsCount) => {
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const newSchedule = {};
+    days.forEach(day => {
+      newSchedule[day] = Array(periodsCount).fill(null).map((_, idx) => ({
+        period_number: idx + 1,
+        subject: 'Free'
+      }));
+    });
+    return newSchedule;
+  };
+
+  const handleDayStructurePeriodsChange = (change) => {
+    const newPeriodsCount = Math.max(1, Math.min(12, dayStructurePeriodsPerDay + change));
+    setDayStructurePeriodsPerDay(newPeriodsCount);
+    
+    // Adjust all days to have the new number of periods
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const updatedSchedule = { ...dayStructureSchedule };
+    
+    days.forEach(day => {
+      const currentPeriods = updatedSchedule[day] || [];
+      if (newPeriodsCount > currentPeriods.length) {
+        // Add new periods
+        for (let i = currentPeriods.length; i < newPeriodsCount; i++) {
+          currentPeriods.push({ period_number: i + 1, subject: 'Free' });
+        }
+      } else if (newPeriodsCount < currentPeriods.length) {
+        // Remove excess periods
+        currentPeriods.splice(newPeriodsCount);
+      }
+      updatedSchedule[day] = currentPeriods;
+    });
+    
+    setDayStructureSchedule(updatedSchedule);
+  };
+
+  const handleDayStructureSubjectChange = (day, periodIndex, subject) => {
+    setDayStructureSchedule(prev => ({
+      ...prev,
+      [day]: prev[day].map((period, idx) => 
+        idx === periodIndex ? { ...period, subject } : period
+      )
+    }));
+  };
+
+  const handleLoadDayStructureTimetable = async () => {
+    if (!dayStructureClass) {
+      toast.error('Please select a class first');
+      return;
+    }
+    
+    try {
+      setDayStructureLoading(true);
+      const token = localStorage.getItem('token');
+      
+      // Try to fetch existing timetable for this class/section
+      const response = await axios.get(`${API_BASE_URL}/timetables`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      const existingTimetable = response.data.find(t => 
+        t.class_name === dayStructureClass && 
+        (t.section === dayStructureSection || !t.section)
+      );
+      
+      if (existingTimetable && existingTimetable.weekly_schedule) {
+        // Convert weekly_schedule to dayStructureSchedule format
+        const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const newSchedule = {};
+        let maxPeriods = 6;
+        
+        existingTimetable.weekly_schedule.forEach(dayData => {
+          const dayName = dayData.day.toLowerCase();
+          if (days.includes(dayName)) {
+            newSchedule[dayName] = dayData.periods.map((p, idx) => ({
+              period_number: idx + 1,
+              subject: p.is_break ? 'Break' : (p.subject || 'Free')
+            }));
+            maxPeriods = Math.max(maxPeriods, dayData.periods.length);
+          }
+        });
+        
+        // Fill missing days
+        days.forEach(day => {
+          if (!newSchedule[day]) {
+            newSchedule[day] = Array(maxPeriods).fill(null).map((_, idx) => ({
+              period_number: idx + 1,
+              subject: 'Free'
+            }));
+          }
+        });
+        
+        setDayStructurePeriodsPerDay(maxPeriods);
+        setDayStructureSchedule(newSchedule);
+        setSelectedTimetable(existingTimetable);
+        toast.success('Timetable loaded successfully!');
+      } else {
+        // Initialize empty schedule
+        const emptySchedule = initializeDayStructureSchedule(dayStructurePeriodsPerDay);
+        setDayStructureSchedule(emptySchedule);
+        setSelectedTimetable(null);
+        toast.info('No existing timetable found. Starting fresh.');
+      }
+    } catch (error) {
+      console.error('Error loading timetable:', error);
+      const emptySchedule = initializeDayStructureSchedule(dayStructurePeriodsPerDay);
+      setDayStructureSchedule(emptySchedule);
+    } finally {
+      setDayStructureLoading(false);
+    }
+  };
+
+  const handleEnterDayStructureEditMode = () => {
+    setOriginalDayStructureSchedule(JSON.parse(JSON.stringify(dayStructureSchedule)));
+    setDayStructureEditMode(true);
+  };
+
+  const handleCancelDayStructureEdit = () => {
+    if (originalDayStructureSchedule) {
+      setDayStructureSchedule(originalDayStructureSchedule);
+    }
+    setDayStructureEditMode(false);
+  };
+
+  const handleSaveDayStructureSchedule = async () => {
+    if (!dayStructureClass) {
+      toast.error('Please select a class');
+      return;
+    }
+    
+    try {
+      setDayStructureLoading(true);
+      const token = localStorage.getItem('token');
+      
+      // Convert dayStructureSchedule to weekly_schedule format
+      const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const weekly_schedule = days.map(day => ({
+        day: day,
+        periods: dayStructureSchedule[day].map((p, idx) => ({
+          period_number: idx + 1,
+          subject: p.subject === 'Free' ? '' : p.subject,
+          is_break: p.subject === 'Break',
+          break_name: p.subject === 'Break' ? 'Break' : null,
+          teacher_name: '',
+          room_number: '',
+          start_time: '',
+          end_time: ''
+        }))
+      }));
+      
+      if (selectedTimetable && selectedTimetable.id) {
+        // Update existing timetable
+        await axios.put(`${API_BASE_URL}/timetables/${selectedTimetable.id}`, {
+          weekly_schedule,
+          total_periods_per_day: dayStructurePeriodsPerDay,
+          section: dayStructureSection
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        toast.success('Timetable updated successfully!');
+      } else {
+        // Create new timetable
+        await axios.post(`${API_BASE_URL}/timetables`, {
+          class_name: dayStructureClass,
+          standard: dayStructureClass,
+          section: dayStructureSection,
+          academic_year: '2024-25',
+          effective_from: new Date().toISOString().split('T')[0],
+          total_periods_per_day: dayStructurePeriodsPerDay,
+          break_periods: [],
+          weekly_schedule
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        toast.success('Timetable created successfully!');
+      }
+      
+      setDayStructureEditMode(false);
+      // Reload to get updated data
+      handleLoadDayStructureTimetable();
+    } catch (error) {
+      console.error('Error saving timetable:', error);
+      toast.error('Failed to save timetable');
+    } finally {
+      setDayStructureLoading(false);
+    }
+  };
+
+  // Available subjects for dropdown
+  const dayStructureSubjects = [
+    'Free', 'Math', 'Science', 'English', 'History', 'Computer', 'Art', 
+    'Club Activity', 'Sports', 'Physics', 'Chemistry', 'Biology', 'Geography',
+    'Hindi', 'Bengali', 'Social Studies', 'Music', 'Physical Education', 'Break'
+  ];
 
   // ==================== GRADING SYSTEM HANDLERS ====================
 
@@ -2168,25 +2382,173 @@ const Settings = () => {
 
         <TabsContent value="timetable" className="space-y-4">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="flex items-center space-x-2">
                 <Clock className="h-5 w-5 text-purple-500" />
-                <span>Time Table Configuration</span>
+                <span>Timetable — Day Structure Mode</span>
               </CardTitle>
+              <div className="flex items-center space-x-2">
+                {!dayStructureEditMode ? (
+                  <Button 
+                    onClick={handleEnterDayStructureEditMode} 
+                    className="bg-emerald-500 hover:bg-emerald-600"
+                    disabled={!dayStructureClass}
+                  >
+                    Edit
+                  </Button>
+                ) : (
+                  <>
+                    <Button variant="outline" onClick={handleCancelDayStructureEdit}>
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handleSaveDayStructureSchedule} 
+                      className="bg-emerald-500 hover:bg-emerald-600"
+                      disabled={dayStructureLoading}
+                    >
+                      {dayStructureLoading ? 'Saving...' : 'Save'}
+                    </Button>
+                  </>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-12">
-                <Clock className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Schedule Management</h3>
-                <p className="text-gray-600 mb-4">Configure class periods, break times, and schedules</p>
-                <div className="flex justify-center space-x-3">
-                  <Button variant="outline" onClick={handleViewTimetable} disabled={loading}>
-                    {loading ? 'Loading...' : 'View Timetable'}
-                  </Button>
-                  <Button className="bg-emerald-500 hover:bg-emerald-600" onClick={handleCreateSchedule} disabled={loading}>
-                    {loading ? 'Loading...' : 'Create Schedule'}
-                  </Button>
+              {/* Class, Section, and Periods per day controls */}
+              <div className="flex flex-wrap items-center gap-4 mb-6 pb-4 border-b">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="dayStructureClass" className="text-sm font-medium">Class</Label>
+                  <Select 
+                    value={dayStructureClass} 
+                    onValueChange={(value) => {
+                      setDayStructureClass(value);
+                      // Reset schedule when class changes
+                      const emptySchedule = initializeDayStructureSchedule(dayStructurePeriodsPerDay);
+                      setDayStructureSchedule(emptySchedule);
+                      setSelectedTimetable(null);
+                    }}
+                  >
+                    <SelectTrigger className="w-32">
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Class 1">Class 1</SelectItem>
+                      <SelectItem value="Class 2">Class 2</SelectItem>
+                      <SelectItem value="Class 3">Class 3</SelectItem>
+                      <SelectItem value="Class 4">Class 4</SelectItem>
+                      <SelectItem value="Class 5">Class 5</SelectItem>
+                      <SelectItem value="Class 6">Class 6</SelectItem>
+                      <SelectItem value="Class 7">Class 7</SelectItem>
+                      <SelectItem value="Class 8">Class 8</SelectItem>
+                      <SelectItem value="Class 9">Class 9</SelectItem>
+                      <SelectItem value="Class 10">Class 10</SelectItem>
+                      <SelectItem value="Class 11">Class 11</SelectItem>
+                      <SelectItem value="Class 12">Class 12</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+                
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="dayStructureSection" className="text-sm font-medium">Section</Label>
+                  <Select 
+                    value={dayStructureSection} 
+                    onValueChange={setDayStructureSection}
+                  >
+                    <SelectTrigger className="w-24">
+                      <SelectValue placeholder="A" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="A">A</SelectItem>
+                      <SelectItem value="B">B</SelectItem>
+                      <SelectItem value="C">C</SelectItem>
+                      <SelectItem value="D">D</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="flex items-center gap-2 ml-auto">
+                  <Label className="text-sm font-medium">Periods per day</Label>
+                  <div className="flex items-center border rounded-md">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 w-8 p-0"
+                      onClick={() => handleDayStructurePeriodsChange(-1)}
+                      disabled={!dayStructureEditMode || dayStructurePeriodsPerDay <= 1}
+                    >
+                      -
+                    </Button>
+                    <span className="w-8 text-center font-medium">{dayStructurePeriodsPerDay}</span>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 w-8 p-0"
+                      onClick={() => handleDayStructurePeriodsChange(1)}
+                      disabled={!dayStructureEditMode || dayStructurePeriodsPerDay >= 12}
+                    >
+                      +
+                    </Button>
+                  </div>
+                </div>
+                
+                <Button 
+                  variant="outline" 
+                  onClick={handleLoadDayStructureTimetable}
+                  disabled={!dayStructureClass || dayStructureLoading}
+                >
+                  {dayStructureLoading ? 'Loading...' : 'Load'}
+                </Button>
+              </div>
+              
+              <p className="text-sm text-gray-500 mb-4">Changes apply to all days for this class-section.</p>
+              
+              {/* Day Structure Grid - 3 columns per row */}
+              {dayStructureClass ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].map((day) => (
+                    <div key={day} className="border rounded-lg p-4">
+                      <h4 className="font-semibold text-gray-800 mb-3 capitalize">{day}</h4>
+                      <div className="space-y-2">
+                        {(dayStructureSchedule[day] || []).map((period, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <span className="text-sm text-gray-500 w-8">P{idx + 1}</span>
+                            <Select 
+                              value={period.subject || 'Free'} 
+                              onValueChange={(value) => handleDayStructureSubjectChange(day, idx, value)}
+                              disabled={!dayStructureEditMode}
+                            >
+                              <SelectTrigger className="flex-1 h-9">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {dayStructureSubjects.map((subject) => (
+                                  <SelectItem key={subject} value={subject}>
+                                    {subject}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <Clock className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Select a Class</h3>
+                  <p className="text-gray-600 mb-4">Choose a class and section to view or edit the timetable</p>
+                </div>
+              )}
+              
+              {/* Legacy Actions */}
+              <div className="mt-6 pt-4 border-t flex justify-end space-x-3">
+                <Button variant="outline" onClick={handleViewTimetable} disabled={loading}>
+                  {loading ? 'Loading...' : 'View All Timetables'}
+                </Button>
+                <Button variant="outline" onClick={handleCreateSchedule} disabled={loading}>
+                  {loading ? 'Loading...' : 'Advanced Schedule'}
+                </Button>
               </div>
             </CardContent>
           </Card>
