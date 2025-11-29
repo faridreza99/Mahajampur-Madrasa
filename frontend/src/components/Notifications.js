@@ -105,10 +105,13 @@ const Notifications = () => {
       const response = await axios.get(`${API_BASE_URL}/notifications?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setNotifications(response.data);
+      const data = response.data;
+      const notificationsArray = Array.isArray(data) ? data : (data.notifications || []);
+      setNotifications(notificationsArray);
     } catch (error) {
       console.error('Error fetching notifications:', error);
       toast.error('Failed to load notifications');
+      setNotifications([]);
     } finally {
       setLoading(false);
     }
@@ -132,9 +135,11 @@ const Notifications = () => {
       const response = await axios.get(`${API_BASE_URL}/notification-templates`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setTemplates(response.data);
+      const data = response.data;
+      setTemplates(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching templates:', error);
+      setTemplates([]);
     }
   }, []);
 
@@ -144,9 +149,11 @@ const Notifications = () => {
       const response = await axios.get(`${API_BASE_URL}/classes`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setClasses(response.data);
+      const data = response.data;
+      setClasses(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching classes:', error);
+      setClasses([]);
     }
   }, []);
 
