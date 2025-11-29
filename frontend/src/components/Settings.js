@@ -1126,35 +1126,47 @@ const Settings = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       
+      // Find matching timetable by class name (and optionally section)
+      const classId = dayStructureClass.toLowerCase().replace(/\s+/g, '-') + '-' + dayStructureSection.toLowerCase();
       const existingTimetable = response.data.find(t => 
-        t.class_name === dayStructureClass && 
+        (t.class_name === dayStructureClass || t.class_id === classId) && 
         (t.section === dayStructureSection || !t.section)
       );
       
-      if (existingTimetable && existingTimetable.weekly_schedule) {
+      if (existingTimetable && existingTimetable.weekly_schedule && existingTimetable.weekly_schedule.length > 0) {
         // Convert weekly_schedule to dayStructureSchedule format
         const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
         const newSchedule = {};
-        let maxPeriods = 6;
+        let maxPeriods = existingTimetable.total_periods_per_day || 6;
         
         existingTimetable.weekly_schedule.forEach(dayData => {
+          if (!dayData || !dayData.day) return;
           const dayName = dayData.day.toLowerCase();
-          if (days.includes(dayName)) {
+          if (days.includes(dayName) && Array.isArray(dayData.periods)) {
             newSchedule[dayName] = dayData.periods.map((p, idx) => ({
-              period_number: idx + 1,
-              subject: p.is_break ? 'Break' : (p.subject || 'Free')
+              period_number: p?.period_number || idx + 1,
+              subject: p?.is_break ? 'Break' : (p?.subject || 'Free'),
+              teacher_name: p?.teacher_name || '',
+              room_number: p?.room_number || '',
+              start_time: p?.start_time || '',
+              end_time: p?.end_time || ''
             }));
             maxPeriods = Math.max(maxPeriods, dayData.periods.length);
           }
         });
         
-        // Fill missing days
+        // Fill missing days with empty periods matching maxPeriods
         days.forEach(day => {
-          if (!newSchedule[day]) {
+          if (!newSchedule[day] || newSchedule[day].length === 0) {
             newSchedule[day] = Array(maxPeriods).fill(null).map((_, idx) => ({
               period_number: idx + 1,
               subject: 'Free'
             }));
+          } else if (newSchedule[day].length < maxPeriods) {
+            // Extend to maxPeriods if shorter
+            for (let i = newSchedule[day].length; i < maxPeriods; i++) {
+              newSchedule[day].push({ period_number: i + 1, subject: 'Free' });
+            }
           }
         });
         
@@ -1171,8 +1183,10 @@ const Settings = () => {
       }
     } catch (error) {
       console.error('Error loading timetable:', error);
+      toast.error('Failed to load timetable');
       const emptySchedule = initializeDayStructureSchedule(dayStructurePeriodsPerDay);
       setDayStructureSchedule(emptySchedule);
+      setSelectedTimetable(null);
     } finally {
       setDayStructureLoading(false);
     }
@@ -1200,38 +1214,43 @@ const Settings = () => {
       setDayStructureLoading(true);
       const token = localStorage.getItem('token');
       
-      // Convert dayStructureSchedule to weekly_schedule format
+      // Convert dayStructureSchedule to weekly_schedule format (matching backend DaySchedule model)
       const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
       const weekly_schedule = days.map(day => ({
         day: day,
-        periods: dayStructureSchedule[day].map((p, idx) => ({
+        periods: (dayStructureSchedule[day] || []).map((p, idx) => ({
           period_number: idx + 1,
           subject: p.subject === 'Free' ? '' : p.subject,
           is_break: p.subject === 'Break',
           break_name: p.subject === 'Break' ? 'Break' : null,
-          teacher_name: '',
-          room_number: '',
-          start_time: '',
-          end_time: ''
+          teacher_name: p.teacher_name || '',
+          room_number: p.room_number || '',
+          start_time: p.start_time || '',
+          end_time: p.end_time || ''
         }))
       }));
       
       if (selectedTimetable && selectedTimetable.id) {
         // Update existing timetable
-        await axios.put(`${API_BASE_URL}/timetables/${selectedTimetable.id}`, {
+        const response = await axios.put(`${API_BASE_URL}/timetables/${selectedTimetable.id}`, {
           weekly_schedule,
-          total_periods_per_day: dayStructurePeriodsPerDay,
-          section: dayStructureSection
+          total_periods_per_day: dayStructurePeriodsPerDay
         }, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        toast.success('Timetable updated successfully!');
+        
+        if (response.status === 200) {
+          toast.success('Timetable updated successfully!');
+        }
       } else {
+        // Generate a class_id based on class name
+        const classId = dayStructureClass.toLowerCase().replace(/\s+/g, '-') + '-' + dayStructureSection.toLowerCase();
+        
         // Create new timetable
-        await axios.post(`${API_BASE_URL}/timetables`, {
+        const response = await axios.post(`${API_BASE_URL}/timetables`, {
+          class_id: classId,
           class_name: dayStructureClass,
           standard: dayStructureClass,
-          section: dayStructureSection,
           academic_year: '2024-25',
           effective_from: new Date().toISOString().split('T')[0],
           total_periods_per_day: dayStructurePeriodsPerDay,
@@ -1240,15 +1259,20 @@ const Settings = () => {
         }, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        toast.success('Timetable created successfully!');
+        
+        if (response.status === 200 || response.status === 201) {
+          toast.success('Timetable created successfully!');
+          setSelectedTimetable(response.data);
+        }
       }
       
       setDayStructureEditMode(false);
       // Reload to get updated data
-      handleLoadDayStructureTimetable();
+      await handleLoadDayStructureTimetable();
     } catch (error) {
       console.error('Error saving timetable:', error);
-      toast.error('Failed to save timetable');
+      const errorMessage = error.response?.data?.detail || 'Failed to save timetable';
+      toast.error(errorMessage);
     } finally {
       setDayStructureLoading(false);
     }
