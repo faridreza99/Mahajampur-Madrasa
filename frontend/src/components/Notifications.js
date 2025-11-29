@@ -620,14 +620,14 @@ const Notifications = () => {
             <div>
               <Label>Filter by Class (Optional)</Label>
               <Select 
-                value={formData.target_class} 
-                onValueChange={(value) => setFormData({ ...formData, target_class: value })}
+                value={formData.target_class || "all"} 
+                onValueChange={(value) => setFormData({ ...formData, target_class: value === "all" ? "" : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="All Classes" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Classes</SelectItem>
+                  <SelectItem value="all">All Classes</SelectItem>
                   {classes.map(cls => (
                     <SelectItem key={cls.id} value={cls.name}>{cls.name}</SelectItem>
                   ))}

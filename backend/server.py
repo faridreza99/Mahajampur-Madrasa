@@ -7218,6 +7218,11 @@ async def get_notification_templates(current_user: User = Depends(get_current_us
         "is_active": True
     }).to_list(50)
     
+    # Convert ObjectId to string
+    for template in templates:
+        if "_id" in template:
+            template["_id"] = str(template["_id"])
+    
     # Add default templates if none exist
     if not templates:
         default_templates = [

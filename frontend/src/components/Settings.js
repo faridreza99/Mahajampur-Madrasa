@@ -3130,14 +3130,14 @@ const Settings = () => {
             <div>
               <Label htmlFor="periodTeacher">Teacher</Label>
               <Select 
-                value={periodFormData.teacher_name} 
-                onValueChange={(value) => setPeriodFormData({ ...periodFormData, teacher_name: value })}
+                value={periodFormData.teacher_name || "none"} 
+                onValueChange={(value) => setPeriodFormData({ ...periodFormData, teacher_name: value === "none" ? "" : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a teacher" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No teacher assigned</SelectItem>
+                  <SelectItem value="none">No teacher assigned</SelectItem>
                   {teachers.map((teacher) => (
                     <SelectItem key={teacher.id} value={teacher.full_name}>
                       {teacher.full_name}
