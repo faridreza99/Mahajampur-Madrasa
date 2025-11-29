@@ -7586,15 +7586,19 @@ async def get_rating_surveys(
     
     surveys = await db.rating_surveys.find(query).sort("created_at", -1).to_list(100)
     
-    # Check if user has already responded
+    # Check if user has already responded and convert ObjectId to string
+    result = []
     for survey in surveys:
         response = await db.survey_responses.find_one({
             "survey_id": survey["id"],
             "user_id": current_user.id
         })
         survey["has_responded"] = response is not None
+        if "_id" in survey:
+            survey["_id"] = str(survey["_id"])
+        result.append(survey)
     
-    return surveys
+    return result
 
 @api_router.get("/rating-surveys/pending")
 async def get_pending_surveys(current_user: User = Depends(get_current_user)):
@@ -7619,7 +7623,7 @@ async def get_pending_surveys(current_user: User = Depends(get_current_user)):
     
     surveys = await db.rating_surveys.find(query).to_list(100)
     
-    # Filter out surveys user has already responded to
+    # Filter out surveys user has already responded to and convert ObjectId
     pending_surveys = []
     for survey in surveys:
         response = await db.survey_responses.find_one({
@@ -7627,6 +7631,8 @@ async def get_pending_surveys(current_user: User = Depends(get_current_user)):
             "user_id": current_user.id
         })
         if not response:
+            if "_id" in survey:
+                survey["_id"] = str(survey["_id"])
             pending_surveys.append(survey)
     
     return pending_surveys
@@ -7642,17 +7648,27 @@ async def get_rating_survey(survey_id: str, current_user: User = Depends(get_cur
     if not survey:
         raise HTTPException(status_code=404, detail="Survey not found")
     
+    # Convert ObjectId to string
+    if "_id" in survey:
+        survey["_id"] = str(survey["_id"])
+    
     # Check if user has responded
     response = await db.survey_responses.find_one({
         "survey_id": survey_id,
         "user_id": current_user.id
     })
     survey["has_responded"] = response is not None
+    if response and "_id" in response:
+        response["_id"] = str(response["_id"])
     survey["user_response"] = response
     
     # For admin/teacher, include response statistics
     if current_user.role in ["admin", "super_admin", "teacher"]:
         responses = await db.survey_responses.find({"survey_id": survey_id}).to_list(1000)
+        # Convert ObjectId for all responses
+        for resp in responses:
+            if "_id" in resp:
+                resp["_id"] = str(resp["_id"])
         survey["all_responses"] = responses
         
         # Calculate stats
