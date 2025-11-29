@@ -60,12 +60,12 @@ localPort = 38365
 externalPort = 3000
 
 [[ports]]
-localPort = 43033
-externalPort = 3002
-
-[[ports]]
 localPort = 44611
 externalPort = 3001
+
+[[ports]]
+localPort = 46061
+externalPort = 3002
 
 
 [deployment]

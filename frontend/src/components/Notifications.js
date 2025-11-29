@@ -102,14 +102,18 @@ const Notifications = () => {
       if (filterRole !== 'all') params.append('target_role', filterRole);
       if (showUnreadOnly) params.append('unread_only', 'true');
       
+      console.log('Fetching notifications from:', `${API_BASE_URL}/notifications?${params.toString()}`);
       const response = await axios.get(`${API_BASE_URL}/notifications?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      console.log('Notifications response:', response.data);
       const data = response.data;
       const notificationsArray = Array.isArray(data) ? data : (data.notifications || []);
+      console.log('Processed notifications:', notificationsArray.length, 'items');
       setNotifications(notificationsArray);
     } catch (error) {
       console.error('Error fetching notifications:', error);
+      console.error('Error details:', error.response?.data || error.message);
       toast.error('Failed to load notifications');
       setNotifications([]);
     } finally {
@@ -132,13 +136,18 @@ const Notifications = () => {
   const fetchTemplates = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
+      console.log('Fetching notification templates...');
       const response = await axios.get(`${API_BASE_URL}/notification-templates`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      console.log('Templates response:', response.data);
       const data = response.data;
-      setTemplates(Array.isArray(data) ? data : []);
+      const templatesArray = Array.isArray(data) ? data : [];
+      console.log('Processed templates:', templatesArray.length, 'items');
+      setTemplates(templatesArray);
     } catch (error) {
       console.error('Error fetching templates:', error);
+      console.error('Template error details:', error.response?.data || error.message);
       setTemplates([]);
     }
   }, []);
@@ -175,9 +184,11 @@ const Notifications = () => {
 
     try {
       const token = localStorage.getItem('token');
-      await axios.post(`${API_BASE_URL}/notifications`, formData, {
+      console.log('Creating notification with data:', formData);
+      const response = await axios.post(`${API_BASE_URL}/notifications`, formData, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      console.log('Create notification response:', response.data);
       
       toast.success('Notification created successfully!');
       setIsCreateModalOpen(false);
@@ -186,6 +197,7 @@ const Notifications = () => {
       fetchUnreadCount();
     } catch (error) {
       console.error('Error creating notification:', error);
+      console.error('Create error details:', error.response?.data || error.message);
       toast.error(error.response?.data?.detail || 'Failed to create notification');
     }
   };
