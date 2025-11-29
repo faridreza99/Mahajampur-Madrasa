@@ -7239,11 +7239,15 @@ async def get_notifications(
     
     notifications = await db.notifications.find(query).sort("created_at", -1).to_list(100)
     
-    # Add is_read flag for current user
+    # Add is_read flag for current user and convert ObjectId to string
+    result = []
     for notif in notifications:
         notif["is_read"] = current_user.id in notif.get("is_read_by", [])
+        if "_id" in notif:
+            notif["_id"] = str(notif["_id"])
+        result.append(notif)
     
-    return notifications
+    return result
 
 @api_router.get("/notifications/unread-count")
 async def get_unread_count(current_user: User = Depends(get_current_user)):
