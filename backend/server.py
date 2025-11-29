@@ -974,6 +974,14 @@ class AcademicBook(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
+class EmbeddedChapter(BaseModel):
+    """Embedded chapter within a book document"""
+    chapter_number: Optional[int] = None
+    title: Optional[str] = None
+    file_url: Optional[str] = None
+    file_name: Optional[str] = None
+    content: Optional[str] = None
+
 class AcademicBookCreate(BaseModel):
     class_standard: str
     subject: str
@@ -988,6 +996,7 @@ class AcademicBookCreate(BaseModel):
     cover_image_url: Optional[str] = None
     pdf_url: Optional[str] = None  # Kept for backward compatibility
     file_url: Optional[str] = None  # New field for consistency
+    chapters: List[EmbeddedChapter] = []  # Embedded chapters
 
 # B. Reference Books (Tag) - Hierarchical: Class → Subject → Chapter
 class ReferenceBook(BaseModel):
@@ -1033,6 +1042,7 @@ class ReferenceBookCreate(BaseModel):
     file_url: Optional[str] = None
     chapter: Optional[str] = None
     board: Optional[str] = None
+    chapters: List[EmbeddedChapter] = []  # Embedded chapters
 
 # Chapter model (shared by both Academic and Reference Books)
 class BookChapter(BaseModel):
