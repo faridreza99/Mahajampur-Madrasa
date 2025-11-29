@@ -48,7 +48,9 @@ import {
   FileUp,
   Image,
   ArrowLeft,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -91,6 +93,8 @@ const StudentList = () => {
   const [studentToDelete, setStudentToDelete] = useState(null);
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState('');
+  const [importErrors, setImportErrors] = useState([]);
+  const [importSummary, setImportSummary] = useState(null);
 
   const getCurrentView = () => {
     const path = location.pathname;
@@ -515,6 +519,8 @@ const StudentList = () => {
 
     setLoading(true);
     setUploadProgress('Importing...');
+    setImportErrors([]);
+    setImportSummary(null);
 
     try {
       const token = localStorage.getItem('token');
@@ -530,15 +536,25 @@ const StudentList = () => {
 
       const { imported_count, total_rows, failed_imports } = response.data;
       
+      setImportSummary({
+        imported_count,
+        total_rows,
+        failed_count: failed_imports.length
+      });
+      
       if (failed_imports.length > 0) {
-        toast.warning(`Imported ${imported_count}/${total_rows} students. ${failed_imports.length} failed.`);
-        console.log('Failed imports:', failed_imports);
+        setImportErrors(failed_imports);
+        if (imported_count > 0) {
+          toast.warning(`Imported ${imported_count}/${total_rows} students. ${failed_imports.length} record(s) need attention.`);
+        } else {
+          toast.error(`Import failed for all ${failed_imports.length} record(s). Please review the errors below.`);
+        }
       } else {
-        toast.success(`Successfully imported ${imported_count} students`);
+        toast.success(`Successfully imported all ${imported_count} students!`);
+        setIsImportModalOpen(false);
+        setImportFile(null);
       }
-
-      setIsImportModalOpen(false);
-      setImportFile(null);
+      
       fetchData();
     } catch (error) {
       console.error('Failed to import students:', error);
@@ -1294,8 +1310,15 @@ const StudentList = () => {
       </Dialog>
 
       {/* Import Students Modal */}
-      <Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
-        <DialogContent className="max-w-md">
+      <Dialog open={isImportModalOpen} onOpenChange={(open) => {
+        setIsImportModalOpen(open);
+        if (!open) {
+          setImportErrors([]);
+          setImportSummary(null);
+          setImportFile(null);
+        }
+      }}>
+        <DialogContent className={importErrors.length > 0 ? "max-w-2xl max-h-[80vh] overflow-y-auto" : "max-w-md"}>
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
               <Upload className="h-5 w-5 text-emerald-500" />
@@ -1305,87 +1328,207 @@ const StudentList = () => {
               Import student data from CSV or Excel file.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <Label htmlFor="import-file">Select File</Label>
+          
+          {/* Import Summary */}
+          {importSummary && (
+            <div className={`p-4 rounded-lg border ${
+              importSummary.failed_count === 0 
+                ? 'bg-green-50 border-green-200' 
+                : importSummary.imported_count > 0 
+                  ? 'bg-amber-50 border-amber-200'
+                  : 'bg-red-50 border-red-200'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className={`font-semibold ${
+                    importSummary.failed_count === 0 
+                      ? 'text-green-800' 
+                      : importSummary.imported_count > 0 
+                        ? 'text-amber-800'
+                        : 'text-red-800'
+                  }`}>
+                    Import Summary
+                  </h4>
+                  <p className="text-sm mt-1">
+                    <span className="text-green-600 font-medium">{importSummary.imported_count} successful</span>
+                    {importSummary.failed_count > 0 && (
+                      <span className="text-red-600 font-medium ml-2">• {importSummary.failed_count} failed</span>
+                    )}
+                    <span className="text-gray-500 ml-2">/ {importSummary.total_rows} total</span>
+                  </p>
+                </div>
+                {importSummary.failed_count === 0 && (
+                  <CheckCircle2 className="h-8 w-8 text-green-500" />
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Error Details Table */}
+          {importErrors.length > 0 && (
+            <div className="mt-4">
+              <h4 className="font-medium text-red-800 mb-2 flex items-center">
+                <AlertCircle className="h-4 w-4 mr-2" />
+                Failed Records ({importErrors.length})
+              </h4>
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-3 py-2 text-left font-medium text-gray-700">Row</th>
+                      <th className="px-3 py-2 text-left font-medium text-gray-700">Admission No</th>
+                      <th className="px-3 py-2 text-left font-medium text-gray-700">Student</th>
+                      <th className="px-3 py-2 text-left font-medium text-gray-700">Issue</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {importErrors.map((error, index) => (
+                      <tr key={index} className="hover:bg-red-50">
+                        <td className="px-3 py-2 text-gray-600">{error.row}</td>
+                        <td className="px-3 py-2 font-mono text-xs">{error.admission_no}</td>
+                        <td className="px-3 py-2 text-gray-800">{error.student_name || 'Unknown'}</td>
+                        <td className="px-3 py-2">
+                          <div className="flex items-start space-x-2">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                              error.error_type === 'duplicate' 
+                                ? 'bg-orange-100 text-orange-800'
+                                : error.error_type === 'missing_fields'
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-red-100 text-red-800'
+                            }`}>
+                              {error.error_type === 'duplicate' ? 'Duplicate' : 
+                               error.error_type === 'missing_fields' ? 'Missing Data' : 'Error'}
+                            </span>
+                          </div>
+                          <p className="text-red-600 text-xs mt-1">{error.error}</p>
+                          {error.suggestion && (
+                            <p className="text-gray-500 text-xs mt-0.5 italic">{error.suggestion}</p>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Please fix these issues in your file and re-upload, or add these students manually.
+              </p>
+            </div>
+          )}
+
+          {/* File Upload Section - only show if no errors or before upload */}
+          {importErrors.length === 0 && (
+            <div className="space-y-4">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label htmlFor="import-file">Select File</Label>
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="text-emerald-600 hover:text-emerald-700 text-sm p-0 h-auto"
+                    onClick={async () => {
+                      try {
+                        const token = localStorage.getItem('token');
+                        const response = await axios.get(`${API}/download/student-import-sample?format=excel`, {
+                          responseType: 'blob',
+                          headers: {
+                            'Authorization': `Bearer ${token}`
+                          }
+                        });
+                        
+                        const blob = new Blob([response.data], { 
+                          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+                        });
+                        const url = window.URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = 'student_import_sample.xlsx';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        window.URL.revokeObjectURL(url);
+                        toast.success('Sample Excel template downloaded successfully');
+                      } catch (error) {
+                        console.error('Download failed:', error);
+                        toast.error('Failed to download template');
+                      }
+                    }}
+                  >
+                    <Download className="h-4 w-4 mr-1" />
+                    Download Sample Excel
+                  </Button>
+                </div>
+                <Input
+                  id="import-file"
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  onChange={(e) => setImportFile(e.target.files[0])}
+                  className="mt-2"
+                />
+                {importFile && (
+                  <p className="text-sm text-gray-600 mt-2">
+                    Selected: {importFile.name}
+                  </p>
+                )}
+              </div>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <h4 className="font-medium text-amber-900 text-sm mb-2">Required Columns:</h4>
+                <p className="text-xs text-amber-800">
+                  admission_no, roll_no, name, gender, date_of_birth, class_id, section_id, 
+                  father_name, F/phone, mother_name, address, guardian_name, guardian_phone
+                </p>
+                <p className="text-xs text-amber-700 mt-1">
+                  Optional: F/ Whatsapp no, M/phone, M/whatsapp no, email id
+                </p>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            {importErrors.length > 0 ? (
+              <>
                 <Button
-                  type="button"
-                  variant="link"
-                  className="text-emerald-600 hover:text-emerald-700 text-sm p-0 h-auto"
-                  onClick={async () => {
-                    try {
-                      const token = localStorage.getItem('token');
-                      const response = await axios.get(`${API}/download/student-import-sample?format=excel`, {
-                        responseType: 'blob',
-                        headers: {
-                          'Authorization': `Bearer ${token}`
-                        }
-                      });
-                      
-                      const blob = new Blob([response.data], { 
-                        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
-                      });
-                      const url = window.URL.createObjectURL(blob);
-                      const link = document.createElement('a');
-                      link.href = url;
-                      link.download = 'student_import_sample.xlsx';
-                      document.body.appendChild(link);
-                      link.click();
-                      document.body.removeChild(link);
-                      window.URL.revokeObjectURL(url);
-                      toast.success('Sample Excel template downloaded successfully');
-                    } catch (error) {
-                      console.error('Download failed:', error);
-                      toast.error('Failed to download template');
-                    }
+                  variant="outline"
+                  onClick={() => {
+                    setImportErrors([]);
+                    setImportSummary(null);
+                    setImportFile(null);
                   }}
                 >
-                  <Download className="h-4 w-4 mr-1" />
-                  Download Sample Excel
+                  Upload New File
                 </Button>
-              </div>
-              <Input
-                id="import-file"
-                type="file"
-                accept=".csv,.xlsx,.xls"
-                onChange={(e) => setImportFile(e.target.files[0])}
-                className="mt-2"
-              />
-              {importFile && (
-                <p className="text-sm text-gray-600 mt-2">
-                  Selected: {importFile.name}
-                </p>
-              )}
-            </div>
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-              <h4 className="font-medium text-amber-900 text-sm mb-2">Required Columns:</h4>
-              <p className="text-xs text-amber-800">
-                admission_no, roll_no, name, gender, date_of_birth, class_id, section_id, 
-                father_name, F/phone, mother_name, address, guardian_name, guardian_phone
-              </p>
-              <p className="text-xs text-amber-700 mt-1">
-                Optional: F/ Whatsapp no, M/phone, M/whatsapp no, email id
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsImportModalOpen(false);
-                setImportFile(null);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              className="bg-emerald-500 hover:bg-emerald-600"
-              onClick={handleImportStudents}
-              disabled={loading || !importFile}
-            >
-              {uploadProgress || 'Import Students'}
-            </Button>
+                <Button
+                  className="bg-emerald-500 hover:bg-emerald-600"
+                  onClick={() => {
+                    setIsImportModalOpen(false);
+                    setImportErrors([]);
+                    setImportSummary(null);
+                    setImportFile(null);
+                  }}
+                >
+                  Close
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsImportModalOpen(false);
+                    setImportFile(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="bg-emerald-500 hover:bg-emerald-600"
+                  onClick={handleImportStudents}
+                  disabled={loading || !importFile}
+                >
+                  {uploadProgress || 'Import Students'}
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

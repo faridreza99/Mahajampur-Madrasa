@@ -2488,7 +2488,10 @@ async def import_students(
                     failed_imports.append({
                         "row": index + 2,
                         "admission_no": str(row.get('admission_no', 'N/A')),
-                        "error": f"Missing required fields: {', '.join(missing_fields)}"
+                        "student_name": str(row.get('name', 'Unknown')),
+                        "error_type": "missing_fields",
+                        "error": f"Missing required fields: {', '.join(missing_fields)}",
+                        "suggestion": f"Please fill in the following fields: {', '.join(missing_fields)}"
                     })
                     continue
                 
@@ -2503,7 +2506,10 @@ async def import_students(
                     failed_imports.append({
                         "row": index + 2,
                         "admission_no": str(row['admission_no']),
-                        "error": "Student with this admission number already exists"
+                        "student_name": str(row.get('name', 'Unknown')),
+                        "error_type": "duplicate",
+                        "error": f"Duplicate Entry - Admission No '{row['admission_no']}' is already registered",
+                        "suggestion": "Use a different admission number or update the existing student record"
                     })
                     continue
                 
@@ -2560,7 +2566,10 @@ async def import_students(
                 failed_imports.append({
                     "row": index + 2,
                     "admission_no": str(row.get('admission_no', 'N/A')),
-                    "error": str(e)
+                    "student_name": str(row.get('name', 'Unknown')),
+                    "error_type": "system_error",
+                    "error": f"Import failed: {str(e)}",
+                    "suggestion": "Please check the data format and try again"
                 })
         
         return {
