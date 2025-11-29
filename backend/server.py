@@ -14,6 +14,7 @@ from pathlib import Path
 import os
 import logging
 import uuid
+import asyncio
 import hashlib
 import jwt
 import bcrypt
@@ -33,6 +34,7 @@ import pandas as pd
 import csv
 import cloudinary
 import cloudinary.uploader
+from notification_service import get_notification_service, NotificationEventType
 
 
 ROOT_DIR = Path(__file__).parent
@@ -47,6 +49,8 @@ cloudinary.config(
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
+
+notification_svc = get_notification_service(db)
 
 # ==================== MongoDB Serialization Utility ====================
 def sanitize_mongo_data(data: Any) -> Any:
@@ -4013,6 +4017,29 @@ async def save_bulk_attendance(
             result = await db.attendance.insert_many(attendance_records)
             logging.info(f"[ATTENDANCE-POST] Inserted {len(result.inserted_ids)} new records")
         
+        for record in request_data.records:
+            if record.status == "absent":
+                if record.type == "student":
+                    student = await db.students.find_one({"id": record.person_id, "tenant_id": current_user.tenant_id})
+                    if student:
+                        parent_email = student.get("parent_email") or student.get("guardian_email")
+                        asyncio.create_task(notification_svc.notify_student_absent(
+                            tenant_id=current_user.tenant_id,
+                            school_id=getattr(current_user, 'school_id', None),
+                            student_name=record.person_name,
+                            student_id=record.person_id,
+                            date=request_data.date,
+                            parent_email=parent_email
+                        ))
+                elif record.type == "staff" and hasattr(record, 'staff_name'):
+                    asyncio.create_task(notification_svc.notify_staff_late(
+                        tenant_id=current_user.tenant_id,
+                        school_id=getattr(current_user, 'school_id', None),
+                        staff_name=record.staff_name,
+                        date=request_data.date,
+                        time="N/A"
+                    ))
+        
         entity_type = "students" if request_data.type == "student" else "staff members"
         logging.info(f"[ATTENDANCE-POST] Success - saved {len(attendance_records)} {entity_type} for {request_data.date}")
         return {"message": f"Attendance saved successfully for {len(attendance_records)} {entity_type}"}
@@ -5829,6 +5856,14 @@ async def update_timetable(timetable_id: str, timetable_data: TimetableUpdate, c
         })
         
         logging.info(f"Timetable updated (ID: {timetable_id}) by {current_user.full_name}")
+        
+        asyncio.create_task(notification_svc.notify_timetable_update(
+            tenant_id=current_user.tenant_id,
+            school_id=getattr(current_user, 'school_id', None),
+            class_name=existing_timetable.get("class_name", "Unknown"),
+            section=existing_timetable.get("section_name", "")
+        ))
+        
         return Timetable(**updated_timetable)
     
     return Timetable(**existing_timetable)
@@ -6820,6 +6855,15 @@ async def create_calendar_event(
     
     await db.calendar_events.insert_one(event.dict())
     
+    asyncio.create_task(notification_svc.notify_calendar_event(
+        tenant_id=current_user.tenant_id,
+        school_id=school_id,
+        event_type=event_data.event_type,
+        event_title=event_data.title,
+        event_date=event_data.start_date,
+        description=event_data.description or ""
+    ))
+    
     logging.info(f"Calendar event created: {event.title} by {current_user.full_name}")
     return {"message": "Event created successfully", "event_id": event.id}
 
@@ -7005,6 +7049,38 @@ async def get_notifications(
     
     return notifications
 
+@api_router.get("/notifications/unread-count")
+async def get_unread_count(current_user: User = Depends(get_current_user)):
+    """Get count of unread notifications for current user"""
+    query = {
+        "tenant_id": current_user.tenant_id,
+        "is_active": True,
+        "is_read_by": {"$nin": [current_user.id]}
+    }
+    
+    # Apply role-based filtering
+    if current_user.role == "student":
+        query["$or"] = [
+            {"target_role": "all"},
+            {"target_role": "student"},
+            {"target_user_ids": current_user.id}
+        ]
+    elif current_user.role == "teacher":
+        query["$or"] = [
+            {"target_role": "all"},
+            {"target_role": "teacher"},
+            {"target_user_ids": current_user.id}
+        ]
+    elif current_user.role == "parent":
+        query["$or"] = [
+            {"target_role": "all"},
+            {"target_role": "parent"},
+            {"target_user_ids": current_user.id}
+        ]
+    
+    count = await db.notifications.count_documents(query)
+    return {"unread_count": count}
+
 @api_router.get("/notifications/{notification_id}")
 async def get_notification(notification_id: str, current_user: User = Depends(get_current_user)):
     """Get a specific notification"""
@@ -7130,32 +7206,6 @@ async def mark_all_notifications_read(current_user: User = Depends(get_current_u
     )
     
     return {"message": "All notifications marked as read"}
-
-@api_router.get("/notifications/unread-count")
-async def get_unread_count(current_user: User = Depends(get_current_user)):
-    """Get count of unread notifications for current user"""
-    query = {
-        "tenant_id": current_user.tenant_id,
-        "is_active": True,
-        "is_read_by": {"$nin": [current_user.id]}
-    }
-    
-    # Apply role-based filtering
-    if current_user.role == "student":
-        query["$or"] = [
-            {"target_role": "all"},
-            {"target_role": "student"},
-            {"target_user_ids": current_user.id}
-        ]
-    elif current_user.role == "teacher":
-        query["$or"] = [
-            {"target_role": "all"},
-            {"target_role": "teacher"},
-            {"target_user_ids": current_user.id}
-        ]
-    
-    count = await db.notifications.count_documents(query)
-    return {"unread_count": count}
 
 @api_router.get("/notification-templates")
 async def get_notification_templates(current_user: User = Depends(get_current_user)):
@@ -14091,6 +14141,16 @@ async def create_payment(
         logging.info(f"Payment created: {payment.id} for student {student['name']}")
         logging.info(f"Updated dashboard stats: {dashboard_stats}")
         
+        parent_email = student.get("parent_email") or student.get("guardian_email")
+        asyncio.create_task(notification_svc.notify_payment_received(
+            tenant_id=current_user.tenant_id,
+            school_id=student["school_id"],
+            student_name=student["name"],
+            amount=f"{payment_data.amount:,.2f}",
+            receipt_no=receipt_no,
+            parent_email=parent_email
+        ))
+        
         # Return payment with dashboard stats
         response = payment.dict()
         response["dashboard_stats"] = dashboard_stats
@@ -16546,6 +16606,23 @@ async def update_admission_status(
         # For demo purposes, we'll simulate the update
         logging.info(f"Application {application_id} status updated to {new_status} by {current_user.full_name}")
         
+        school = await db.schools.find_one({"tenant_id": current_user.tenant_id, "is_active": True})
+        school_name = school.get("name", "School") if school else "School"
+        
+        if new_status == "Approved":
+            asyncio.create_task(notification_svc.notify_admission_approved(
+                tenant_id=current_user.tenant_id,
+                school_id=getattr(current_user, 'school_id', None),
+                student_name=f"Application #{application_id}",
+                school_name=school_name
+            ))
+        elif new_status == "Rejected":
+            asyncio.create_task(notification_svc.notify_admission_rejected(
+                tenant_id=current_user.tenant_id,
+                school_id=getattr(current_user, 'school_id', None),
+                student_name=f"Application #{application_id}"
+            ))
+        
         return {
             "success": True,
             "message": f"Application status updated to {new_status}",
@@ -17148,6 +17225,77 @@ async def update_term_dates_settings(config: dict, current_user: User = Depends(
     except Exception as e:
         logging.error(f"Failed to update term dates settings: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to update term dates settings")
+
+@api_router.get("/settings/notifications")
+async def get_notification_settings(current_user: User = Depends(get_current_user)):
+    """Get notification settings for the school"""
+    if current_user.role not in ["super_admin", "admin"]:
+        raise HTTPException(status_code=403, detail="Only admins can view notification settings")
+    
+    try:
+        collection = db["settings_notifications"]
+        config_doc = await collection.find_one({"tenant_id": current_user.tenant_id})
+        
+        default_config = {
+            "admission_alerts": True,
+            "attendance_alerts": True,
+            "fee_alerts": True,
+            "calendar_alerts": True,
+            "timetable_alerts": True,
+            "exam_alerts": True,
+            "email_notifications": True,
+            "sms_notifications": False,
+            "push_notifications": True,
+            "parent_notifications": True,
+            "student_notifications": True,
+            "teacher_notifications": True,
+            "admin_notifications": True
+        }
+        
+        if config_doc:
+            return {**default_config, **config_doc, "id": str(config_doc.get("_id", ""))}
+        return default_config
+        
+    except Exception as e:
+        logging.error(f"Failed to get notification settings: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve notification settings")
+
+@api_router.put("/settings/notifications")
+async def update_notification_settings(
+    config: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Update notification settings for the school"""
+    if current_user.role not in ["super_admin", "admin"]:
+        raise HTTPException(status_code=403, detail="Only admins can update notification settings")
+    
+    try:
+        collection = db["settings_notifications"]
+        
+        config_doc = {
+            **config,
+            "tenant_id": current_user.tenant_id,
+            "updatedBy": current_user.full_name,
+            "updatedAt": datetime.now()
+        }
+        
+        await collection.replace_one(
+            {"tenant_id": current_user.tenant_id}, 
+            config_doc, 
+            upsert=True
+        )
+        
+        logging.info(f"Notification settings updated by {current_user.full_name}")
+        return {
+            "success": True,
+            "message": "Notification settings updated successfully",
+            "config": config,
+            "updatedBy": current_user.full_name,
+            "updatedAt": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logging.error(f"Failed to update notification settings: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to update notification settings")
 
 @api_router.get("/admission/settings")
 async def get_admission_settings(current_user: User = Depends(get_current_user)):

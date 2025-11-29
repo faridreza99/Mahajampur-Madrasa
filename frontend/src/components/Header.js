@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../App';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { 
@@ -15,11 +16,43 @@ import { Badge } from './ui/badge';
 import { Bell, Search, Settings, User, LogOut, Moon, Sun } from 'lucide-react';
 import { Input } from './ui/input';
 
+const API_BASE_URL = '/api';
+
 const Header = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [darkMode, setDarkMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      
+      const response = await axios.get(`${API_BASE_URL}/notifications?limit=5`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setNotifications(response.data.slice(0, 5));
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    }
+  }, []);
+
+  const fetchUnreadCount = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      
+      const response = await axios.get(`${API_BASE_URL}/notifications/unread-count`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setUnreadCount(response.data.unread_count || 0);
+    } catch (error) {
+      console.error('Error fetching unread count:', error);
+    }
+  }, []);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -27,7 +60,17 @@ const Header = () => {
       setDarkMode(true);
       document.documentElement.classList.add('dark');
     }
-  }, []);
+    
+    fetchNotifications();
+    fetchUnreadCount();
+    
+    const interval = setInterval(() => {
+      fetchNotifications();
+      fetchUnreadCount();
+    }, 30000);
+    
+    return () => clearInterval(interval);
+  }, [fetchNotifications, fetchUnreadCount]);
 
   const handleLogout = () => {
     logout();
@@ -94,39 +137,46 @@ const Header = () => {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="relative">
                 <Bell className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                  3
-                </span>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-80">
-              <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+              <DropdownMenuLabel className="flex justify-between items-center">
+                <span>Notifications</span>
+                {unreadCount > 0 && (
+                  <Badge variant="secondary" className="text-xs">{unreadCount} new</Badge>
+                )}
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium">New student admission</p>
-                  <p className="text-xs text-gray-500">John Doe admitted to Class 10-A</p>
-                  <p className="text-xs text-gray-400">2 mins ago</p>
-                </div>
-              </DropdownMenuItem>
+              {notifications.length > 0 ? (
+                notifications.map((notification, index) => (
+                  <React.Fragment key={notification.id}>
+                    <DropdownMenuItem className="cursor-pointer py-3">
+                      <div className={`flex flex-col space-y-1 ${!notification.is_read ? 'font-medium' : ''}`}>
+                        <p className="text-sm">{notification.title}</p>
+                        <p className="text-xs text-gray-500 line-clamp-2">{notification.body}</p>
+                        <p className="text-xs text-gray-400">
+                          {new Date(notification.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                    </DropdownMenuItem>
+                    {index < notifications.length - 1 && <DropdownMenuSeparator />}
+                  </React.Fragment>
+                ))
+              ) : (
+                <DropdownMenuItem className="text-center text-gray-500">
+                  No notifications
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium">Fee reminder sent</p>
-                  <p className="text-xs text-gray-500">Monthly fee reminders to parents</p>
-                  <p className="text-xs text-gray-400">1 hour ago</p>
-                </div>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium">Staff attendance marked</p>
-                  <p className="text-xs text-gray-500">All staff attendance completed</p>
-                  <p className="text-xs text-gray-400">3 hours ago</p>
-                </div>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-center cursor-pointer text-emerald-600 hover:text-emerald-700">
+              <DropdownMenuItem 
+                className="text-center cursor-pointer text-emerald-600 hover:text-emerald-700"
+                onClick={() => navigate('/notifications')}
+              >
                 View all notifications
               </DropdownMenuItem>
             </DropdownMenuContent>
