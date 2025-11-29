@@ -91,10 +91,12 @@ const RatingSurveys = () => {
       const response = await axios.get(`${API_BASE_URL}/rating-surveys`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setSurveys(response.data);
+      const data = response.data;
+      setSurveys(Array.isArray(data) ? data : (data.surveys || []));
     } catch (error) {
       console.error('Error fetching surveys:', error);
       toast.error('Failed to load surveys');
+      setSurveys([]);
     } finally {
       setLoading(false);
     }
@@ -106,9 +108,11 @@ const RatingSurveys = () => {
       const response = await axios.get(`${API_BASE_URL}/rating-surveys/pending`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setPendingSurveys(response.data);
+      const data = response.data;
+      setPendingSurveys(Array.isArray(data) ? data : (data.surveys || []));
     } catch (error) {
       console.error('Error fetching pending surveys:', error);
+      setPendingSurveys([]);
     }
   }, []);
 
