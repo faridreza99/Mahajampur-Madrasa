@@ -2558,19 +2558,27 @@ async def download_student_import_sample(format: str = "excel"):
             # Generate CSV
             df.to_csv(output, index=False)
             output.seek(0)
-            return StreamingResponse(
-                output,
+            content = output.getvalue()
+            return Response(
+                content=content,
                 media_type="text/csv",
-                headers={"Content-Disposition": "attachment; filename=student_import_sample.csv"}
+                headers={
+                    "Content-Disposition": "attachment; filename=student_import_sample.csv",
+                    "Content-Length": str(len(content))
+                }
             )
         else:
             # Generate Excel (default)
             df.to_excel(output, index=False, sheet_name='Students')
             output.seek(0)
-            return StreamingResponse(
-                output,
+            content = output.getvalue()
+            return Response(
+                content=content,
                 media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                headers={"Content-Disposition": "attachment; filename=student_import_sample.xlsx"}
+                headers={
+                    "Content-Disposition": "attachment; filename=student_import_sample.xlsx",
+                    "Content-Length": str(len(content))
+                }
             )
             
     except Exception as e:

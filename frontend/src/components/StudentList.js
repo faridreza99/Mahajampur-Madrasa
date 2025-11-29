@@ -1268,14 +1268,32 @@ const StudentList = () => {
                   type="button"
                   variant="link"
                   className="text-emerald-600 hover:text-emerald-700 text-sm p-0 h-auto"
-                  onClick={() => {
-                    const link = document.createElement('a');
-                    link.href = `${API}/download/student-import-sample?format=excel`;
-                    link.download = 'student_import_sample.xlsx';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    toast.success('Sample Excel template downloaded successfully');
+                  onClick={async () => {
+                    try {
+                      const token = localStorage.getItem('token');
+                      const response = await axios.get(`${API}/download/student-import-sample?format=excel`, {
+                        responseType: 'blob',
+                        headers: {
+                          'Authorization': `Bearer ${token}`
+                        }
+                      });
+                      
+                      const blob = new Blob([response.data], { 
+                        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+                      });
+                      const url = window.URL.createObjectURL(blob);
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.download = 'student_import_sample.xlsx';
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      window.URL.revokeObjectURL(url);
+                      toast.success('Sample Excel template downloaded successfully');
+                    } catch (error) {
+                      console.error('Download failed:', error);
+                      toast.error('Failed to download template');
+                    }
                   }}
                 >
                   <Download className="h-4 w-4 mr-1" />
