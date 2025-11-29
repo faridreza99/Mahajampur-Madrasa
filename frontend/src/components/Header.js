@@ -34,9 +34,12 @@ const Header = () => {
       const response = await axios.get(`${API_BASE_URL}/notifications?limit=5`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setNotifications(response.data.slice(0, 5));
+      const data = response.data;
+      const notificationsArray = Array.isArray(data) ? data : (data.notifications || []);
+      setNotifications(notificationsArray.slice(0, 5));
     } catch (error) {
       console.error('Error fetching notifications:', error);
+      setNotifications([]);
     }
   }, []);
 
