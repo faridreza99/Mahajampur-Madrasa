@@ -404,12 +404,12 @@ const Sidebar = () => {
 
   return (
     <>
-      {/* Mobile toggle button */}
+      {/* Mobile toggle button - sticky to header */}
       <Button
         onClick={() => setIsMobileOpen(true)}
         variant="ghost"
         size="icon"
-        className="fixed top-4 left-4 z-50 md:hidden bg-white/90 backdrop-blur-sm"
+        className="fixed top-3 left-3 z-50 md:hidden bg-emerald-500 hover:bg-emerald-600 text-white shadow-md"
       >
         <Menu className="h-5 w-5" />
       </Button>
@@ -427,16 +427,8 @@ const Sidebar = () => {
           <div className="absolute inset-0 bg-black/50" onClick={() => setIsMobileOpen(false)} />
           <div className="relative flex w-64 h-full glass-sidebar overflow-y-auto">
             <div className="flex flex-col w-full min-h-full">
-              <div className="flex items-center justify-between p-4">
-                <div className="flex items-center space-x-3">
-                  <div className="bg-emerald-500 p-2 rounded-lg">
-                    <GraduationCap className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h1 className="text-white font-bold">School ERP</h1>
-                    <p className="text-gray-300 text-xs">{user?.full_name}</p>
-                  </div>
-                </div>
+              {/* Close button only - no duplicate header */}
+              <div className="absolute top-4 right-4 z-10">
                 <Button
                   onClick={() => setIsMobileOpen(false)}
                   variant="ghost"
@@ -446,9 +438,7 @@ const Sidebar = () => {
                   <X className="h-5 w-5" />
                 </Button>
               </div>
-              <div className="flex-1">
-                <SidebarContent />
-              </div>
+              <SidebarContent />
             </div>
           </div>
         </div>
