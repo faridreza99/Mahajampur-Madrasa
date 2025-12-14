@@ -73,3 +73,22 @@ Preferred communication style: Simple, everyday language.
 ## Cloud Services & Integrations
 - **Database Hosting**: MongoDB Atlas.
 - **Multi-tenancy**: Subdomain or header-based tenant detection.
+
+## Mobile App (React Native / Expo)
+- **Location**: `mobile/` folder
+- **Framework**: React Native 0.81.5 with Expo SDK 54
+- **Navigation**: React Navigation with bottom tabs and native stack
+- **Features**:
+  - Login screen with JWT authentication connecting to backend API
+  - Dashboard with colorful gradient cards (Ask GiNi, Quiz, Summary, Notes)
+  - Bottom tab navigation (Home, Dashboard, Attendance, Profile)
+  - AI Assistant chat interface
+  - Quiz, Summary, Notes screens
+  - Profile screen with logout
+- **Dependencies**: axios, @react-native-async-storage/async-storage, expo-linear-gradient, @react-navigation/native, @react-navigation/bottom-tabs, @react-navigation/native-stack
+- **Styling**: Dark theme matching web app design, gradient backgrounds, consistent color scheme
+- **Structure**:
+  - `mobile/src/screens/` - All screen components
+  - `mobile/src/context/` - AuthContext for authentication state
+  - `mobile/src/services/` - API service with axios interceptors
+- **Run**: `cd mobile && npx expo start` to launch the Expo dev server
