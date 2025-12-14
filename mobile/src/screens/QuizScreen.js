@@ -8,6 +8,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  TextInput,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Picker } from '@react-native-picker/picker';
@@ -144,6 +145,9 @@ const QuizScreen = ({ navigation }) => {
 
   if (quiz) {
     const question = quiz.questions[currentQuestion];
+    const questionText = question?.question_text || question?.question || question?.text || 'Question not available';
+    const hasOptions = question?.options && question.options.length > 0;
+    
     return (
       <SafeAreaView style={styles.container}>
         <LinearGradient colors={['#1a1a2e', '#16213e']} style={styles.gradient}>
@@ -155,27 +159,45 @@ const QuizScreen = ({ navigation }) => {
           </View>
           <ScrollView style={styles.quizContent}>
             <View style={styles.questionCard}>
-              <Text style={styles.questionText}>{question?.question || question?.text}</Text>
+              <Text style={styles.questionText}>{questionText}</Text>
+              {question?.difficulty_level && (
+                <Text style={styles.difficultyBadge}>{question.difficulty_level}</Text>
+              )}
             </View>
-            <View style={styles.optionsContainer}>
-              {(question?.options || []).map((option, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.optionButton,
-                    answers[currentQuestion] === index && styles.optionSelected,
-                  ]}
-                  onPress={() => selectAnswer(currentQuestion, index)}
-                >
-                  <Text style={[
-                    styles.optionText,
-                    answers[currentQuestion] === index && styles.optionTextSelected,
-                  ]}>
-                    {String.fromCharCode(65 + index)}. {option}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            {hasOptions ? (
+              <View style={styles.optionsContainer}>
+                {question.options.map((option, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.optionButton,
+                      answers[currentQuestion] === index && styles.optionSelected,
+                    ]}
+                    onPress={() => selectAnswer(currentQuestion, index)}
+                  >
+                    <Text style={[
+                      styles.optionText,
+                      answers[currentQuestion] === index && styles.optionTextSelected,
+                    ]}>
+                      {String.fromCharCode(65 + index)}. {option}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : (
+              <View style={styles.shortAnswerContainer}>
+                <Text style={styles.answerLabel}>Your Answer:</Text>
+                <TextInput
+                  style={styles.answerInput}
+                  placeholder="Type your answer here..."
+                  placeholderTextColor="#888"
+                  value={answers[currentQuestion] || ''}
+                  onChangeText={(text) => setAnswers({ ...answers, [currentQuestion]: text })}
+                  multiline
+                />
+                <Text style={styles.hintText}>This is a short answer question</Text>
+              </View>
+            )}
             <View style={styles.navigationButtons}>
               {currentQuestion > 0 && (
                 <TouchableOpacity
@@ -434,6 +456,37 @@ const styles = StyleSheet.create({
   },
   optionTextSelected: {
     fontWeight: '600',
+  },
+  difficultyBadge: {
+    color: '#f39c12',
+    fontSize: 12,
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
+  shortAnswerContainer: {
+    marginBottom: 20,
+  },
+  answerLabel: {
+    color: '#ccc',
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  answerInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    padding: 16,
+    color: '#fff',
+    fontSize: 14,
+    minHeight: 100,
+    textAlignVertical: 'top',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  hintText: {
+    color: '#888',
+    fontSize: 12,
+    marginTop: 8,
+    fontStyle: 'italic',
   },
   navigationButtons: {
     flexDirection: 'row',

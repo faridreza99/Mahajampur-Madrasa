@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Picker } from '@react-native-picker/picker';
+import Markdown from 'react-native-markdown-display';
 import { classesAPI, notesAPI } from '../services/api';
 
 const NotesScreen = ({ navigation }) => {
@@ -66,6 +67,96 @@ const NotesScreen = ({ navigation }) => {
     setNotes(null);
   };
 
+  const markdownStyles = {
+    body: {
+      color: '#e0e0e0',
+      fontSize: 15,
+      lineHeight: 24,
+    },
+    heading1: {
+      color: '#6c5ce7',
+      fontSize: 22,
+      fontWeight: 'bold',
+      marginTop: 16,
+      marginBottom: 8,
+    },
+    heading2: {
+      color: '#a29bfe',
+      fontSize: 18,
+      fontWeight: 'bold',
+      marginTop: 14,
+      marginBottom: 6,
+    },
+    heading3: {
+      color: '#74b9ff',
+      fontSize: 16,
+      fontWeight: '600',
+      marginTop: 12,
+      marginBottom: 4,
+    },
+    paragraph: {
+      color: '#e0e0e0',
+      fontSize: 15,
+      lineHeight: 24,
+      marginBottom: 10,
+    },
+    bullet_list: {
+      marginLeft: 8,
+    },
+    ordered_list: {
+      marginLeft: 8,
+    },
+    list_item: {
+      color: '#e0e0e0',
+      fontSize: 15,
+      lineHeight: 24,
+      marginBottom: 4,
+    },
+    bullet_list_icon: {
+      color: '#6c5ce7',
+      fontSize: 8,
+      marginRight: 8,
+    },
+    code_inline: {
+      backgroundColor: 'rgba(108, 92, 231, 0.2)',
+      color: '#a29bfe',
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+      fontFamily: 'monospace',
+    },
+    fence: {
+      backgroundColor: 'rgba(0, 0, 0, 0.3)',
+      color: '#74b9ff',
+      padding: 12,
+      borderRadius: 8,
+      marginVertical: 10,
+      fontFamily: 'monospace',
+      fontSize: 13,
+    },
+    blockquote: {
+      backgroundColor: 'rgba(108, 92, 231, 0.1)',
+      borderLeftColor: '#6c5ce7',
+      borderLeftWidth: 4,
+      paddingLeft: 12,
+      paddingVertical: 8,
+      marginVertical: 10,
+    },
+    strong: {
+      color: '#fff',
+      fontWeight: 'bold',
+    },
+    em: {
+      color: '#a29bfe',
+      fontStyle: 'italic',
+    },
+    hr: {
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      height: 1,
+      marginVertical: 16,
+    },
+  };
+
   if (fetchingData) {
     return (
       <SafeAreaView style={styles.container}>
@@ -80,6 +171,7 @@ const NotesScreen = ({ navigation }) => {
   }
 
   if (notes) {
+    const notesContent = notes.content || notes.notes || 'No content available';
     return (
       <SafeAreaView style={styles.container}>
         <LinearGradient colors={['#1a1a2e', '#16213e']} style={styles.gradient}>
@@ -88,11 +180,35 @@ const NotesScreen = ({ navigation }) => {
               <Text style={styles.backButtonText}>←</Text>
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Study Notes</Text>
+            <View style={styles.sourceTag}>
+              <Text style={styles.sourceTagText}>
+                {notes.source === 'cms' ? 'Library' : 'AI'}
+              </Text>
+            </View>
           </View>
-          <ScrollView style={styles.notesContent}>
+
+          <View style={styles.metaCard}>
+            <View style={styles.metaRow}>
+              <Text style={styles.metaLabel}>Class:</Text>
+              <Text style={styles.metaValue}>{notes.class_standard || selectedClass}</Text>
+            </View>
+            <View style={styles.metaRow}>
+              <Text style={styles.metaLabel}>Subject:</Text>
+              <Text style={styles.metaValue}>{notes.subject || selectedSubject}</Text>
+            </View>
+            {notes.chapter && (
+              <View style={styles.metaRow}>
+                <Text style={styles.metaLabel}>Chapter:</Text>
+                <Text style={styles.metaValue}>{notes.chapter}</Text>
+              </View>
+            )}
+          </View>
+
+          <ScrollView style={styles.notesContent} showsVerticalScrollIndicator={true}>
             <View style={styles.notesCard}>
-              <Text style={styles.notesTitle}>{notes.title || 'Generated Notes'}</Text>
-              <Text style={styles.notesText}>{notes.content || notes.notes || 'No content available'}</Text>
+              <Markdown style={markdownStyles}>
+                {notesContent}
+              </Markdown>
             </View>
             <TouchableOpacity style={styles.newButton} onPress={resetNotes}>
               <LinearGradient
@@ -115,19 +231,19 @@ const NotesScreen = ({ navigation }) => {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Text style={styles.backButtonText}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>AI Notes</Text>
+          <Text style={styles.headerTitle}>AI Notes Generator</Text>
         </View>
         <ScrollView style={styles.content}>
           <View style={styles.iconContainer}>
             <Text style={styles.icon}>📚</Text>
           </View>
-          <Text style={styles.title}>Generate Notes</Text>
+          <Text style={styles.title}>Generate Study Notes</Text>
           <Text style={styles.subtitle}>
-            Get detailed study notes with examples and practice questions
+            Get comprehensive notes with examples, key concepts, and practice questions
           </Text>
 
           <View style={styles.formContainer}>
-            <Text style={styles.label}>Select Class</Text>
+            <Text style={styles.label}>Select Class *</Text>
             <View style={styles.pickerContainer}>
               <Picker
                 selectedValue={selectedClass}
@@ -142,7 +258,7 @@ const NotesScreen = ({ navigation }) => {
               </Picker>
             </View>
 
-            <Text style={styles.label}>Select Subject</Text>
+            <Text style={styles.label}>Select Subject *</Text>
             <View style={styles.pickerContainer}>
               <Picker
                 selectedValue={selectedSubject}
@@ -164,16 +280,23 @@ const NotesScreen = ({ navigation }) => {
             disabled={loading}
           >
             <LinearGradient
-              colors={['#6c5ce7', '#a29bfe']}
+              colors={loading ? ['#555', '#444'] : ['#6c5ce7', '#a29bfe']}
               style={styles.buttonGradient}
             >
               {loading ? (
-                <ActivityIndicator color="#fff" />
+                <View style={styles.loadingRow}>
+                  <ActivityIndicator color="#fff" size="small" />
+                  <Text style={styles.buttonText}> Generating...</Text>
+                </View>
               ) : (
                 <Text style={styles.buttonText}>Generate Notes</Text>
               )}
             </LinearGradient>
           </TouchableOpacity>
+
+          <Text style={styles.footerText}>
+            Includes learning objectives, key concepts, examples, and practice questions
+          </Text>
         </ScrollView>
       </LinearGradient>
     </SafeAreaView>
@@ -196,6 +319,12 @@ const styles = StyleSheet.create({
   loadingText: {
     color: '#fff',
     marginTop: 16,
+    fontSize: 16,
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   header: {
     flexDirection: 'row',
@@ -217,6 +346,18 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+    flex: 1,
+  },
+  sourceTag: {
+    backgroundColor: 'rgba(108, 92, 231, 0.3)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  sourceTagText: {
+    color: '#a29bfe',
+    fontSize: 12,
+    fontWeight: '600',
   },
   content: {
     flex: 1,
@@ -248,6 +389,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     marginBottom: 24,
+    lineHeight: 20,
   },
   formContainer: {
     marginBottom: 24,
@@ -256,12 +398,15 @@ const styles = StyleSheet.create({
     color: '#ccc',
     fontSize: 14,
     marginBottom: 8,
+    fontWeight: '500',
   },
   pickerContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 8,
     marginBottom: 16,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(108, 92, 231, 0.3)',
   },
   picker: {
     color: '#fff',
@@ -270,7 +415,7 @@ const styles = StyleSheet.create({
   generateButton: {
     borderRadius: 12,
     overflow: 'hidden',
-    marginBottom: 32,
+    marginBottom: 16,
   },
   buttonGradient: {
     paddingVertical: 16,
@@ -281,27 +426,48 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  footerText: {
+    color: '#666',
+    fontSize: 12,
+    textAlign: 'center',
+    marginBottom: 32,
+  },
+  metaCard: {
+    backgroundColor: 'rgba(108, 92, 231, 0.15)',
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(108, 92, 231, 0.3)',
+  },
+  metaRow: {
+    flexDirection: 'row',
+    marginBottom: 4,
+  },
+  metaLabel: {
+    color: '#888',
+    fontSize: 13,
+    width: 70,
+  },
+  metaValue: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '500',
+    flex: 1,
+  },
   notesContent: {
     flex: 1,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
   },
   notesCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 12,
-    padding: 20,
-    marginTop: 16,
+    padding: 16,
+    marginTop: 12,
     marginBottom: 20,
-  },
-  notesTitle: {
-    color: '#6c5ce7',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 12,
-  },
-  notesText: {
-    color: '#fff',
-    fontSize: 14,
-    lineHeight: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   newButton: {
     borderRadius: 12,
