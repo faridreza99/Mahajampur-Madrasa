@@ -39,7 +39,8 @@ import {
   Edit,
   Trash2,
   Search,
-  Download
+  Download,
+  GraduationCap
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Swal from 'sweetalert2';
@@ -51,12 +52,16 @@ const API = BACKEND_URL;
 const ClassManagement = () => {
   const [classes, setClasses] = useState([]);
   const [sections, setSections] = useState([]);
+  const [subjects, setSubjects] = useState([]);
   const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
   const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
+  const [isSubjectModalOpen, setIsSubjectModalOpen] = useState(false);
   const [editingClass, setEditingClass] = useState(null);
   const [editingSection, setEditingSection] = useState(null);
+  const [editingSubject, setEditingSubject] = useState(null);
+  const [selectedClassFilter, setSelectedClassFilter] = useState('all');
 
   const [classFormData, setClassFormData] = useState({
     name: '',
@@ -72,6 +77,14 @@ const ClassManagement = () => {
     max_students: 40
   });
 
+  const [subjectFormData, setSubjectFormData] = useState({
+    subject_name: '',
+    subject_code: '',
+    class_standard: 'select_class',
+    description: '',
+    is_elective: false
+  });
+
   const standards = [
     'Nursery', 'LKG', 'UKG', 
     '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th', '11th', '12th'
@@ -84,18 +97,21 @@ const ClassManagement = () => {
   const fetchData = async () => {
     try {
       console.log('🔄 Fetching class management data...');
-      const [classesRes, sectionsRes, staffRes] = await Promise.all([
+      const [classesRes, sectionsRes, staffRes, subjectsRes] = await Promise.all([
         axios.get(`${API}/classes`),
         axios.get(`${API}/sections`),
-        axios.get(`${API}/staff`)
+        axios.get(`${API}/staff`),
+        axios.get(`${API}/subjects`)
       ]);
       
       console.log('✅ Classes fetched:', classesRes.data);
       console.log('✅ Sections fetched:', sectionsRes.data);
       console.log('✅ Staff fetched:', staffRes.data);
+      console.log('✅ Subjects fetched:', subjectsRes.data);
       
       setClasses(classesRes.data);
       setSections(sectionsRes.data);
+      setSubjects(subjectsRes.data);
       
       // Filter staff to include teachers and senior positions
       const teachers = staffRes.data.filter(s => 
@@ -292,6 +308,117 @@ const ClassManagement = () => {
     });
   };
 
+  const resetSubjectForm = () => {
+    setSubjectFormData({
+      subject_name: '',
+      subject_code: '',
+      class_standard: 'select_class',
+      description: '',
+      is_elective: false
+    });
+  };
+
+  const handleSubjectSubmit = async (e) => {
+    e.preventDefault();
+    console.log('🔄 Submitting subject form:', subjectFormData);
+    setLoading(true);
+
+    try {
+      if (subjectFormData.class_standard === 'select_class') {
+        toast.error('Please select a class');
+        setLoading(false);
+        return;
+      }
+
+      const token = localStorage.getItem('token');
+      const headers = {
+        Authorization: `Bearer ${token}`
+      };
+
+      const submitData = {
+        ...subjectFormData
+      };
+
+      console.log('📤 Sending subject data to API:', submitData);
+
+      if (editingSubject) {
+        await axios.put(`${API}/subjects/${editingSubject.id}`, submitData, { headers });
+        toast.success('Subject updated successfully');
+      } else {
+        await axios.post(`${API}/subjects`, submitData, { headers });
+        toast.success('Subject added successfully');
+      }
+      
+      setIsSubjectModalOpen(false);
+      setEditingSubject(null);
+      resetSubjectForm();
+      fetchData();
+    } catch (error) {
+      console.error('Failed to save subject:', error);
+      toast.error(error.response?.data?.detail || 'Failed to save subject');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditSubject = (subject) => {
+    setSubjectFormData({
+      subject_name: subject.subject_name,
+      subject_code: subject.subject_code,
+      class_standard: subject.class_standard,
+      description: subject.description || '',
+      is_elective: subject.is_elective || false
+    });
+    setEditingSubject(subject);
+    setIsSubjectModalOpen(true);
+  };
+
+  const handleDeleteSubject = async (subject) => {
+    const result = await Swal.fire({
+      title: `Delete ${subject.subject_name}?`,
+      text: 'This action cannot be undone.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, Delete it!',
+      cancelButtonText: 'Cancel'
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`${API}/subjects/${subject.id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      toast.success(`Subject "${subject.subject_name}" deleted successfully`);
+      fetchData();
+    } catch (error) {
+      console.error('Failed to delete subject:', error);
+      toast.error(error.response?.data?.detail || 'Failed to delete subject');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getSubjectsForClass = (classStandard) => {
+    return subjects.filter(s => s.class_standard === classStandard);
+  };
+
+  const getFilteredSubjects = () => {
+    if (selectedClassFilter === 'all') {
+      return subjects;
+    }
+    return subjects.filter(s => s.class_standard === selectedClassFilter);
+  };
+
   const createSampleTeachers = async () => {
     try {
       console.log('🔄 Creating sample teachers for testing...');
@@ -445,7 +572,7 @@ const ClassManagement = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card className="card-hover">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -472,6 +599,17 @@ const ClassManagement = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
+                <p className="text-sm font-medium text-gray-600">Total Subjects</p>
+                <p className="text-3xl font-bold text-gray-900">{subjects.length}</p>
+              </div>
+              <GraduationCap className="h-8 w-8 text-orange-500" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="card-hover">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
                 <p className="text-sm font-medium text-gray-600">Assigned Teachers</p>
                 <p className="text-3xl font-bold text-gray-900">
                   {classes.filter(c => c.class_teacher_id).length + sections.filter(s => s.section_teacher_id).length}
@@ -483,11 +621,12 @@ const ClassManagement = () => {
         </Card>
       </div>
 
-      {/* Tabs for Classes and Sections */}
+      {/* Tabs for Classes, Sections, and Subjects */}
       <Tabs defaultValue="classes" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="classes">Classes</TabsTrigger>
           <TabsTrigger value="sections">Sections</TabsTrigger>
+          <TabsTrigger value="subjects">Class Subjects</TabsTrigger>
         </TabsList>
 
         {/* Classes Tab */}
@@ -853,6 +992,207 @@ const ClassManagement = () => {
                                 size="sm" 
                                 className="text-red-600 hover:text-red-700"
                                 onClick={() => handleDeleteSection(section)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Class Subjects Tab */}
+        <TabsContent value="subjects" className="space-y-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex items-center gap-4">
+              <h2 className="text-xl font-semibold">Class Subjects</h2>
+              <Select 
+                value={selectedClassFilter} 
+                onValueChange={setSelectedClassFilter}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Filter by class" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Classes</SelectItem>
+                  {standards.map((std) => (
+                    <SelectItem key={std} value={std}>
+                      {std}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Dialog open={isSubjectModalOpen} onOpenChange={setIsSubjectModalOpen}>
+              <DialogTrigger asChild>
+                <Button 
+                  className="bg-emerald-500 hover:bg-emerald-600"
+                  onClick={() => {
+                    setIsSubjectModalOpen(true);
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Subject
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingSubject ? 'Edit Subject' : 'Add New Subject'}
+                  </DialogTitle>
+                  <DialogDescription>
+                    Add or modify subjects for a specific class.
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleSubjectSubmit} className="space-y-4">
+                  <div>
+                    <Label htmlFor="subject_class">Class / Standard *</Label>
+                    <Select 
+                      value={subjectFormData.class_standard} 
+                      onValueChange={(value) => setSubjectFormData({...subjectFormData, class_standard: value})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select class" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="select_class" disabled>Select Class</SelectItem>
+                        {standards.map((std) => (
+                          <SelectItem key={std} value={std}>
+                            {std}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="subject_name">Subject Name *</Label>
+                    <Input
+                      id="subject_name"
+                      value={subjectFormData.subject_name}
+                      onChange={(e) => setSubjectFormData({...subjectFormData, subject_name: e.target.value})}
+                      placeholder="e.g., Mathematics, Science"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="subject_code">Subject Code *</Label>
+                    <Input
+                      id="subject_code"
+                      value={subjectFormData.subject_code}
+                      onChange={(e) => setSubjectFormData({...subjectFormData, subject_code: e.target.value})}
+                      placeholder="e.g., MATH101, SCI101"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="subject_description">Description</Label>
+                    <Input
+                      id="subject_description"
+                      value={subjectFormData.description}
+                      onChange={(e) => setSubjectFormData({...subjectFormData, description: e.target.value})}
+                      placeholder="Brief description of the subject"
+                    />
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="is_elective"
+                      checked={subjectFormData.is_elective}
+                      onChange={(e) => setSubjectFormData({...subjectFormData, is_elective: e.target.checked})}
+                      className="h-4 w-4 rounded border-gray-300"
+                    />
+                    <Label htmlFor="is_elective">Elective Subject</Label>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setIsSubjectModalOpen(false);
+                        setEditingSubject(null);
+                        resetSubjectForm();
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600" disabled={loading}>
+                      {loading ? 'Saving...' : (editingSubject ? 'Update Subject' : 'Add Subject')}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <Card>
+            <CardContent>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12">#</TableHead>
+                      <TableHead>Subject Name</TableHead>
+                      <TableHead>Subject Code</TableHead>
+                      <TableHead>Class</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {getFilteredSubjects().length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                          {selectedClassFilter === 'all' 
+                            ? 'No subjects added yet' 
+                            : `No subjects found for ${selectedClassFilter}`}
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      getFilteredSubjects().map((subject, index) => (
+                        <TableRow key={subject.id}>
+                          <TableCell className="font-medium">{index + 1}</TableCell>
+                          <TableCell>
+                            <div className="font-medium">{subject.subject_name}</div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{subject.subject_code}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">{subject.class_standard}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            {subject.is_elective ? (
+                              <Badge className="bg-purple-100 text-purple-700">Elective</Badge>
+                            ) : (
+                              <Badge className="bg-emerald-100 text-emerald-700">Core</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm text-gray-600 truncate max-w-[200px] block">
+                              {subject.description || '-'}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditSubject(subject)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="text-red-600 hover:text-red-700"
+                                onClick={() => handleDeleteSubject(subject)}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
