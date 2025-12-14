@@ -52,18 +52,6 @@ const LoginScreen = () => {
 
           <View style={styles.formContainer}>
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>School Code (Optional)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter school code"
-                placeholderTextColor="#888"
-                value={tenantId}
-                onChangeText={setTenantId}
-                autoCapitalize="none"
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
               <Text style={styles.label}>Username</Text>
               <TextInput
                 style={styles.input}
@@ -84,6 +72,18 @@ const LoginScreen = () => {
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>School Code (Optional)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter school code"
+                placeholderTextColor="#888"
+                value={tenantId}
+                onChangeText={setTenantId}
+                autoCapitalize="none"
               />
             </View>
 
