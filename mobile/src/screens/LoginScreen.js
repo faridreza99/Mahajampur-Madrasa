@@ -70,8 +70,11 @@ const LoginScreen = () => {
                 placeholder="Enter password"
                 placeholderTextColor="#888"
                 value={password}
-                onChangeText={setPassword}
-                secureTextEntry
+                onChangeText={(text) => setPassword(text)}
+                secureTextEntry={true}
+                autoCapitalize="none"
+                autoCorrect={false}
+                textContentType="password"
               />
             </View>
 
