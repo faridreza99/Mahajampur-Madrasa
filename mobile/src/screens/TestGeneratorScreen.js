@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Picker } from '@react-native-picker/picker';
-import Markdown from 'react-native-markdown-display';
 import { useAuth } from '../context/AuthContext';
 import api, { classesAPI } from '../services/api';
 
@@ -22,6 +21,7 @@ const TestGeneratorScreen = ({ navigation }) => {
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const [classes, setClasses] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [fetchingData, setFetchingData] = useState(true);
@@ -107,18 +107,19 @@ const TestGeneratorScreen = ({ navigation }) => {
     if (!generatedTest) return;
 
     try {
-      setLoading(true);
+      setPublishing(true);
       await api.post('/test/publish', {
         test_id: generatedTest.test_id,
       });
       Alert.alert('Success', 'Test published successfully!');
       setGeneratedTest(null);
+      const testsRes = await api.get('/test/list');
+      setTests(testsRes.data?.tests || []);
       setActiveTab('history');
-      fetchTests();
     } catch (error) {
       Alert.alert('Error', error?.response?.data?.detail || 'Failed to publish test');
     } finally {
-      setLoading(false);
+      setPublishing(false);
     }
   };
 
@@ -454,14 +455,17 @@ const TestGeneratorScreen = ({ navigation }) => {
                   <TouchableOpacity
                     style={[styles.actionButton, styles.publishButton]}
                     onPress={publishTest}
-                    disabled={loading}
+                    disabled={publishing}
                   >
                     <LinearGradient
-                      colors={['#00b894', '#00cec9']}
+                      colors={publishing ? ['#555', '#444'] : ['#00b894', '#00cec9']}
                       style={styles.buttonGradient}
                     >
-                      {loading ? (
-                        <ActivityIndicator color="#fff" size="small" />
+                      {publishing ? (
+                        <View style={styles.loadingRow}>
+                          <ActivityIndicator color="#fff" size="small" />
+                          <Text style={styles.buttonText}> Publishing...</Text>
+                        </View>
                       ) : (
                         <Text style={styles.buttonText}>Publish Test</Text>
                       )}
