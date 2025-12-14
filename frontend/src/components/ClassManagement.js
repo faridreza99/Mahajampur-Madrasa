@@ -85,10 +85,24 @@ const ClassManagement = () => {
     is_elective: false
   });
 
-  const standards = [
+  // Get unique standards from classes API (dynamic)
+  const getUniqueStandards = () => {
+    const uniqueStandards = [...new Set(classes.map(cls => cls.standard))];
+    return uniqueStandards.sort((a, b) => {
+      // Custom sort order for standards
+      const order = ['Nursery', 'LKG', 'UKG', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th', '11th', '12th'];
+      return order.indexOf(a) - order.indexOf(b);
+    });
+  };
+
+  // Fallback standards for class creation (if no classes exist yet)
+  const defaultStandards = [
     'Nursery', 'LKG', 'UKG', 
     '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th', '11th', '12th'
   ];
+
+  // For subject dropdowns, use standards from existing classes
+  const classStandards = getUniqueStandards();
 
   useEffect(() => {
     fetchData();
@@ -679,7 +693,7 @@ const ClassManagement = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="select_standard" disabled>Select Standard</SelectItem>
-                        {standards.map((std) => (
+                        {defaultStandards.map((std) => (
                           <SelectItem key={std} value={std}>
                             {std}
                           </SelectItem>
@@ -1021,11 +1035,15 @@ const ClassManagement = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Classes</SelectItem>
-                  {standards.map((std) => (
-                    <SelectItem key={std} value={std}>
-                      {std}
-                    </SelectItem>
-                  ))}
+                  {classStandards.length > 0 ? (
+                    classStandards.map((std) => (
+                      <SelectItem key={std} value={std}>
+                        {std}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no_classes" disabled>No classes available</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -1062,11 +1080,15 @@ const ClassManagement = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="select_class" disabled>Select Class</SelectItem>
-                        {standards.map((std) => (
-                          <SelectItem key={std} value={std}>
-                            {std}
-                          </SelectItem>
-                        ))}
+                        {classStandards.length > 0 ? (
+                          classStandards.map((std) => (
+                            <SelectItem key={std} value={std}>
+                              {std}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="no_classes" disabled>Please create classes first</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
