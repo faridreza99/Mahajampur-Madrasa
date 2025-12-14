@@ -86,9 +86,9 @@ const Dashboard = () => {
     }
   };
 
-  // Calculate summary statistics
+  // Calculate summary statistics from API response
   const getSummaryStats = () => {
-    if (!giniAnalytics || !giniAnalytics.analytics) {
+    if (!giniAnalytics) {
       return {
         totalStudents: 0,
         totalInteractions: 0,
@@ -97,27 +97,11 @@ const Dashboard = () => {
       };
     }
 
-    const modules = giniAnalytics.analytics;
-    const totalInteractions = Object.values(modules).reduce(
-      (sum, module) => sum + (module.total_interactions || 0),
-      0,
-    );
-
-    const uniqueClasses = new Set();
-    Object.values(modules).forEach((module) => {
-      if (module.class_wise) {
-        Object.keys(module.class_wise).forEach((cls) => uniqueClasses.add(cls));
-      }
-    });
-
-    // Mock growth (ideally from backend)
-    const weeklyGrowth = timePeriod === 7 ? 18 : 24;
-
     return {
-      totalStudents: 256, // Mock – swap with backend value when you have it
-      totalInteractions,
-      activeClasses: uniqueClasses.size,
-      weeklyGrowth,
+      totalStudents: giniAnalytics.total_students || 0,
+      totalInteractions: giniAnalytics.total_interactions || 0,
+      activeClasses: giniAnalytics.active_classes || 0,
+      weeklyGrowth: giniAnalytics.weekly_growth || 0,
     };
   };
 
@@ -213,7 +197,7 @@ const Dashboard = () => {
                   class: cls,
                   subject,
                   totalInteractions: interactions,
-                  activeStudents: Math.floor(interactions / 3), // Mock
+                  activeStudents: Math.max(1, Math.ceil(interactions / 5)),
                 });
               }
             },

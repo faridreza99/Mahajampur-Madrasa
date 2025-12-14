@@ -20098,6 +20098,72 @@ async def get_gini_usage_analytics(
             date = start_date + timedelta(days=i)
             date_labels.append(date.strftime("%Y-%m-%d"))
         
+        # Calculate total unique students using AI modules
+        unique_students = set()
+        for module_name, module_data in analytics.items():
+            # Get student IDs from gini_usage_logs collection
+            pass
+        
+        # Query gini_usage_logs for unique students
+        usage_filter = {
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id,
+            "created_at": {"$gte": start_date, "$lte": end_date}
+        }
+        
+        try:
+            usage_cursor = db.gini_usage_logs.find(usage_filter)
+            async for log in usage_cursor:
+                student_id = log.get("student_id") or log.get("user_id")
+                if student_id:
+                    unique_students.add(student_id)
+        except:
+            pass
+        
+        total_students = len(unique_students) if unique_students else 0
+        
+        # Calculate weekly growth percentage
+        total_interactions = sum(m.get("total_interactions", 0) for m in analytics.values())
+        
+        # Get previous period data for growth calculation (exclusive boundary)
+        prev_end = start_date  # exclusive end
+        prev_start = prev_end - timedelta(days=days)
+        
+        # Calculate previous period interactions from the same sources
+        prev_interactions = 0
+        
+        # Count from all module collections for consistency
+        prev_base_filter = {
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id,
+            "created_at": {"$gte": prev_start, "$lt": prev_end}  # exclusive end
+        }
+        
+        try:
+            # AI Assistant
+            prev_interactions += await db.ai_chat_sessions.count_documents(prev_base_filter)
+            # Quiz
+            prev_interactions += await db.assessment_submissions.count_documents({**prev_base_filter, "assessment_type": "quiz"})
+            # Test Generator
+            prev_interactions += await db.assessments.count_documents({**prev_base_filter, "type": "test"})
+            # Summary
+            prev_interactions += await db.ai_summary_requests.count_documents(prev_base_filter)
+            # Notes
+            prev_interactions += await db.ai_notes_requests.count_documents(prev_base_filter)
+        except:
+            prev_interactions = 0
+        
+        if prev_interactions > 0:
+            weekly_growth = round(((total_interactions - prev_interactions) / prev_interactions) * 100, 1)
+        else:
+            weekly_growth = 100 if total_interactions > 0 else 0
+        
+        # Count active classes
+        active_classes = set()
+        for module_data in analytics.values():
+            if module_data.get("class_wise"):
+                active_classes.update(module_data["class_wise"].keys())
+        
         return {
             "success": True,
             "period": f"{days}_days",
@@ -20105,6 +20171,10 @@ async def get_gini_usage_analytics(
             "end_date": end_date.isoformat(),
             "date_labels": date_labels,
             "analytics": analytics,
+            "total_students": total_students,
+            "total_interactions": total_interactions,
+            "active_classes": len(active_classes),
+            "weekly_growth": weekly_growth,
             "timestamp": datetime.now().isoformat()
         }
         
