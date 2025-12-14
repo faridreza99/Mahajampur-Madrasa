@@ -396,27 +396,18 @@ Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
                         : "Select Class first"}
                   </option>
 
-                  {/* Backend subjects if available */}
-                  {subjectsOptions.length > 0 &&
-                    subjectsOptions.map((subject) => (
-                      <option key={subject.id} value={subject.subject_name}>
-                        {subject.subject_name}
-                      </option>
-                    ))}
+                  {/* Backend subjects */}
+                  {subjectsOptions.map((subject) => (
+                    <option key={subject.id} value={subject.subject_name}>
+                      {subject.subject_name}
+                    </option>
+                  ))}
 
-                  {/* Demo fallback if no backend subjects */}
-                  {subjectsOptions.length === 0 && !subjectsLoading && (
-                    <>
-                      <option value="Mathematics">Mathematics</option>
-                      <option value="Physics">Physics</option>
-                      <option value="Chemistry">Chemistry</option>
-                      <option value="Biology">Biology</option>
-                      <option value="English">English</option>
-                      <option value="Hindi">Hindi</option>
-                      <option value="History">History</option>
-                      <option value="Geography">Geography</option>
-                      <option value="Computer Science">Computer Science</option>
-                    </>
+                  {/* Message when no subjects available */}
+                  {subjectsOptions.length === 0 && !subjectsLoading && formData.class_standard && (
+                    <option value="" disabled>
+                      No subjects found - Add in Class Management
+                    </option>
                   )}
                 </select>
               </div>
