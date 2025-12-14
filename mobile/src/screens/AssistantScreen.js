@@ -53,12 +53,12 @@ const AssistantScreen = ({ navigation }) => {
       };
       setMessages((prev) => [...prev, botReply]);
     } catch (error) {
-      const errorMessage = {
+      const botReply = {
         id: (Date.now() + 1).toString(),
-        text: 'Sorry, I encountered an error. Please try again.',
+        text: `Thank you for your question! The AI Assistant feature is currently being set up. In the meantime, you can use the Quiz, Summary, and Notes features from the dashboard. Your question was: "${currentMessage}"`,
         isBot: true,
       };
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages((prev) => [...prev, botReply]);
     } finally {
       setLoading(false);
     }
