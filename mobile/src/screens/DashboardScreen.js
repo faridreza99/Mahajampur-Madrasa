@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../context/AuthContext';
+import { useNavigation, DrawerActions } from '@react-navigation/native';
 
 const FeatureCard = ({ title, subtitle, colors, icon, onPress }) => (
   <TouchableOpacity style={styles.card} onPress={onPress}>
@@ -36,8 +37,26 @@ const QuickButton = ({ title, icon, onPress }) => (
   </TouchableOpacity>
 );
 
+const getTimeOfDayGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good Morning';
+  if (hour < 17) return 'Good Afternoon';
+  return 'Good Evening';
+};
+
+const formatRole = (role) => {
+  if (!role) return '';
+  return role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+};
+
 const DashboardScreen = ({ navigation }) => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
+  const nav = useNavigation();
+  const role = user?.role || 'student';
+
+  const openDrawer = () => {
+    nav.dispatch(DrawerActions.openDrawer());
+  };
 
   const featureCards = [
     {
@@ -71,11 +90,15 @@ const DashboardScreen = ({ navigation }) => {
   ];
 
   const quickButtons = [
-    { title: 'TimeTable', icon: '📅' },
-    { title: 'Calendar', icon: '🗓️' },
-    { title: 'Students', icon: '👥' },
-    { title: 'Staff', icon: '👨‍🏫' },
+    { title: 'TimeTable', icon: '📅', screen: 'TimeTable' },
+    { title: 'Calendar', icon: '🗓️', screen: 'Calendar' },
+    { title: 'Students', icon: '👥', screen: 'StudentList' },
+    { title: 'Staff', icon: '👨‍🏫', screen: 'StaffList' },
   ];
+
+  const filteredQuickButtons = role === 'student' 
+    ? quickButtons.filter(b => b.title !== 'Students')
+    : quickButtons;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -84,12 +107,18 @@ const DashboardScreen = ({ navigation }) => {
         style={styles.gradient}
       >
         <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>Welcome back,</Text>
-            <Text style={styles.userName}>{user?.full_name || user?.username || 'User'}</Text>
+          <TouchableOpacity style={styles.menuButton} onPress={openDrawer}>
+            <Text style={styles.menuButtonText}>☰</Text>
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.greeting}>Hi, {getTimeOfDayGreeting()}</Text>
+            <Text style={styles.userName}>{formatRole(role)}</Text>
           </View>
-          <TouchableOpacity style={styles.profileButton} onPress={logout}>
-            <Text style={styles.profileButtonText}>👤</Text>
+          <TouchableOpacity 
+            style={styles.notificationButton} 
+            onPress={() => navigation.navigate('Communication')}
+          >
+            <Text style={styles.notificationButtonText}>🔔</Text>
           </TouchableOpacity>
         </View>
 
@@ -113,17 +142,20 @@ const DashboardScreen = ({ navigation }) => {
 
           <Text style={styles.sectionTitle}>Academics</Text>
           <View style={styles.quickButtonsContainer}>
-            {quickButtons.map((button, index) => (
+            {filteredQuickButtons.map((button, index) => (
               <QuickButton
                 key={index}
                 title={button.title}
                 icon={button.icon}
-                onPress={() => {}}
+                onPress={() => navigation.navigate(button.screen)}
               />
             ))}
           </View>
 
-          <TouchableOpacity style={styles.communicationButton}>
+          <TouchableOpacity 
+            style={styles.communicationButton}
+            onPress={() => navigation.navigate('Communication')}
+          >
             <LinearGradient
               colors={['#00b894', '#00cec9']}
               start={{ x: 0, y: 0 }}
@@ -152,20 +184,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 8,
   },
-  greeting: {
-    color: '#888',
-    fontSize: 14,
-  },
-  userName: {
-    color: '#fff',
-    fontSize: 22,
-    fontWeight: 'bold',
-  },
-  profileButton: {
+  menuButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
@@ -173,7 +196,32 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  profileButtonText: {
+  menuButtonText: {
+    fontSize: 22,
+    color: '#fff',
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  greeting: {
+    color: '#888',
+    fontSize: 14,
+  },
+  userName: {
+    color: '#00b894',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  notificationButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notificationButtonText: {
     fontSize: 20,
   },
   scrollView: {

@@ -5,6 +5,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createDrawerNavigator, DrawerContentScrollView, DrawerItemList, DrawerItem } from '@react-navigation/drawer';
 
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import {
@@ -16,16 +17,23 @@ import {
   AssistantScreen,
   ProfileScreen,
   AttendanceScreen,
+  TestGeneratorScreen,
+  TimeTableScreen,
+  CalendarScreen,
+  StudentListScreen,
+  StaffListScreen,
+  CommunicationScreen,
 } from './src/screens';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+const Drawer = createDrawerNavigator();
 
 const TabIcon = ({ name, focused }) => {
   const icons = {
     Home: '🏠',
-    Dashboard: '📊',
-    Attendance: '✓',
+    GiNi: '📊',
+    Tests: '✓',
     Profile: '👤',
   };
   return (
@@ -38,6 +46,9 @@ const TabIcon = ({ name, focused }) => {
 };
 
 const MainTabs = () => {
+  const { user } = useAuth();
+  const role = user?.role || 'student';
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -53,10 +64,113 @@ const MainTabs = () => {
       })}
     >
       <Tab.Screen name="Home" component={DashboardScreen} />
-      <Tab.Screen name="Dashboard" component={DashboardScreen} />
-      <Tab.Screen name="Attendance" component={AttendanceScreen} />
+      <Tab.Screen name="GiNi" component={DashboardScreen} options={{ title: 'Dashboard' }} />
+      <Tab.Screen name="Tests" component={TestGeneratorScreen} options={{ title: 'Test Generator' }} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
+  );
+};
+
+const CustomDrawerContent = (props) => {
+  const { user, logout } = useAuth();
+  const role = user?.role || 'student';
+  const navigation = props.navigation;
+
+  const menuItems = getMenuItemsForRole(role);
+
+  return (
+    <DrawerContentScrollView {...props} style={styles.drawerContent}>
+      <View style={styles.drawerHeader}>
+        <View style={styles.drawerAvatar}>
+          <Text style={styles.drawerAvatarText}>
+            {user?.full_name?.charAt(0)?.toUpperCase() || 'U'}
+          </Text>
+        </View>
+        <Text style={styles.drawerName}>{user?.full_name || 'User'}</Text>
+        <Text style={styles.drawerRole}>{role.toUpperCase()}</Text>
+      </View>
+
+      {menuItems.map((item, index) => (
+        <DrawerItem
+          key={index}
+          label={item.label}
+          icon={() => <Text style={styles.drawerIcon}>{item.icon}</Text>}
+          onPress={() => navigation.navigate(item.screen)}
+          labelStyle={styles.drawerLabel}
+        />
+      ))}
+
+      <View style={styles.drawerDivider} />
+      
+      <DrawerItem
+        label="Logout"
+        icon={() => <Text style={styles.drawerIcon}>🚪</Text>}
+        onPress={logout}
+        labelStyle={[styles.drawerLabel, { color: '#e74c3c' }]}
+      />
+    </DrawerContentScrollView>
+  );
+};
+
+const getMenuItemsForRole = (role) => {
+  const commonItems = [
+    { label: 'Home', icon: '🏠', screen: 'MainTabs' },
+  ];
+
+  const aiItems = [
+    { label: 'AI Assistant', icon: '🤖', screen: 'Assistant' },
+    { label: 'Quiz Tool', icon: '📝', screen: 'Quiz' },
+    { label: 'AI Summary', icon: '📋', screen: 'Summary' },
+    { label: 'AI Notes', icon: '📚', screen: 'Notes' },
+  ];
+
+  const academicItems = [
+    { label: 'Calendar', icon: '📅', screen: 'Calendar' },
+    { label: 'TimeTable', icon: '🕐', screen: 'TimeTable' },
+  ];
+
+  if (role === 'super_admin' || role === 'admin') {
+    return [
+      ...commonItems,
+      { label: 'Students', icon: '👥', screen: 'StudentList' },
+      { label: 'Staff', icon: '👨‍🏫', screen: 'StaffList' },
+      ...academicItems,
+      ...aiItems,
+      { label: 'Test Generator', icon: '📄', screen: 'TestGenerator' },
+      { label: 'Communication', icon: '💬', screen: 'Communication' },
+    ];
+  } else if (role === 'teacher') {
+    return [
+      ...commonItems,
+      { label: 'Student List', icon: '👥', screen: 'StudentList' },
+      { label: 'Staff List', icon: '👨‍🏫', screen: 'StaffList' },
+      ...academicItems,
+      ...aiItems,
+      { label: 'Test Generator', icon: '📄', screen: 'TestGenerator' },
+      { label: 'Communication', icon: '💬', screen: 'Communication' },
+    ];
+  } else {
+    return [
+      ...commonItems,
+      ...aiItems,
+      ...academicItems,
+      { label: 'Staff List', icon: '👨‍🏫', screen: 'StaffList' },
+      { label: 'Communication', icon: '💬', screen: 'Communication' },
+    ];
+  }
+};
+
+const DrawerNavigator = () => {
+  return (
+    <Drawer.Navigator
+      drawerContent={(props) => <CustomDrawerContent {...props} />}
+      screenOptions={{
+        headerShown: false,
+        drawerStyle: styles.drawer,
+      }}
+    >
+      <Drawer.Screen name="MainTabs" component={MainTabs} />
+    </Drawer.Navigator>
   );
 };
 
@@ -68,11 +182,17 @@ const AppStack = () => {
         contentStyle: { backgroundColor: '#1a1a2e' },
       }}
     >
-      <Stack.Screen name="MainTabs" component={MainTabs} />
+      <Stack.Screen name="Drawer" component={DrawerNavigator} />
       <Stack.Screen name="Quiz" component={QuizScreen} />
       <Stack.Screen name="Summary" component={SummaryScreen} />
       <Stack.Screen name="Notes" component={NotesScreen} />
       <Stack.Screen name="Assistant" component={AssistantScreen} />
+      <Stack.Screen name="TestGenerator" component={TestGeneratorScreen} />
+      <Stack.Screen name="TimeTable" component={TimeTableScreen} />
+      <Stack.Screen name="Calendar" component={CalendarScreen} />
+      <Stack.Screen name="StudentList" component={StudentListScreen} />
+      <Stack.Screen name="StaffList" component={StaffListScreen} />
+      <Stack.Screen name="Communication" component={CommunicationScreen} />
     </Stack.Navigator>
   );
 };
@@ -141,5 +261,58 @@ const styles = StyleSheet.create({
   tabLabel: {
     fontSize: 12,
     marginBottom: 4,
+  },
+  drawer: {
+    backgroundColor: '#1a1a2e',
+    width: 280,
+  },
+  drawerContent: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+  },
+  drawerHeader: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    marginBottom: 10,
+  },
+  drawerAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#00b894',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  drawerAvatarText: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  drawerName: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  drawerRole: {
+    color: '#00b894',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  drawerIcon: {
+    fontSize: 20,
+    marginRight: 8,
+  },
+  drawerLabel: {
+    color: '#fff',
+    fontSize: 15,
+  },
+  drawerDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginVertical: 10,
+    marginHorizontal: 16,
   },
 });
