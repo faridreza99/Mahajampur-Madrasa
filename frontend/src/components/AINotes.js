@@ -150,9 +150,9 @@ const AINotes = () => {
       setSubjectsLoading(true);
       const token = localStorage.getItem("token");
 
-      // SUBJECT API expects CLASS ID
+      // SUBJECT API expects CLASS STANDARD (e.g., "6th", "7th")
       const res = await axios.get(
-        `${API_BASE_URL}/subjects/by-class/${classId}`,
+        `${API_BASE_URL}/subjects/by-class/${classStandard}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         },

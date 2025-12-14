@@ -178,8 +178,8 @@ const AISummary = () => {
       setSubjectsLoading(true);
       const token = localStorage.getItem("token");
 
-      // Same endpoint pattern as Notes: subjects belong to class
-      const res = await axios.get(`${API}/subjects/by-class/${classId}`, {
+      // Same endpoint pattern as Notes: subjects belong to class standard
+      const res = await axios.get(`${API}/subjects/by-class/${classStandard}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
