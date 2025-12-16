@@ -641,6 +641,12 @@ class SectionCreate(BaseModel):
     section_teacher_id: Optional[str] = None
     max_students: int = 40
 
+class SectionUpdate(BaseModel):
+    name: Optional[str] = None
+    section_teacher_id: Optional[str] = None
+    max_students: Optional[int] = None
+    is_active: Optional[bool] = None
+
 # ==================== TIMETABLE MODELS ====================
 
 class Period(BaseModel):
@@ -5770,6 +5776,77 @@ async def create_section(section_data: SectionCreate, current_user: User = Depen
     section = Section(**section_dict)
     await db.sections.insert_one(section.dict())
     return section
+
+@api_router.put("/sections/{section_id}", response_model=Section)
+async def update_section(section_id: str, section_data: SectionUpdate, current_user: User = Depends(get_current_user)):
+    """Update an existing section"""
+    if current_user.role not in ["super_admin", "admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Check if section exists and belongs to the current tenant
+    existing_section = await db.sections.find_one({
+        "id": section_id,
+        "tenant_id": current_user.tenant_id
+    })
+    
+    if not existing_section:
+        raise HTTPException(status_code=404, detail="Section not found")
+    
+    # Update only provided fields
+    update_data = {k: v for k, v in section_data.dict().items() if v is not None}
+    
+    if update_data:
+        update_data["updated_at"] = datetime.utcnow()
+        
+        await db.sections.update_one(
+            {"id": section_id, "tenant_id": current_user.tenant_id},
+            {"$set": update_data}
+        )
+        
+        # Fetch and return updated section
+        updated_section = await db.sections.find_one({
+            "id": section_id,
+            "tenant_id": current_user.tenant_id
+        })
+        return Section(**updated_section)
+    
+    return Section(**existing_section)
+
+@api_router.delete("/sections/{section_id}")
+async def delete_section(section_id: str, current_user: User = Depends(get_current_user)):
+    """Delete a section (soft delete by setting is_active to False)"""
+    if current_user.role not in ["super_admin", "admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Check if section exists and belongs to the current tenant
+    existing_section = await db.sections.find_one({
+        "id": section_id,
+        "tenant_id": current_user.tenant_id
+    })
+    if not existing_section:
+        raise HTTPException(status_code=404, detail="Section not found")
+    
+    # Check if any students are assigned to this section
+    students_in_section = await db.students.count_documents({
+        "section_id": section_id,
+        "tenant_id": current_user.tenant_id,
+        "is_active": True
+    })
+    
+    if students_in_section > 0:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Cannot delete section. {students_in_section} student(s) are assigned to this section. Please reassign them first."
+        )
+    
+    # Soft delete the section
+    await db.sections.update_one(
+        {"id": section_id, "tenant_id": current_user.tenant_id},
+        {"$set": {"is_active": False, "updated_at": datetime.utcnow()}}
+    )
+    
+    logging.info(f"Section deleted: {existing_section.get('name', 'Unknown')} (ID: {section_id}) by {current_user.full_name}")
+    return {"message": "Section deleted successfully", "section_id": section_id}
 
 @api_router.put("/classes/{class_id}", response_model=Class)
 async def update_class(class_id: str, class_data: ClassUpdate, current_user: User = Depends(get_current_user)):
