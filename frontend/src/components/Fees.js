@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useCurrency } from '../context/CurrencyContext';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -57,6 +58,9 @@ const API = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 console.log('🔗 API Base URL:', API);
 
 const Fees = () => {
+  // Currency context for dynamic currency display
+  const { formatCurrency, getCurrencySymbol } = useCurrency();
+  
   // Router-controlled tabs
   const { '*': tabPath } = useParams();
   const navigate = useNavigate();
@@ -565,7 +569,7 @@ const Fees = () => {
       
       // Show success message
       toast.success(`💰 Bulk Payment Processed Successfully!`, {
-        description: `${result.payments_count} payments processed. Total: ₹${result.total_amount.toLocaleString()}. Dashboard updated instantly.`,
+        description: `${result.payments_count} payments processed. Total: ${formatCurrency(result.total_amount)}. Dashboard updated instantly.`,
         duration: 5000
       });
 
@@ -743,7 +747,7 @@ const Fees = () => {
       
       // Show success toast with real-time update confirmation
       toast.success(`✅ Payment Collected Successfully!`, {
-        description: `₹${paymentData.amount.toLocaleString()} collected from ${studentName} (${studentAdmissionNo}) for ${paymentData.fee_type}. Dashboard updated. Receipt: ${paymentResult.receipt_no}`,
+        description: `${formatCurrency(paymentData.amount)} collected from ${studentName} (${studentAdmissionNo}) for ${paymentData.fee_type}. Dashboard updated. Receipt: ${paymentResult.receipt_no}`,
         duration: 5000,
         action: {
           label: "Download Again", 
@@ -844,7 +848,7 @@ const Fees = () => {
     const pendingAmount = student.pending_amount || student.amount || 15000; // Fallback amount
     
     toast.info(`💰 Collecting Payment`, {
-      description: `Opening payment collection for ${studentName} (${admissionNo}) - ₹${pendingAmount.toLocaleString()}`,
+      description: `Opening payment collection for ${studentName} (${admissionNo}) - ${formatCurrency(pendingAmount)}`,
       duration: 3000
     });
   };
@@ -892,13 +896,13 @@ const Fees = () => {
       '',
       'PAYMENT DETAILS:',
       `Fee Type: ${receiptData.payment.feeType}`,
-      `Amount Paid: ₹${receiptData.payment.amount.toLocaleString()}`,
+      `Amount Paid: ${formatCurrency(receiptData.payment.amount)}`,
       ...(receiptData.payment.breakdown ? [
-        `  - Overdue Fees: ₹${receiptData.payment.breakdown.overduePayment.toLocaleString()}`,
-        `  - Pending Fees: ₹${receiptData.payment.breakdown.pendingPayment.toLocaleString()}`,
+        `  - Overdue Fees: ${formatCurrency(receiptData.payment.breakdown.overduePayment)}`,
+        `  - Pending Fees: ${formatCurrency(receiptData.payment.breakdown.pendingPayment)}`,
         ...(receiptData.payment.breakdown.unappliedAmount > 0 ? 
-          [`Original Amount: ₹${receiptData.payment.breakdown.originalAmount.toLocaleString()}`,
-           `Unapplied Amount: ₹${receiptData.payment.breakdown.unappliedAmount.toLocaleString()}`] : [])
+          [`Original Amount: ${formatCurrency(receiptData.payment.breakdown.originalAmount)}`,
+           `Unapplied Amount: ${formatCurrency(receiptData.payment.breakdown.unappliedAmount)}`] : [])
       ] : []),
       `Payment Mode: ${receiptData.payment.paymentMode}`,
       `Transaction ID: ${receiptData.payment.transactionId}`,
@@ -1174,12 +1178,12 @@ const Fees = () => {
       '',
       'Payment Summary:',
       `Total Fees,Paid Amount,Pending Fees,Overdue Fees`,
-      `₹${reportData.summary.totalFees},₹${reportData.summary.paidAmount},₹${reportData.summary.pendingFees},₹${reportData.summary.overdueFees}`,
+      `${formatCurrency(reportData.summary.totalFees)},${formatCurrency(reportData.summary.paidAmount)},${formatCurrency(reportData.summary.pendingFees)},${formatCurrency(reportData.summary.overdueFees)}`,
       '',
       'Payment History:',
       'Receipt No,Date,Fee Type,Amount,Payment Mode,Status',
       ...reportData.payments.map(p => 
-        `${p.receiptNo},${p.date},${p.feeType},₹${p.amount},${p.paymentMode || 'N/A'},${p.status}`
+        `${p.receiptNo},${p.date},${p.feeType},${formatCurrency(p.amount)},${p.paymentMode || 'N/A'},${p.status}`
       )
     ].join('\n');
 
@@ -1415,7 +1419,7 @@ const Fees = () => {
       
       // Show success message with real-time update confirmation
       toast.success(`💰 Bulk Payment Processed Successfully!`, {
-        description: `${result.payments_count} payments processed. Total: ₹${result.total_amount.toLocaleString()}. Dashboard updated instantly.`,
+        description: `${result.payments_count} payments processed. Total: ${formatCurrency(result.total_amount)}. Dashboard updated instantly.`,
         duration: 5000
       });
 
@@ -1456,7 +1460,7 @@ const Fees = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs sm:text-sm font-medium text-gray-600">Total Fees</p>
-                <p className="text-lg sm:text-2xl md:text-3xl font-bold text-gray-900">₹{(totalFees/100000).toFixed(1)}L</p>
+                <p className="text-lg sm:text-2xl md:text-3xl font-bold text-gray-900">{getCurrencySymbol()}{(totalFees/100000).toFixed(1)}L</p>
                 <p className="text-[10px] sm:text-xs text-gray-500 hidden sm:block">Academic Year</p>
               </div>
               <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-blue-500" />
@@ -1468,7 +1472,7 @@ const Fees = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs sm:text-sm font-medium text-gray-600">Collected</p>
-                <p className="text-lg sm:text-2xl md:text-3xl font-bold text-emerald-600">₹{(collected/100000).toFixed(1)}L</p>
+                <p className="text-lg sm:text-2xl md:text-3xl font-bold text-emerald-600">{getCurrencySymbol()}{(collected/100000).toFixed(1)}L</p>
                 <p className="text-[10px] sm:text-xs text-emerald-500 hidden sm:block">+15% this month</p>
               </div>
               <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-emerald-500" />
@@ -1480,7 +1484,7 @@ const Fees = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs sm:text-sm font-medium text-gray-600">Pending</p>
-                <p className="text-lg sm:text-2xl md:text-3xl font-bold text-orange-600">₹{(pending/100000).toFixed(1)}L</p>
+                <p className="text-lg sm:text-2xl md:text-3xl font-bold text-orange-600">{getCurrencySymbol()}{(pending/100000).toFixed(1)}L</p>
                 <p className="text-[10px] sm:text-xs text-orange-500 hidden sm:block">Due this month</p>
               </div>
               <Calendar className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-orange-500" />
@@ -1492,7 +1496,7 @@ const Fees = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs sm:text-sm font-medium text-gray-600">Overdue</p>
-                <p className="text-lg sm:text-2xl md:text-3xl font-bold text-red-600">₹{(overdue/100000).toFixed(1)}L</p>
+                <p className="text-lg sm:text-2xl md:text-3xl font-bold text-red-600">{getCurrencySymbol()}{(overdue/100000).toFixed(1)}L</p>
                 <p className="text-[10px] sm:text-xs text-red-500 hidden sm:block">Needs attention</p>
               </div>
               <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-red-500" />
@@ -1578,8 +1582,8 @@ const Fees = () => {
                 <div className="text-center p-2 sm:p-4 bg-blue-50 rounded-lg">
                   <p className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600">
                     {todaysCollection >= 100000 
-                      ? `₹${(todaysCollection / 100000).toFixed(2)}L`
-                      : `₹${todaysCollection.toLocaleString('en-IN')}`
+                      ? `${getCurrencySymbol()}${(todaysCollection / 100000).toFixed(2)}L`
+                      : `${getCurrencySymbol()}${todaysCollection.toLocaleString('en-IN')}`
                     }
                   </p>
                   <p className="text-[10px] sm:text-xs md:text-sm text-blue-600">Today's Collection</p>
@@ -1589,7 +1593,7 @@ const Fees = () => {
                   <p className="text-[10px] sm:text-xs md:text-sm text-orange-600">Pending</p>
                 </div>
                 <div className="text-center p-2 sm:p-4 bg-purple-50 rounded-lg">
-                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-purple-600">₹{(monthlyTarget / 100000).toFixed(1)}L</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-purple-600">{getCurrencySymbol()}{(monthlyTarget / 100000).toFixed(1)}L</p>
                   <p className="text-[10px] sm:text-xs md:text-sm text-purple-600">Monthly Target</p>
                 </div>
               </div>
@@ -1799,19 +1803,19 @@ const Fees = () => {
                       <CardContent>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                           <div className="text-center p-4 bg-blue-50 rounded-lg">
-                            <p className="text-2xl font-bold text-blue-600">₹{(studentFeesSummary.totalFees/1000).toFixed(0)}K</p>
+                            <p className="text-2xl font-bold text-blue-600">{formatCurrency(studentFeesSummary.totalFees)}</p>
                             <p className="text-sm text-blue-600">Total Fees</p>
                           </div>
                           <div className="text-center p-4 bg-green-50 rounded-lg">
-                            <p className="text-2xl font-bold text-green-600">₹{(studentFeesSummary.paidAmount/1000).toFixed(0)}K</p>
+                            <p className="text-2xl font-bold text-green-600">{formatCurrency(studentFeesSummary.paidAmount)}</p>
                             <p className="text-sm text-green-600">Paid Amount</p>
                           </div>
                           <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                            <p className="text-2xl font-bold text-yellow-600">₹{(studentFeesSummary.pendingFees/1000).toFixed(0)}K</p>
+                            <p className="text-2xl font-bold text-yellow-600">{formatCurrency(studentFeesSummary.pendingFees)}</p>
                             <p className="text-sm text-yellow-600">Pending Fees</p>
                           </div>
                           <div className="text-center p-4 bg-red-50 rounded-lg">
-                            <p className="text-2xl font-bold text-red-600">₹{(studentFeesSummary.overdueFees/1000).toFixed(0)}K</p>
+                            <p className="text-2xl font-bold text-red-600">{formatCurrency(studentFeesSummary.overdueFees)}</p>
                             <p className="text-sm text-red-600">Overdue Fees</p>
                           </div>
                         </div>
@@ -1833,8 +1837,8 @@ const Fees = () => {
                             ></div>
                           </div>
                           <div className="flex justify-between mt-1 text-xs text-gray-500">
-                            <span>₹{(studentFeesSummary.paidAmount/1000).toFixed(0)}K Paid</span>
-                            <span>₹{(studentFeesSummary.totalFees/1000).toFixed(0)}K Total</span>
+                            <span>{formatCurrency(studentFeesSummary.paidAmount)} Paid</span>
+                            <span>{formatCurrency(studentFeesSummary.totalFees)} Total</span>
                           </div>
                         </div>
                         
@@ -1961,7 +1965,7 @@ const Fees = () => {
                                     {payment.date ? new Date(payment.date).toLocaleDateString() : '-'}
                                   </TableCell>
                                   <TableCell>{payment.feeType}</TableCell>
-                                  <TableCell className="font-medium">₹{payment.amount.toLocaleString()}</TableCell>
+                                  <TableCell className="font-medium">{formatCurrency(payment.amount)}</TableCell>
                                   <TableCell>{payment.paymentMode || '-'}</TableCell>
                                   <TableCell>{getStatusBadge(payment.status)}</TableCell>
                                   <TableCell className={payment.status === 'Overdue' ? 'text-red-600 font-medium' : ''}>
@@ -2036,7 +2040,7 @@ const Fees = () => {
                                     </p>
                                   </div>
                                   <div className="text-right">
-                                    <p className="font-bold text-lg">₹{payment.amount.toLocaleString()}</p>
+                                    <p className="font-bold text-lg">{formatCurrency(payment.amount)}</p>
                                     <Button 
                                       size="sm" 
                                       className={payment.status === 'Overdue' ? 'bg-red-500 hover:bg-red-600' : 'bg-emerald-500 hover:bg-emerald-600'}
@@ -2080,7 +2084,7 @@ const Fees = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Pending Fees</p>
-                    <p className="text-2xl font-bold text-orange-600">₹7.2L</p>
+                    <p className="text-2xl font-bold text-orange-600">{getCurrencySymbol()}7.2L</p>
                     <p className="text-xs text-orange-500">45 students</p>
                   </div>
                   <Clock className="h-8 w-8 text-orange-500" />
@@ -2092,7 +2096,7 @@ const Fees = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Overdue Fees</p>
-                    <p className="text-2xl font-bold text-red-600">₹2.8L</p>
+                    <p className="text-2xl font-bold text-red-600">{getCurrencySymbol()}2.8L</p>
                     <p className="text-xs text-red-500">18 students</p>
                   </div>
                   <AlertTriangle className="h-8 w-8 text-red-500" />
@@ -2104,7 +2108,7 @@ const Fees = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Due This Week</p>
-                    <p className="text-2xl font-bold text-yellow-600">₹1.5L</p>
+                    <p className="text-2xl font-bold text-yellow-600">{getCurrencySymbol()}1.5L</p>
                     <p className="text-xs text-yellow-500">12 students</p>
                   </div>
                   <Calendar className="h-8 w-8 text-yellow-500" />
@@ -2163,7 +2167,7 @@ const Fees = () => {
                             </TableCell>
                             <TableCell>{getClassName(fee.class_id) || 'Unknown'}</TableCell>
                             <TableCell>{fee.fee_type}</TableCell>
-                            <TableCell className="font-medium">₹{fee.total_due.toLocaleString()}</TableCell>
+                            <TableCell className="font-medium">{formatCurrency(fee.total_due)}</TableCell>
                             <TableCell>
                               {fee.due_date ? new Date(fee.due_date).toLocaleDateString() : 'N/A'}
                             </TableCell>
@@ -2305,11 +2309,11 @@ const Fees = () => {
                       <div className="space-y-2 mb-4">
                         <div className="flex justify-between items-center text-sm">
                           <span className="text-gray-600">Pending:</span>
-                          <span className="text-orange-600 font-medium">₹12,500</span>
+                          <span className="text-orange-600 font-medium">{getCurrencySymbol()}12,500</span>
                         </div>
                         <div className="flex justify-between items-center text-sm">
                           <span className="text-gray-600">Overdue:</span>
-                          <span className="text-red-600 font-medium">₹3,200</span>
+                          <span className="text-red-600 font-medium">{getCurrencySymbol()}3,200</span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
                           <div className="bg-green-500 h-2 rounded-full" style={{width: '65%'}}></div>
@@ -2406,7 +2410,7 @@ const Fees = () => {
                   <div>
                     <p className="text-sm font-medium text-gray-600">Today's Collection</p>
                     <p className="text-2xl font-bold text-green-600">
-                      ₹{collectionStats.todaysCollection ? (collectionStats.todaysCollection/1000).toFixed(0) + 'K' : '0'}
+                      {getCurrencySymbol()}{collectionStats.todaysCollection ? (collectionStats.todaysCollection/1000).toFixed(0) + 'K' : '0'}
                     </p>
                     <p className="text-xs text-green-500">{collectionStats.transactions || 0} payments today</p>
                   </div>
@@ -2432,7 +2436,7 @@ const Fees = () => {
                   <div>
                     <p className="text-sm font-medium text-gray-600">Avg Payment</p>
                     <p className="text-2xl font-bold text-purple-600">
-                      ₹{collectionStats.avgPayment ? collectionStats.avgPayment.toLocaleString() : '0'}
+                      {formatCurrency(collectionStats.avgPayment || 0)}
                     </p>
                     <p className="text-xs text-purple-500">per transaction</p>
                   </div>
@@ -2446,7 +2450,7 @@ const Fees = () => {
                   <div>
                     <p className="text-sm font-medium text-gray-600">Cash Balance</p>
                     <p className="text-2xl font-bold text-orange-600">
-                      ₹{collectionStats.cashBalance ? collectionStats.cashBalance.toLocaleString() : '0'}
+                      {formatCurrency(collectionStats.cashBalance || 0)}
                     </p>
                     <p className="text-xs text-orange-500">to be deposited</p>
                   </div>
@@ -2575,7 +2579,7 @@ const Fees = () => {
                             <p><strong>Admission:</strong> {receiptPreview.student.admission_no}</p>
                             <p><strong>Class:</strong> {receiptPreview.student.class}</p>
                             <p><strong>Fee Type:</strong> {receiptPreview.fee_type}</p>
-                            <p><strong>Amount:</strong> ₹{receiptPreview.amount.toLocaleString()}</p>
+                            <p><strong>Amount:</strong> {formatCurrency(receiptPreview.amount)}</p>
                             {receiptPreview.payment_mode && (
                               <p><strong>Payment Mode:</strong> {receiptPreview.payment_mode}</p>
                             )}
@@ -2708,7 +2712,7 @@ const Fees = () => {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-green-600">₹{payment.amount.toLocaleString()}</p>
+                        <p className="font-bold text-green-600">{formatCurrency(payment.amount)}</p>
                         <p className="text-xs text-gray-500">{payment.receipt_no}</p>
                       </div>
                     </div>
@@ -2780,7 +2784,7 @@ const Fees = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Amount (₹)</label>
+                    <label className="text-sm font-medium">Amount ({getCurrencySymbol()})</label>
                     <Input 
                       type="number" 
                       placeholder="Enter amount" 
@@ -2887,7 +2891,7 @@ const Fees = () => {
                           return (
                             <tr key={config.id || index} className="border-b">
                               <td className="p-3">{className}</td>
-                              <td className="p-3">₹{config.amount.toLocaleString()}</td>
+                              <td className="p-3">{formatCurrency(config.amount)}</td>
                               <td className="p-3">{config.frequency}</td>
                               <td className="p-3">{config.due_date}</td>
                               <td className="p-3">
@@ -2950,7 +2954,7 @@ const Fees = () => {
             <div className="bg-gray-50 p-4 rounded-lg">
               <div className="text-sm space-y-1">
                 <p><strong>Fee Type:</strong> {currentFeeType}</p>
-                <p><strong>Amount:</strong> ₹{configToDelete.amount.toLocaleString()}</p>
+                <p><strong>Amount:</strong> {formatCurrency(configToDelete.amount)}</p>
                 <p><strong>Frequency:</strong> {configToDelete.frequency}</p>
                 <p><strong>Classes:</strong> {(() => {
                   if (configToDelete.apply_to_classes === 'all' || !configToDelete.apply_to_classes) return 'All Classes';
@@ -3217,7 +3221,7 @@ const Fees = () => {
                                 </div>
                               </div>
                               <div className="text-right text-sm">
-                                <p className="font-medium text-emerald-600">₹15,000</p>
+                                <p className="font-medium text-emerald-600">{getCurrencySymbol()}15,000</p>
                                 <p className="text-xs text-gray-500">Pending</p>
                               </div>
                             </div>
@@ -3239,15 +3243,15 @@ const Fees = () => {
                           </div>
                           <div>
                             <p className="text-emerald-600">Total Amount</p>
-                            <p className="font-bold text-emerald-800">₹{calculateBulkPaymentSummary().totalAmount.toLocaleString()}</p>
+                            <p className="font-bold text-emerald-800">{formatCurrency(calculateBulkPaymentSummary().totalAmount)}</p>
                           </div>
                           <div>
                             <p className="text-emerald-600">Late Fees</p>
-                            <p className="font-bold text-emerald-800">₹{calculateBulkPaymentSummary().lateFees.toLocaleString()}</p>
+                            <p className="font-bold text-emerald-800">{formatCurrency(calculateBulkPaymentSummary().lateFees)}</p>
                           </div>
                           <div>
                             <p className="text-emerald-600">Grand Total</p>
-                            <p className="font-bold text-emerald-800">₹{calculateBulkPaymentSummary().grandTotal.toLocaleString()}</p>
+                            <p className="font-bold text-emerald-800">{formatCurrency(calculateBulkPaymentSummary().grandTotal)}</p>
                           </div>
                         </div>
                       </CardContent>
@@ -3269,7 +3273,7 @@ const Fees = () => {
               })}
               disabled={selectedStudents.length === 0 || loading}
             >
-              {loading ? 'Processing...' : `Collect Payment (₹${calculateBulkPaymentSummary().grandTotal.toLocaleString()})`}
+              {loading ? 'Processing...' : `Collect Payment (${formatCurrency(calculateBulkPaymentSummary().grandTotal)})`}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -3391,7 +3395,7 @@ const PaymentForm = ({ students, classes, onSubmit, onCancel, loading, feeConfig
         
         if (matchingConfig && matchingConfig.amount) {
           setAmount(matchingConfig.amount.toString());
-          console.log(`✅ Auto-filled amount: ₹${matchingConfig.amount} for ${feeType} (${student.name})`);
+          console.log(`✅ Auto-filled amount: ${matchingConfig.amount} for ${feeType} (${student.name})`);
         } else {
           console.warn('❌ No matching fee configuration found for this student/class');
         }

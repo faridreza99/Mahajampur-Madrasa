@@ -285,6 +285,7 @@ const Settings = () => {
     principal_name: '',
     motto: '',
     vision: '',
+    currency: 'BDT',
     social_links: {
       facebook: '',
       twitter: '',
@@ -1805,6 +1806,7 @@ const Settings = () => {
           principal_name: response.data.principal_name || '',
           motto: response.data.motto || '',
           vision: response.data.vision || '',
+          currency: response.data.currency || 'BDT',
           social_links: response.data.social_links || {
             facebook: '',
             twitter: '',
@@ -4399,6 +4401,20 @@ const Settings = () => {
                     value={institutionData.established_year || ''}
                     onChange={(e) => setInstitutionData({...institutionData, established_year: e.target.value ? parseInt(e.target.value) : null})}
                   />
+                </div>
+                <div>
+                  <Label>Currency</Label>
+                  <select
+                    className="w-full mt-1 px-3 py-2 border rounded-md"
+                    value={institutionData.currency}
+                    onChange={(e) => setInstitutionData({...institutionData, currency: e.target.value})}
+                  >
+                    <option value="BDT">৳ Bangladeshi Taka (BDT)</option>
+                    <option value="USD">$ US Dollar (USD)</option>
+                    <option value="INR">₹ Indian Rupee (INR)</option>
+                    <option value="EUR">€ Euro (EUR)</option>
+                    <option value="GBP">£ British Pound (GBP)</option>
+                  </select>
                 </div>
               </div>
             </div>

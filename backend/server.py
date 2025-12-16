@@ -329,6 +329,7 @@ class Institution(BaseModel):
     principal_name: Optional[str] = None
     motto: Optional[str] = None
     vision: Optional[str] = None
+    currency: Optional[str] = "BDT"
     social_links: Optional[Dict[str, str]] = {}
     is_active: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -348,6 +349,7 @@ class InstitutionUpdate(BaseModel):
     principal_name: Optional[str] = None
     motto: Optional[str] = None
     vision: Optional[str] = None
+    currency: Optional[str] = None
     social_links: Optional[Dict[str, str]] = None
 
 class Student(BaseModel):

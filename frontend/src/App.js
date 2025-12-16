@@ -3,6 +3,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import axios from 'axios';
 import './App.css';
 
+// Import contexts
+import { CurrencyProvider } from './context/CurrencyContext';
+
 // Import components
 import LoginPage from './components/LoginPage';
 import Dashboard from './components/Dashboard';
@@ -223,6 +226,7 @@ const Layout = ({ children }) => {
 
 function App() {
   return (
+    <CurrencyProvider>
     <AuthProvider>
       <Router>
         <div className="App">
@@ -452,6 +456,7 @@ function App() {
         </div>
       </Router>
     </AuthProvider>
+    </CurrencyProvider>
   );
 }
 

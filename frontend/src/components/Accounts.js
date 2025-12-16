@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useCurrency } from '../context/CurrencyContext';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -29,6 +30,7 @@ import {
 } from 'lucide-react';
 
 const Accounts = () => {
+  const { formatCurrency } = useCurrency();
   const [dashboardData, setDashboardData] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [filteredTransactions, setFilteredTransactions] = useState([]);
@@ -241,13 +243,6 @@ const Accounts = () => {
     setFilteredTransactions(filtered);
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0
-    }).format(amount);
-  };
 
   return (
     <div className="space-y-6 fade-in">
