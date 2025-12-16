@@ -301,7 +301,23 @@ const ClassManagement = () => {
       return;
     }
 
-    toast.info('Section delete functionality is not yet implemented in the backend');
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`${API}/sections/${section.id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      toast.success(`Section "${section.name}" deleted successfully`);
+      fetchData();
+    } catch (error) {
+      console.error('Failed to delete section:', error);
+      toast.error(error.response?.data?.detail || 'Failed to delete section');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const resetClassForm = () => {
