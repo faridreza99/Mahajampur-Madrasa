@@ -37,6 +37,7 @@ import RatingSurveys from './components/RatingSurveys';
 import Results from './components/Results';
 import StudentResults from './components/StudentResults';
 import ParentResults from './components/ParentResults';
+import ResultConfiguration from './components/ResultConfiguration';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import { Toaster } from './components/ui/sonner';
@@ -319,6 +320,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <ResultsRouter />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/result-configuration" 
+                element={
+                  <ProtectedRoute>
+                    <ResultConfiguration />
                   </ProtectedRoute>
                 } 
               />

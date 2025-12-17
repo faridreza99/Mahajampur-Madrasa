@@ -22747,6 +22747,384 @@ async def download_result_template(
 # END STUDENT RESULT AUTOMATION API ENDPOINTS
 # ============================================================================
 
+# ============================================================================
+# RESULT CONFIGURATION API ENDPOINTS
+# ============================================================================
+
+class GradeBand(BaseModel):
+    grade: str
+    min_percentage: float
+    max_percentage: float
+    gpa: float = 0.0
+    remarks: str = ""
+
+class GradingSchemeCreate(BaseModel):
+    name: str
+    description: str = ""
+    grade_bands: List[GradeBand]
+    is_default: bool = False
+
+class PromotionRulesCreate(BaseModel):
+    name: str = "Default Promotion Rules"
+    min_overall_percentage: float = 33.0
+    min_subjects_to_pass: int = 0
+    mandatory_subjects: List[str] = []
+    grace_marks_allowed: bool = True
+    max_grace_marks: float = 5.0
+    allow_compartment: bool = True
+    max_compartment_subjects: int = 2
+
+class ResultCardSettingsCreate(BaseModel):
+    school_header: str = ""
+    school_logo_url: str = ""
+    result_title: str = "Progress Report"
+    show_rank: bool = True
+    show_percentage: bool = True
+    show_gpa: bool = True
+    show_grade: bool = True
+    show_remarks: bool = True
+    remarks_pass: str = "Promoted to next class"
+    remarks_fail: str = "Not promoted"
+    remarks_compartment: str = "Promoted with compartment"
+    principal_signature_label: str = "Principal"
+    class_teacher_signature_label: str = "Class Teacher"
+    parent_signature_label: str = "Parent/Guardian"
+
+@api_router.get("/result-config/grading-schemes")
+async def get_grading_schemes(current_user: User = Depends(get_current_user)):
+    """Get all grading schemes for the institution"""
+    try:
+        schemes = await db.grading_schemes.find({
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id,
+            "is_active": True
+        }).to_list(None)
+        return sanitize_mongo_data(schemes)
+    except Exception as e:
+        logger.error(f"Error fetching grading schemes: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch grading schemes")
+
+@api_router.post("/result-config/grading-schemes")
+async def create_grading_scheme(
+    scheme: GradingSchemeCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new grading scheme"""
+    try:
+        if current_user.role not in ["super_admin", "admin", "principal"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        # If this is set as default, unset other defaults
+        if scheme.is_default:
+            await db.grading_schemes.update_many(
+                {"tenant_id": current_user.tenant_id, "school_id": current_user.school_id},
+                {"$set": {"is_default": False}}
+            )
+        
+        scheme_doc = {
+            "id": str(uuid.uuid4()),
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id,
+            "name": scheme.name,
+            "description": scheme.description,
+            "grade_bands": [band.dict() for band in scheme.grade_bands],
+            "is_default": scheme.is_default,
+            "is_active": True,
+            "created_by": current_user.id,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+        
+        await db.grading_schemes.insert_one(scheme_doc)
+        return sanitize_mongo_data(scheme_doc)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating grading scheme: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create grading scheme")
+
+@api_router.put("/result-config/grading-schemes/{scheme_id}")
+async def update_grading_scheme(
+    scheme_id: str,
+    scheme: GradingSchemeCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update a grading scheme"""
+    try:
+        if current_user.role not in ["super_admin", "admin", "principal"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        # If this is set as default, unset other defaults
+        if scheme.is_default:
+            await db.grading_schemes.update_many(
+                {"tenant_id": current_user.tenant_id, "school_id": current_user.school_id, "id": {"$ne": scheme_id}},
+                {"$set": {"is_default": False}}
+            )
+        
+        result = await db.grading_schemes.update_one(
+            {"id": scheme_id, "tenant_id": current_user.tenant_id, "school_id": current_user.school_id},
+            {"$set": {
+                "name": scheme.name,
+                "description": scheme.description,
+                "grade_bands": [band.dict() for band in scheme.grade_bands],
+                "is_default": scheme.is_default,
+                "updated_at": datetime.utcnow()
+            }}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Grading scheme not found")
+        
+        return {"message": "Grading scheme updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating grading scheme: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update grading scheme")
+
+@api_router.delete("/result-config/grading-schemes/{scheme_id}")
+async def delete_grading_scheme(
+    scheme_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a grading scheme"""
+    try:
+        if current_user.role not in ["super_admin", "admin", "principal"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        result = await db.grading_schemes.update_one(
+            {"id": scheme_id, "tenant_id": current_user.tenant_id, "school_id": current_user.school_id},
+            {"$set": {"is_active": False, "updated_at": datetime.utcnow()}}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Grading scheme not found")
+        
+        return {"message": "Grading scheme deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting grading scheme: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete grading scheme")
+
+@api_router.get("/result-config/promotion-rules")
+async def get_promotion_rules(current_user: User = Depends(get_current_user)):
+    """Get promotion rules for the institution"""
+    try:
+        rules = await db.promotion_rules.find_one({
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id,
+            "is_active": True
+        })
+        
+        if not rules:
+            return {
+                "id": None,
+                "name": "Default Promotion Rules",
+                "min_overall_percentage": 33.0,
+                "min_subjects_to_pass": 0,
+                "mandatory_subjects": [],
+                "grace_marks_allowed": True,
+                "max_grace_marks": 5.0,
+                "allow_compartment": True,
+                "max_compartment_subjects": 2
+            }
+        
+        return sanitize_mongo_data(rules)
+    except Exception as e:
+        logger.error(f"Error fetching promotion rules: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch promotion rules")
+
+@api_router.post("/result-config/promotion-rules")
+async def save_promotion_rules(
+    rules: PromotionRulesCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create or update promotion rules"""
+    try:
+        if current_user.role not in ["super_admin", "admin", "principal"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        existing = await db.promotion_rules.find_one({
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id,
+            "is_active": True
+        })
+        
+        rules_doc = {
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id,
+            "name": rules.name,
+            "min_overall_percentage": rules.min_overall_percentage,
+            "min_subjects_to_pass": rules.min_subjects_to_pass,
+            "mandatory_subjects": rules.mandatory_subjects,
+            "grace_marks_allowed": rules.grace_marks_allowed,
+            "max_grace_marks": rules.max_grace_marks,
+            "allow_compartment": rules.allow_compartment,
+            "max_compartment_subjects": rules.max_compartment_subjects,
+            "is_active": True,
+            "updated_by": current_user.id,
+            "updated_at": datetime.utcnow()
+        }
+        
+        if existing:
+            await db.promotion_rules.update_one(
+                {"id": existing["id"], "tenant_id": current_user.tenant_id, "school_id": current_user.school_id},
+                {"$set": rules_doc}
+            )
+            rules_doc["id"] = existing["id"]
+        else:
+            rules_doc["id"] = str(uuid.uuid4())
+            rules_doc["created_by"] = current_user.id
+            rules_doc["created_at"] = datetime.utcnow()
+            await db.promotion_rules.insert_one(rules_doc)
+        
+        return sanitize_mongo_data(rules_doc)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error saving promotion rules: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save promotion rules")
+
+@api_router.get("/result-config/result-card-settings")
+async def get_result_card_settings(current_user: User = Depends(get_current_user)):
+    """Get result card settings for the institution"""
+    try:
+        settings = await db.result_card_settings.find_one({
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id,
+            "is_active": True
+        })
+        
+        if not settings:
+            return {
+                "id": None,
+                "school_header": "",
+                "school_logo_url": "",
+                "result_title": "Progress Report",
+                "show_rank": True,
+                "show_percentage": True,
+                "show_gpa": True,
+                "show_grade": True,
+                "show_remarks": True,
+                "remarks_pass": "Promoted to next class",
+                "remarks_fail": "Not promoted",
+                "remarks_compartment": "Promoted with compartment",
+                "principal_signature_label": "Principal",
+                "class_teacher_signature_label": "Class Teacher",
+                "parent_signature_label": "Parent/Guardian"
+            }
+        
+        return sanitize_mongo_data(settings)
+    except Exception as e:
+        logger.error(f"Error fetching result card settings: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch result card settings")
+
+@api_router.post("/result-config/result-card-settings")
+async def save_result_card_settings(
+    settings: ResultCardSettingsCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create or update result card settings"""
+    try:
+        if current_user.role not in ["super_admin", "admin", "principal"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        existing = await db.result_card_settings.find_one({
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id,
+            "is_active": True
+        })
+        
+        settings_doc = {
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id,
+            "school_header": settings.school_header,
+            "school_logo_url": settings.school_logo_url,
+            "result_title": settings.result_title,
+            "show_rank": settings.show_rank,
+            "show_percentage": settings.show_percentage,
+            "show_gpa": settings.show_gpa,
+            "show_grade": settings.show_grade,
+            "show_remarks": settings.show_remarks,
+            "remarks_pass": settings.remarks_pass,
+            "remarks_fail": settings.remarks_fail,
+            "remarks_compartment": settings.remarks_compartment,
+            "principal_signature_label": settings.principal_signature_label,
+            "class_teacher_signature_label": settings.class_teacher_signature_label,
+            "parent_signature_label": settings.parent_signature_label,
+            "is_active": True,
+            "updated_by": current_user.id,
+            "updated_at": datetime.utcnow()
+        }
+        
+        if existing:
+            await db.result_card_settings.update_one(
+                {"id": existing["id"], "tenant_id": current_user.tenant_id, "school_id": current_user.school_id},
+                {"$set": settings_doc}
+            )
+            settings_doc["id"] = existing["id"]
+        else:
+            settings_doc["id"] = str(uuid.uuid4())
+            settings_doc["created_by"] = current_user.id
+            settings_doc["created_at"] = datetime.utcnow()
+            await db.result_card_settings.insert_one(settings_doc)
+        
+        return sanitize_mongo_data(settings_doc)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error saving result card settings: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save result card settings")
+
+# Helper function to calculate grade based on percentage
+async def calculate_grade(percentage: float, tenant_id: str, school_id: str) -> dict:
+    """Calculate grade and GPA based on percentage using the default grading scheme"""
+    try:
+        scheme = await db.grading_schemes.find_one({
+            "tenant_id": tenant_id,
+            "school_id": school_id,
+            "is_default": True,
+            "is_active": True
+        })
+        
+        if not scheme:
+            # Default grading if no scheme is configured
+            if percentage >= 90:
+                return {"grade": "A+", "gpa": 10.0, "remarks": "Excellent"}
+            elif percentage >= 80:
+                return {"grade": "A", "gpa": 9.0, "remarks": "Very Good"}
+            elif percentage >= 70:
+                return {"grade": "B+", "gpa": 8.0, "remarks": "Good"}
+            elif percentage >= 60:
+                return {"grade": "B", "gpa": 7.0, "remarks": "Above Average"}
+            elif percentage >= 50:
+                return {"grade": "C+", "gpa": 6.0, "remarks": "Average"}
+            elif percentage >= 40:
+                return {"grade": "C", "gpa": 5.0, "remarks": "Below Average"}
+            elif percentage >= 33:
+                return {"grade": "D", "gpa": 4.0, "remarks": "Pass"}
+            else:
+                return {"grade": "F", "gpa": 0.0, "remarks": "Fail"}
+        
+        # Find matching grade band
+        for band in scheme.get("grade_bands", []):
+            if band["min_percentage"] <= percentage <= band["max_percentage"]:
+                return {
+                    "grade": band["grade"],
+                    "gpa": band.get("gpa", 0.0),
+                    "remarks": band.get("remarks", "")
+                }
+        
+        return {"grade": "F", "gpa": 0.0, "remarks": "Fail"}
+    except Exception as e:
+        logger.error(f"Error calculating grade: {e}")
+        return {"grade": "N/A", "gpa": 0.0, "remarks": ""}
+
+# ============================================================================
+# END RESULT CONFIGURATION API ENDPOINTS
+# ============================================================================
+
 # Include router and middleware
 app.include_router(api_router)
 

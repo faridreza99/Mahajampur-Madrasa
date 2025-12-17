@@ -110,8 +110,11 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       key: 'results',
       title: 'Results',
       icon: FileSpreadsheet,
-      path: '/results',
-      roles: ['super_admin', 'admin', 'principal', 'teacher', 'student', 'parent']
+      roles: ['super_admin', 'admin', 'principal', 'teacher', 'student', 'parent'],
+      subItems: [
+        { title: 'Manage Results', path: '/results', roles: ['super_admin', 'admin', 'principal', 'teacher', 'student', 'parent'] },
+        { title: 'Configuration', path: '/result-configuration', roles: ['super_admin', 'admin', 'principal'] }
+      ]
     },
     {
       key: 'hss-module',
