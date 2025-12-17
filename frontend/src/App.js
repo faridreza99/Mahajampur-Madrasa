@@ -34,6 +34,9 @@ import AISummary from './components/AISummary';
 import AINotes from './components/AINotes';
 import Notifications from './components/Notifications';
 import RatingSurveys from './components/RatingSurveys';
+import Results from './components/Results';
+import StudentResults from './components/StudentResults';
+import ParentResults from './components/ParentResults';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import { Toaster } from './components/ui/sonner';
@@ -180,6 +183,20 @@ const ProtectedRoute = ({ children }) => {
   return user ? children : <Navigate to="/login" replace />;
 };
 
+// Results Router - routes to appropriate results page based on user role
+const ResultsRouter = () => {
+  const { user } = useAuth();
+  
+  if (user?.role === 'student') {
+    return <StudentResults />;
+  } else if (user?.role === 'parent') {
+    return <ParentResults />;
+  } else {
+    // For admin, principal, teacher roles - show main Results management
+    return <Results />;
+  }
+};
+
 // Main Layout Component
 const Layout = ({ children }) => {
   const { user } = useAuth();
@@ -294,6 +311,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Attendance />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/results" 
+                element={
+                  <ProtectedRoute>
+                    <ResultsRouter />
                   </ProtectedRoute>
                 } 
               />

@@ -1223,6 +1223,104 @@ class PaperQuestionCreate(BaseModel):
     difficulty_level: str = "medium"
     tags: List[str] = []
 
+# ==================== STUDENT RESULT MODELS ====================
+
+class ExamTerm(BaseModel):
+    """Exam term/type configuration (Unit Test, Mid-term, Final, etc.)"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    school_id: str
+    name: str  # "Unit Test 1", "Mid-term", "Final Exam"
+    exam_type: str  # "unit_test", "mid_term", "final", "quarterly"
+    academic_year: str  # "2024-2025"
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    max_marks: int = 100
+    passing_percentage: float = 33.0
+    is_published: bool = False
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class ExamTermCreate(BaseModel):
+    name: str
+    exam_type: str
+    academic_year: str
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    max_marks: int = 100
+    passing_percentage: float = 33.0
+
+class ExamTermUpdate(BaseModel):
+    name: Optional[str] = None
+    exam_type: Optional[str] = None
+    academic_year: Optional[str] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    max_marks: Optional[int] = None
+    passing_percentage: Optional[float] = None
+    is_published: Optional[bool] = None
+
+class SubjectMarks(BaseModel):
+    """Marks for a single subject"""
+    subject_id: str
+    subject_name: str
+    max_marks: int = 100
+    obtained_marks: float = 0
+    passing_marks: int = 33
+    grade: Optional[str] = None
+    remarks: Optional[str] = None
+
+class StudentResult(BaseModel):
+    """Student result for an exam term"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    school_id: str
+    exam_term_id: str
+    student_id: str
+    student_name: str
+    admission_no: str
+    class_id: str
+    class_name: str
+    section_id: str
+    section_name: str
+    
+    # Subject-wise marks
+    subjects: List[SubjectMarks] = []
+    
+    # Aggregate scores
+    total_marks: float = 0
+    total_max_marks: int = 0
+    percentage: float = 0
+    grade: str = ""
+    rank: Optional[int] = None
+    
+    # Status
+    status: str = "draft"  # draft, submitted, published
+    is_pass: bool = False
+    remarks: Optional[str] = None
+    
+    # Metadata
+    entered_by: Optional[str] = None
+    published_by: Optional[str] = None
+    published_at: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class StudentResultCreate(BaseModel):
+    exam_term_id: str
+    student_id: str
+    subjects: List[Dict[str, Any]] = []
+
+class StudentResultUpdate(BaseModel):
+    subjects: Optional[List[Dict[str, Any]]] = None
+    remarks: Optional[str] = None
+
+class BulkResultUpload(BaseModel):
+    exam_term_id: str
+    class_id: str
+    section_id: str
+
 # ==================== UTILITY FUNCTIONS ====================
 
 def safe_format_date(date_value, format_string="%Y-%m-%d"):
@@ -21853,6 +21951,729 @@ async def get_cms_hierarchy(
 
 # ============================================================================
 # END AI SUMMARY & NOTES MODULES
+# ============================================================================
+
+# ============================================================================
+# STUDENT RESULT AUTOMATION API ENDPOINTS
+# ============================================================================
+
+def calculate_grade(percentage: float) -> str:
+    """Calculate grade based on percentage"""
+    if percentage >= 90:
+        return "A+"
+    elif percentage >= 80:
+        return "A"
+    elif percentage >= 70:
+        return "B+"
+    elif percentage >= 60:
+        return "B"
+    elif percentage >= 50:
+        return "C+"
+    elif percentage >= 40:
+        return "C"
+    elif percentage >= 33:
+        return "D"
+    else:
+        return "F"
+
+# ==================== EXAM TERM ENDPOINTS ====================
+
+@api_router.get("/exam-terms")
+async def get_exam_terms(
+    academic_year: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all exam terms for the school"""
+    try:
+        query = {
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id,
+            "is_active": True
+        }
+        if academic_year:
+            query["academic_year"] = academic_year
+        
+        terms = await db.exam_terms.find(query).sort("created_at", -1).to_list(None)
+        return sanitize_mongo_data(terms)
+    except Exception as e:
+        logger.error(f"Error fetching exam terms: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch exam terms")
+
+@api_router.post("/exam-terms")
+async def create_exam_term(
+    term: ExamTermCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new exam term (Admin/Principal only)"""
+    try:
+        if current_user.role not in ["super_admin", "admin", "principal"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        new_term = ExamTerm(
+            tenant_id=current_user.tenant_id,
+            school_id=current_user.school_id,
+            **term.dict()
+        )
+        
+        await db.exam_terms.insert_one(new_term.dict())
+        return {"message": "Exam term created successfully", "id": new_term.id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating exam term: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create exam term")
+
+@api_router.put("/exam-terms/{term_id}")
+async def update_exam_term(
+    term_id: str,
+    term_data: ExamTermUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update an exam term"""
+    try:
+        if current_user.role not in ["super_admin", "admin", "principal"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        update_data = {k: v for k, v in term_data.dict().items() if v is not None}
+        update_data["updated_at"] = datetime.utcnow()
+        
+        result = await db.exam_terms.update_one(
+            {"id": term_id, "tenant_id": current_user.tenant_id, "school_id": current_user.school_id},
+            {"$set": update_data}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Exam term not found")
+        
+        return {"message": "Exam term updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating exam term: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update exam term")
+
+@api_router.delete("/exam-terms/{term_id}")
+async def delete_exam_term(
+    term_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete an exam term (soft delete)"""
+    try:
+        if current_user.role not in ["super_admin", "admin", "principal"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        result = await db.exam_terms.update_one(
+            {"id": term_id, "tenant_id": current_user.tenant_id, "school_id": current_user.school_id},
+            {"$set": {"is_active": False, "updated_at": datetime.utcnow()}}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Exam term not found")
+        
+        return {"message": "Exam term deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting exam term: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete exam term")
+
+# ==================== STUDENT RESULT ENDPOINTS ====================
+
+@api_router.get("/student-results")
+async def get_student_results(
+    exam_term_id: Optional[str] = None,
+    class_id: Optional[str] = None,
+    section_id: Optional[str] = None,
+    student_id: Optional[str] = None,
+    status: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get student results based on filters and user role"""
+    try:
+        query = {
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id
+        }
+        
+        # Role-based filtering
+        if current_user.role == "student":
+            # Students can only see their own published results
+            query["student_id"] = current_user.id
+            query["status"] = "published"
+        elif current_user.role == "parent":
+            # Parents can see their linked children's published results
+            parent_data = await db.users.find_one({"id": current_user.id})
+            linked_students = parent_data.get("linked_student_ids", []) if parent_data else []
+            if not linked_students:
+                return []
+            query["student_id"] = {"$in": linked_students}
+            query["status"] = "published"
+        elif current_user.role == "teacher":
+            # Teachers can see results for their assigned classes
+            if class_id:
+                query["class_id"] = class_id
+            if section_id:
+                query["section_id"] = section_id
+        else:
+            # Admin/Principal can see all
+            if status:
+                query["status"] = status
+        
+        # Apply optional filters
+        if exam_term_id:
+            query["exam_term_id"] = exam_term_id
+        if class_id and current_user.role not in ["student", "parent"]:
+            query["class_id"] = class_id
+        if section_id and current_user.role not in ["student", "parent"]:
+            query["section_id"] = section_id
+        if student_id and current_user.role not in ["student", "parent"]:
+            query["student_id"] = student_id
+        
+        results = await db.student_results.find(query).sort("rank", 1).to_list(None)
+        return sanitize_mongo_data(results)
+    except Exception as e:
+        logger.error(f"Error fetching student results: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch student results")
+
+@api_router.get("/parents/my-children")
+async def get_parent_children(
+    current_user: User = Depends(get_current_user)
+):
+    """Get parent's linked children (for parent panel)"""
+    try:
+        if current_user.role != "parent":
+            raise HTTPException(status_code=403, detail="This endpoint is for parents only")
+        
+        # Get linked children from user record
+        parent_data = await db.users.find_one({"id": current_user.id})
+        linked_student_ids = parent_data.get("linked_student_ids", []) if parent_data else []
+        
+        if not linked_student_ids:
+            return []
+        
+        # Fetch student details for linked children only
+        students = await db.students.find({
+            "id": {"$in": linked_student_ids},
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id,
+            "is_active": True
+        }).to_list(None)
+        
+        # Enrich with class and section names
+        for student in students:
+            if student.get("class_id"):
+                class_doc = await db.classes.find_one({"id": student["class_id"]})
+                student["class_name"] = class_doc.get("name", "") if class_doc else ""
+            if student.get("section_id"):
+                section_doc = await db.sections.find_one({"id": student["section_id"]})
+                student["section_name"] = section_doc.get("name", "") if section_doc else ""
+        
+        return sanitize_mongo_data(students)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching parent's children: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch children")
+
+@api_router.get("/student-results/my-results")
+async def get_my_results(
+    exam_term_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get current student's own results (for student panel)"""
+    try:
+        if current_user.role != "student":
+            raise HTTPException(status_code=403, detail="This endpoint is for students only")
+        
+        query = {
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id,
+            "student_id": current_user.id,
+            "status": "published"
+        }
+        
+        if exam_term_id:
+            query["exam_term_id"] = exam_term_id
+        
+        results = await db.student_results.find(query).sort("created_at", -1).to_list(None)
+        return sanitize_mongo_data(results)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching student's results: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch results")
+
+@api_router.get("/student-results/child-results")
+async def get_child_results(
+    child_id: Optional[str] = None,
+    exam_term_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get child's results (for parent panel)"""
+    try:
+        if current_user.role != "parent":
+            raise HTTPException(status_code=403, detail="This endpoint is for parents only")
+        
+        # Get linked children
+        parent_data = await db.users.find_one({"id": current_user.id})
+        linked_students = parent_data.get("linked_student_ids", []) if parent_data else []
+        
+        if not linked_students:
+            return []
+        
+        query = {
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id,
+            "status": "published"
+        }
+        
+        if child_id and child_id in linked_students:
+            query["student_id"] = child_id
+        else:
+            query["student_id"] = {"$in": linked_students}
+        
+        if exam_term_id:
+            query["exam_term_id"] = exam_term_id
+        
+        results = await db.student_results.find(query).sort("created_at", -1).to_list(None)
+        return sanitize_mongo_data(results)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching child's results: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch results")
+
+@api_router.post("/student-results")
+async def create_student_result(
+    result_data: StudentResultCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create or update student result (Teacher/Admin)"""
+    try:
+        if current_user.role not in ["super_admin", "admin", "principal", "teacher"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        # Get student details
+        student = await db.students.find_one({
+            "id": result_data.student_id,
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id
+        })
+        
+        if not student:
+            raise HTTPException(status_code=404, detail="Student not found")
+        
+        # Get class and section names
+        class_doc = await db.classes.find_one({"id": student.get("class_id")})
+        section_doc = await db.sections.find_one({"id": student.get("section_id")})
+        
+        # Calculate totals and grade
+        subjects = []
+        total_marks = 0
+        total_max_marks = 0
+        
+        for subj in result_data.subjects:
+            subject_marks = SubjectMarks(
+                subject_id=subj.get("subject_id", ""),
+                subject_name=subj.get("subject_name", ""),
+                max_marks=subj.get("max_marks", 100),
+                obtained_marks=subj.get("obtained_marks", 0),
+                passing_marks=subj.get("passing_marks", 33),
+                grade=calculate_grade((subj.get("obtained_marks", 0) / subj.get("max_marks", 100)) * 100) if subj.get("max_marks", 100) > 0 else "F",
+                remarks=subj.get("remarks", "")
+            )
+            subjects.append(subject_marks)
+            total_marks += subject_marks.obtained_marks
+            total_max_marks += subject_marks.max_marks
+        
+        percentage = (total_marks / total_max_marks * 100) if total_max_marks > 0 else 0
+        overall_grade = calculate_grade(percentage)
+        is_pass = percentage >= 33
+        
+        # Check if result already exists
+        existing_result = await db.student_results.find_one({
+            "exam_term_id": result_data.exam_term_id,
+            "student_id": result_data.student_id,
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id
+        })
+        
+        if existing_result:
+            # Update existing result
+            update_data = {
+                "subjects": [s.dict() for s in subjects],
+                "total_marks": total_marks,
+                "total_max_marks": total_max_marks,
+                "percentage": round(percentage, 2),
+                "grade": overall_grade,
+                "is_pass": is_pass,
+                "updated_at": datetime.utcnow()
+            }
+            
+            await db.student_results.update_one(
+                {"id": existing_result["id"]},
+                {"$set": update_data}
+            )
+            return {"message": "Result updated successfully", "id": existing_result["id"]}
+        else:
+            # Create new result
+            new_result = StudentResult(
+                tenant_id=current_user.tenant_id,
+                school_id=current_user.school_id,
+                exam_term_id=result_data.exam_term_id,
+                student_id=result_data.student_id,
+                student_name=student.get("name", ""),
+                admission_no=student.get("admission_no", ""),
+                class_id=student.get("class_id", ""),
+                class_name=class_doc.get("name", "") if class_doc else "",
+                section_id=student.get("section_id", ""),
+                section_name=section_doc.get("name", "") if section_doc else "",
+                subjects=subjects,
+                total_marks=total_marks,
+                total_max_marks=total_max_marks,
+                percentage=round(percentage, 2),
+                grade=overall_grade,
+                is_pass=is_pass,
+                entered_by=current_user.id,
+                status="draft"
+            )
+            
+            await db.student_results.insert_one(new_result.dict())
+            return {"message": "Result created successfully", "id": new_result.id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating/updating student result: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save student result")
+
+@api_router.post("/student-results/bulk-entry")
+async def bulk_result_entry(
+    exam_term_id: str,
+    class_id: str,
+    section_id: str,
+    results: List[Dict[str, Any]],
+    current_user: User = Depends(get_current_user)
+):
+    """Bulk entry of results for a class section"""
+    try:
+        if current_user.role not in ["super_admin", "admin", "principal", "teacher"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        success_count = 0
+        error_count = 0
+        
+        for result_item in results:
+            try:
+                student_id = result_item.get("student_id")
+                subjects = result_item.get("subjects", [])
+                
+                # Create result using existing logic
+                result_create = StudentResultCreate(
+                    exam_term_id=exam_term_id,
+                    student_id=student_id,
+                    subjects=subjects
+                )
+                
+                await create_student_result(result_create, current_user)
+                success_count += 1
+            except Exception as e:
+                logger.error(f"Error processing result for student: {e}")
+                error_count += 1
+        
+        return {
+            "message": f"Bulk entry completed",
+            "success_count": success_count,
+            "error_count": error_count
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in bulk result entry: {e}")
+        raise HTTPException(status_code=500, detail="Failed to process bulk entry")
+
+@api_router.put("/student-results/{result_id}/publish")
+async def publish_result(
+    result_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Publish a student result"""
+    try:
+        if current_user.role not in ["super_admin", "admin", "principal"]:
+            raise HTTPException(status_code=403, detail="Not authorized to publish results")
+        
+        result = await db.student_results.update_one(
+            {
+                "id": result_id,
+                "tenant_id": current_user.tenant_id,
+                "school_id": current_user.school_id
+            },
+            {
+                "$set": {
+                    "status": "published",
+                    "published_by": current_user.id,
+                    "published_at": datetime.utcnow(),
+                    "updated_at": datetime.utcnow()
+                }
+            }
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Result not found")
+        
+        return {"message": "Result published successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error publishing result: {e}")
+        raise HTTPException(status_code=500, detail="Failed to publish result")
+
+@api_router.put("/student-results/publish-bulk")
+async def publish_results_bulk(
+    exam_term_id: str,
+    class_id: Optional[str] = None,
+    section_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Publish all results for an exam term (optionally filtered by class/section)"""
+    try:
+        if current_user.role not in ["super_admin", "admin", "principal"]:
+            raise HTTPException(status_code=403, detail="Not authorized to publish results")
+        
+        query = {
+            "exam_term_id": exam_term_id,
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id,
+            "status": {"$ne": "published"}
+        }
+        
+        if class_id:
+            query["class_id"] = class_id
+        if section_id:
+            query["section_id"] = section_id
+        
+        result = await db.student_results.update_many(
+            query,
+            {
+                "$set": {
+                    "status": "published",
+                    "published_by": current_user.id,
+                    "published_at": datetime.utcnow(),
+                    "updated_at": datetime.utcnow()
+                }
+            }
+        )
+        
+        # Calculate ranks for the published results
+        await calculate_ranks(exam_term_id, class_id, section_id, current_user)
+        
+        return {"message": f"Published {result.modified_count} results successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error bulk publishing results: {e}")
+        raise HTTPException(status_code=500, detail="Failed to publish results")
+
+async def calculate_ranks(exam_term_id: str, class_id: Optional[str], section_id: Optional[str], current_user: User):
+    """Calculate and update ranks for students in a class/section"""
+    try:
+        query = {
+            "exam_term_id": exam_term_id,
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id,
+            "status": "published"
+        }
+        
+        if class_id:
+            query["class_id"] = class_id
+        if section_id:
+            query["section_id"] = section_id
+        
+        results = await db.student_results.find(query).sort("percentage", -1).to_list(None)
+        
+        for rank, result in enumerate(results, 1):
+            await db.student_results.update_one(
+                {"id": result["id"]},
+                {"$set": {"rank": rank}}
+            )
+    except Exception as e:
+        logger.error(f"Error calculating ranks: {e}")
+
+@api_router.delete("/student-results/{result_id}")
+async def delete_student_result(
+    result_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a student result"""
+    try:
+        if current_user.role not in ["super_admin", "admin", "principal"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        result = await db.student_results.delete_one({
+            "id": result_id,
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id
+        })
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Result not found")
+        
+        return {"message": "Result deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting result: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete result")
+
+@api_router.post("/student-results/upload-excel")
+async def upload_results_excel(
+    file: UploadFile = File(...),
+    exam_term_id: str = None,
+    class_id: str = None,
+    section_id: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Upload results from Excel file"""
+    try:
+        if current_user.role not in ["super_admin", "admin", "principal", "teacher"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        if not file.filename.endswith(('.xlsx', '.xls')):
+            raise HTTPException(status_code=400, detail="Please upload an Excel file (.xlsx or .xls)")
+        
+        # Read Excel file
+        contents = await file.read()
+        df = pd.read_excel(io.BytesIO(contents))
+        
+        # Expected columns: admission_no, subject_name, obtained_marks, max_marks
+        required_cols = ['admission_no']
+        for col in required_cols:
+            if col not in df.columns:
+                raise HTTPException(status_code=400, detail=f"Missing required column: {col}")
+        
+        success_count = 0
+        error_count = 0
+        errors = []
+        
+        # Get subject columns (any column that's not admission_no and contains marks)
+        subject_cols = [c for c in df.columns if c != 'admission_no']
+        
+        for _, row in df.iterrows():
+            try:
+                admission_no = str(row['admission_no']).strip()
+                
+                # Find student by admission number
+                student = await db.students.find_one({
+                    "admission_no": admission_no,
+                    "tenant_id": current_user.tenant_id,
+                    "school_id": current_user.school_id
+                })
+                
+                if not student:
+                    errors.append(f"Student not found: {admission_no}")
+                    error_count += 1
+                    continue
+                
+                # Build subjects list
+                subjects = []
+                for col in subject_cols:
+                    if pd.notna(row.get(col)):
+                        subjects.append({
+                            "subject_name": col,
+                            "subject_id": "",
+                            "obtained_marks": float(row[col]),
+                            "max_marks": 100,
+                            "passing_marks": 33
+                        })
+                
+                # Create result
+                result_create = StudentResultCreate(
+                    exam_term_id=exam_term_id,
+                    student_id=student["id"],
+                    subjects=subjects
+                )
+                
+                await create_student_result(result_create, current_user)
+                success_count += 1
+            except Exception as e:
+                logger.error(f"Error processing row: {e}")
+                error_count += 1
+                errors.append(str(e))
+        
+        return {
+            "message": "Upload completed",
+            "success_count": success_count,
+            "error_count": error_count,
+            "errors": errors[:10]  # Return first 10 errors
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error uploading Excel results: {e}")
+        raise HTTPException(status_code=500, detail="Failed to process Excel file")
+
+@api_router.get("/student-results/download-template")
+async def download_result_template(
+    class_id: str,
+    section_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Download Excel template for result upload"""
+    try:
+        if current_user.role not in ["super_admin", "admin", "principal", "teacher"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        # Get students in the class/section
+        students = await db.students.find({
+            "class_id": class_id,
+            "section_id": section_id,
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id,
+            "is_active": True
+        }).to_list(None)
+        
+        # Get subjects for the class
+        subjects = await db.subjects.find({
+            "class_id": class_id,
+            "tenant_id": current_user.tenant_id,
+            "school_id": current_user.school_id,
+            "is_active": True
+        }).to_list(None)
+        
+        # Create Excel workbook
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Results Template"
+        
+        # Headers
+        headers = ["admission_no", "student_name"] + [s.get("name", "") for s in subjects]
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col, value=header)
+            cell.font = Font(bold=True)
+            cell.fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+            cell.font = Font(bold=True, color="FFFFFF")
+        
+        # Add student rows
+        for row_num, student in enumerate(students, 2):
+            ws.cell(row=row_num, column=1, value=student.get("admission_no", ""))
+            ws.cell(row=row_num, column=2, value=student.get("name", ""))
+            # Leave subject columns empty for marks entry
+        
+        # Save to bytes
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": "attachment; filename=results_template.xlsx"}
+        )
+    except Exception as e:
+        logger.error(f"Error creating result template: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create template")
+
+# ============================================================================
+# END STUDENT RESULT AUTOMATION API ENDPOINTS
 # ============================================================================
 
 # Include router and middleware

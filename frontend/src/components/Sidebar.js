@@ -28,7 +28,8 @@ import {
   Star,
   MessageSquare,
   Calendar,
-  Clock
+  Clock,
+  FileSpreadsheet
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
@@ -104,6 +105,13 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         { title: 'View Attendance', path: '/attendance', roles: ['super_admin', 'admin', 'teacher'] },
         { title: 'Attendance Reports', path: '/attendance/reports', roles: ['super_admin', 'admin'] }
       ]
+    },
+    {
+      key: 'results',
+      title: 'Results',
+      icon: FileSpreadsheet,
+      path: '/results',
+      roles: ['super_admin', 'admin', 'principal', 'teacher', 'student', 'parent']
     },
     {
       key: 'hss-module',
