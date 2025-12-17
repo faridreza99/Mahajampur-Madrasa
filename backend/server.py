@@ -22691,8 +22691,9 @@ async def download_result_template(
         ws = wb.active
         ws.title = "Results Template"
         
-        # Headers
-        headers = ["admission_no", "student_name"] + [s.get("name", "") for s in subjects]
+        # Headers - use subject_name field from subjects
+        subject_names = [s.get("subject_name", s.get("name", "Unknown")) for s in subjects]
+        headers = ["admission_no", "student_name"] + subject_names
         for col, header in enumerate(headers, 1):
             cell = ws.cell(row=1, column=col, value=header)
             cell.font = Font(bold=True)
