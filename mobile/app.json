@@ -25,6 +25,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "eb05e072-b61c-49e4-a609-a19d0a43c60a"
+      }
+    },
+    "owner": "maxtechctg"
   }
 }
