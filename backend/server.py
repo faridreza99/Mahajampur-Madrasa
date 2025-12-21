@@ -10546,6 +10546,26 @@ async def generate_class_performance(
 
 # ==================== VEHICLE TRANSPORT REPORTS ====================
 
+@api_router.get("/transport/assigned-students-count")
+async def get_transport_assigned_students_count(current_user: User = Depends(get_current_user)):
+    """Get count of students assigned to transport routes"""
+    try:
+        # Count students with transport required or assigned to routes
+        transport_students = await db.students.count_documents({
+            "tenant_id": current_user.tenant_id,
+            "is_active": True,
+            "$or": [
+                {"transport_required": True},
+                {"route_id": {"$exists": True, "$ne": None}},
+                {"vehicle_id": {"$exists": True, "$ne": None}}
+            ]
+        })
+        
+        return {"count": transport_students}
+    except Exception as e:
+        logging.error(f"Failed to get transport student count: {str(e)}")
+        return {"count": 0}
+
 @api_router.get("/reports/transport/daily")
 async def generate_daily_transport_report(
     date: str = None,  # Format: YYYY-MM-DD, defaults to today
@@ -12375,11 +12395,35 @@ async def get_dashboard_stats_filtered(
         "designation": {"$regex": "teacher", "$options": "i"}
     })
     
+    # Count new admissions this month
+    from datetime import timedelta
+    first_day_of_month = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    new_admissions_this_month = await db.students.count_documents({
+        "tenant_id": tenant_id,
+        "is_active": True,
+        "created_at": {"$gte": first_day_of_month}
+    })
+    
+    # Count pending applications (students with status 'pending' or applications collection)
+    pending_applications = await db.students.count_documents({
+        "tenant_id": tenant_id,
+        "status": {"$in": ["pending", "Pending", "pending_review"]}
+    })
+    
+    # Also check online_applications collection if exists
+    pending_online = await db.online_applications.count_documents({
+        "tenant_id": tenant_id,
+        "status": {"$in": ["pending", "Pending", "Submitted"]}
+    })
+    pending_applications += pending_online
+    
     return {
         "total_students": total_students,
         "total_staff": total_staff,
         "total_teachers": total_teachers, 
         "total_classes": total_classes,
+        "new_admissions_this_month": new_admissions_this_month,
+        "pending_applications": pending_applications,
         "present_today": 0,  # Will be implemented with attendance module
         "absent_today": 0,
         "not_taken": total_students,  # Default until attendance is implemented

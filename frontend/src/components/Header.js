@@ -28,6 +28,7 @@ const Header = ({ onMenuClick }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [, forceUpdate] = useState(0);
+  const [attendanceSummary, setAttendanceSummary] = useState({ present: 0, absent: 0, late: 0 });
 
   useEffect(() => {
     const handleLanguageChange = () => forceUpdate(n => n + 1);
@@ -68,6 +69,24 @@ const Header = ({ onMenuClick }) => {
     }
   }, []);
 
+  const fetchAttendanceSummary = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      
+      const response = await axios.get(`${API_BASE_URL}/attendance/summary?type=student`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setAttendanceSummary({
+        present: response.data.present || 0,
+        absent: response.data.absent || 0,
+        late: response.data.late || 0
+      });
+    } catch (error) {
+      console.error('Error fetching attendance summary:', error);
+    }
+  }, []);
+
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'dark') {
@@ -77,14 +96,16 @@ const Header = ({ onMenuClick }) => {
     
     fetchNotifications();
     fetchUnreadCount();
+    fetchAttendanceSummary();
     
     const interval = setInterval(() => {
       fetchNotifications();
       fetchUnreadCount();
+      fetchAttendanceSummary();
     }, 30000);
     
     return () => clearInterval(interval);
-  }, [fetchNotifications, fetchUnreadCount]);
+  }, [fetchNotifications, fetchUnreadCount, fetchAttendanceSummary]);
 
   const handleLogout = () => {
     logout();
@@ -279,11 +300,11 @@ const Header = ({ onMenuClick }) => {
       <div className="hidden sm:flex items-center space-x-4 sm:space-x-6 mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-100 dark:border-gray-800">
         <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 flex flex-wrap items-center gap-1 sm:gap-0">
           <span className="font-medium">Today:</span> 
-          <span className="ml-1 sm:ml-2 text-emerald-600 dark:text-emerald-400">245 Present</span>
+          <span className="ml-1 sm:ml-2 text-emerald-600 dark:text-emerald-400">{attendanceSummary.present} Present</span>
           <span className="mx-1 sm:mx-2">•</span>
-          <span className="text-red-600 dark:text-red-400">12 Absent</span>
+          <span className="text-red-600 dark:text-red-400">{attendanceSummary.absent} Absent</span>
           <span className="mx-1 sm:mx-2">•</span>
-          <span className="text-orange-600 dark:text-orange-400">8 Late</span>
+          <span className="text-orange-600 dark:text-orange-400">{attendanceSummary.late} Late</span>
         </div>
         
         <div className="text-[10px] sm:text-xs text-gray-400 dark:text-gray-500 hidden md:block">

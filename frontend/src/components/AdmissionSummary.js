@@ -679,10 +679,10 @@ const AdmissionSummary = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">New Admissions</p>
                 <div className="flex items-center space-x-2 mt-2">
-                  <p className="text-3xl font-bold text-gray-900">71</p>
+                  <p className="text-3xl font-bold text-gray-900">{stats.new_admissions_this_month || 0}</p>
                   <Badge variant="secondary" className="text-xs">
                     <TrendingUp className="h-3 w-3 mr-1" />
-                    +18%
+                    This Month
                   </Badge>
                 </div>
                 <p className="text-xs text-gray-500">This month</p>
@@ -700,7 +700,7 @@ const AdmissionSummary = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">Pending Applications</p>
                 <div className="flex items-center space-x-2 mt-2">
-                  <p className="text-3xl font-bold text-gray-900">15</p>
+                  <p className="text-3xl font-bold text-gray-900">{stats.pending_applications || 0}</p>
                   <Badge variant="outline" className="text-xs text-orange-600">
                     Pending Review
                   </Badge>

@@ -60,6 +60,12 @@ const Reports = () => {
   const [showDailyAttendanceModal, setShowDailyAttendanceModal] = useState(false);
   const [dailyAttendanceData, setDailyAttendanceData] = useState([]);
   const [loadingDailyAttendance, setLoadingDailyAttendance] = useState(false);
+  const [quickStats, setQuickStats] = useState({
+    todayAttendance: { present: 0, total: 0 },
+    newAdmissions: 0,
+    feeCollection: 0,
+    pendingReports: 0
+  });
 
   // Report data state - similar to Fees module pattern
   const [admissionData, setAdmissionData] = useState([]);
@@ -724,10 +730,10 @@ const Reports = () => {
   ];
 
   const quickReports = [
-    { name: 'Today\'s Attendance', icon: UserCheck, count: '245/280' },
-    { name: 'New Admissions', icon: Users, count: '12' },
-    { name: 'Fee Collection', icon: TrendingUp, count: '₹2.3L' },
-    { name: 'Pending Reports', icon: Clock, count: '5' }
+    { name: 'Today\'s Attendance', icon: UserCheck, count: `${quickStats.todayAttendance.present}/${quickStats.todayAttendance.total}` },
+    { name: 'New Admissions', icon: Users, count: String(quickStats.newAdmissions) },
+    { name: 'Fee Collection', icon: TrendingUp, count: `₹${(quickStats.feeCollection / 100000).toFixed(1)}L` },
+    { name: 'Pending Reports', icon: Clock, count: String(quickStats.pendingReports) }
   ];
 
   // DATA FETCHING FUNCTIONS - Similar to Fees module pattern
@@ -901,6 +907,48 @@ const Reports = () => {
       fetchTeacherData();
     }
   }, [reportSlug, teacherFilters]);
+
+  // Fetch quick stats for the dashboard cards
+  useEffect(() => {
+    const fetchQuickStats = async () => {
+      try {
+        const token = getAuthToken();
+        if (!token) return;
+        
+        const [attendanceRes, statsRes] = await Promise.all([
+          fetch(`${API}/attendance/summary?type=student`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          }),
+          fetch(`${API}/dashboard/stats`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+        ]);
+        
+        if (attendanceRes.ok) {
+          const attendance = await attendanceRes.json();
+          setQuickStats(prev => ({
+            ...prev,
+            todayAttendance: {
+              present: attendance.present || 0,
+              total: attendance.total || 0
+            }
+          }));
+        }
+        
+        if (statsRes.ok) {
+          const stats = await statsRes.json();
+          setQuickStats(prev => ({
+            ...prev,
+            newAdmissions: stats.new_admissions_this_month || 0
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching quick stats:', error);
+      }
+    };
+    
+    fetchQuickStats();
+  }, [API]);
 
   // Show guidance toast when a specific report is accessed via sidebar
   useEffect(() => {

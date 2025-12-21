@@ -472,11 +472,23 @@ const Vehicle = () => {
   };
 
   // Recalculate counters from current state data
-  const recalculateCounters = (vehicleData, routeData) => {
+  const recalculateCounters = async (vehicleData, routeData) => {
     setTotalVehicles(vehicleData.length);
     setActiveRoutes(routeData.filter(r => r.status === 'active').length);
-    // setTotalStudents would be calculated from student assignments when implemented
-    setTotalStudents(245); // This would come from actual student assignment data
+    
+    // Fetch actual student count for transport
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get('/api/transport/assigned-students-count', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setTotalStudents(response.data.count || 0);
+    } catch (error) {
+      // Fallback: calculate from route data or set to 0
+      const assignedStudents = routeData.reduce((total, route) => 
+        total + (route.student_count || route.students?.length || 0), 0);
+      setTotalStudents(assignedStudents);
+    }
   };
 
   const fetchVehicleData = async () => {
