@@ -2266,12 +2266,14 @@ async def get_institution(current_user: User = Depends(get_current_user)):
     
     # Get tenant info for school_code (domain)
     tenant = await db.tenants.find_one({"id": current_user.tenant_id})
-    tenant_school_code = tenant.get("domain", "") if tenant else ""
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    
+    tenant_school_code = tenant.get("domain", "")
     
     # Try to find existing institution record
     institution = await db.institutions.find_one({
         "tenant_id": current_user.tenant_id,
-        "school_id": current_user.school_id,
         "is_active": True
     })
     
@@ -2280,26 +2282,22 @@ async def get_institution(current_user: User = Depends(get_current_user)):
         institution["school_code"] = tenant_school_code
         return Institution(**institution)
     
-    # If no institution exists, create a default one from school data
+    # If no institution exists, create a default one from tenant data
     school = await db.schools.find_one({
-        "id": current_user.school_id,
         "tenant_id": current_user.tenant_id
     })
     
-    if not school:
-        raise HTTPException(status_code=404, detail="School not found")
-    
-    # Create default institution record from school, using tenant domain as school_code
+    # Create default institution record from tenant/school data
     default_institution = Institution(
         tenant_id=current_user.tenant_id,
-        school_id=current_user.school_id,
-        school_name=school.get("name", "") or tenant.get("name", "") if tenant else "",
+        school_id=current_user.school_id or "default",
+        school_name=tenant.get("name", ""),
         school_code=tenant_school_code,
-        established_year=school.get("established_year"),
-        address=school.get("address") or tenant.get("address", "") if tenant else "",
-        phone=school.get("phone") or tenant.get("contact_phone", "") if tenant else "",
-        email=school.get("email") or tenant.get("contact_email", "") if tenant else "",
-        principal_name=school.get("principal_name")
+        established_year=school.get("established_year") if school else None,
+        address=tenant.get("address", ""),
+        phone=tenant.get("contact_phone", ""),
+        email=tenant.get("contact_email", ""),
+        principal_name=school.get("principal_name") if school else None
     )
     
     await db.institutions.insert_one(default_institution.dict())
