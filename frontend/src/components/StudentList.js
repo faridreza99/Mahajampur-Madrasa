@@ -2164,7 +2164,18 @@ const StudentList = () => {
               </div>
             </div>
           )}
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              className="text-purple-600 border-purple-200 hover:bg-purple-50"
+              onClick={() => {
+                setIsViewModalOpen(false);
+                navigate(`/results?student_id=${viewingStudent?.id}&class_id=${viewingStudent?.class_id}&section_id=${viewingStudent?.section_id}`);
+              }}
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              View Results
+            </Button>
             <Button
               variant="outline"
               onClick={() => {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -29,12 +30,15 @@ import {
   Award,
   TrendingUp,
   Calendar,
-  GraduationCap
+  GraduationCap,
+  Printer,
+  User
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Results = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [examTerms, setExamTerms] = useState([]);
   const [classes, setClasses] = useState([]);
   const [sections, setSections] = useState([]);
@@ -42,16 +46,21 @@ const Results = () => {
   const [students, setStudents] = useState([]);
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [urlParamsApplied, setUrlParamsApplied] = useState(false);
   
-  // Filters
+  // Filters - initialize from URL params if present
   const [selectedExamTerm, setSelectedExamTerm] = useState('');
-  const [selectedClass, setSelectedClass] = useState('');
-  const [selectedSection, setSelectedSection] = useState('');
+  const [selectedClass, setSelectedClass] = useState(searchParams.get('class_id') || '');
+  const [selectedSection, setSelectedSection] = useState(searchParams.get('section_id') || '');
+  const incomingStudentId = searchParams.get('student_id');
   
   // Modals
   const [isExamTermDialogOpen, setIsExamTermDialogOpen] = useState(false);
   const [isEntryDialogOpen, setIsEntryDialogOpen] = useState(false);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  const [isViewResultDialogOpen, setIsViewResultDialogOpen] = useState(false);
+  const [viewingResult, setViewingResult] = useState(null);
+  const [selectedStudent, setSelectedStudent] = useState('');
   
   // Form states
   const [examTermForm, setExamTermForm] = useState({
@@ -168,6 +177,33 @@ const Results = () => {
       fetchResults();
     }
   }, [selectedExamTerm, selectedClass, selectedSection, fetchResults]);
+
+  // Auto-select first exam term and show student result when coming from StudentList
+  useEffect(() => {
+    if (!urlParamsApplied && incomingStudentId && examTerms.length > 0 && results.length > 0) {
+      setSelectedStudent(incomingStudentId);
+      const studentResult = results.find(r => r.student_id === incomingStudentId);
+      if (studentResult) {
+        setViewingResult(studentResult);
+        setIsViewResultDialogOpen(true);
+        setUrlParamsApplied(true);
+      }
+    }
+  }, [incomingStudentId, examTerms, results, urlParamsApplied]);
+
+  // Auto-select first exam term when coming from StudentList
+  useEffect(() => {
+    if (incomingStudentId && examTerms.length > 0 && !selectedExamTerm) {
+      setSelectedExamTerm(examTerms[0].id);
+    }
+  }, [incomingStudentId, examTerms, selectedExamTerm]);
+
+  // Reset selected student when changing class/section
+  useEffect(() => {
+    if (!incomingStudentId) {
+      setSelectedStudent('');
+    }
+  }, [selectedClass, selectedSection, incomingStudentId]);
 
   const handleCreateExamTerm = async () => {
     try {
@@ -327,6 +363,120 @@ const Results = () => {
     } catch (error) {
       toast.error('Failed to delete result');
     }
+  };
+
+  const handleViewResult = (result) => {
+    setViewingResult(result);
+    setIsViewResultDialogOpen(true);
+  };
+
+  const handlePrintResult = (result) => {
+    const examTerm = examTerms.find(t => t.id === result.exam_term_id);
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Result Card - ${result.student_name}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 30px; max-width: 800px; margin: 0 auto; }
+            .header { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #10b981; }
+            .school-name { font-size: 24px; font-weight: bold; color: #1f2937; }
+            .result-card { font-size: 18px; color: #6b7280; margin-top: 8px; }
+            .student-info { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; padding: 16px; background: #f0fdf4; border-radius: 8px; }
+            .info-item { }
+            .info-label { font-size: 12px; color: #6b7280; }
+            .info-value { font-weight: 600; }
+            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+            th { background: #f3f4f6; padding: 12px; text-align: left; border: 1px solid #e5e7eb; font-weight: 600; }
+            td { padding: 12px; border: 1px solid #e5e7eb; }
+            .text-center { text-align: center; }
+            .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 24px; padding: 20px; background: #f9fafb; border-radius: 8px; }
+            .summary-item { text-align: center; }
+            .summary-label { font-size: 12px; color: #6b7280; }
+            .summary-value { font-size: 20px; font-weight: bold; color: #1f2937; }
+            .pass { color: #10b981; }
+            .fail { color: #ef4444; }
+            .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 12px; }
+            @media print { body { padding: 15px; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="school-name">Student Result Card</div>
+            <div class="result-card">${examTerm?.name || 'Examination'} - ${examTerm?.academic_year || ''}</div>
+          </div>
+          
+          <div class="student-info">
+            <div class="info-item">
+              <div class="info-label">Student Name</div>
+              <div class="info-value">${result.student_name}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Admission No</div>
+              <div class="info-value">${result.admission_no}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Class</div>
+              <div class="info-value">${result.class_name} - ${result.section_name}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Rank</div>
+              <div class="info-value">#${result.rank || 'N/A'}</div>
+            </div>
+          </div>
+          
+          <table>
+            <thead>
+              <tr>
+                <th>Subject</th>
+                <th class="text-center">Marks Obtained</th>
+                <th class="text-center">Max Marks</th>
+                <th class="text-center">Percentage</th>
+                <th class="text-center">Grade</th>
+                <th class="text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${result.subjects?.map(s => `
+                <tr>
+                  <td>${s.subject_name}</td>
+                  <td class="text-center">${s.obtained_marks}</td>
+                  <td class="text-center">${s.max_marks}</td>
+                  <td class="text-center">${s.max_marks > 0 ? ((s.obtained_marks / s.max_marks) * 100).toFixed(1) : 0}%</td>
+                  <td class="text-center">${s.grade || 'N/A'}</td>
+                  <td class="text-center ${s.obtained_marks >= s.passing_marks ? 'pass' : 'fail'}">${s.obtained_marks >= s.passing_marks ? 'PASS' : 'FAIL'}</td>
+                </tr>
+              `).join('') || '<tr><td colspan="6" class="text-center">No subjects</td></tr>'}
+            </tbody>
+          </table>
+          
+          <div class="summary">
+            <div class="summary-item">
+              <div class="summary-label">Total Marks</div>
+              <div class="summary-value">${result.total_marks} / ${result.total_max_marks}</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-label">Percentage</div>
+              <div class="summary-value">${result.percentage}%</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-label">Grade</div>
+              <div class="summary-value">${result.grade}</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-label">Result</div>
+              <div class="summary-value ${result.is_pass ? 'pass' : 'fail'}">${result.is_pass ? 'PASSED' : 'FAILED'}</div>
+            </div>
+          </div>
+          
+          <div class="footer">
+            Generated by Cloud School ERP | ${new Date().toLocaleDateString()}
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
   };
 
   const getGradeColor = (grade) => {
@@ -577,7 +727,7 @@ const Results = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <Label className="text-sm">Exam Term</Label>
               <Select value={selectedExamTerm} onValueChange={setSelectedExamTerm}>
@@ -615,6 +765,22 @@ const Results = () => {
                 <SelectContent>
                   {sections.map(sec => (
                     <SelectItem key={sec.id} value={sec.id}>{sec.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-sm">Student (Optional)</Label>
+              <Select value={selectedStudent} onValueChange={setSelectedStudent}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Students" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Students</SelectItem>
+                  {students.map(student => (
+                    <SelectItem key={student.id} value={student.id}>
+                      {student.name} ({student.admission_no})
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -796,6 +962,11 @@ const Results = () => {
             <CardTitle className="text-lg flex items-center gap-2">
               <Award className="h-5 w-5" />
               Results Summary
+              {selectedStudent && (
+                <Badge variant="outline" className="ml-2">
+                  Filtered by student
+                </Badge>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -810,11 +981,13 @@ const Results = () => {
                     <th className="text-center py-3 px-3 font-medium">Percentage</th>
                     <th className="text-center py-3 px-3 font-medium">Grade</th>
                     <th className="text-center py-3 px-3 font-medium">Status</th>
-                    {canEdit && <th className="text-right py-3 px-3 font-medium">Actions</th>}
+                    <th className="text-right py-3 px-3 font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {results.map((result, index) => (
+                  {results
+                    .filter(r => !selectedStudent || r.student_id === selectedStudent)
+                    .map((result, index) => (
                     <tr key={result.id} className="border-b hover:bg-gray-50">
                       <td className="py-2 px-3">
                         <span className="font-bold text-gray-700">#{result.rank || index + 1}</span>
@@ -842,30 +1015,50 @@ const Results = () => {
                           {result.status}
                         </Badge>
                       </td>
-                      {canEdit && (
-                        <td className="py-2 px-3 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            {result.status !== 'published' && canPublish && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handlePublishResult(result.id)}
-                                className="text-blue-600"
-                              >
-                                <Send className="h-4 w-4" />
-                              </Button>
-                            )}
+                      <td className="py-2 px-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleViewResult(result)}
+                            className="text-blue-600"
+                            title="View Details"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handlePrintResult(result)}
+                            className="text-emerald-600"
+                            title="Print Result"
+                          >
+                            <Printer className="h-4 w-4" />
+                          </Button>
+                          {canEdit && result.status !== 'published' && canPublish && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handlePublishResult(result.id)}
+                              className="text-purple-600"
+                              title="Publish"
+                            >
+                              <Send className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {canEdit && (
                             <Button
                               size="sm"
                               variant="ghost"
                               onClick={() => handleDeleteResult(result.id)}
                               className="text-red-500"
+                              title="Delete"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
-                          </div>
-                        </td>
-                      )}
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -885,6 +1078,133 @@ const Results = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* View Result Modal */}
+      <Dialog open={isViewResultDialogOpen} onOpenChange={setIsViewResultDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Award className="h-5 w-5 text-emerald-500" />
+              <span>Student Result Details</span>
+            </DialogTitle>
+          </DialogHeader>
+          {viewingResult && (
+            <div className="space-y-6">
+              {/* Student Info Header */}
+              <div className="p-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <p className="text-xs text-gray-500">Student Name</p>
+                    <p className="font-semibold text-gray-900">{viewingResult.student_name}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Admission No</p>
+                    <p className="font-semibold text-gray-900">{viewingResult.admission_no}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Class</p>
+                    <p className="font-semibold text-gray-900">{viewingResult.class_name} - {viewingResult.section_name}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Rank</p>
+                    <p className="font-semibold text-gray-900">#{viewingResult.rank || 'N/A'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Subject-wise Results Table */}
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <BookOpen className="h-4 w-4 text-emerald-500" />
+                  Subject-wise Performance
+                </h4>
+                <div className="overflow-x-auto border rounded-lg">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-gray-50 border-b">
+                        <th className="text-left py-3 px-4 font-medium">Subject</th>
+                        <th className="text-center py-3 px-4 font-medium">Marks</th>
+                        <th className="text-center py-3 px-4 font-medium">Max</th>
+                        <th className="text-center py-3 px-4 font-medium">%</th>
+                        <th className="text-center py-3 px-4 font-medium">Grade</th>
+                        <th className="text-center py-3 px-4 font-medium">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {viewingResult.subjects?.map((subject, idx) => {
+                        const pct = subject.max_marks > 0 
+                          ? ((subject.obtained_marks / subject.max_marks) * 100).toFixed(1) 
+                          : 0;
+                        const isPassing = subject.obtained_marks >= subject.passing_marks;
+                        return (
+                          <tr key={idx} className="border-b hover:bg-gray-50">
+                            <td className="py-3 px-4 font-medium">{subject.subject_name}</td>
+                            <td className="py-3 px-4 text-center">{subject.obtained_marks}</td>
+                            <td className="py-3 px-4 text-center text-gray-600">{subject.max_marks}</td>
+                            <td className="py-3 px-4 text-center">
+                              <span className={pct >= 60 ? 'text-green-600' : pct >= 33 ? 'text-yellow-600' : 'text-red-600'}>
+                                {pct}%
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              <Badge className={`${getGradeColor(subject.grade)} text-white`}>
+                                {subject.grade || 'N/A'}
+                              </Badge>
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              {isPassing ? (
+                                <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
+                              ) : (
+                                <XCircle className="h-5 w-5 text-red-500 mx-auto" />
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Summary Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-4 bg-blue-50 rounded-lg text-center">
+                  <p className="text-xs text-blue-600 mb-1">Total Marks</p>
+                  <p className="text-xl font-bold text-blue-700">
+                    {viewingResult.total_marks} / {viewingResult.total_max_marks}
+                  </p>
+                </div>
+                <div className="p-4 bg-purple-50 rounded-lg text-center">
+                  <p className="text-xs text-purple-600 mb-1">Percentage</p>
+                  <p className="text-xl font-bold text-purple-700">{viewingResult.percentage}%</p>
+                </div>
+                <div className="p-4 bg-amber-50 rounded-lg text-center">
+                  <p className="text-xs text-amber-600 mb-1">Grade</p>
+                  <p className="text-xl font-bold text-amber-700">{viewingResult.grade}</p>
+                </div>
+                <div className={`p-4 rounded-lg text-center ${viewingResult.is_pass ? 'bg-green-50' : 'bg-red-50'}`}>
+                  <p className={`text-xs mb-1 ${viewingResult.is_pass ? 'text-green-600' : 'text-red-600'}`}>Result</p>
+                  <p className={`text-xl font-bold ${viewingResult.is_pass ? 'text-green-700' : 'text-red-700'}`}>
+                    {viewingResult.is_pass ? 'PASSED' : 'FAILED'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => viewingResult && handlePrintResult(viewingResult)}
+            >
+              <Printer className="h-4 w-4 mr-2" />
+              Print
+            </Button>
+            <Button onClick={() => setIsViewResultDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
