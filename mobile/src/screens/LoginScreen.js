@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,13 +12,30 @@ import {
   Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
 
 const LoginScreen = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [tenantId, setTenantId] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
   const { login, loginLoading, error } = useAuth();
+
+  useEffect(() => {
+    loadRememberMeSetting();
+  }, []);
+
+  const loadRememberMeSetting = async () => {
+    try {
+      const saved = await AsyncStorage.getItem('remember_me');
+      if (saved !== null) {
+        setRememberMe(saved !== 'false');
+      }
+    } catch (e) {
+      console.log('Error loading remember me setting:', e);
+    }
+  };
 
   const handleLogin = async () => {
     if (!username || !password) {
@@ -26,7 +43,7 @@ const LoginScreen = () => {
       return;
     }
 
-    const result = await login(username, password, tenantId);
+    const result = await login(username, password, tenantId, rememberMe);
     if (!result.success) {
       Alert.alert('Login Failed', result.error);
     }
@@ -89,6 +106,17 @@ const LoginScreen = () => {
                 autoCapitalize="none"
               />
             </View>
+
+            <TouchableOpacity
+              style={styles.rememberMeContainer}
+              onPress={() => setRememberMe(!rememberMe)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+                {rememberMe && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+              <Text style={styles.rememberMeText}>Remember Me</Text>
+            </TouchableOpacity>
 
             {error && <Text style={styles.errorText}>{error}</Text>}
 
@@ -210,6 +238,34 @@ const styles = StyleSheet.create({
   },
   forgotPasswordText: {
     color: '#00b894',
+    fontSize: 14,
+  },
+  rememberMeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    marginTop: 8,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#00b894',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  checkboxChecked: {
+    backgroundColor: '#00b894',
+  },
+  checkmark: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  rememberMeText: {
+    color: '#ccc',
     fontSize: 14,
   },
 });

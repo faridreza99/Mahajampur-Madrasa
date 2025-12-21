@@ -16,6 +16,14 @@ export const AuthProvider = ({ children }) => {
 
   const loadStoredUser = async () => {
     try {
+      const rememberMe = await AsyncStorage.getItem('remember_me');
+      if (rememberMe === 'false') {
+        await AsyncStorage.removeItem('token');
+        await AsyncStorage.removeItem('user');
+        setIsInitializing(false);
+        return;
+      }
+
       const storedUser = await AsyncStorage.getItem('user');
       const storedToken = await AsyncStorage.getItem('token');
       if (storedUser && storedToken) {
@@ -28,13 +36,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async (username, password, tenantId) => {
+  const login = async (username, password, tenantId, rememberMe = true) => {
     try {
       setError(null);
       setLoginLoading(true);
       
       const effectiveTenantId = tenantId || 'demo';
       await AsyncStorage.setItem('tenant_id', effectiveTenantId);
+      await AsyncStorage.setItem('remember_me', rememberMe.toString());
       
       const response = await authAPI.login({ username, password, tenant_id: effectiveTenantId });
       const { access_token, user: userData } = response.data;

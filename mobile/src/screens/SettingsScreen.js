@@ -39,6 +39,7 @@ const SettingsScreen = ({ navigation }) => {
   const [darkMode, setDarkMode] = useState(false);
   const [autoSync, setAutoSync] = useState(true);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
 
   useEffect(() => {
     loadSettings();
@@ -50,11 +51,13 @@ const SettingsScreen = ({ navigation }) => {
       const dark = await AsyncStorage.getItem('dark_mode');
       const sync = await AsyncStorage.getItem('auto_sync');
       const biometric = await AsyncStorage.getItem('biometric_enabled');
+      const remember = await AsyncStorage.getItem('remember_me');
 
       if (notifications !== null) setNotificationsEnabled(JSON.parse(notifications));
       if (dark !== null) setDarkMode(JSON.parse(dark));
       if (sync !== null) setAutoSync(JSON.parse(sync));
       if (biometric !== null) setBiometricEnabled(JSON.parse(biometric));
+      if (remember !== null) setRememberMe(remember !== 'false');
     } catch (error) {
       console.log('Error loading settings:', error);
     }
@@ -86,6 +89,18 @@ const SettingsScreen = ({ navigation }) => {
   const handleBiometricToggle = (value) => {
     setBiometricEnabled(value);
     saveSetting('biometric_enabled', value);
+  };
+
+  const handleRememberMeToggle = async (value) => {
+    setRememberMe(value);
+    await AsyncStorage.setItem('remember_me', value.toString());
+    if (!value) {
+      Alert.alert(
+        'Auto-Login Disabled',
+        'You will need to log in each time you open the app. This will take effect after you log out.',
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   const handleClearCache = () => {
@@ -228,6 +243,19 @@ const SettingsScreen = ({ navigation }) => {
         </SettingSection>
 
         <SettingSection title="Security">
+          <SettingItem
+            icon="🔒"
+            title="Remember Me"
+            subtitle="Stay logged in between sessions"
+            rightElement={
+              <Switch
+                value={rememberMe}
+                onValueChange={handleRememberMeToggle}
+                trackColor={{ false: '#ccc', true: '#00b894' }}
+                thumbColor="#fff"
+              />
+            }
+          />
           <SettingItem
             icon="🔐"
             title="Biometric Login"
