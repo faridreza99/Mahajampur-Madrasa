@@ -11,7 +11,11 @@ Preferred communication style: Simple, everyday language.
 ## UI/UX Decisions
 - **Frontend Framework**: React 19 SPA using functional components and hooks.
 - **Styling**: Tailwind CSS and Shadcn/ui for consistent styling and accessible UI components.
+- **Dark Mode**: Comprehensive dark mode support across all routes using Tailwind CSS `dark:` variants with automatic theme detection.
 - **Responsiveness**: Fully responsive design across all devices using Tailwind CSS breakpoints and adaptive layouts.
+
+## Recent Changes (December 2025)
+- **Dark Mode Fixes**: Added comprehensive dark mode support to 15+ components including LoginPage, Calendar, Results, StudentResults, ParentResults, RatingSurveys, QuizTool, TestGenerator, AINotes, AISummary, BiometricDevices, Reports, AcademicCMS, Vehicle, and StaffList.
 
 ## Technical Implementations
 - **Frontend**: React 19, React Router DOM, Axios, Context API.
