@@ -4371,10 +4371,11 @@ const Settings = () => {
                   <Label>School Code</Label>
                   <input
                     type="text"
-                    className="w-full mt-1 px-3 py-2 border rounded-md"
+                    className="w-full mt-1 px-3 py-2 border rounded-md bg-gray-100 dark:bg-gray-700 cursor-not-allowed"
                     placeholder="e.g., SCH001"
                     value={institutionData.school_code}
-                    onChange={(e) => setInstitutionData({...institutionData, school_code: e.target.value})}
+                    disabled
+                    title="School code is assigned by super admin and cannot be changed"
                   />
                 </div>
                 <div>

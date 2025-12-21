@@ -2129,25 +2129,6 @@ async def system_reset(
         logging.error(f"System reset failed: {e}")
         raise HTTPException(status_code=500, detail=f"System reset failed: {str(e)}")
 
-# ==================== INSTITUTION ====================
-
-@api_router.get("/institution")
-async def get_institution(current_user: User = Depends(get_current_user)):
-    """Get current user's institution (tenant) details for branding"""
-    tenant = await db.tenants.find_one({"id": current_user.tenant_id})
-    if not tenant:
-        raise HTTPException(status_code=404, detail="Institution not found")
-    
-    return {
-        "id": tenant.get("id"),
-        "name": tenant.get("name", "School ERP System"),
-        "address": tenant.get("address", ""),
-        "contact_phone": tenant.get("contact_phone", ""),
-        "contact_email": tenant.get("contact_email", ""),
-        "logo_url": tenant.get("logo_url", ""),
-        "domain": tenant.get("domain", "")
-    }
-
 # ==================== TENANT MANAGEMENT ====================
 
 @api_router.get("/tenants", response_model=List[Tenant])
@@ -2283,6 +2264,10 @@ async def create_school(school_data: SchoolCreate, current_user: User = Depends(
 async def get_institution(current_user: User = Depends(get_current_user)):
     """Get institution details for the current tenant/school"""
     
+    # Get tenant info for school_code (domain)
+    tenant = await db.tenants.find_one({"id": current_user.tenant_id})
+    tenant_school_code = tenant.get("domain", "") if tenant else ""
+    
     # Try to find existing institution record
     institution = await db.institutions.find_one({
         "tenant_id": current_user.tenant_id,
@@ -2291,6 +2276,8 @@ async def get_institution(current_user: User = Depends(get_current_user)):
     })
     
     if institution:
+        # Always use tenant domain as school_code (assigned by super admin)
+        institution["school_code"] = tenant_school_code
         return Institution(**institution)
     
     # If no institution exists, create a default one from school data
@@ -2302,16 +2289,16 @@ async def get_institution(current_user: User = Depends(get_current_user)):
     if not school:
         raise HTTPException(status_code=404, detail="School not found")
     
-    # Create default institution record from school
+    # Create default institution record from school, using tenant domain as school_code
     default_institution = Institution(
         tenant_id=current_user.tenant_id,
         school_id=current_user.school_id,
-        school_name=school.get("name", ""),
-        school_code=school.get("code"),
+        school_name=school.get("name", "") or tenant.get("name", "") if tenant else "",
+        school_code=tenant_school_code,
         established_year=school.get("established_year"),
-        address=school.get("address"),
-        phone=school.get("phone"),
-        email=school.get("email"),
+        address=school.get("address") or tenant.get("address", "") if tenant else "",
+        phone=school.get("phone") or tenant.get("contact_phone", "") if tenant else "",
+        email=school.get("email") or tenant.get("contact_email", "") if tenant else "",
         principal_name=school.get("principal_name")
     )
     
