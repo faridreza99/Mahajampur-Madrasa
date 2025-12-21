@@ -271,6 +271,13 @@ class Tenant(BaseModel):
     contact_phone: str
     address: str
     is_active: bool = True
+    allowed_modules: List[str] = Field(default_factory=lambda: [
+        'home', 'students', 'staff', 'class', 'attendance', 'results', 
+        'fees', 'certificates', 'vehicle', 'calendar', 'timetable', 
+        'cms', 'ai-assistant', 'quiz-tool', 'test-generator', 'ai-summary', 
+        'ai-notes', 'reports', 'settings', 'communication', 'accounts',
+        'hss-module', 'biometric', 'online-admission', 'admission-summary'
+    ])
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -280,6 +287,10 @@ class TenantCreate(BaseModel):
     contact_email: EmailStr
     contact_phone: str
     address: str
+    allowed_modules: Optional[List[str]] = None
+
+class TenantModuleUpdate(BaseModel):
+    allowed_modules: List[str]
 
 class School(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -2105,9 +2116,74 @@ async def create_tenant(tenant_data: TenantCreate, current_user: User = Depends(
     if current_user.role != "super_admin":
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    tenant = Tenant(**tenant_data.dict())
+    tenant_dict = tenant_data.dict()
+    if tenant_dict.get("allowed_modules") is None:
+        tenant_dict["allowed_modules"] = [
+            'home', 'students', 'staff', 'class', 'attendance', 'results', 
+            'fees', 'certificates', 'vehicle', 'calendar', 'timetable', 
+            'cms', 'ai-assistant', 'quiz-tool', 'test-generator', 'ai-summary', 
+            'ai-notes', 'reports', 'settings', 'communication', 'accounts',
+            'hss-module', 'biometric', 'online-admission', 'admission-summary'
+        ]
+    tenant = Tenant(**tenant_dict)
     await db.tenants.insert_one(tenant.dict())
     return tenant
+
+@api_router.get("/tenants/{tenant_id}")
+async def get_tenant(tenant_id: str, current_user: User = Depends(get_current_user)):
+    if current_user.role != "super_admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    tenant = await db.tenants.find_one({"id": tenant_id})
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    return tenant
+
+@api_router.put("/tenants/{tenant_id}/modules")
+async def update_tenant_modules(
+    tenant_id: str,
+    module_data: TenantModuleUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update allowed modules for a tenant - super_admin only"""
+    if current_user.role != "super_admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    result = await db.tenants.update_one(
+        {"id": tenant_id},
+        {"$set": {"allowed_modules": module_data.allowed_modules, "updated_at": datetime.utcnow()}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    
+    return {"message": "Tenant modules updated successfully", "allowed_modules": module_data.allowed_modules}
+
+@api_router.get("/tenant/allowed-modules")
+async def get_current_tenant_modules(current_user: User = Depends(get_current_user)):
+    """Get allowed modules for the current user's tenant"""
+    tenant = await db.tenants.find_one({"id": current_user.tenant_id})
+    
+    if not tenant:
+        # Return all modules by default if tenant not found
+        return {"allowed_modules": [
+            'home', 'students', 'staff', 'class', 'attendance', 'results', 
+            'fees', 'certificates', 'vehicle', 'calendar', 'timetable', 
+            'cms', 'ai-assistant', 'quiz-tool', 'test-generator', 'ai-summary', 
+            'ai-notes', 'reports', 'settings', 'communication', 'accounts',
+            'hss-module', 'biometric', 'online-admission', 'admission-summary'
+        ]}
+    
+    # Return allowed modules from tenant, or all modules if not set
+    allowed_modules = tenant.get("allowed_modules", [
+        'home', 'students', 'staff', 'class', 'attendance', 'results', 
+        'fees', 'certificates', 'vehicle', 'calendar', 'timetable', 
+        'cms', 'ai-assistant', 'quiz-tool', 'test-generator', 'ai-summary', 
+        'ai-notes', 'reports', 'settings', 'communication', 'accounts',
+        'hss-module', 'biometric', 'online-admission', 'admission-summary'
+    ])
+    
+    return {"allowed_modules": allowed_modules}
 
 # ==================== SCHOOL MANAGEMENT ====================
 
