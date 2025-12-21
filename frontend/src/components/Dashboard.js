@@ -263,24 +263,24 @@ const Dashboard = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
             GiNi School Dashboard
           </h1>
-          <p className="text-xs sm:text-sm text-gray-600 mt-1">
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
             Academic Year 2024-25 | Admin Profile
           </p>
         </div>
       </div>
 
       {/* Filters Row */}
-      <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 sm:gap-4 bg-white p-3 sm:p-4 rounded-lg shadow-sm border">
+      <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 sm:gap-4 bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow-sm border dark:border-gray-700">
         {/* Time period */}
         <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-gray-700">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
             Time Period:
           </label>
           <select
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             value={timePeriod}
             onChange={(e) => setTimePeriod(Number(e.target.value))}
           >
@@ -291,9 +291,9 @@ const Dashboard = () => {
 
         {/* Class filter – from API */}
         <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-gray-700">Class:</label>
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Class:</label>
           <select
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             value={selectedClass}
             onChange={(e) => setSelectedClass(e.target.value)}
           >
@@ -313,9 +313,9 @@ const Dashboard = () => {
 
         {/* Subject filter – from API */}
         <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-gray-700">Subject:</label>
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Subject:</label>
           <select
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             value={selectedSubject}
             onChange={(e) => setSelectedSubject(e.target.value)}
           >
@@ -336,73 +336,73 @@ const Dashboard = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-        <Card className="shadow-md hover:shadow-lg transition-shadow">
+        <Card className="shadow-md hover:shadow-lg transition-shadow dark:bg-gray-800 dark:border-gray-700">
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
                   Total Students Using AI
                 </p>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mt-1 sm:mt-2">
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mt-1 sm:mt-2">
                   {stats.totalStudents}
                 </p>
               </div>
-              <div className="p-2 sm:p-3 bg-blue-100 rounded-full flex-shrink-0 ml-2">
-                <Users className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 text-blue-600" />
+              <div className="p-2 sm:p-3 bg-blue-100 dark:bg-blue-900/50 rounded-full flex-shrink-0 ml-2">
+                <Users className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 text-blue-600 dark:text-blue-400" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="shadow-md hover:shadow-lg transition-shadow">
+        <Card className="shadow-md hover:shadow-lg transition-shadow dark:bg-gray-800 dark:border-gray-700">
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
                   Total AI Interactions
                 </p>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mt-1 sm:mt-2">
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mt-1 sm:mt-2">
                   {stats.totalInteractions.toLocaleString()}
                 </p>
               </div>
-              <div className="p-2 sm:p-3 bg-purple-100 rounded-full flex-shrink-0 ml-2">
-                <Activity className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 text-purple-600" />
+              <div className="p-2 sm:p-3 bg-purple-100 dark:bg-purple-900/50 rounded-full flex-shrink-0 ml-2">
+                <Activity className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 text-purple-600 dark:text-purple-400" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="shadow-md hover:shadow-lg transition-shadow">
+        <Card className="shadow-md hover:shadow-lg transition-shadow dark:bg-gray-800 dark:border-gray-700">
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
                   Active Classes
                 </p>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mt-1 sm:mt-2">
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mt-1 sm:mt-2">
                   {stats.activeClasses}
                 </p>
               </div>
-              <div className="p-2 sm:p-3 bg-emerald-100 rounded-full flex-shrink-0 ml-2">
-                <GraduationCap className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 text-emerald-600" />
+              <div className="p-2 sm:p-3 bg-emerald-100 dark:bg-emerald-900/50 rounded-full flex-shrink-0 ml-2">
+                <GraduationCap className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 text-emerald-600 dark:text-emerald-400" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="shadow-md hover:shadow-lg transition-shadow">
+        <Card className="shadow-md hover:shadow-lg transition-shadow dark:bg-gray-800 dark:border-gray-700">
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
                   Weekly Growth
                 </p>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-emerald-600 mt-1 sm:mt-2">
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-emerald-600 dark:text-emerald-400 mt-1 sm:mt-2">
                   +{stats.weeklyGrowth}%
                 </p>
               </div>
-              <div className="p-2 sm:p-3 bg-emerald-100 rounded-full flex-shrink-0 ml-2">
-                <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 text-emerald-600" />
+              <div className="p-2 sm:p-3 bg-emerald-100 dark:bg-emerald-900/50 rounded-full flex-shrink-0 ml-2">
+                <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 text-emerald-600 dark:text-emerald-400" />
               </div>
             </div>
           </CardContent>
@@ -418,7 +418,7 @@ const Dashboard = () => {
               key={module.id}
               variant={activeModule === module.id ? "default" : "outline"}
               className={`${
-                activeModule === module.id ? module.color : "bg-white"
+                activeModule === module.id ? module.color : "bg-white dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600"
               } font-medium`}
               onClick={() => setActiveModule(module.id)}
             >
@@ -433,9 +433,9 @@ const Dashboard = () => {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {[...Array(3)].map((_, i) => (
-            <Card key={i} className="animate-pulse">
+            <Card key={i} className="animate-pulse dark:bg-gray-800 dark:border-gray-700">
               <CardContent className="p-4 sm:p-6">
-                <div className="h-48 sm:h-56 lg:h-64 bg-gray-200 rounded"></div>
+                <div className="h-48 sm:h-56 lg:h-64 bg-gray-200 dark:bg-gray-700 rounded"></div>
               </CardContent>
             </Card>
           ))}
@@ -443,9 +443,9 @@ const Dashboard = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Line Chart - Usage Trend */}
-          <Card className="shadow-md">
+          <Card className="shadow-md dark:bg-gray-800 dark:border-gray-700">
             <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-4">
-              <CardTitle className="text-base sm:text-lg">Usage Trend</CardTitle>
+              <CardTitle className="text-base sm:text-lg dark:text-white">Usage Trend</CardTitle>
             </CardHeader>
             <CardContent className="p-2 sm:p-4">
               <ResponsiveContainer width="100%" height={200} className="sm:h-[220px] lg:h-[250px]">
@@ -475,9 +475,9 @@ const Dashboard = () => {
           </Card>
 
           {/* Class-wise Chart */}
-          <Card className="shadow-md">
+          <Card className="shadow-md dark:bg-gray-800 dark:border-gray-700">
             <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-4">
-              <CardTitle className="text-base sm:text-lg">Class-wise Usage</CardTitle>
+              <CardTitle className="text-base sm:text-lg dark:text-white">Class-wise Usage</CardTitle>
             </CardHeader>
             <CardContent className="p-2 sm:p-4">
               <ResponsiveContainer width="100%" height={200} className="sm:h-[220px] lg:h-[250px]">
@@ -493,9 +493,9 @@ const Dashboard = () => {
           </Card>
 
           {/* Subject-wise Chart */}
-          <Card className="shadow-md md:col-span-2 lg:col-span-1">
+          <Card className="shadow-md md:col-span-2 lg:col-span-1 dark:bg-gray-800 dark:border-gray-700">
             <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-4">
-              <CardTitle className="text-base sm:text-lg">Subject-wise Usage</CardTitle>
+              <CardTitle className="text-base sm:text-lg dark:text-white">Subject-wise Usage</CardTitle>
             </CardHeader>
             <CardContent className="p-2 sm:p-4">
               <ResponsiveContainer width="100%" height={200} className="sm:h-[220px] lg:h-[250px]">
@@ -513,39 +513,39 @@ const Dashboard = () => {
       )}
 
       {/* Data Table */}
-      <Card className="shadow-md">
+      <Card className="shadow-md dark:bg-gray-800 dark:border-gray-700">
         <CardHeader className="p-4 sm:p-6">
-          <CardTitle className="text-base sm:text-lg">Detailed Analytics</CardTitle>
+          <CardTitle className="text-base sm:text-lg dark:text-white">Detailed Analytics</CardTitle>
         </CardHeader>
         <CardContent className="p-0 sm:p-4">
           <div className="overflow-x-auto">
             <table className="w-full text-xs sm:text-sm min-w-[400px]">
-              <thead className="bg-gray-50 border-b">
+              <thead className="bg-gray-50 dark:bg-gray-700 border-b dark:border-gray-600">
                 <tr>
-                  <th className="text-left p-2 sm:p-3 font-semibold text-gray-700">
+                  <th className="text-left p-2 sm:p-3 font-semibold text-gray-700 dark:text-gray-300">
                     Class
                   </th>
-                  <th className="text-left p-2 sm:p-3 font-semibold text-gray-700">
+                  <th className="text-left p-2 sm:p-3 font-semibold text-gray-700 dark:text-gray-300">
                     Subject
                   </th>
-                  <th className="text-left p-2 sm:p-3 font-semibold text-gray-700 hidden sm:table-cell">
+                  <th className="text-left p-2 sm:p-3 font-semibold text-gray-700 dark:text-gray-300 hidden sm:table-cell">
                     Total Interactions
                   </th>
-                  <th className="text-left p-2 sm:p-3 font-semibold text-gray-700 sm:hidden">
+                  <th className="text-left p-2 sm:p-3 font-semibold text-gray-700 dark:text-gray-300 sm:hidden">
                     Total
                   </th>
-                  <th className="text-left p-2 sm:p-3 font-semibold text-gray-700 hidden sm:table-cell">
+                  <th className="text-left p-2 sm:p-3 font-semibold text-gray-700 dark:text-gray-300 hidden sm:table-cell">
                     Active Students
                   </th>
-                  <th className="text-left p-2 sm:p-3 font-semibold text-gray-700 sm:hidden">
+                  <th className="text-left p-2 sm:p-3 font-semibold text-gray-700 dark:text-gray-300 sm:hidden">
                     Active
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="dark:text-gray-300">
                 {tableData.length > 0 ? (
                   tableData.map((row, index) => (
-                    <tr key={index} className="border-b hover:bg-gray-50">
+                    <tr key={index} className="border-b dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">
                       <td className="p-2 sm:p-3">Class {row.class}</td>
                       <td className="p-2 sm:p-3 max-w-[100px] sm:max-w-none truncate">{row.subject}</td>
                       <td className="p-2 sm:p-3 font-medium">
@@ -556,7 +556,7 @@ const Dashboard = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={4} className="p-4 sm:p-6 text-center text-gray-500">
+                    <td colSpan={4} className="p-4 sm:p-6 text-center text-gray-500 dark:text-gray-400">
                       No data available for the selected filters
                     </td>
                   </tr>
@@ -571,7 +571,7 @@ const Dashboard = () => {
       <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-4">
         <Button
           variant="outline"
-          className="gap-2 text-xs sm:text-sm"
+          className="gap-2 text-xs sm:text-sm dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
           onClick={() => handleExport("PDF")}
         >
           <Download className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -579,7 +579,7 @@ const Dashboard = () => {
         </Button>
         <Button
           variant="outline"
-          className="gap-2 text-xs sm:text-sm"
+          className="gap-2 text-xs sm:text-sm dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
           onClick={() => handleExport("Excel")}
         >
           <Download className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -587,7 +587,7 @@ const Dashboard = () => {
         </Button>
         <Button
           variant="outline"
-          className="gap-2 text-xs sm:text-sm"
+          className="gap-2 text-xs sm:text-sm dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
           onClick={() => handleExport("Share")}
         >
           <Share2 className="h-3 w-3 sm:h-4 sm:w-4" />
