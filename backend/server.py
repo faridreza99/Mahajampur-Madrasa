@@ -1728,14 +1728,20 @@ async def login_user(login_data: UserLogin):
         # Try finding by domain
         tenant = await db.tenants.find_one({"domain": input_tenant_id})
     
-    # If still not found, try finding school by school_code and get its tenant
+    # If still not found, try finding school by code and get its tenant
     if not tenant:
+        # Try both 'code' and 'school_code' fields for compatibility
         school = await db.schools.find_one({
-            "school_code": {"$regex": f"^{input_tenant_id}$", "$options": "i"},
+            "$or": [
+                {"code": {"$regex": f"^{input_tenant_id}$", "$options": "i"}},
+                {"school_code": {"$regex": f"^{input_tenant_id}$", "$options": "i"}}
+            ],
             "is_active": True
         })
+        logging.info(f"DEBUG LOGIN: School lookup by code '{input_tenant_id}' found: {school.get('code') or school.get('school_code') if school else 'None'}")
         if school:
             tenant = await db.tenants.find_one({"id": school.get("tenant_id")})
+            logging.info(f"DEBUG LOGIN: Tenant from school: {tenant.get('id') if tenant else 'None'}")
     
     # Determine actual tenant_id
     if tenant:
