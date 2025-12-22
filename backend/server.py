@@ -1722,11 +1722,28 @@ async def login_user(login_data: UserLogin):
     # Use tenant from login data or default (do not use global context)
     input_tenant_id = login_data.tenant_id or DEFAULT_TENANT_ID
     
-    # First try to find tenant by id, then by domain
+    logging.info(f"DEBUG LOGIN: Starting login for username='{login_data.username}', input_tenant='{input_tenant_id}'")
+    
+    # First try to find tenant by id (exact or case-insensitive)
     tenant = await db.tenants.find_one({"id": input_tenant_id})
+    if tenant:
+        logging.info(f"DEBUG LOGIN: Found tenant by exact id: {tenant.get('id')}")
+    else:
+        tenant = await db.tenants.find_one({"id": input_tenant_id.lower()})
+        if tenant:
+            logging.info(f"DEBUG LOGIN: Found tenant by lowercase id: {tenant.get('id')}")
+        else:
+            logging.info(f"DEBUG LOGIN: No tenant found by id '{input_tenant_id}'")
+    
     if not tenant:
-        # Try finding by domain
-        tenant = await db.tenants.find_one({"domain": input_tenant_id})
+        # Try finding by domain (case-insensitive)
+        tenant = await db.tenants.find_one({
+            "domain": {"$regex": f"^{input_tenant_id}$", "$options": "i"}
+        })
+        if tenant:
+            logging.info(f"DEBUG LOGIN: Found tenant by domain: id={tenant.get('id')}, domain={tenant.get('domain')}")
+        else:
+            logging.info(f"DEBUG LOGIN: No tenant found by domain '{input_tenant_id}'")
     
     # If still not found, try finding school by code and get its tenant
     if not tenant:
@@ -1746,8 +1763,10 @@ async def login_user(login_data: UserLogin):
     # Determine actual tenant_id
     if tenant:
         tenant_id = tenant["id"]
+        logging.info(f"DEBUG LOGIN: Resolved tenant_id='{tenant_id}'")
     else:
         tenant_id = input_tenant_id
+        logging.info(f"DEBUG LOGIN: No tenant found, using input as tenant_id='{tenant_id}'")
     
     logging.info(f"DEBUG LOGIN: Looking for username='{login_data.username}', tenant_id='{tenant_id}' (input was: {input_tenant_id})")
     
