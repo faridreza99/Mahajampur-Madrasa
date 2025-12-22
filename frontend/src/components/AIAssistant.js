@@ -152,7 +152,7 @@ export default function AIAssistant() {
   /* -------------------- UI -------------------- */
 
   return (
-    <div className="h-[calc(100vh-60px)] sm:h-[calc(100vh-80px)] flex flex-col gap-2 sm:gap-3 p-1 sm:p-3 md:p-4 overflow-hidden">
+    <div className="h-[calc(100vh-140px)] sm:h-[calc(100vh-160px)] -mb-16 sm:-mb-24 flex flex-col gap-2 sm:gap-3 overflow-hidden">
       {/* Header - Compact on mobile */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         <div className="p-1.5 sm:p-2 bg-purple-100 rounded-lg">
