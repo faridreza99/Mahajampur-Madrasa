@@ -22858,10 +22858,19 @@ async def get_my_results(
         if current_user.role != "student":
             raise HTTPException(status_code=403, detail="This endpoint is for students only")
         
+        # Find the student record linked to this user account
+        student = await db.students.find_one({
+            "user_id": current_user.id,
+            "tenant_id": current_user.tenant_id
+        })
+        
+        if not student:
+            return []
+        
         query = {
             "tenant_id": current_user.tenant_id,
             "school_id": current_user.school_id,
-            "student_id": current_user.id,
+            "student_id": student["id"],  # Use student record ID, not user ID
             "status": "published"
         }
         
@@ -24054,7 +24063,7 @@ async def get_student_results_self(current_user: User = Depends(get_current_user
         results = await db.student_results.find({
             "student_id": student["id"],
             "tenant_id": current_user.tenant_id,
-            "is_published": True
+            "status": "published"
         }).sort("created_at", -1).to_list(50)
         
         # Enrich with exam term names
