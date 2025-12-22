@@ -359,6 +359,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   // Module key mapping: sidebar keys to backend module names (match exact backend format)
   const moduleKeyMapping = {
     home: ["home", "dashboard"],
+    student_portal: ["student_portal"], // Always allowed for students via role check
     academic: ["attendance", "results", "timetable", "calendar", "class", "classes"],
     students: ["students", "admission-summary", "admission_summary"],
     staff: ["staff"],
@@ -370,6 +371,9 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     communication: ["communication", "notifications"],
     settings: ["settings", "vehicle", "vehicle_transport", "biometric", "biometric_devices", "online-admission", "online_admission", "hss-module", "hss_module", "tenant_management"],
   };
+  
+  // Keys that bypass module restrictions (shown based on role only)
+  const bypassModuleRestrictions = ["student_portal", "home"];
 
   // Sub-item module mapping: maps each sub-item path to its required module(s)
   const subItemModuleMapping = {
@@ -406,6 +410,11 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
     // Super admin always sees all modules they have role access to
     if (user?.role === "super_admin") {
+      return hasRole;
+    }
+
+    // Items that bypass module restrictions (like student_portal) - show based on role only
+    if (bypassModuleRestrictions.includes(item.key)) {
       return hasRole;
     }
 
