@@ -3648,12 +3648,40 @@ async def create_staff(staff_data: StaffCreate, current_user: User = Depends(get
         }).to_list(1)
         
         if not schools:
-            # Create or suggest creating a school
-            raise HTTPException(
-                status_code=422, 
-                detail="No school found for tenant. Please configure school in Settings → Institution or contact administrator."
-            )
-        school_id = schools[0]["id"]
+            # Auto-create a default school for this tenant
+            tenant = await db.tenants.find_one({"id": current_user.tenant_id})
+            if not tenant:
+                # Also create tenant if missing
+                tenant = {
+                    "id": current_user.tenant_id,
+                    "name": "Default School",
+                    "domain": f"{current_user.tenant_id}.school.local",
+                    "is_active": True,
+                    "created_at": datetime.utcnow(),
+                    "updated_at": datetime.utcnow()
+                }
+                await db.tenants.insert_one(tenant)
+            
+            # Create default school
+            new_school_id = f"school-{current_user.tenant_id[:8]}"
+            new_school = {
+                "id": new_school_id,
+                "tenant_id": current_user.tenant_id,
+                "name": tenant.get("name", "Default School"),
+                "code": f"SCH{current_user.tenant_id[:6].upper()}",
+                "school_code": f"SCH{current_user.tenant_id[:6].upper()}",
+                "address": tenant.get("address", ""),
+                "phone": tenant.get("contact_phone", ""),
+                "email": tenant.get("contact_email", ""),
+                "is_active": True,
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }
+            await db.schools.insert_one(new_school)
+            logging.info(f"Auto-created default school for tenant {current_user.tenant_id}")
+            school_id = new_school_id
+        else:
+            school_id = schools[0]["id"]
     
     # Verify school exists and is active
     school = await db.schools.find_one({
@@ -3663,10 +3691,22 @@ async def create_staff(staff_data: StaffCreate, current_user: User = Depends(get
     })
     
     if not school:
-        raise HTTPException(
-            status_code=422,
-            detail="School not found or inactive. Please configure school in Settings → Institution."
-        )
+        # Final fallback - create school now
+        new_school_id = f"school-{current_user.tenant_id[:8]}"
+        new_school = {
+            "id": new_school_id,
+            "tenant_id": current_user.tenant_id,
+            "name": "Default School",
+            "code": f"SCH{current_user.tenant_id[:6].upper()}",
+            "school_code": f"SCH{current_user.tenant_id[:6].upper()}",
+            "is_active": True,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+        await db.schools.insert_one(new_school)
+        school = new_school
+        school_id = new_school_id
+        logging.info(f"Auto-created fallback school for tenant {current_user.tenant_id}")
     
     # Check for duplicate email
     existing_staff = await db.staff.find_one({
