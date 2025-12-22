@@ -131,33 +131,48 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           path: "/student-results",
           roles: ["student"],
         },
+        {
+          title: "My Attendance",
+          path: "/student/attendance",
+          roles: ["student"],
+        },
+        {
+          title: "TimeTable",
+          path: "/settings/timetable",
+          roles: ["student"],
+        },
+        {
+          title: "Calendar",
+          path: "/calendar",
+          roles: ["student"],
+        },
       ],
     },
     {
       key: "academic",
       title: "Academic",
       icon: GraduationCap,
-      roles: ["super_admin", "admin", "teacher", "student", "parent", "principal"],
+      roles: ["super_admin", "admin", "teacher", "parent", "principal"],
       subItems: [
         {
           title: "Attendance",
           path: "/attendance",
-          roles: ["super_admin", "admin", "teacher", "student"],
+          roles: ["super_admin", "admin", "teacher"],
         },
         {
           title: "Results",
           path: "/results",
-          roles: ["super_admin", "admin", "principal", "teacher", "student", "parent"],
+          roles: ["super_admin", "admin", "principal", "teacher", "parent"],
         },
         {
           title: "TimeTable",
           path: "/settings/timetable",
-          roles: ["super_admin", "admin", "teacher", "student"],
+          roles: ["super_admin", "admin", "teacher"],
         },
         {
           title: "Calendar",
           path: "/calendar",
-          roles: ["super_admin", "admin", "teacher", "student"],
+          roles: ["super_admin", "admin", "teacher"],
         },
         {
           title: "Classes",

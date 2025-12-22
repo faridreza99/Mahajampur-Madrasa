@@ -24084,6 +24084,70 @@ async def get_student_results_self(current_user: User = Depends(get_current_user
         logger.error(f"Error fetching student results: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch results")
 
+@api_router.get("/student/attendance")
+async def get_student_attendance_self(
+    month: Optional[int] = None,
+    year: Optional[int] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get attendance records for the current student"""
+    try:
+        if current_user.role != "student":
+            raise HTTPException(status_code=403, detail="This endpoint is for students only")
+        
+        # Find student linked to this user account
+        student = await db.students.find_one({
+            "user_id": current_user.id,
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        })
+        
+        if not student:
+            return {"records": [], "summary": None}
+        
+        # Default to current month/year
+        if not month:
+            month = datetime.utcnow().month
+        if not year:
+            year = datetime.utcnow().year
+        
+        # Calculate date range for the month
+        start_date = datetime(year, month, 1)
+        if month == 12:
+            end_date = datetime(year + 1, 1, 1)
+        else:
+            end_date = datetime(year, month + 1, 1)
+        
+        # Query attendance records
+        records = await db.student_attendance.find({
+            "student_id": student["id"],
+            "tenant_id": current_user.tenant_id,
+            "date": {"$gte": start_date.isoformat()[:10], "$lt": end_date.isoformat()[:10]}
+        }).sort("date", -1).to_list(100)
+        
+        # Calculate summary
+        total_days = len(records)
+        present_days = sum(1 for r in records if r.get("status") == "present")
+        absent_days = sum(1 for r in records if r.get("status") == "absent")
+        late_days = sum(1 for r in records if r.get("status") == "late")
+        percentage = round((present_days / total_days * 100), 1) if total_days > 0 else 0
+        
+        return {
+            "records": sanitize_mongo_data(records),
+            "summary": {
+                "total_days": total_days,
+                "present_days": present_days,
+                "absent_days": absent_days,
+                "late_days": late_days,
+                "percentage": percentage
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching student attendance: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch attendance")
+
 @api_router.get("/student/admit-card/{exam_term_id}")
 async def get_student_admit_card(
     exam_term_id: str,

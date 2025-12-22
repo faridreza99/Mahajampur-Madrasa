@@ -49,6 +49,7 @@ import StudentDashboard from "./components/StudentDashboard";
 import StudentProfile from "./components/StudentProfile";
 import StudentFees from "./components/StudentFees";
 import StudentAdmitCard from "./components/StudentAdmitCard";
+import StudentAttendanceView from "./components/StudentAttendanceView";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import { Toaster } from "./components/ui/sonner";
@@ -537,6 +538,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <StudentAdmitCard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/student/attendance"
+                  element={
+                    <ProtectedRoute>
+                      <StudentAttendanceView />
                     </ProtectedRoute>
                   }
                 />
