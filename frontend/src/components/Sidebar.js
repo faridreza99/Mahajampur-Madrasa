@@ -322,18 +322,18 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     },
   ];
 
-  // Module key mapping: sidebar keys to backend module names
+  // Module key mapping: sidebar keys to backend module names (match exact backend format)
   const moduleKeyMapping = {
-    home: ["dashboard"],
-    academic: ["attendance", "results", "timetable", "calendar", "classes"],
-    students: ["students", "admission_summary"],
+    home: ["home", "dashboard"],
+    academic: ["attendance", "results", "timetable", "calendar", "class", "classes"],
+    students: ["students", "admission-summary", "admission_summary"],
     staff: ["staff"],
     finance: ["fees", "accounts"],
-    aitools: ["academic_cms", "ai_assistant", "quiz_tool", "test_generator", "ai_summary", "ai_notes"],
+    aitools: ["cms", "academic_cms", "ai-assistant", "ai_assistant", "quiz-tool", "quiz_tool", "test-generator", "test_generator", "ai-summary", "ai_summary", "ai-notes", "ai_notes"],
     reports: ["reports"],
     certificates: ["certificates"],
     communication: ["communication", "notifications"],
-    settings: ["settings", "vehicle_transport", "biometric_devices", "online_admission", "hss_module", "tenant_management"],
+    settings: ["settings", "vehicle", "vehicle_transport", "biometric", "biometric_devices", "online-admission", "online_admission", "hss-module", "hss_module", "tenant_management"],
   };
 
   // Don't show any menu items until modules are loaded (except for super_admin who sees all)
