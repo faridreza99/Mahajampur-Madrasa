@@ -40,7 +40,11 @@ import {
   Trash2,
   Search,
   Download,
-  GraduationCap
+  GraduationCap,
+  FolderOpen,
+  Folder,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Swal from 'sweetalert2';
@@ -81,9 +85,12 @@ const ClassManagement = () => {
     subject_name: '',
     subject_code: '',
     class_standard: 'select_class',
+    section_id: 'all_sections',
     description: '',
     is_elective: false
   });
+
+  const [expandedClasses, setExpandedClasses] = useState({});
 
   // Get unique standards from classes API (dynamic)
   const getUniqueStandards = () => {
@@ -343,6 +350,7 @@ const ClassManagement = () => {
       subject_name: '',
       subject_code: '',
       class_standard: 'select_class',
+      section_id: 'all_sections',
       description: '',
       is_elective: false
     });
@@ -366,7 +374,8 @@ const ClassManagement = () => {
       };
 
       const submitData = {
-        ...subjectFormData
+        ...subjectFormData,
+        section_id: subjectFormData.section_id === 'all_sections' ? null : subjectFormData.section_id
       };
 
       console.log('📤 Sending subject data to API:', submitData);
@@ -396,11 +405,31 @@ const ClassManagement = () => {
       subject_name: subject.subject_name,
       subject_code: subject.subject_code,
       class_standard: subject.class_standard,
+      section_id: subject.section_id || 'all_sections',
       description: subject.description || '',
       is_elective: subject.is_elective || false
     });
     setEditingSubject(subject);
     setIsSubjectModalOpen(true);
+  };
+
+  const toggleClassFolder = (classStandard) => {
+    setExpandedClasses(prev => ({
+      ...prev,
+      [classStandard]: !prev[classStandard]
+    }));
+  };
+
+  const getSectionsForSelectedClass = () => {
+    if (subjectFormData.class_standard === 'select_class') return [];
+    const selectedClass = classes.find(c => c.standard === subjectFormData.class_standard);
+    if (!selectedClass) return [];
+    return sections.filter(s => s.class_id === selectedClass.id);
+  };
+
+  const getSectionName = (sectionId) => {
+    const section = sections.find(s => s.id === sectionId);
+    return section ? section.name : 'All Sections';
   };
 
   const handleDeleteSubject = async (subject) => {
@@ -1086,10 +1115,10 @@ const ClassManagement = () => {
                 </DialogHeader>
                 <form onSubmit={handleSubjectSubmit} className="space-y-4">
                   <div>
-                    <Label htmlFor="subject_class">Class / Standard *</Label>
+                    <Label htmlFor="subject_class">Class *</Label>
                     <Select 
                       value={subjectFormData.class_standard} 
-                      onValueChange={(value) => setSubjectFormData({...subjectFormData, class_standard: value})}
+                      onValueChange={(value) => setSubjectFormData({...subjectFormData, class_standard: value, section_id: 'all_sections'})}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select class" />
@@ -1107,6 +1136,27 @@ const ClassManagement = () => {
                         )}
                       </SelectContent>
                     </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="subject_section">Section (Optional)</Label>
+                    <Select 
+                      value={subjectFormData.section_id} 
+                      onValueChange={(value) => setSubjectFormData({...subjectFormData, section_id: value})}
+                      disabled={subjectFormData.class_standard === 'select_class'}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="All Sections" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all_sections">All Sections</SelectItem>
+                        {getSectionsForSelectedClass().map((sec) => (
+                          <SelectItem key={sec.id} value={sec.id}>
+                            Section {sec.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500 mt-1">Leave as "All Sections" to apply to entire class</p>
                   </div>
                   <div>
                     <Label htmlFor="subject_name">Subject Name *</Label>
@@ -1168,82 +1218,120 @@ const ClassManagement = () => {
             </Dialog>
           </div>
 
-          <Card>
-            <CardContent>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-12">#</TableHead>
-                      <TableHead>Subject Name</TableHead>
-                      <TableHead>Subject Code</TableHead>
-                      <TableHead>Class</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {getFilteredSubjects().length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                          {selectedClassFilter === 'all' 
-                            ? 'No subjects added yet' 
-                            : `No subjects found for ${selectedClassFilter}`}
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      getFilteredSubjects().map((subject, index) => (
-                        <TableRow key={subject.id}>
-                          <TableCell className="font-medium">{index + 1}</TableCell>
-                          <TableCell>
-                            <div className="font-medium">{subject.subject_name}</div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{subject.subject_code}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">{subject.class_standard}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            {subject.is_elective ? (
-                              <Badge className="bg-purple-100 text-purple-700">Elective</Badge>
-                            ) : (
-                              <Badge className="bg-emerald-100 text-emerald-700">Core</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-sm text-gray-600 truncate max-w-[200px] block">
-                              {subject.description || '-'}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center space-x-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleEditSubject(subject)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="text-red-600 hover:text-red-700"
-                                onClick={() => handleDeleteSubject(subject)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
+          {classStandards.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-gray-500">
+                No classes created yet. Please create classes first to add subjects.
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {(selectedClassFilter === 'all' ? classStandards : [selectedClassFilter]).map((classStd) => {
+                const classSubjects = subjects.filter(s => s.class_standard === classStd);
+                const isExpanded = expandedClasses[classStd] !== false;
+                
+                return (
+                  <Card key={classStd} className="overflow-hidden">
+                    <button
+                      onClick={() => toggleClassFolder(classStd)}
+                      className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      <div className="flex items-center space-x-3">
+                        {isExpanded ? (
+                          <FolderOpen className="h-5 w-5 text-amber-500" />
+                        ) : (
+                          <Folder className="h-5 w-5 text-amber-500" />
+                        )}
+                        <span className="font-semibold text-lg">{classStd}</span>
+                        <Badge variant="secondary" className="ml-2">
+                          {classSubjects.length} subject{classSubjects.length !== 1 ? 's' : ''}
+                        </Badge>
+                      </div>
+                      {isExpanded ? (
+                        <ChevronDown className="h-5 w-5 text-gray-400" />
+                      ) : (
+                        <ChevronRight className="h-5 w-5 text-gray-400" />
+                      )}
+                    </button>
+                    
+                    {isExpanded && (
+                      <CardContent className="pt-0 pb-4">
+                        {classSubjects.length === 0 ? (
+                          <div className="text-center py-4 text-gray-500 text-sm">
+                            No subjects added for this class
+                          </div>
+                        ) : (
+                          <div className="rounded-md border">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead className="w-12">#</TableHead>
+                                  <TableHead>Subject Name</TableHead>
+                                  <TableHead>Code</TableHead>
+                                  <TableHead>Section</TableHead>
+                                  <TableHead>Type</TableHead>
+                                  <TableHead>Actions</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {classSubjects.map((subject, index) => (
+                                  <TableRow key={subject.id}>
+                                    <TableCell className="font-medium">{index + 1}</TableCell>
+                                    <TableCell>
+                                      <div className="font-medium">{subject.subject_name}</div>
+                                      {subject.description && (
+                                        <div className="text-xs text-gray-500 truncate max-w-[200px]">
+                                          {subject.description}
+                                        </div>
+                                      )}
+                                    </TableCell>
+                                    <TableCell>
+                                      <Badge variant="outline">{subject.subject_code}</Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                      <Badge variant="secondary" className="text-xs">
+                                        {subject.section_id ? `Section ${getSectionName(subject.section_id)}` : 'All'}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                      {subject.is_elective ? (
+                                        <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">Elective</Badge>
+                                      ) : (
+                                        <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">Core</Badge>
+                                      )}
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className="flex items-center space-x-1">
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => handleEditSubject(subject)}
+                                        >
+                                          <Edit className="h-4 w-4" />
+                                        </Button>
+                                        <Button 
+                                          variant="ghost" 
+                                          size="sm" 
+                                          className="text-red-600 hover:text-red-700"
+                                          onClick={() => handleDeleteSubject(subject)}
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        )}
+                      </CardContent>
                     )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>
