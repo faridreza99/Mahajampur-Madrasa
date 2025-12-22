@@ -67,7 +67,7 @@ const StudentFees = () => {
     );
   }
 
-  const { ledger, payments, student_name, admission_no } = feeData;
+  const { ledger, payments, fee_structure, student_name, admission_no } = feeData;
   const hasDues = ledger.balance > 0;
 
   return (
@@ -155,6 +155,51 @@ const StudentFees = () => {
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 text-center">
               {Math.round((ledger.paid_amount / ledger.total_fees) * 100)}% paid
             </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {fee_structure && fee_structure.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-blue-600" />
+              Fee Structure
+            </CardTitle>
+            <CardDescription>Applicable fees for your class</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>#</TableHead>
+                    <TableHead>Fee Type</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Frequency</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {fee_structure.map((fee, index) => (
+                    <TableRow key={fee.id || index}>
+                      <TableCell className="font-medium">{index + 1}</TableCell>
+                      <TableCell className="font-semibold">{fee.fee_type || fee.name || 'Fee'}</TableCell>
+                      <TableCell className="text-gray-600 dark:text-gray-400">{fee.description || '-'}</TableCell>
+                      <TableCell className="font-semibold">
+                        <span className="flex items-center">
+                          <IndianRupee className="h-3 w-3" />
+                          {fee.amount?.toLocaleString() || 0}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{fee.frequency || 'Annual'}</Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       )}

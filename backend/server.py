@@ -23914,23 +23914,40 @@ async def get_student_fees(current_user: User = Depends(get_current_user)):
             "is_active": True
         })
         
-        if not fee_ledger:
-            fee_ledger = {
-                "total_fees": 0,
-                "paid_amount": 0,
-                "balance": 0,
-                "payments": []
-            }
-        
         # Get fee payments
         payments = await db.fee_payments.find({
             "student_id": student["id"],
             "tenant_id": current_user.tenant_id
         }).sort("payment_date", -1).to_list(100)
         
+        # Get applicable fee configurations for this student's class
+        fee_configs = []
+        if student.get("class_id"):
+            fee_configs = await db.fee_configurations.find({
+                "tenant_id": current_user.tenant_id,
+                "$or": [
+                    {"class_id": student["class_id"]},
+                    {"class_id": None},
+                    {"class_id": ""}
+                ],
+                "is_active": True
+            }).to_list(50)
+        
+        # Calculate totals from fee configurations if no ledger exists
+        if not fee_ledger:
+            total_fees = sum(fc.get("amount", 0) for fc in fee_configs)
+            paid_amount = sum(p.get("amount", 0) for p in payments)
+            fee_ledger = {
+                "total_fees": total_fees,
+                "paid_amount": paid_amount,
+                "balance": total_fees - paid_amount,
+                "payments": []
+            }
+        
         return {
             "ledger": sanitize_mongo_data(fee_ledger),
             "payments": [sanitize_mongo_data(p) for p in payments],
+            "fee_structure": [sanitize_mongo_data(fc) for fc in fee_configs],
             "student_name": student.get("name", ""),
             "admission_no": student.get("admission_no", "")
         }
