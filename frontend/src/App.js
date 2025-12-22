@@ -45,6 +45,10 @@ import StudentResults from "./components/StudentResults";
 import ParentResults from "./components/ParentResults";
 import ResultConfiguration from "./components/ResultConfiguration";
 import TenantManagement from "./components/TenantManagement";
+import StudentDashboard from "./components/StudentDashboard";
+import StudentProfile from "./components/StudentProfile";
+import StudentFees from "./components/StudentFees";
+import StudentAdmitCard from "./components/StudentAdmitCard";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import { Toaster } from "./components/ui/sonner";
@@ -501,6 +505,38 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <AINotes />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/student/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <StudentDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/student/profile"
+                  element={
+                    <ProtectedRoute>
+                      <StudentProfile />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/student/fees"
+                  element={
+                    <ProtectedRoute>
+                      <StudentFees />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/student/admit-card"
+                  element={
+                    <ProtectedRoute>
+                      <StudentAdmitCard />
                     </ProtectedRoute>
                   }
                 />

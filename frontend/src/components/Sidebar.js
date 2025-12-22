@@ -5,6 +5,7 @@ import i18n from "../i18n";
 import {
   Home,
   Users,
+  User,
   UserCheck,
   BookOpen,
   GraduationCap,
@@ -97,7 +98,40 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       title: "Dashboard",
       icon: Home,
       path: "/dashboard",
-      roles: ["super_admin", "admin", "teacher", "student", "parent"],
+      roles: ["super_admin", "admin", "teacher", "parent"],
+    },
+    {
+      key: "student_portal",
+      title: "My Portal",
+      icon: User,
+      roles: ["student"],
+      subItems: [
+        {
+          title: "Dashboard",
+          path: "/student/dashboard",
+          roles: ["student"],
+        },
+        {
+          title: "My Profile",
+          path: "/student/profile",
+          roles: ["student"],
+        },
+        {
+          title: "My Fees",
+          path: "/student/fees",
+          roles: ["student"],
+        },
+        {
+          title: "Admit Card",
+          path: "/student/admit-card",
+          roles: ["student"],
+        },
+        {
+          title: "My Results",
+          path: "/student-results",
+          roles: ["student"],
+        },
+      ],
     },
     {
       key: "academic",

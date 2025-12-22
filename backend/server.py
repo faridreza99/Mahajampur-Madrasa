@@ -23775,6 +23775,545 @@ async def calculate_grade(percentage: float, tenant_id: str, school_id: str) -> 
 # END RESULT CONFIGURATION API ENDPOINTS
 # ============================================================================
 
+# ============================================================================
+# STUDENT SELF-SERVICE API ENDPOINTS
+# ============================================================================
+
+class StudentProfileUpdate(BaseModel):
+    """Fields a student can update themselves"""
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    address: Optional[str] = None
+    guardian_phone: Optional[str] = None
+    photo_url: Optional[str] = None
+
+@api_router.get("/student/me")
+async def get_student_profile(current_user: User = Depends(get_current_user)):
+    """Get the current student's profile (for student role only)"""
+    try:
+        if current_user.role != "student":
+            raise HTTPException(status_code=403, detail="This endpoint is for students only")
+        
+        # Find student linked to this user account
+        student = await db.students.find_one({
+            "user_id": current_user.id,
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        })
+        
+        if not student:
+            raise HTTPException(status_code=404, detail="Student profile not found")
+        
+        # Get class and section names
+        class_doc = await db.classes.find_one({"id": student.get("class_id")})
+        section_doc = await db.sections.find_one({"id": student.get("section_id")})
+        
+        student["class_name"] = class_doc.get("name", "") if class_doc else ""
+        student["class_standard"] = class_doc.get("standard", "") if class_doc else ""
+        student["section_name"] = section_doc.get("name", "") if section_doc else ""
+        
+        return sanitize_mongo_data(student)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching student profile: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch student profile")
+
+@api_router.put("/student/me")
+async def update_student_profile(
+    update_data: StudentProfileUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update the current student's profile (limited fields only)"""
+    try:
+        if current_user.role != "student":
+            raise HTTPException(status_code=403, detail="This endpoint is for students only")
+        
+        # Find student linked to this user account
+        student = await db.students.find_one({
+            "user_id": current_user.id,
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        })
+        
+        if not student:
+            raise HTTPException(status_code=404, detail="Student profile not found")
+        
+        # Only update allowed fields
+        update_fields = {}
+        if update_data.phone is not None:
+            update_fields["phone"] = update_data.phone
+        if update_data.email is not None:
+            update_fields["email"] = update_data.email
+        if update_data.address is not None:
+            update_fields["address"] = update_data.address
+        if update_data.guardian_phone is not None:
+            update_fields["guardian_phone"] = update_data.guardian_phone
+        if update_data.photo_url is not None:
+            update_fields["photo_url"] = update_data.photo_url
+        
+        if update_fields:
+            update_fields["updated_at"] = datetime.utcnow()
+            await db.students.update_one(
+                {"id": student["id"], "tenant_id": current_user.tenant_id},
+                {"$set": update_fields}
+            )
+            
+            # Log the profile update
+            await db.audit_logs.insert_one({
+                "id": str(uuid.uuid4()),
+                "tenant_id": current_user.tenant_id,
+                "user_id": current_user.id,
+                "action": "student_profile_update",
+                "resource_type": "student",
+                "resource_id": student["id"],
+                "details": {"updated_fields": list(update_fields.keys())},
+                "ip_address": "",
+                "created_at": datetime.utcnow()
+            })
+        
+        # Return updated student
+        updated_student = await db.students.find_one({"id": student["id"]})
+        return sanitize_mongo_data(updated_student)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating student profile: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update student profile")
+
+@api_router.get("/student/fees")
+async def get_student_fees(current_user: User = Depends(get_current_user)):
+    """Get the current student's fee ledger and payment history"""
+    try:
+        if current_user.role != "student":
+            raise HTTPException(status_code=403, detail="This endpoint is for students only")
+        
+        # Find student linked to this user account
+        student = await db.students.find_one({
+            "user_id": current_user.id,
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        })
+        
+        if not student:
+            raise HTTPException(status_code=404, detail="Student profile not found")
+        
+        # Get fee ledger
+        fee_ledger = await db.fee_ledgers.find_one({
+            "student_id": student["id"],
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        })
+        
+        if not fee_ledger:
+            fee_ledger = {
+                "total_fees": 0,
+                "paid_amount": 0,
+                "balance": 0,
+                "payments": []
+            }
+        
+        # Get fee payments
+        payments = await db.fee_payments.find({
+            "student_id": student["id"],
+            "tenant_id": current_user.tenant_id
+        }).sort("payment_date", -1).to_list(100)
+        
+        return {
+            "ledger": sanitize_mongo_data(fee_ledger),
+            "payments": [sanitize_mongo_data(p) for p in payments],
+            "student_name": student.get("name", ""),
+            "admission_no": student.get("admission_no", "")
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching student fees: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch fee information")
+
+@api_router.get("/student/dashboard")
+async def get_student_dashboard(current_user: User = Depends(get_current_user)):
+    """Get student dashboard data including attendance, fees, results, and notifications"""
+    try:
+        if current_user.role != "student":
+            raise HTTPException(status_code=403, detail="This endpoint is for students only")
+        
+        # Find student linked to this user account
+        student = await db.students.find_one({
+            "user_id": current_user.id,
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        })
+        
+        if not student:
+            raise HTTPException(status_code=404, detail="Student profile not found")
+        
+        student_id = student["id"]
+        
+        # Get attendance stats for current academic year
+        current_year = datetime.utcnow().year
+        attendance_records = await db.attendance.find({
+            "student_id": student_id,
+            "tenant_id": current_user.tenant_id,
+            "type": "student"
+        }).to_list(500)
+        
+        total_days = len(attendance_records)
+        present_days = len([a for a in attendance_records if a.get("status") == "present"])
+        attendance_percentage = round((present_days / total_days) * 100, 1) if total_days > 0 else 0
+        
+        # Get fee status
+        fee_ledger = await db.fee_ledgers.find_one({
+            "student_id": student_id,
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        })
+        
+        fee_status = {
+            "total_fees": fee_ledger.get("total_fees", 0) if fee_ledger else 0,
+            "paid_amount": fee_ledger.get("paid_amount", 0) if fee_ledger else 0,
+            "balance": fee_ledger.get("balance", 0) if fee_ledger else 0,
+            "has_dues": (fee_ledger.get("balance", 0) if fee_ledger else 0) > 0
+        }
+        
+        # Get latest result
+        latest_result = await db.student_results.find_one({
+            "student_id": student_id,
+            "tenant_id": current_user.tenant_id,
+            "is_published": True
+        }, sort=[("created_at", -1)])
+        
+        result_summary = None
+        if latest_result:
+            exam_term = await db.exam_terms.find_one({"id": latest_result.get("exam_term_id")})
+            result_summary = {
+                "exam_name": exam_term.get("name", "Exam") if exam_term else "Exam",
+                "total_marks": latest_result.get("total_marks_obtained", 0),
+                "percentage": latest_result.get("percentage", 0),
+                "grade": latest_result.get("grade", ""),
+                "rank": latest_result.get("rank")
+            }
+        
+        # Get recent notifications
+        notifications = await db.notifications.find({
+            "tenant_id": current_user.tenant_id,
+            "$or": [
+                {"target_role": {"$in": ["student", "all"]}},
+                {"target_user_id": current_user.id}
+            ],
+            "is_active": True
+        }).sort("created_at", -1).to_list(5)
+        
+        # Get class and section info
+        class_doc = await db.classes.find_one({"id": student.get("class_id")})
+        section_doc = await db.sections.find_one({"id": student.get("section_id")})
+        
+        return {
+            "student": {
+                "name": student.get("name", ""),
+                "admission_no": student.get("admission_no", ""),
+                "roll_no": student.get("roll_no", ""),
+                "class_name": class_doc.get("name", "") if class_doc else "",
+                "class_standard": class_doc.get("standard", "") if class_doc else "",
+                "section_name": section_doc.get("name", "") if section_doc else "",
+                "photo_url": student.get("photo_url")
+            },
+            "attendance": {
+                "total_days": total_days,
+                "present_days": present_days,
+                "percentage": attendance_percentage
+            },
+            "fees": fee_status,
+            "latest_result": result_summary,
+            "notifications": [sanitize_mongo_data(n) for n in notifications]
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching student dashboard: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch dashboard data")
+
+@api_router.get("/student/results")
+async def get_student_results_self(current_user: User = Depends(get_current_user)):
+    """Get all published results for the current student"""
+    try:
+        if current_user.role != "student":
+            raise HTTPException(status_code=403, detail="This endpoint is for students only")
+        
+        # Find student linked to this user account
+        student = await db.students.find_one({
+            "user_id": current_user.id,
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        })
+        
+        if not student:
+            raise HTTPException(status_code=404, detail="Student profile not found")
+        
+        # Get published results
+        results = await db.student_results.find({
+            "student_id": student["id"],
+            "tenant_id": current_user.tenant_id,
+            "is_published": True
+        }).sort("created_at", -1).to_list(50)
+        
+        # Enrich with exam term names
+        enriched_results = []
+        for result in results:
+            exam_term = await db.exam_terms.find_one({"id": result.get("exam_term_id")})
+            result["exam_name"] = exam_term.get("name", "Exam") if exam_term else "Exam"
+            enriched_results.append(sanitize_mongo_data(result))
+        
+        return {
+            "results": enriched_results,
+            "student_name": student.get("name", ""),
+            "admission_no": student.get("admission_no", "")
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching student results: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch results")
+
+@api_router.get("/student/admit-card/{exam_term_id}")
+async def get_student_admit_card(
+    exam_term_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Generate admit card PDF for a specific exam"""
+    try:
+        if current_user.role != "student":
+            raise HTTPException(status_code=403, detail="This endpoint is for students only")
+        
+        # Find student linked to this user account
+        student = await db.students.find_one({
+            "user_id": current_user.id,
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        })
+        
+        if not student:
+            raise HTTPException(status_code=404, detail="Student profile not found")
+        
+        # Check fee dues (configurable - could be a setting)
+        fee_ledger = await db.fee_ledgers.find_one({
+            "student_id": student["id"],
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        })
+        
+        # Get school settings for fee block
+        school = await db.schools.find_one({
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        })
+        
+        block_admit_card_for_dues = school.get("block_admit_card_for_dues", False) if school else False
+        
+        if block_admit_card_for_dues and fee_ledger and fee_ledger.get("balance", 0) > 0:
+            raise HTTPException(
+                status_code=403, 
+                detail=f"Cannot download admit card. Outstanding fee balance: {fee_ledger.get('balance', 0)}"
+            )
+        
+        # Get exam term
+        exam_term = await db.exam_terms.find_one({
+            "id": exam_term_id,
+            "tenant_id": current_user.tenant_id
+        })
+        
+        if not exam_term:
+            raise HTTPException(status_code=404, detail="Exam not found")
+        
+        # Get class, section, and subjects
+        class_doc = await db.classes.find_one({"id": student.get("class_id")})
+        section_doc = await db.sections.find_one({"id": student.get("section_id")})
+        subjects = await db.subjects.find({
+            "class_standard": class_doc.get("standard") if class_doc else "",
+            "tenant_id": current_user.tenant_id
+        }).to_list(20)
+        
+        # Generate PDF
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.units import inch
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib import colors
+        
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=0.5*inch, leftMargin=0.5*inch, topMargin=0.5*inch, bottomMargin=0.5*inch)
+        
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle('Title', parent=styles['Title'], fontSize=18, spaceAfter=6)
+        subtitle_style = ParagraphStyle('Subtitle', parent=styles['Normal'], fontSize=12, alignment=1, spaceAfter=12)
+        
+        elements = []
+        
+        # School name
+        school_name = school.get("name", "School") if school else "School"
+        elements.append(Paragraph(school_name, title_style))
+        elements.append(Paragraph("ADMIT CARD", subtitle_style))
+        elements.append(Paragraph(exam_term.get("name", "Examination"), subtitle_style))
+        elements.append(Spacer(1, 20))
+        
+        # Student details
+        student_data = [
+            ["Name:", student.get("name", "")],
+            ["Admission No:", student.get("admission_no", "")],
+            ["Roll No:", student.get("roll_no", "")],
+            ["Class:", f"{class_doc.get('name', '')} ({class_doc.get('standard', '')})" if class_doc else ""],
+            ["Section:", section_doc.get("name", "") if section_doc else ""],
+            ["Father's Name:", student.get("father_name", "")],
+        ]
+        
+        student_table = Table(student_data, colWidths=[1.5*inch, 4*inch])
+        student_table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ]))
+        elements.append(student_table)
+        elements.append(Spacer(1, 20))
+        
+        # Subjects table
+        elements.append(Paragraph("Examination Subjects:", styles['Heading3']))
+        subject_data = [["S.No", "Subject", "Subject Code"]]
+        for i, subj in enumerate(subjects, 1):
+            subject_data.append([str(i), subj.get("subject_name", ""), subj.get("subject_code", "")])
+        
+        subject_table = Table(subject_data, colWidths=[0.7*inch, 3.5*inch, 1.5*inch])
+        subject_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ]))
+        elements.append(subject_table)
+        elements.append(Spacer(1, 30))
+        
+        # Signature section
+        sig_data = [["", "", ""],
+                   ["Student Signature", "Parent Signature", "Principal Signature"]]
+        sig_table = Table(sig_data, colWidths=[2*inch, 2*inch, 2*inch])
+        sig_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('TOPPADDING', (0, 1), (-1, 1), 40),
+        ]))
+        elements.append(sig_table)
+        
+        doc.build(elements)
+        
+        # Log admit card download
+        await db.audit_logs.insert_one({
+            "id": str(uuid.uuid4()),
+            "tenant_id": current_user.tenant_id,
+            "user_id": current_user.id,
+            "action": "admit_card_download",
+            "resource_type": "admit_card",
+            "resource_id": exam_term_id,
+            "details": {"student_id": student["id"], "exam_name": exam_term.get("name", "")},
+            "ip_address": "",
+            "created_at": datetime.utcnow()
+        })
+        
+        buffer.seek(0)
+        filename = f"admit_card_{student.get('admission_no', 'student')}_{exam_term.get('name', 'exam').replace(' ', '_')}.pdf"
+        
+        return StreamingResponse(
+            buffer,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating admit card: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate admit card")
+
+@api_router.get("/student/exams")
+async def get_student_exams(current_user: User = Depends(get_current_user)):
+    """Get list of available exams for admit card download"""
+    try:
+        if current_user.role != "student":
+            raise HTTPException(status_code=403, detail="This endpoint is for students only")
+        
+        # Get active exam terms
+        exams = await db.exam_terms.find({
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        }).sort("start_date", -1).to_list(20)
+        
+        return [sanitize_mongo_data(exam) for exam in exams]
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching exams: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch exams")
+
+@api_router.post("/student/me/photo")
+async def upload_student_self_photo(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    """Allow student to upload their own photo"""
+    try:
+        if current_user.role != "student":
+            raise HTTPException(status_code=403, detail="This endpoint is for students only")
+        
+        # Find student linked to this user account
+        student = await db.students.find_one({
+            "user_id": current_user.id,
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        })
+        
+        if not student:
+            raise HTTPException(status_code=404, detail="Student profile not found")
+        
+        # Validate file type
+        if not file.content_type or not file.content_type.startswith('image/'):
+            raise HTTPException(status_code=400, detail="Invalid file type. Only images are allowed")
+        
+        # Validate file size (2MB max)
+        file_content = await file.read()
+        if len(file_content) > 2 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="File size exceeds 2MB limit")
+        
+        # Create tenant-specific directory
+        tenant_dir = UPLOAD_DIR / current_user.tenant_id / "students"
+        tenant_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Generate unique filename
+        file_extension = Path(file.filename).suffix if file.filename else '.jpg'
+        unique_filename = f"{student['admission_no']}_{uuid.uuid4()}{file_extension}"
+        
+        # Save file
+        file_path = tenant_dir / unique_filename
+        with open(file_path, "wb") as buffer:
+            buffer.write(file_content)
+        
+        # Update student photo_url
+        file_url = f"/uploads/{current_user.tenant_id}/students/{unique_filename}"
+        await db.students.update_one(
+            {"id": student["id"], "tenant_id": current_user.tenant_id},
+            {"$set": {"photo_url": file_url, "updated_at": datetime.utcnow()}}
+        )
+        
+        return {"message": "Photo uploaded successfully", "photo_url": file_url}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error uploading student photo: {e}")
+        raise HTTPException(status_code=500, detail="Failed to upload photo")
+
+# ============================================================================
+# END STUDENT SELF-SERVICE API ENDPOINTS
+# ============================================================================
+
 # Include router and middleware
 app.include_router(api_router)
 
