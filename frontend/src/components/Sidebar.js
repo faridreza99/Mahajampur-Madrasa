@@ -94,17 +94,43 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const menuItems = [
     {
       key: "home",
-      title: "Home",
+      title: "Dashboard",
       icon: Home,
       path: "/dashboard",
-      roles: ["super_admin", "admin", "teacher"],
+      roles: ["super_admin", "admin", "teacher", "student", "parent"],
     },
     {
-      key: "admission-summary",
-      title: "Admission Summary",
-      icon: ClipboardCheck,
-      path: "/admission-summary",
-      roles: ["super_admin", "admin"],
+      key: "academic",
+      title: "Academic",
+      icon: GraduationCap,
+      roles: ["super_admin", "admin", "teacher", "student", "parent", "principal"],
+      subItems: [
+        {
+          title: "Attendance",
+          path: "/attendance",
+          roles: ["super_admin", "admin", "teacher", "student"],
+        },
+        {
+          title: "Results",
+          path: "/results",
+          roles: ["super_admin", "admin", "principal", "teacher", "student", "parent"],
+        },
+        {
+          title: "TimeTable",
+          path: "/settings/timetable",
+          roles: ["super_admin", "admin", "teacher", "student"],
+        },
+        {
+          title: "Calendar",
+          path: "/calendar",
+          roles: ["super_admin", "admin", "teacher", "student"],
+        },
+        {
+          title: "Classes",
+          path: "/classes",
+          roles: ["super_admin", "admin", "teacher"],
+        },
+      ],
     },
     {
       key: "students",
@@ -123,8 +149,13 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           roles: ["super_admin", "admin"],
         },
         {
-          title: "Bulk Import",
+          title: "Bulk Upload",
           path: "/students/import",
+          roles: ["super_admin", "admin"],
+        },
+        {
+          title: "Admission Summary",
+          path: "/admission-summary",
           roles: ["super_admin", "admin"],
         },
       ],
@@ -148,120 +179,19 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       ],
     },
     {
-      key: "class",
-      title: "Classes",
-      icon: BookOpen,
-      roles: ["super_admin", "admin", "teacher"],
-      subItems: [
-        {
-          title: "Manage Classes",
-          path: "/classes",
-          roles: ["super_admin", "admin", "teacher"],
-        },
-        {
-          title: "Sections",
-          path: "/classes/sections",
-          roles: ["super_admin", "admin"],
-        },
-        {
-          title: "Class Subjects",
-          path: "/classes/subjects",
-          roles: ["super_admin", "admin"],
-        },
-      ],
-    },
-    {
-      key: "attendance",
-      title: "Attendance",
-      icon: ClipboardCheck,
-      roles: ["super_admin", "admin", "teacher"],
-      subItems: [
-        {
-          title: "Mark Attendance",
-          path: "/attendance/mark",
-          roles: ["super_admin", "admin", "teacher"],
-        },
-        {
-          title: "View Attendance",
-          path: "/attendance",
-          roles: ["super_admin", "admin", "teacher"],
-        },
-        {
-          title: "Attendance Reports",
-          path: "/attendance/reports",
-          roles: ["super_admin", "admin"],
-        },
-      ],
-    },
-    {
-      key: "results",
-      title: "Results",
-      icon: FileSpreadsheet,
-      roles: [
-        "super_admin",
-        "admin",
-        "principal",
-        "teacher",
-        "student",
-        "parent",
-      ],
-      subItems: [
-        {
-          title: "Manage Results",
-          path: "/results",
-          roles: [
-            "super_admin",
-            "admin",
-            "principal",
-            "teacher",
-            "student",
-            "parent",
-          ],
-        },
-        {
-          title: "Configuration",
-          path: "/result-configuration",
-          roles: ["super_admin", "admin", "principal"],
-        },
-      ],
-    },
-    {
-      key: "hss-module",
-      title: "HSS Module",
-      icon: GraduationCap,
-      roles: ["super_admin", "admin"],
-      subItems: [
-        {
-          title: "HSS Students",
-          path: "/hss/students",
-          roles: ["super_admin", "admin"],
-        },
-        {
-          title: "HSS Subjects",
-          path: "/hss/subjects",
-          roles: ["super_admin", "admin"],
-        },
-        {
-          title: "HSS Results",
-          path: "/hss/results",
-          roles: ["super_admin", "admin"],
-        },
-      ],
-    },
-    {
-      key: "fees",
-      title: "Fees",
+      key: "finance",
+      title: "Finance",
       icon: DollarSign,
       roles: ["super_admin", "admin"],
       subItems: [
         {
-          title: "Fee Structure",
-          path: "/fees/structure",
+          title: "Fees",
+          path: "/fees/collection",
           roles: ["super_admin", "admin"],
         },
         {
-          title: "Fee Collection",
-          path: "/fees/collection",
+          title: "Fee Structure",
+          path: "/fees/structure",
           roles: ["super_admin", "admin"],
         },
         {
@@ -270,87 +200,25 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           roles: ["super_admin", "admin"],
         },
         {
-          title: "Due Fees",
-          path: "/fees/due",
-          roles: ["super_admin", "admin"],
-        },
-      ],
-    },
-    {
-      key: "accounts",
-      title: "Accounts",
-      icon: Calculator,
-      path: "/accounts",
-      roles: ["super_admin", "admin"],
-    },
-    {
-      key: "certificates",
-      title: "Certificates",
-      icon: Award,
-      roles: ["super_admin", "admin"],
-      subItems: [
-        {
-          title: "Generate Certificate",
-          path: "/certificates/generate",
+          title: "Accounts",
+          path: "/accounts",
           roles: ["super_admin", "admin"],
         },
         {
-          title: "Certificate Templates",
-          path: "/certificates/templates",
-          roles: ["super_admin", "admin"],
-        },
-        {
-          title: "Issued Certificates",
+          title: "Certificates",
           path: "/certificates",
           roles: ["super_admin", "admin"],
         },
       ],
     },
     {
-      key: "vehicle",
-      title: "Vehicle",
-      icon: Car,
-      roles: ["super_admin", "admin"],
-      subItems: [
-        {
-          title: "Routes",
-          path: "/transport/routes",
-          roles: ["super_admin", "admin"],
-        },
-        {
-          title: "Vehicles",
-          path: "/transport/vehicles",
-          roles: ["super_admin", "admin"],
-        },
-        {
-          title: "Assign Students",
-          path: "/transport/assign",
-          roles: ["super_admin", "admin"],
-        },
-      ],
-    },
-    {
-      key: "calendar",
-      title: "Calendar",
-      icon: Calendar,
-      path: "/calendar",
-      roles: ["super_admin", "admin", "teacher", "student"],
-    },
-    {
-      key: "timetable",
-      title: "TimeTable",
-      icon: Clock,
-      path: "/settings/timetable",
-      roles: ["super_admin", "admin", "teacher", "student"],
-    },
-    {
-      key: "cms",
-      title: "Academic CMS",
+      key: "content",
+      title: "Content",
       icon: BookOpen,
       roles: ["super_admin", "admin", "teacher", "student"],
       subItems: [
         {
-          title: "Manage Content",
+          title: "Academic CMS",
           path: "/cms",
           roles: ["super_admin", "admin"],
         },
@@ -362,14 +230,34 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       ],
     },
     {
-      key: "ai-assistant",
-      title: "AI Assistant",
+      key: "ai-tools",
+      title: "AI Tools",
       icon: Sparkles,
       roles: ["super_admin", "admin", "teacher", "student"],
       subItems: [
         {
-          title: "Chat Assistant",
+          title: "AI Assistant",
           path: "/ai-assistant",
+          roles: ["super_admin", "admin", "teacher", "student"],
+        },
+        {
+          title: "Quiz Tool",
+          path: "/quiz-tool",
+          roles: ["super_admin", "admin", "teacher", "student"],
+        },
+        {
+          title: "Test Generator",
+          path: "/test-generator",
+          roles: ["super_admin", "admin", "teacher"],
+        },
+        {
+          title: "AI Summary",
+          path: "/ai-summary",
+          roles: ["super_admin", "admin", "teacher", "student"],
+        },
+        {
+          title: "AI Notes",
+          path: "/ai-notes",
           roles: ["super_admin", "admin", "teacher", "student"],
         },
         {
@@ -380,78 +268,11 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       ],
     },
     {
-      key: "quiz-tool",
-      title: "Quiz Tool",
-      icon: Target,
-      path: "/quiz-tool",
-      roles: ["super_admin", "admin", "teacher", "student"],
-    },
-    {
-      key: "test-generator",
-      title: "Test Generator",
-      icon: FileText,
-      path: "/test-generator",
-      roles: ["super_admin", "admin", "teacher"],
-    },
-    {
-      key: "ai-summary",
-      title: "AI Summary",
-      icon: BookOpen,
-      path: "/ai-summary",
-      roles: ["super_admin", "admin", "teacher", "student"],
-    },
-    {
-      key: "ai-notes",
-      title: "AI Notes",
-      icon: FileText,
-      path: "/ai-notes",
-      roles: ["super_admin", "admin", "teacher", "student"],
-    },
-    {
       key: "reports",
       title: "Reports",
       icon: BarChart3,
+      path: "/reports",
       roles: ["super_admin", "admin"],
-      subItems: [
-        {
-          title: "GiNi Dashboard",
-          path: "/reports/gini",
-          roles: ["super_admin", "admin"],
-        },
-        {
-          title: "All Reports",
-          path: "/reports",
-          roles: ["super_admin", "admin"],
-        },
-      ],
-    },
-    {
-      key: "biometric",
-      title: "Biometric Devices",
-      icon: Fingerprint,
-      path: "/biometric",
-      roles: ["super_admin", "admin"],
-    },
-    {
-      key: "online-admission",
-      title: "Online Admission",
-      icon: UserPlus,
-      path: "/online-admission",
-      roles: ["super_admin", "admin"],
-    },
-    {
-      key: "settings",
-      title: "Settings",
-      icon: Settings,
-      path: "/settings",
-      roles: ["super_admin", "admin"],
-    },
-    {
-      key: "tenant-management",
-      title: "Tenant Management",
-      icon: Users,
-      path: "/tenant-management",
-      roles: ["super_admin"],
     },
     {
       key: "communication",
@@ -467,6 +288,44 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         {
           title: "Rating & Reviews",
           path: "/rating-surveys",
+          roles: ["super_admin", "admin"],
+        },
+      ],
+    },
+    {
+      key: "settings",
+      title: "Settings",
+      icon: Settings,
+      roles: ["super_admin", "admin"],
+      subItems: [
+        {
+          title: "School Settings",
+          path: "/settings",
+          roles: ["super_admin", "admin"],
+        },
+        {
+          title: "Tenant Management",
+          path: "/tenant-management",
+          roles: ["super_admin"],
+        },
+        {
+          title: "Vehicle/Transport",
+          path: "/transport/routes",
+          roles: ["super_admin", "admin"],
+        },
+        {
+          title: "Biometric Devices",
+          path: "/biometric",
+          roles: ["super_admin", "admin"],
+        },
+        {
+          title: "Online Admission",
+          path: "/online-admission",
+          roles: ["super_admin", "admin"],
+        },
+        {
+          title: "HSS Module",
+          path: "/hss/students",
           roles: ["super_admin", "admin"],
         },
       ],
