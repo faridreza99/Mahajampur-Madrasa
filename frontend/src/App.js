@@ -207,33 +207,46 @@ const ResultsRouter = () => {
 
 // Main Layout Component
 const Layout = ({ children }) => {
+  const { user } = useAuth();
   const location = useLocation();
   const mainRef = React.useRef(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = React.useState(false);
 
-  if (location.pathname === "/login") return children;
+  const isLoginPage = location.pathname === "/login";
+
+  // Smooth scroll to top on route change
+  React.useEffect(() => {
+    if (mainRef.current && !isLoginPage) {
+      // Small delay to ensure DOM is ready
+      requestAnimationFrame(() => {
+        if (mainRef.current) {
+          mainRef.current.scrollTo({
+            top: 0,
+            left: 0,
+            behavior: "smooth",
+          });
+        }
+      });
+    }
+  }, [location.pathname, isLoginPage]);
+
+  if (isLoginPage) {
+    return children;
+  }
 
   return (
-    <div className="flex min-h-screen w-full bg-gray-50 dark:bg-gray-950 overflow-hidden">
+    <div className="flex min-h-screen overflow-hidden bg-gray-50 dark:bg-gray-950">
       <Sidebar
         isOpen={isMobileSidebarOpen}
         setIsOpen={setIsMobileSidebarOpen}
       />
-
-      <div className="flex flex-col flex-1 min-w-0 w-full">
+      <div className="flex flex-col flex-1 min-w-0 w-full md:pl-64">
         <Header onMenuClick={() => setIsMobileSidebarOpen(true)} />
-
         <main
           ref={mainRef}
-          className="
-            flex-1 overflow-y-auto
-            px-2 py-3
-            sm:px-4 sm:py-6
-            md:px-6 md:py-8
-            md:ml-64
-          "
+          className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-950 px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8"
         >
-          <div className="w-full max-w-none min-h-[calc(100vh-100px)] pb-20">
+          <div className="min-h-[calc(100vh-100px)] pb-16 sm:pb-24 max-w-full overflow-x-hidden">
             {children}
           </div>
         </main>
