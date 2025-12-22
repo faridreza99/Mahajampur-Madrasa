@@ -367,6 +367,7 @@ class Student(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
     school_id: str
+    user_id: Optional[str] = None  # Link to user account for student login
     admission_no: str
     roll_no: str
     name: str
@@ -406,6 +407,40 @@ class StudentCreate(BaseModel):
     guardian_name: str
     guardian_phone: str
     tags: List[str] = []  # Student tags for categorization
+
+class StudentCredentials(BaseModel):
+    username: str
+    temporary_password: str
+    message: str
+
+class StudentCreateResponse(BaseModel):
+    id: str
+    tenant_id: str
+    school_id: str
+    user_id: Optional[str] = None
+    admission_no: str
+    roll_no: str
+    name: str
+    father_name: str
+    mother_name: str
+    date_of_birth: str
+    gender: str
+    class_id: str
+    section_id: str
+    phone: str
+    email: Optional[str] = None
+    address: str
+    guardian_name: str
+    guardian_phone: str
+    photo_url: Optional[str] = None
+    father_whatsapp: Optional[str] = None
+    mother_phone: Optional[str] = None
+    mother_whatsapp: Optional[str] = None
+    tags: List[str] = []
+    is_active: bool = True
+    created_at: datetime
+    updated_at: datetime
+    credentials: Optional[StudentCredentials] = None
 
 class Tag(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -2376,7 +2411,7 @@ async def get_students(
     students = await db.students.find(query).to_list(1000)
     return [Student(**student) for student in students]
 
-@api_router.post("/students", response_model=Student)
+@api_router.post("/students", response_model=StudentCreateResponse)
 async def create_student(student_data: StudentCreate, current_user: User = Depends(get_current_user)):
     if current_user.role not in ["super_admin", "admin", "teacher"]:
         raise HTTPException(status_code=403, detail="Not authorized")
@@ -2396,13 +2431,154 @@ async def create_student(student_data: StudentCreate, current_user: User = Depen
             )
         school_id = schools[0]["id"]
     
+    # Check for duplicate admission number
+    existing_student = await db.students.find_one({
+        "admission_no": student_data.admission_no,
+        "tenant_id": current_user.tenant_id,
+        "is_active": True
+    })
+    if existing_student:
+        raise HTTPException(status_code=400, detail=f"Student with admission number {student_data.admission_no} already exists")
+    
+    # Get tenant info for username prefix
+    tenant = await db.tenants.find_one({"id": current_user.tenant_id})
+    school_code = tenant.get("domain", "SCH") if tenant else "SCH"
+    
+    # Generate student username and temporary password
+    student_username = f"{school_code.lower()}_{student_data.admission_no.lower()}"
+    temp_password = f"{student_data.admission_no}@{datetime.utcnow().year}"
+    hashed_password = bcrypt.hashpw(temp_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    
+    # Create student email if not provided
+    student_email = student_data.email or f"{student_username}@student.local"
+    
+    # Create user account for student
+    user_id = str(uuid.uuid4())
+    student_user = {
+        "id": user_id,
+        "tenant_id": current_user.tenant_id,
+        "email": student_email,
+        "username": student_username,
+        "full_name": student_data.name,
+        "hashed_password": hashed_password,
+        "role": "student",
+        "school_id": school_id,
+        "is_active": True,
+        "must_change_password": True,
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow()
+    }
+    
+    try:
+        await db.users.insert_one(student_user)
+    except Exception as e:
+        logging.error(f"Failed to create student user account: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create student account")
+    
+    # Create student record linked to user
     student_dict = student_data.dict()
     student_dict["tenant_id"] = current_user.tenant_id
     student_dict["school_id"] = school_id
+    student_dict["user_id"] = user_id
     
     student = Student(**student_dict)
-    await db.students.insert_one(student.dict())
-    return student
+    student_id = student.id
+    
+    try:
+        await db.students.insert_one(student.dict())
+    except Exception as e:
+        # Rollback user creation if student creation fails
+        await db.users.delete_one({"id": user_id})
+        logging.error(f"Failed to create student record: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create student record")
+    
+    # Initialize fee ledger for student
+    try:
+        fee_ledger = {
+            "id": str(uuid.uuid4()),
+            "tenant_id": current_user.tenant_id,
+            "school_id": school_id,
+            "student_id": student_id,
+            "class_id": student_data.class_id,
+            "academic_year": str(datetime.utcnow().year),
+            "total_fees": 0,
+            "paid_amount": 0,
+            "balance": 0,
+            "payments": [],
+            "is_active": True,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+        await db.fee_ledgers.insert_one(fee_ledger)
+    except Exception as e:
+        logging.warning(f"Failed to create fee ledger for student {student_id}: {e}")
+    
+    # Initialize attendance enrollment
+    try:
+        attendance_enrollment = {
+            "id": str(uuid.uuid4()),
+            "tenant_id": current_user.tenant_id,
+            "school_id": school_id,
+            "student_id": student_id,
+            "class_id": student_data.class_id,
+            "section_id": student_data.section_id,
+            "academic_year": str(datetime.utcnow().year),
+            "enrollment_date": datetime.utcnow(),
+            "is_active": True,
+            "created_at": datetime.utcnow()
+        }
+        await db.attendance_enrollments.insert_one(attendance_enrollment)
+    except Exception as e:
+        logging.warning(f"Failed to create attendance enrollment for student {student_id}: {e}")
+    
+    # Initialize AI activities profile
+    try:
+        ai_profile = {
+            "id": str(uuid.uuid4()),
+            "tenant_id": current_user.tenant_id,
+            "school_id": school_id,
+            "student_id": student_id,
+            "user_id": user_id,
+            "quiz_attempts": 0,
+            "notes_generated": 0,
+            "summaries_generated": 0,
+            "assistant_queries": 0,
+            "tests_taken": 0,
+            "total_ai_usage": 0,
+            "is_active": True,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+        await db.ai_activity_profiles.insert_one(ai_profile)
+    except Exception as e:
+        logging.warning(f"Failed to create AI activity profile for student {student_id}: {e}")
+    
+    # Initialize certificate profile
+    try:
+        certificate_profile = {
+            "id": str(uuid.uuid4()),
+            "tenant_id": current_user.tenant_id,
+            "school_id": school_id,
+            "student_id": student_id,
+            "certificates_issued": [],
+            "is_active": True,
+            "created_at": datetime.utcnow()
+        }
+        await db.certificate_profiles.insert_one(certificate_profile)
+    except Exception as e:
+        logging.warning(f"Failed to create certificate profile for student {student_id}: {e}")
+    
+    # Return student with generated credentials
+    credentials = StudentCredentials(
+        username=student_username,
+        temporary_password=temp_password,
+        message="Please share these credentials with the student. They will be prompted to change password on first login."
+    )
+    
+    return StudentCreateResponse(
+        **student.dict(),
+        credentials=credentials
+    )
 
 @api_router.put("/students/{student_id}", response_model=Student)
 async def update_student(

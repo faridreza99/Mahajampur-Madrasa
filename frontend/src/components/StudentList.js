@@ -54,7 +54,9 @@ import {
   Eye,
   Printer,
   User,
-  Home
+  Home,
+  Copy,
+  Check
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -99,6 +101,8 @@ const StudentList = () => {
   const [photoPreview, setPhotoPreview] = useState('');
   const [importErrors, setImportErrors] = useState([]);
   const [importSummary, setImportSummary] = useState(null);
+  const [isCredentialsModalOpen, setIsCredentialsModalOpen] = useState(false);
+  const [studentCredentials, setStudentCredentials] = useState(null);
 
   const getCurrentView = () => {
     const path = location.pathname;
@@ -312,14 +316,28 @@ const StudentList = () => {
 
     try {
       let studentId = null;
+      let newCredentials = null;
+      
       if (editingStudent) {
         await axios.put(`${API}/students/${editingStudent.id}`, formData);
         studentId = editingStudent.id;
         toast.success('Student updated successfully');
       } else {
         const response = await axios.post(`${API}/students`, formData);
-        studentId = response.data.id;
-        toast.success('Student added successfully');
+        // Response includes student fields at top level plus credentials
+        const responseData = response.data;
+        studentId = responseData.id;
+        
+        // Check if credentials are included (new feature)
+        if (responseData.credentials) {
+          newCredentials = {
+            studentName: responseData.name,
+            admissionNo: responseData.admission_no,
+            ...responseData.credentials
+          };
+          setStudentCredentials(newCredentials);
+        }
+        toast.success('Student admission created successfully!');
       }
       
       if (photoFile && studentId) {
@@ -336,6 +354,7 @@ const StudentList = () => {
       }
       
       await fetchData();
+      
       if (editingStudent) {
         setIsAddModalOpen(false);
       } else {
@@ -344,6 +363,13 @@ const StudentList = () => {
       
       setEditingStudent(null);
       resetForm();
+      
+      // Show credentials modal for new students after a brief delay
+      if (!editingStudent && newCredentials) {
+        setTimeout(() => {
+          setIsCredentialsModalOpen(true);
+        }, 100);
+      }
     } catch (error) {
       console.error('Failed to save student:', error);
       toast.error(error.response?.data?.detail || 'Failed to save student');
@@ -2038,6 +2064,80 @@ const StudentList = () => {
               className="bg-red-600 hover:bg-red-700"
             >
               {loading ? 'Deleting...' : 'Delete Student'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Student Credentials Modal */}
+      <Dialog open={isCredentialsModalOpen} onOpenChange={setIsCredentialsModalOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2 text-emerald-600">
+              <Check className="h-5 w-5" />
+              <span>Student Account Created Successfully!</span>
+            </DialogTitle>
+            <DialogDescription>
+              A login account has been automatically created for this student. Please share these credentials with the student or guardian.
+            </DialogDescription>
+          </DialogHeader>
+          {studentCredentials && (
+            <div className="py-4 space-y-4">
+              <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-4 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Student Name:</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">{studentCredentials.studentName}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Admission No:</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">{studentCredentials.admissionNo}</span>
+                </div>
+              </div>
+              
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 space-y-3 border-2 border-blue-200 dark:border-blue-800">
+                <h4 className="font-semibold text-blue-800 dark:text-blue-300 text-center">Login Credentials</h4>
+                <div className="flex justify-between items-center py-2 border-b border-blue-100 dark:border-blue-800">
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Username:</span>
+                  <code className="bg-white dark:bg-gray-800 px-3 py-1 rounded font-mono text-sm font-bold text-blue-600 dark:text-blue-400">{studentCredentials.username}</code>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Temporary Password:</span>
+                  <code className="bg-white dark:bg-gray-800 px-3 py-1 rounded font-mono text-sm font-bold text-blue-600 dark:text-blue-400">{studentCredentials.temporary_password}</code>
+                </div>
+              </div>
+              
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
+                <p className="text-sm text-yellow-800 dark:text-yellow-300 flex items-start">
+                  <span className="mr-2">⚠️</span>
+                  <span>{studentCredentials.message}</span>
+                </p>
+              </div>
+              
+              <div className="flex gap-2 mt-4">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    const text = `Student Login Credentials\n\nStudent: ${studentCredentials.studentName}\nAdmission No: ${studentCredentials.admissionNo}\nUsername: ${studentCredentials.username}\nPassword: ${studentCredentials.temporary_password}\n\nPlease change password on first login.`;
+                    navigator.clipboard.writeText(text);
+                    toast.success('Credentials copied to clipboard!');
+                  }}
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy Credentials
+                </Button>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              onClick={() => {
+                setIsCredentialsModalOpen(false);
+                setStudentCredentials(null);
+              }}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              Done
             </Button>
           </DialogFooter>
         </DialogContent>
