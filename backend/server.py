@@ -2205,6 +2205,41 @@ async def create_tenant(tenant_data: TenantCreate, current_user: User = Depends(
         ]
     tenant = Tenant(**tenant_dict)
     await db.tenants.insert_one(tenant.dict())
+    
+    # Auto-create a school for this tenant
+    school_code = tenant_dict.get("domain", "").split(".")[0].upper() or f"SCH{tenant.id[:6].upper()}"
+    school = {
+        "id": f"school-{tenant.id}",
+        "tenant_id": tenant.id,
+        "name": tenant_dict.get("name", "Default School"),
+        "code": school_code,
+        "school_code": school_code,
+        "address": tenant_dict.get("address", ""),
+        "phone": tenant_dict.get("contact_phone", ""),
+        "email": tenant_dict.get("contact_email", ""),
+        "is_active": True,
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow()
+    }
+    await db.schools.insert_one(school)
+    
+    # Auto-create an institution record
+    institution = {
+        "id": str(uuid.uuid4()),
+        "tenant_id": tenant.id,
+        "school_id": school["id"],
+        "school_name": tenant_dict.get("name", "Default School"),
+        "school_code": school_code,
+        "address": tenant_dict.get("address", ""),
+        "phone": tenant_dict.get("contact_phone", ""),
+        "email": tenant_dict.get("contact_email", ""),
+        "is_active": True,
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow()
+    }
+    await db.institutions.insert_one(institution)
+    
+    logging.info(f"Created tenant {tenant.id} with school {school['id']}")
     return tenant
 
 @api_router.get("/tenants/{tenant_id}")
