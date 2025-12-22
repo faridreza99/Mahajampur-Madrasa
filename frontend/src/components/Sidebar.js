@@ -144,16 +144,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           roles: ["super_admin", "admin", "teacher"],
         },
         {
-          title: "Add Student",
-          path: "/students/add",
-          roles: ["super_admin", "admin"],
-        },
-        {
-          title: "Bulk Upload",
-          path: "/students/import",
-          roles: ["super_admin", "admin"],
-        },
-        {
           title: "Admission Summary",
           path: "/admission-summary",
           roles: ["super_admin", "admin"],
