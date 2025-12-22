@@ -80,7 +80,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     };
 
     fetchAllowedModules();
-  }, [user]);
+  }, [user, location.pathname]);
 
   const t = (key) => i18n.t(key);
 
