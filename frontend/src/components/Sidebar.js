@@ -322,6 +322,20 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     },
   ];
 
+  // Module key mapping: sidebar keys to backend module names
+  const moduleKeyMapping = {
+    home: ["dashboard"],
+    academic: ["attendance", "results", "timetable", "calendar", "classes"],
+    students: ["students", "admission_summary"],
+    staff: ["staff"],
+    finance: ["fees", "accounts"],
+    aitools: ["academic_cms", "ai_assistant", "quiz_tool", "test_generator", "ai_summary", "ai_notes"],
+    reports: ["reports"],
+    certificates: ["certificates"],
+    communication: ["communication", "notifications"],
+    settings: ["settings", "vehicle_transport", "biometric_devices", "online_admission", "hss_module", "tenant_management"],
+  };
+
   // Don't show any menu items until modules are loaded (except for super_admin who sees all)
   const filteredMenuItems = menuItems.filter((item) => {
     const hasRole = item.roles.includes(user?.role);
@@ -336,13 +350,16 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       return false;
     }
 
-    // If no module restrictions set (empty array), show all role-allowed items
+    // If no module restrictions set (empty array or null), show all role-allowed items
     if (!allowedModules || allowedModules.length === 0) {
       return hasRole;
     }
 
-    // Check if this specific module is allowed
-    return hasRole && allowedModules.includes(item.key);
+    // Check if any of the mapped modules for this menu item are allowed
+    const mappedModules = moduleKeyMapping[item.key] || [item.key];
+    const hasAllowedModule = mappedModules.some(mod => allowedModules.includes(mod));
+    
+    return hasRole && hasAllowedModule;
   });
 
   // Flag to show loading state for non-super_admin users
