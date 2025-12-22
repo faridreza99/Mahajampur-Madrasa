@@ -137,11 +137,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           roles: ["student"],
         },
         {
-          title: "TimeTable",
-          path: "/settings/timetable",
-          roles: ["student"],
-        },
-        {
           title: "Calendar",
           path: "/calendar",
           roles: ["student"],
