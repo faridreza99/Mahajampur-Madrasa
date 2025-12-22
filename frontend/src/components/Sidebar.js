@@ -337,6 +337,35 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     settings: ["settings", "vehicle", "vehicle_transport", "biometric", "biometric_devices", "online-admission", "online_admission", "hss-module", "hss_module", "tenant_management"],
   };
 
+  // Sub-item module mapping: maps each sub-item path to its required module(s)
+  const subItemModuleMapping = {
+    "/ai-assistant": ["ai-assistant", "ai_assistant"],
+    "/quiz-tool": ["quiz-tool", "quiz_tool"],
+    "/test-generator": ["test-generator", "test_generator"],
+    "/ai-summary": ["ai-summary", "ai_summary"],
+    "/ai-notes": ["ai-notes", "ai_notes"],
+    "/ai-assistant/logs": ["ai-assistant", "ai_assistant"],
+    "/cms": ["cms", "academic_cms", "academic-cms"],
+    "/cms/view": ["cms", "academic_cms", "academic-cms"],
+    "/biometric": ["biometric", "biometric_devices", "biometric-devices"],
+    "/online-admission": ["online-admission", "online_admission"],
+    "/hss/students": ["hss-module", "hss_module"],
+    "/transport/routes": ["vehicle", "vehicle_transport", "vehicle-transport"],
+    "/certificates": ["certificates"],
+  };
+
+  // Helper to check if a sub-item should be visible based on allowed modules
+  const isSubItemAllowed = (subItemPath) => {
+    // Super admin sees all
+    if (user?.role === "super_admin") return true;
+    // No restrictions set - show all
+    if (!allowedModules || allowedModules.length === 0) return true;
+    // Check if this sub-item has module restrictions
+    const requiredModules = subItemModuleMapping[subItemPath];
+    if (!requiredModules) return true; // No mapping = always show
+    return requiredModules.some(mod => allowedModules.includes(mod));
+  };
+
   // Don't show any menu items until modules are loaded (except for super_admin who sees all)
   const filteredMenuItems = menuItems.filter((item) => {
     const hasRole = item.roles.includes(user?.role);
@@ -444,7 +473,8 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                     {item.subItems
                       .filter(
                         (subItem) =>
-                          !subItem.roles || subItem.roles.includes(user?.role),
+                          (!subItem.roles || subItem.roles.includes(user?.role)) &&
+                          isSubItemAllowed(subItem.path),
                       )
                       .map((subItem, index) => (
                         <button
