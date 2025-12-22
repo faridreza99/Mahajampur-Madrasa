@@ -23,7 +23,9 @@ import {
   CheckCircle,
   Plus,
   FileSpreadsheet,
-  FileText
+  FileText,
+  Trash2,
+  Edit
 } from 'lucide-react';
 
 const BiometricDevices = () => {
@@ -389,6 +391,27 @@ const BiometricDevices = () => {
     } catch (error) {
       console.error('Export failed:', error);
       toast.error('Failed to export device list');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteDevice = async (device) => {
+    if (!window.confirm(`Are you sure you want to delete "${device.device_name}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      await axios.delete(`${API_BASE_URL}/biometric/devices/${device.device_id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Device deleted successfully');
+      await fetchDevicesList();
+    } catch (error) {
+      console.error('Delete failed:', error);
+      toast.error(error.response?.data?.detail || 'Failed to delete device');
     } finally {
       setLoading(false);
     }
@@ -1073,16 +1096,25 @@ const BiometricDevices = () => {
                           </div>
                           
                           <div className="flex justify-between items-center mt-4 pt-3 border-t">
-                            <Button variant="outline" size="sm" onClick={() => handleEditDevice(device)}>
-                              <Settings className="h-3 w-3 mr-1" />
-                              Settings
-                            </Button>
-                            <div className="flex space-x-1">
-                              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
-                                <Wifi className="h-3 w-3 mr-1" />
-                                Connected
-                              </Badge>
+                            <div className="flex space-x-2">
+                              <Button variant="outline" size="sm" onClick={() => handleEditDevice(device)}>
+                                <Edit className="h-3 w-3 mr-1" />
+                                Edit
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                                onClick={() => handleDeleteDevice(device)}
+                              >
+                                <Trash2 className="h-3 w-3 mr-1" />
+                                Delete
+                              </Button>
                             </div>
+                            <Badge variant="outline" className={`text-xs ${device.status === 'active' ? 'bg-blue-50 text-blue-700' : 'bg-gray-50 text-gray-500'}`}>
+                              <Wifi className="h-3 w-3 mr-1" />
+                              {device.status === 'active' ? 'Connected' : 'Disconnected'}
+                            </Badge>
                           </div>
                         </CardContent>
                       </Card>

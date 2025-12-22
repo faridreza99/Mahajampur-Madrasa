@@ -9544,49 +9544,44 @@ async def get_biometric_devices(
     format: str = "json",
     current_user: User = Depends(get_current_user)
 ):
-    """Get biometric device list and settings"""
+    """Get biometric device list and settings from database"""
     try:
         from datetime import datetime, timedelta
-        import random
         
-        # Generate sample device data
+        # Get devices from MongoDB
+        devices_collection = db["biometric_devices"]
+        cursor = devices_collection.find({
+            "tenant_id": current_user.tenant_id
+        }).sort("created_at", -1)
+        
         devices = []
-        device_locations = [
-            ("Main Entrance", "Ground Floor", "Entry Point"),
-            ("Staff Room", "First Floor", "Staff Area"),
-            ("Admin Block", "Second Floor", "Administrative"),
-            ("Library", "Ground Floor", "Academic Area"),
-            ("Lab Block", "First Floor", "Laboratory"),
-            ("Principal Office", "Second Floor", "Executive"),
-            ("Cafeteria", "Ground Floor", "Common Area"),
-            ("Parking Gate", "Ground Level", "Parking")
-        ]
-        
-        for i, (name, location, area_type) in enumerate(device_locations):
-            device = {
-                "device_id": f"DEV{str(i+1).zfill(3)}",
-                "device_name": name,
-                "device_model": random.choice(["ZKTeco K40", "ZKTeco K30", "ZKTeco F18", "ZKTeco MA300"]),
-                "location": location,
-                "area_type": area_type,
-                "ip_address": f"192.168.1.{i+10}",
-                "mac_address": f"00:1B:21:3C:{i+40:02X}:1A",
-                "status": random.choice(["Online", "Online", "Online", "Offline"]),
-                "last_sync": (datetime.now() - timedelta(minutes=random.randint(1, 120))).strftime("%Y-%m-%d %H:%M:%S"),
-                "total_users": random.randint(50, 150),
-                "daily_punches": random.randint(80, 200),
-                "storage_used": f"{random.randint(45, 85)}%",
-                "firmware_version": f"Ver {random.randint(3, 6)}.{random.randint(0, 5)}.{random.randint(1, 9)}",
-                "installation_date": (datetime.now() - timedelta(days=random.randint(90, 730))).strftime("%Y-%m-%d"),
-                "maintenance_due": (datetime.now() + timedelta(days=random.randint(30, 90))).strftime("%Y-%m-%d")
-            }
-            devices.append(device)
+        async for device in cursor:
+            devices.append({
+                "device_id": device.get("device_id"),
+                "device_name": device.get("device_name"),
+                "device_model": device.get("device_model"),
+                "location": device.get("location"),
+                "area_type": device.get("area_type", "General"),
+                "ip_address": device.get("ip_address"),
+                "port": device.get("port", 4370),
+                "mac_address": device.get("mac_address", ""),
+                "status": device.get("status", "active"),
+                "last_sync": device.get("last_sync", "Never"),
+                "total_users": device.get("total_users", 0),
+                "daily_punches": device.get("daily_punches", 0),
+                "storage_used": device.get("storage_used", "0%"),
+                "firmware_version": device.get("firmware_version", "Unknown"),
+                "description": device.get("description", ""),
+                "created_at": device.get("created_at").strftime("%Y-%m-%d %H:%M:%S") if device.get("created_at") else "",
+                "created_by": device.get("created_by", "")
+            })
         
         # Calculate summary statistics
         total_devices = len(devices)
-        online_devices = len([d for d in devices if d["status"] == "Online"])
-        offline_devices = total_devices - online_devices
-        total_daily_punches = sum([d["daily_punches"] for d in devices])
+        online_devices = len([d for d in devices if d["status"] == "active"])
+        offline_devices = len([d for d in devices if d["status"] == "inactive"])
+        maintenance_devices = len([d for d in devices if d["status"] == "maintenance"])
+        total_daily_punches = sum([d.get("daily_punches", 0) for d in devices])
         
         # Prepare report data for export
         report_data = {
@@ -9596,8 +9591,8 @@ async def get_biometric_devices(
                 "total_devices": total_devices,
                 "online_devices": online_devices,
                 "offline_devices": offline_devices,
-                "total_daily_punches": total_daily_punches,
-                "average_storage_used": f"{round(sum([int(d['storage_used'].rstrip('%')) for d in devices]) / total_devices)}%"
+                "maintenance_devices": maintenance_devices,
+                "total_daily_punches": total_daily_punches
             },
             "devices": devices
         }
@@ -9619,8 +9614,8 @@ async def get_biometric_devices(
                     "total_devices": total_devices,
                     "online_devices": online_devices,
                     "offline_devices": offline_devices,
-                    "total_daily_punches": total_daily_punches,
-                    "average_storage_used": f"{round(sum([int(d['storage_used'].rstrip('%')) for d in devices]) / total_devices)}%"
+                    "maintenance_devices": maintenance_devices,
+                    "total_daily_punches": total_daily_punches
                 }
             }
         
@@ -9816,10 +9811,10 @@ async def add_biometric_device(
     device_data: dict,
     current_user: User = Depends(get_current_user)
 ):
-    """Add new biometric device"""
+    """Add new biometric device to database"""
     try:
         from datetime import datetime
-        import random
+        import uuid
         
         # Validate required fields
         required_fields = ["device_name", "device_model", "ip_address", "location"]
@@ -9827,8 +9822,18 @@ async def add_biometric_device(
             if field not in device_data or not device_data[field]:
                 raise HTTPException(status_code=400, detail=f"Missing required field: {field}")
         
-        # Generate device ID
-        device_id = f"DEV{str(random.randint(100, 999)).zfill(3)}"
+        # Check if IP address already exists for this tenant
+        devices_collection = db["biometric_devices"]
+        existing = await devices_collection.find_one({
+            "tenant_id": current_user.tenant_id,
+            "ip_address": device_data["ip_address"]
+        })
+        if existing:
+            raise HTTPException(status_code=400, detail="A device with this IP address already exists")
+        
+        # Generate unique device ID
+        device_count = await devices_collection.count_documents({"tenant_id": current_user.tenant_id})
+        device_id = f"DEV{str(device_count + 1).zfill(3)}"
         
         # Create device record
         new_device = {
@@ -9836,10 +9841,17 @@ async def add_biometric_device(
             "device_name": device_data["device_name"],
             "device_model": device_data["device_model"],
             "ip_address": device_data["ip_address"],
-            "port": device_data.get("port", 4370),
+            "port": int(device_data.get("port", 4370)),
             "location": device_data["location"],
+            "area_type": device_data.get("area_type", "General"),
             "status": device_data.get("status", "active"),
             "description": device_data.get("description", ""),
+            "mac_address": device_data.get("mac_address", ""),
+            "firmware_version": device_data.get("firmware_version", "Unknown"),
+            "last_sync": "Never",
+            "total_users": 0,
+            "daily_punches": 0,
+            "storage_used": "0%",
             "tenant_id": current_user.tenant_id,
             "school_id": current_user.school_id,
             "created_at": datetime.now(),
@@ -9847,15 +9859,14 @@ async def add_biometric_device(
             "created_by": current_user.email
         }
         
-        # For now, store in a simple list (later can be moved to database)
-        # In a real implementation, you would save to MongoDB:
-        # result = await db.biometric_devices.insert_one(new_device)
+        # Save to MongoDB
+        result = await devices_collection.insert_one(new_device)
         
         logger.info(f"New biometric device added: {device_data['device_name']} by {current_user.email}")
         
         return {
             "message": "Device added successfully",
-            "device": new_device,
+            "device": {**new_device, "_id": str(result.inserted_id)},
             "device_id": device_id
         }
         
@@ -9871,40 +9882,58 @@ async def update_biometric_device(
     device_data: dict,
     current_user: User = Depends(get_current_user)
 ):
-    """Update existing biometric device"""
+    """Update existing biometric device in database"""
     try:
         from datetime import datetime
         
-        # Validate device exists (in real implementation, query database)
-        if not device_id.startswith("DEV"):
+        devices_collection = db["biometric_devices"]
+        
+        # Find existing device
+        existing = await devices_collection.find_one({
+            "device_id": device_id,
+            "tenant_id": current_user.tenant_id
+        })
+        
+        if not existing:
             raise HTTPException(status_code=404, detail="Device not found")
         
+        # Check if IP address changed and already exists
+        if device_data.get("ip_address") and device_data["ip_address"] != existing.get("ip_address"):
+            ip_exists = await devices_collection.find_one({
+                "tenant_id": current_user.tenant_id,
+                "ip_address": device_data["ip_address"],
+                "device_id": {"$ne": device_id}
+            })
+            if ip_exists:
+                raise HTTPException(status_code=400, detail="A device with this IP address already exists")
+        
         # Update device record
-        updated_device = {
-            "device_id": device_id,
-            "device_name": device_data.get("device_name"),
-            "device_model": device_data.get("device_model"),
-            "ip_address": device_data.get("ip_address"),
-            "port": device_data.get("port", 4370),
-            "location": device_data.get("location"),
-            "status": device_data.get("status", "active"),
-            "description": device_data.get("description", ""),
+        update_data = {
+            "device_name": device_data.get("device_name", existing.get("device_name")),
+            "device_model": device_data.get("device_model", existing.get("device_model")),
+            "ip_address": device_data.get("ip_address", existing.get("ip_address")),
+            "port": int(device_data.get("port", existing.get("port", 4370))),
+            "location": device_data.get("location", existing.get("location")),
+            "status": device_data.get("status", existing.get("status", "active")),
+            "description": device_data.get("description", existing.get("description", "")),
             "updated_at": datetime.now(),
             "updated_by": current_user.email
         }
         
-        # For now, simulate update (later can be moved to database)
-        # In a real implementation, you would update in MongoDB:
-        # result = await db.biometric_devices.update_one(
-        #     {"device_id": device_id, "tenant_id": current_user.tenant_id},
-        #     {"$set": updated_device}
-        # )
+        # Update in MongoDB
+        result = await devices_collection.update_one(
+            {"device_id": device_id, "tenant_id": current_user.tenant_id},
+            {"$set": update_data}
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=400, detail="No changes made")
         
         logger.info(f"Biometric device updated: {device_id} by {current_user.email}")
         
         return {
             "message": "Device updated successfully",
-            "device": updated_device
+            "device": {**update_data, "device_id": device_id}
         }
         
     except HTTPException:
@@ -9912,6 +9941,46 @@ async def update_biometric_device(
     except Exception as e:
         logger.error(f"Device update failed: {e}")
         raise HTTPException(status_code=500, detail="Failed to update device")
+
+@api_router.delete("/biometric/devices/{device_id}")
+async def delete_biometric_device(
+    device_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a biometric device from database"""
+    try:
+        devices_collection = db["biometric_devices"]
+        
+        # Find existing device
+        existing = await devices_collection.find_one({
+            "device_id": device_id,
+            "tenant_id": current_user.tenant_id
+        })
+        
+        if not existing:
+            raise HTTPException(status_code=404, detail="Device not found")
+        
+        # Delete from MongoDB
+        result = await devices_collection.delete_one({
+            "device_id": device_id,
+            "tenant_id": current_user.tenant_id
+        })
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=400, detail="Failed to delete device")
+        
+        logger.info(f"Biometric device deleted: {device_id} by {current_user.email}")
+        
+        return {
+            "message": "Device deleted successfully",
+            "device_id": device_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Device deletion failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete device")
 
 @api_router.post("/biometric/punch")
 async def receive_punch_data(
