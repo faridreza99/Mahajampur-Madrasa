@@ -188,12 +188,12 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       key: "staff",
       title: "Staff",
       icon: UserCheck,
-      roles: ["super_admin", "admin", "teacher", "student"],
+      roles: ["super_admin", "admin", "teacher"],
       subItems: [
         {
           title: "Staff List",
           path: "/staff",
-          roles: ["super_admin", "admin", "teacher", "student"],
+          roles: ["super_admin", "admin", "teacher"],
         },
         {
           title: "Add Staff",
@@ -239,7 +239,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       key: "content",
       title: "Content",
       icon: BookOpen,
-      roles: ["super_admin", "admin", "teacher", "student"],
+      roles: ["super_admin", "admin", "teacher"],
       subItems: [
         {
           title: "Academic CMS",
@@ -249,7 +249,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         {
           title: "View Content",
           path: "/cms/view",
-          roles: ["teacher", "student"],
+          roles: ["teacher"],
         },
       ],
     },
