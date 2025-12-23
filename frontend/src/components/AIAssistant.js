@@ -18,11 +18,13 @@ export default function AIAssistant() {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const messagesEndRef = useRef(null);
+  const chatContainerRef = useRef(null);
   const inputRef = useRef(null);
-  const containerRef = useRef(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
   };
 
   useEffect(() => {
@@ -183,148 +185,154 @@ export default function AIAssistant() {
 
   return (
     <div 
-      ref={containerRef}
-      className="flex flex-col gap-2 sm:gap-3 p-1 sm:p-3 md:p-4 overflow-hidden"
-      style={{ height: `calc(100dvh - ${keyboardHeight}px - 60px)` }}
+      className="flex flex-col p-2 sm:p-3 lg:p-4 bg-gray-50 dark:bg-gray-900"
+      style={{ height: `calc(100dvh - 64px - ${keyboardHeight}px)` }}
     >
-      {/* Header */}
-      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-        <div className="p-1.5 sm:p-2 bg-purple-100 rounded-lg">
-          <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
+      {/* Compact Header */}
+      <div className="flex items-center gap-2 mb-2 shrink-0">
+        <div className="p-1.5 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+          <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400" />
         </div>
-        <div>
-          <h1 className="text-lg sm:text-xl font-bold">GiNi AI Assistant</h1>
-          <p className="text-xs sm:text-sm text-gray-600">
-            Academic AI with source-based answers
-          </p>
+        <div className="min-w-0">
+          <h1 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white truncate">
+            GiNi AI Assistant
+          </h1>
         </div>
       </div>
 
-      {/* Source Filter */}
-      <Card>
-        <CardContent className="p-3 sm:p-4">
-          <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
-            <span className="text-sm font-medium">Answer Source</span>
-            <select
-              value={answerSource}
-              onChange={(e) => setAnswerSource(e.target.value)}
-              className="w-full sm:flex-1 border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500"
-            >
-              <option value="">All Sources</option>
-              <option value="Academic Book">Academic Books</option>
-              <option value="Reference Book">Reference Books</option>
-            </select>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Compact Source Filter */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-2 mb-2 shrink-0">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">Source:</span>
+          <select
+            value={answerSource}
+            onChange={(e) => setAnswerSource(e.target.value)}
+            className="flex-1 min-w-0 border border-gray-200 dark:border-gray-600 rounded-md px-2 py-1 text-xs bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-1 focus:ring-purple-500 focus:outline-none"
+          >
+            <option value="">All Sources</option>
+            <option value="Academic Book">Academic Books</option>
+            <option value="Reference Book">Reference Books</option>
+          </select>
+        </div>
+      </div>
 
-      {/* Chat */}
-      <Card className="flex-1 min-h-0 flex flex-col">
-        <CardHeader className="border-b">
-          <CardTitle className="flex gap-2 items-center text-sm">
-            <Bot className="h-5 w-5" /> Chat
-          </CardTitle>
-        </CardHeader>
+      {/* Chat Area - Takes remaining space */}
+      <div className="flex-1 min-h-0 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden">
+        {/* Chat Header */}
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-700 shrink-0">
+          <Bot className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+          <span className="text-sm font-medium text-gray-900 dark:text-white">Chat</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">GPT-4o Turbo</span>
+        </div>
 
-        <CardContent className="flex-1 min-h-0 overflow-y-auto px-2 sm:px-4 py-3 space-y-4">
+        {/* Messages Container - Scrollable */}
+        <div 
+          ref={chatContainerRef}
+          className="flex-1 overflow-y-auto px-2 sm:px-3 py-2 space-y-3"
+        >
+          {messages.length === 0 && (
+            <div className="flex flex-col items-center justify-center h-full text-center py-8">
+              <Bot className="h-10 w-10 text-gray-300 dark:text-gray-600 mb-2" />
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Ask me anything about your academic content
+              </p>
+            </div>
+          )}
+
           {messages.map((m, i) => (
             <div
               key={i}
-              className={`flex ${
-                m.role === "user" ? "justify-end" : "justify-start"
-              } gap-2`}
+              className={`flex ${m.role === "user" ? "justify-end" : "justify-start"} gap-1.5`}
             >
               {m.role === "assistant" && (
-                <div className="p-2 bg-purple-100 rounded-full">
-                  <Bot className="h-4 w-4 text-purple-600" />
+                <div className="p-1.5 bg-purple-100 dark:bg-purple-900/30 rounded-full h-fit shrink-0">
+                  <Bot className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
                 </div>
               )}
 
               <div
-                className={`rounded-lg p-3 text-sm sm:text-base max-w-[90%] sm:max-w-[80%] md:max-w-[70%] lg:max-w-[60%]
+                className={`rounded-lg px-3 py-2 text-sm max-w-[85%] sm:max-w-[75%]
                 ${
                   m.role === "user"
                     ? "bg-emerald-500 text-white"
                     : m.error
-                      ? "bg-red-50 text-red-800"
-                      : "bg-gray-100"
+                      ? "bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-300"
+                      : "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 }`}
               >
-                <p className="whitespace-pre-wrap">{m.content}</p>
+                <p className="whitespace-pre-wrap leading-relaxed">{m.content}</p>
 
                 {m.role === "assistant" && !m.error && (
                   <button
                     onClick={() => playVoice(m.content)}
-                    className="mt-2 flex items-center gap-1 text-xs opacity-70 hover:opacity-100"
+                    className="mt-1.5 flex items-center gap-1 text-xs opacity-60 hover:opacity-100 transition-opacity"
                   >
-                    <Volume2 className="h-3 w-3" /> Play audio
+                    <Volume2 className="h-3 w-3" /> Listen
                   </button>
                 )}
               </div>
 
               {m.role === "user" && (
-                <div className="p-2 bg-emerald-100 rounded-full">
-                  <User className="h-4 w-4 text-emerald-600" />
+                <div className="p-1.5 bg-emerald-100 dark:bg-emerald-900/30 rounded-full h-fit shrink-0">
+                  <User className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                 </div>
               )}
             </div>
           ))}
 
           {loading && (
-            <div className="flex gap-2">
-              <Bot className="h-5 w-5 text-purple-600" />
-              <Loader className="h-5 w-5 animate-spin" />
+            <div className="flex gap-1.5 items-center">
+              <div className="p-1.5 bg-purple-100 dark:bg-purple-900/30 rounded-full">
+                <Bot className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div className="bg-gray-100 dark:bg-gray-700 rounded-lg px-3 py-2">
+                <Loader className="h-4 w-4 animate-spin text-gray-500" />
+              </div>
             </div>
           )}
 
           <div ref={messagesEndRef} />
-        </CardContent>
+        </div>
 
-        {/* Input */}
-        <div className="border-t p-2 sm:p-4 sticky bottom-0 bg-white z-10">
-          {/* Container: Flex row, center items, small gap */}
-          <div className="flex flex-row items-center gap-2 max-w-screen-xl mx-auto">
-            {/* MIC BUTTON */}
+        {/* Input Area - Fixed at bottom */}
+        <div className="border-t border-gray-200 dark:border-gray-700 p-2 shrink-0 bg-white dark:bg-gray-800">
+          <div className="flex items-center gap-2 max-w-4xl mx-auto">
             <Button
               size="icon"
               variant="outline"
               onClick={isRecording ? stopRecording : startRecording}
               disabled={loading}
-              /* FIX 1: shrink-0 keeps the button from disappearing or squishing */
-              className={`h-10 w-10 shrink-0 rounded-full ${
-                isRecording ? "bg-red-100 border-red-200" : ""
+              className={`h-9 w-9 shrink-0 rounded-full border-gray-200 dark:border-gray-600 ${
+                isRecording ? "bg-red-100 dark:bg-red-900/30 border-red-200 dark:border-red-700" : ""
               }`}
             >
               <Mic
-                className={`h-4 w-4 ${isRecording ? "text-red-600 animate-pulse" : "text-gray-500"}`}
+                className={`h-4 w-4 ${isRecording ? "text-red-600 animate-pulse" : "text-gray-500 dark:text-gray-400"}`}
               />
             </Button>
 
-            {/* INPUT FIELD */}
             <input
               ref={inputRef}
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
               onFocus={handleInputFocus}
-              placeholder="Ask..."
+              placeholder="Ask a question..."
               disabled={loading}
-              className="flex-1 min-w-0 border rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-gray-50"
+              className="flex-1 min-w-0 border border-gray-200 dark:border-gray-600 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500"
             />
 
-            {/* SEND BUTTON */}
             <Button
               size="icon"
               onClick={sendMessage}
               disabled={loading || !inputMessage.trim()}
-              /* FIX 3: shrink-0 ensures this button never gets pushed off screen */
-              className="h-10 w-10 shrink-0 rounded-full bg-purple-600 hover:bg-purple-700 transition-colors"
+              className="h-9 w-9 shrink-0 rounded-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50"
             >
               <Send className="h-4 w-4 text-white" />
             </Button>
           </div>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

@@ -19129,7 +19129,7 @@ Remember: You are GiNi, a SCHOOL assistant. Stay strictly within academic bounda
         
         # STEP 4: Get AI response from GPT
         response = await openai_client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4o",
             messages=messages,
             temperature=0.7,
             max_tokens=800
@@ -19154,7 +19154,7 @@ Remember: You are GiNi, a SCHOOL assistant. Stay strictly within academic bounda
             "question": question,
             "question_type": question_type,
             "answer": ai_answer,
-            "model": "gpt-4o-mini",
+            "model": "gpt-4o",
             "tokens_used": response.usage.total_tokens,
             "source": response_source,
             "answer_source_filter": answer_source,
@@ -19804,7 +19804,7 @@ Format as JSON array:
 [{{"question": "...", "answer": "...", "tag": "..."}}]"""
             
             response = await openai_client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4o",
                 messages=[
                     {"role": "system", "content": "You are a quiz generator for school students. Generate educational questions."},
                     {"role": "user", "content": prompt}
@@ -20420,7 +20420,7 @@ Format as JSON array:
 }}]"""
             
             response = await openai_client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4o",
                 messages=[
                     {"role": "system", "content": "You are an expert exam question generator for schools. Create balanced, curriculum-aligned questions."},
                     {"role": "user", "content": prompt}
@@ -21283,7 +21283,7 @@ Make it educational, clear, and appropriate for Class {class_standard} students.
 Use simple language and include definitions where necessary."""
         
         response = await openai_client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4o",
             messages=[
                 {"role": "system", "content": "You are an expert educational content creator for schools. Generate clear, curriculum-aligned summaries."},
                 {"role": "user", "content": prompt}
@@ -21621,7 +21621,7 @@ Make notes comprehensive, well-structured, and suitable for Class {class_standar
 Use clear language, proper formatting, and include diagrams descriptions where helpful."""
         
         response = await openai_client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4o",
             messages=[
                 {"role": "system", "content": "You are an expert teacher creating detailed study notes. Make notes comprehensive, well-organized, and student-friendly."},
                 {"role": "user", "content": prompt}
