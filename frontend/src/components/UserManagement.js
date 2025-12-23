@@ -331,23 +331,23 @@ const UserManagement = () => {
   };
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <Shield className="h-6 w-6" />
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="min-w-0">
+          <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+            <Shield className="h-5 w-5 sm:h-6 sm:w-6" />
             User Management
           </h2>
-          <p className="text-gray-500 text-sm mt-1">
+          <p className="text-gray-500 text-xs sm:text-sm mt-1 truncate">
             Manage system users, roles, and permissions (Super Admin Only)
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={handleViewAuditLogs} variant="outline">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Button onClick={handleViewAuditLogs} variant="outline" className="w-full sm:w-auto text-xs sm:text-sm h-9">
             View Audit Logs
           </Button>
-          <Button onClick={() => setIsCreateUserModalOpen(true)}>
+          <Button onClick={() => setIsCreateUserModalOpen(true)} className="w-full sm:w-auto text-xs sm:text-sm h-9">
             <Plus className="h-4 w-4 mr-2" />
             Create User
           </Button>
@@ -356,50 +356,51 @@ const UserManagement = () => {
 
       {/* Users Table */}
       <Card>
-        <CardHeader>
-          <CardTitle>All Users</CardTitle>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-lg sm:text-xl">All Users</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0 sm:p-6">
           {loading && users.length === 0 ? (
             <p className="text-center text-gray-500 py-8">Loading users...</p>
           ) : users.length === 0 ? (
             <p className="text-center text-gray-500 py-8">No users found</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
+            <div className="overflow-x-auto min-w-0">
+              <table className="w-full min-w-[800px] sm:min-w-0">
                 <thead>
-                  <tr className="border-b">
-                    <th className="text-left p-3 font-semibold">Name</th>
-                    <th className="text-left p-3 font-semibold">Email</th>
-                    <th className="text-left p-3 font-semibold">Username</th>
-                    <th className="text-left p-3 font-semibold">Role</th>
-                    <th className="text-left p-3 font-semibold">Status</th>
-                    <th className="text-left p-3 font-semibold">Actions</th>
+                  <tr className="border-b bg-muted/50">
+                    <th className="text-left p-3 sm:p-4 font-semibold text-xs sm:text-sm">Name</th>
+                    <th className="text-left p-3 sm:p-4 font-semibold text-xs sm:text-sm">Email</th>
+                    <th className="text-left p-3 sm:p-4 font-semibold text-xs sm:text-sm">Username</th>
+                    <th className="text-left p-3 sm:p-4 font-semibold text-xs sm:text-sm">Role</th>
+                    <th className="text-left p-3 sm:p-4 font-semibold text-xs sm:text-sm">Status</th>
+                    <th className="text-right p-3 sm:p-4 font-semibold text-xs sm:text-sm">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {users.map((user) => (
-                    <tr key={user.id} className="border-b hover:bg-gray-50">
-                      <td className="p-3">{user.full_name}</td>
-                      <td className="p-3">{user.email}</td>
-                      <td className="p-3">{user.username}</td>
-                      <td className="p-3">
-                        <Badge variant={user.role === 'super_admin' ? 'destructive' : 'default'}>
+                    <tr key={user.id} className="border-b hover:bg-gray-50 transition-colors">
+                      <td className="p-3 sm:p-4 text-xs sm:text-sm">{user.full_name}</td>
+                      <td className="p-3 sm:p-4 text-xs sm:text-sm">{user.email}</td>
+                      <td className="p-3 sm:p-4 text-xs sm:text-sm">{user.username}</td>
+                      <td className="p-3 sm:p-4">
+                        <Badge variant={user.role === 'super_admin' ? 'destructive' : 'default'} className="text-[10px] sm:text-xs">
                           {user.role.replace('_', ' ').toUpperCase()}
                         </Badge>
                       </td>
-                      <td className="p-3">
+                      <td className="p-3 sm:p-4">
                         {user.is_active ? (
-                          <Badge variant="success" className="bg-green-500">Active</Badge>
+                          <Badge variant="success" className="bg-green-500 text-[10px] sm:text-xs">Active</Badge>
                         ) : (
-                          <Badge variant="secondary">Suspended</Badge>
+                          <Badge variant="secondary" className="text-[10px] sm:text-xs">Suspended</Badge>
                         )}
                       </td>
-                      <td className="p-3">
-                        <div className="flex gap-2">
+                      <td className="p-3 sm:p-4">
+                        <div className="flex justify-end flex-wrap gap-1 sm:gap-2">
                           <Button
                             size="sm"
                             variant="outline"
+                            className="h-7 sm:h-8 px-2 text-[10px] sm:text-xs"
                             onClick={() => handleEditUser(user)}
                           >
                             <Edit className="h-3 w-3 mr-1" />
@@ -408,6 +409,7 @@ const UserManagement = () => {
                           <Button
                             size="sm"
                             variant="outline"
+                            className="h-7 sm:h-8 px-2 text-[10px] sm:text-xs"
                             onClick={() => handleOpenResetPassword(user)}
                           >
                             <Key className="h-3 w-3 mr-1" />
@@ -417,6 +419,7 @@ const UserManagement = () => {
                             <Button
                               size="sm"
                               variant="destructive"
+                              className="h-7 sm:h-8 px-2 text-[10px] sm:text-xs"
                               onClick={() => handleOpenStatusChange(user, 'suspend')}
                             >
                               <UserX className="h-3 w-3 mr-1" />
@@ -426,6 +429,7 @@ const UserManagement = () => {
                             <Button
                               size="sm"
                               variant="default"
+                              className="h-7 sm:h-8 px-2 text-[10px] sm:text-xs"
                               onClick={() => handleOpenStatusChange(user, 'activate')}
                             >
                               <UserCheck className="h-3 w-3 mr-1" />
@@ -436,7 +440,7 @@ const UserManagement = () => {
                             <Button
                               size="sm"
                               variant="destructive"
-                              className="bg-red-600 hover:bg-red-700"
+                              className="h-7 sm:h-8 px-2 text-[10px] sm:text-xs bg-red-600 hover:bg-red-700"
                               onClick={() => handleOpenDeleteUser(user)}
                             >
                               <Trash2 className="h-3 w-3 mr-1" />
@@ -453,6 +457,7 @@ const UserManagement = () => {
           )}
         </CardContent>
       </Card>
+
 
       {/* Create User Modal */}
       <Dialog open={isCreateUserModalOpen} onOpenChange={setIsCreateUserModalOpen}>

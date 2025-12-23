@@ -2300,19 +2300,19 @@ const Settings = () => {
   ];
 
   return (
-    <div className="space-y-4 sm:space-y-6 fade-in">
+    <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6 max-w-[1600px] mx-auto min-w-0 overflow-hidden">
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-2">
         <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">Settings</h1>
-          <p className="text-xs sm:text-sm text-gray-600 mt-1">Configure system settings and preferences</p>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-gray-900">Settings</h1>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">Configure system parameters, institution details, and user permissions.</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <Button variant="outline" size="sm" className="text-xs sm:text-sm h-8 sm:h-9">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+          <Button variant="outline" size="sm" className="text-xs sm:text-sm h-8 sm:h-9 whitespace-nowrap">
             <Database className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             Backup
           </Button>
-          <Button className="bg-emerald-500 hover:bg-emerald-600 text-xs sm:text-sm h-8 sm:h-9">
+          <Button className="bg-emerald-500 hover:bg-emerald-600 text-xs sm:text-sm h-8 sm:h-9 whitespace-nowrap">
             <SettingsIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             Config
           </Button>
@@ -2320,105 +2320,105 @@ const Settings = () => {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-        <Card className="card-hover">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+        <Card className="hover:shadow-md transition-shadow">
           <CardContent className="p-3 sm:p-4 md:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm font-medium text-gray-600">Active Settings</p>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Active Settings</p>
                 <p className="text-lg sm:text-2xl md:text-3xl font-bold text-gray-900">{activeSettings}</p>
               </div>
-              <SettingsIcon className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-blue-500" />
+              <SettingsIcon className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-blue-500 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
-        <Card className="card-hover">
+        <Card className="hover:shadow-md transition-shadow">
           <CardContent className="p-3 sm:p-4 md:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm font-medium text-gray-600">User Roles</p>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">User Roles</p>
                 <p className="text-lg sm:text-2xl md:text-3xl font-bold text-emerald-600">5</p>
               </div>
-              <Users className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-emerald-500" />
+              <Users className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-emerald-500 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
-        <Card className="card-hover">
+        <Card className="hover:shadow-md transition-shadow">
           <CardContent className="p-3 sm:p-4 md:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm font-medium text-gray-600">Permissions</p>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Permissions</p>
                 <p className="text-lg sm:text-2xl md:text-3xl font-bold text-purple-600">24</p>
               </div>
-              <Shield className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-purple-500" />
+              <Shield className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-purple-500 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
-        <Card className="card-hover">
+        <Card className="hover:shadow-md transition-shadow">
           <CardContent className="p-3 sm:p-4 md:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm font-medium text-gray-600">Last Backup</p>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Last Backup</p>
                 <p className="text-sm sm:text-base md:text-lg font-bold text-orange-600">2 hours ago</p>
               </div>
-              <Database className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-orange-500" />
+              <Database className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-orange-500 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Settings Categories Tabs */}
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <div className="overflow-x-auto">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full space-y-4">
+        <div className="overflow-x-auto pb-2 scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0">
           <TabsList className="inline-flex w-auto min-w-full lg:grid lg:w-full lg:grid-cols-7 h-auto">
-            <TabsTrigger value="academic" className="text-[10px] sm:text-xs lg:text-sm py-2 px-2 sm:px-3 whitespace-nowrap">Academic Period</TabsTrigger>
-            <TabsTrigger value="classes" className="text-[10px] sm:text-xs lg:text-sm py-2 px-2 sm:px-3 whitespace-nowrap">Manage Classes</TabsTrigger>
-            <TabsTrigger value="timetable" className="text-[10px] sm:text-xs lg:text-sm py-2 px-2 sm:px-3 whitespace-nowrap">Time Table</TabsTrigger>
-            <TabsTrigger value="institution" className="text-[10px] sm:text-xs lg:text-sm py-2 px-2 sm:px-3 whitespace-nowrap">Institution</TabsTrigger>
-            <TabsTrigger value="staff-settings" className="text-[10px] sm:text-xs lg:text-sm py-2 px-2 sm:px-3 whitespace-nowrap">Staff Setting</TabsTrigger>
-            <TabsTrigger value="permissions" className="text-[10px] sm:text-xs lg:text-sm py-2 px-2 sm:px-3 whitespace-nowrap">Permission</TabsTrigger>
-            <TabsTrigger value="user-management" className="text-[10px] sm:text-xs lg:text-sm py-2 px-2 sm:px-3 whitespace-nowrap">User Management</TabsTrigger>
+            <TabsTrigger value="academic" className="text-[10px] sm:text-xs lg:text-sm py-2 px-3 whitespace-nowrap">Academic Period</TabsTrigger>
+            <TabsTrigger value="classes" className="text-[10px] sm:text-xs lg:text-sm py-2 px-3 whitespace-nowrap">Manage Classes</TabsTrigger>
+            <TabsTrigger value="timetable" className="text-[10px] sm:text-xs lg:text-sm py-2 px-3 whitespace-nowrap">Time Table</TabsTrigger>
+            <TabsTrigger value="institution" className="text-[10px] sm:text-xs lg:text-sm py-2 px-3 whitespace-nowrap">Institution</TabsTrigger>
+            <TabsTrigger value="staff-settings" className="text-[10px] sm:text-xs lg:text-sm py-2 px-3 whitespace-nowrap">Staff Setting</TabsTrigger>
+            <TabsTrigger value="permissions" className="text-[10px] sm:text-xs lg:text-sm py-2 px-3 whitespace-nowrap">Permission</TabsTrigger>
+            <TabsTrigger value="user-management" className="text-[10px] sm:text-xs lg:text-sm py-2 px-3 whitespace-nowrap">User Management</TabsTrigger>
           </TabsList>
         </div>
 
-        <TabsContent value="academic" className="space-y-4">
+        <TabsContent value="academic" className="space-y-4 sm:space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
                 <Calendar className="h-5 w-5 text-blue-500" />
                 <span>Academic Period Configuration</span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <CardContent className="p-4 sm:p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 <div className="space-y-4">
-                  <div className="p-4 border border-gray-200 rounded-lg">
-                    <h4 className="font-medium mb-2">Academic Year 2024-25</h4>
-                    <p className="text-sm text-gray-600 mb-3">Configure academic year dates and terms</p>
-                    <div className="flex space-x-2">
-                      <Badge variant="secondary">Active</Badge>
-                      <Button size="sm" variant="outline" onClick={handleEditAcademicYear}>Edit</Button>
+                  <div className="p-3 sm:p-4 border border-gray-200 rounded-lg">
+                    <h4 className="font-medium mb-2 text-sm sm:text-base">Academic Year 2024-25</h4>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-3">Configure academic year dates and terms</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="secondary" className="text-[10px] sm:text-xs">Active</Badge>
+                      <Button size="sm" variant="outline" className="h-8 text-xs sm:text-sm" onClick={handleEditAcademicYear}>Edit</Button>
                     </div>
                   </div>
                   
-                  <div className="p-4 border border-gray-200 rounded-lg">
-                    <h4 className="font-medium mb-2">Semester System</h4>
-                    <p className="text-sm text-gray-600 mb-3">Configure semester or trimester system</p>
-                    <Button size="sm" variant="outline" onClick={handleConfigureSemesterSystem}>Configure</Button>
+                  <div className="p-3 sm:p-4 border border-gray-200 rounded-lg">
+                    <h4 className="font-medium mb-2 text-sm sm:text-base">Semester System</h4>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-3">Configure semester or trimester system</p>
+                    <Button size="sm" variant="outline" className="h-8 text-xs sm:text-sm" onClick={handleConfigureSemesterSystem}>Configure</Button>
                   </div>
                 </div>
                 
                 <div className="space-y-4">
-                  <div className="p-4 border border-gray-200 rounded-lg">
-                    <h4 className="font-medium mb-2">Holiday Calendar</h4>
-                    <p className="text-sm text-gray-600 mb-3">Set public holidays and school breaks</p>
-                    <Button size="sm" variant="outline" onClick={handleManageHolidays}>Manage Holidays</Button>
+                  <div className="p-3 sm:p-4 border border-gray-200 rounded-lg">
+                    <h4 className="font-medium mb-2 text-sm sm:text-base">Holiday Calendar</h4>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-3">Set public holidays and school breaks</p>
+                    <Button size="sm" variant="outline" className="h-8 text-xs sm:text-sm" onClick={handleManageHolidays}>Manage Holidays</Button>
                   </div>
                   
-                  <div className="p-4 border border-gray-200 rounded-lg">
-                    <h4 className="font-medium mb-2">Term Dates</h4>
-                    <p className="text-sm text-gray-600 mb-3">Configure term start and end dates</p>
-                    <Button size="sm" variant="outline" onClick={handleSetTermDates}>Set Dates</Button>
+                  <div className="p-3 sm:p-4 border border-gray-200 rounded-lg">
+                    <h4 className="font-medium mb-2 text-sm sm:text-base">Term Dates</h4>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-3">Configure term start and end dates</p>
+                    <Button size="sm" variant="outline" className="h-8 text-xs sm:text-sm" onClick={handleSetTermDates}>Set Dates</Button>
                   </div>
                 </div>
               </div>
@@ -2482,9 +2482,9 @@ const Settings = () => {
             </CardHeader>
             <CardContent>
               {/* Class, Section, and Periods per day controls */}
-              <div className="flex flex-wrap items-center gap-4 mb-6 pb-4 border-b">
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="dayStructureClass" className="text-sm font-medium">Class</Label>
+              <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-2 sm:gap-4 mb-6 pb-4 border-b">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <Label htmlFor="dayStructureClass" className="text-sm font-medium whitespace-nowrap">Class</Label>
                   <Select 
                     value={dayStructureClass} 
                     onValueChange={(value) => {
@@ -2495,7 +2495,7 @@ const Settings = () => {
                       setSelectedTimetable(null);
                     }}
                   >
-                    <SelectTrigger className="w-32">
+                    <SelectTrigger className="w-full sm:w-32">
                       <SelectValue placeholder="Select" />
                     </SelectTrigger>
                     <SelectContent>
@@ -2515,13 +2515,13 @@ const Settings = () => {
                   </Select>
                 </div>
                 
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="dayStructureSection" className="text-sm font-medium">Section</Label>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <Label htmlFor="dayStructureSection" className="text-sm font-medium whitespace-nowrap">Section</Label>
                   <Select 
                     value={dayStructureSection} 
                     onValueChange={setDayStructureSection}
                   >
-                    <SelectTrigger className="w-24">
+                    <SelectTrigger className="w-full sm:w-24">
                       <SelectValue placeholder="A" />
                     </SelectTrigger>
                     <SelectContent>
@@ -2533,9 +2533,9 @@ const Settings = () => {
                   </Select>
                 </div>
                 
-                <div className="flex items-center gap-2 ml-auto">
-                  <Label className="text-sm font-medium">Periods per day</Label>
-                  <div className="flex items-center border rounded-md">
+                <div className="flex items-center gap-2 w-full sm:w-auto sm:ml-auto">
+                  <Label className="text-sm font-medium whitespace-nowrap">Periods per day</Label>
+                  <div className="flex items-center border rounded-md w-full sm:w-auto justify-between sm:justify-start">
                     <Button 
                       variant="ghost" 
                       size="sm" 
@@ -2562,6 +2562,7 @@ const Settings = () => {
                   variant="outline" 
                   onClick={handleLoadDayStructureTimetable}
                   disabled={!dayStructureClass || dayStructureLoading}
+                  className="w-full sm:w-auto"
                 >
                   {dayStructureLoading ? 'Loading...' : 'Load'}
                 </Button>
@@ -2994,44 +2995,47 @@ const Settings = () => {
 
       {/* View Classes Modal */}
       <Dialog open={isViewClassesModalOpen} onOpenChange={setIsViewClassesModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>All Classes</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-emerald-500" />
+              All Classes
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {classes.length > 0 ? (
-              <div className="border rounded-lg overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
+              <div className="overflow-x-auto border rounded-lg">
+                <table className="w-full text-sm sm:text-base">
+                  <thead className="bg-muted/50 border-b">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Class Name</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Standard</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sections</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      <th className="px-4 py-3 text-left font-medium">Standard</th>
+                      <th className="px-4 py-3 text-left font-medium">Class Name</th>
+                      <th className="px-4 py-3 text-left font-medium hidden sm:table-cell">Sections</th>
+                      <th className="px-4 py-3 text-left font-medium hidden lg:table-cell">Description</th>
+                      <th className="px-4 py-3 text-right font-medium">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="divide-y divide-gray-200">
                     {classes.map((cls) => (
                       <tr key={cls.id || cls.class_id}>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{cls.name}</td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{cls.standard}</td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-4 py-3 font-medium text-gray-900">{cls.standard}</td>
+                        <td className="px-4 py-3 text-gray-900">{cls.name}</td>
+                        <td className="px-4 py-3 hidden sm:table-cell text-gray-500">
                           <div className="flex flex-wrap gap-1">
                             {(cls.sections || []).map((section, index) => (
-                              <Badge key={index} variant="outline" className="text-xs">{section}</Badge>
+                              <Badge key={index} variant="outline" className="text-[10px] sm:text-xs">{section}</Badge>
                             ))}
                           </div>
                         </td>
-                        <td className="px-4 py-4 text-sm text-gray-500 max-w-xs truncate">
+                        <td className="px-4 py-3 hidden lg:table-cell text-gray-500 max-w-xs truncate">
                           {cls.description || <span className="text-gray-400 italic">No description</span>}
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <div className="flex space-x-2">
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex justify-end gap-2">
                             <Button
                               size="sm"
                               variant="outline"
-                              className="text-blue-600 hover:text-blue-700"
+                              className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700"
                               onClick={() => handleEditClass(cls)}
                             >
                               <Edit className="h-4 w-4" />
@@ -3039,7 +3043,7 @@ const Settings = () => {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="text-red-600 hover:text-red-700"
+                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
                               onClick={() => handleDeleteClass(cls.id || cls.class_id)}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -3058,9 +3062,9 @@ const Settings = () => {
               </div>
             )}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsViewClassesModalOpen(false)}>Close</Button>
-            <Button onClick={handleAddNewClass} className="bg-emerald-500 hover:bg-emerald-600">Add New Class</Button>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setIsViewClassesModalOpen(false)} className="w-full sm:w-auto">Close</Button>
+            <Button onClick={handleAddNewClass} className="bg-emerald-500 hover:bg-emerald-600 w-full sm:w-auto">Add New Class</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -3263,38 +3267,38 @@ const Settings = () => {
 
       {/* View Timetable Modal */}
       <Dialog open={isViewTimetableModalOpen} onOpenChange={setIsViewTimetableModalOpen}>
-        <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>All Timetables</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {timetables.length > 0 ? (
-              <div className="border rounded-lg overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
+              <div className="overflow-x-auto border rounded-lg">
+                <table className="w-full text-sm sm:text-base">
+                  <thead className="bg-muted/50 border-b">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Class</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Standard</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Academic Year</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Effective From</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Periods</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      <th className="px-4 py-3 text-left font-medium">Class</th>
+                      <th className="px-4 py-3 text-left font-medium hidden sm:table-cell">Standard</th>
+                      <th className="px-4 py-3 text-left font-medium hidden lg:table-cell">Academic Year</th>
+                      <th className="px-4 py-3 text-left font-medium hidden sm:table-cell">Effective From</th>
+                      <th className="px-4 py-3 text-left font-medium hidden lg:table-cell">Total Periods</th>
+                      <th className="px-4 py-3 text-right font-medium">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="divide-y divide-gray-200">
                     {timetables.map((timetable) => (
                       <tr key={timetable.id}>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{timetable.class_name}</td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{timetable.standard}</td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{timetable.academic_year}</td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{timetable.effective_from}</td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{timetable.total_periods_per_day}</td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <div className="flex space-x-2">
+                        <td className="px-4 py-3 font-medium text-gray-900">{timetable.class_name}</td>
+                        <td className="px-4 py-3 hidden sm:table-cell text-gray-500">{timetable.standard}</td>
+                        <td className="px-4 py-3 hidden lg:table-cell text-gray-500">{timetable.academic_year}</td>
+                        <td className="px-4 py-3 hidden sm:table-cell text-gray-500">{timetable.effective_from}</td>
+                        <td className="px-4 py-3 hidden lg:table-cell text-gray-500">{timetable.total_periods_per_day}</td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex justify-end gap-2">
                             <Button
                               size="sm"
                               variant="outline"
-                              className="text-green-600 hover:text-green-700"
+                              className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
                               onClick={() => handleViewTimetableDetails(timetable)}
                               title="View Details"
                             >
@@ -3303,7 +3307,7 @@ const Settings = () => {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="text-blue-600 hover:text-blue-700"
+                              className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700"
                               onClick={() => handleEditSchedule(timetable)}
                               title="Edit Schedule"
                             >
@@ -3312,7 +3316,7 @@ const Settings = () => {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="text-red-600 hover:text-red-700"
+                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
                               onClick={() => handleDeleteTimetable(timetable.id)}
                               title="Delete"
                             >
@@ -3332,9 +3336,9 @@ const Settings = () => {
               </div>
             )}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsViewTimetableModalOpen(false)}>Close</Button>
-            <Button onClick={handleCreateSchedule} className="bg-emerald-500 hover:bg-emerald-600">Create Schedule</Button>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setIsViewTimetableModalOpen(false)} className="w-full sm:w-auto">Close</Button>
+            <Button onClick={handleCreateSchedule} className="bg-emerald-500 hover:bg-emerald-600 w-full sm:w-auto">Create Schedule</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -3716,57 +3720,51 @@ const Settings = () => {
 
       {/* View Grades Modal */}
       <Dialog open={isViewGradesModalOpen} onOpenChange={setIsViewGradesModalOpen}>
-        <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>All Grading Scales</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {gradingScales.length > 0 ? (
-              <div className="border rounded-lg overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
+              <div className="overflow-x-auto border rounded-lg">
+                <table className="w-full text-sm sm:text-base">
+                  <thead className="bg-muted/50 border-b">
                     <tr>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Scale Name</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Type</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Max GPA</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Passing Grade</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Standards</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Default</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Actions</th>
+                      <th className="px-4 py-3 text-left font-medium">Scale Name</th>
+                      <th className="px-4 py-3 text-left font-medium hidden sm:table-cell">Type</th>
+                      <th className="px-4 py-3 text-left font-medium hidden lg:table-cell">Max GPA</th>
+                      <th className="px-4 py-3 text-left font-medium hidden sm:table-cell">Passing Grade</th>
+                      <th className="px-4 py-3 text-left font-medium hidden lg:table-cell">Standards</th>
+                      <th className="px-4 py-3 text-left font-medium">Default</th>
+                      <th className="px-4 py-3 text-right font-medium">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {gradingScales.map((scale) => (
-                      <tr key={scale.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm text-gray-900">{scale.scale_name}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600 capitalize">{scale.scale_type}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{scale.max_gpa}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{scale.passing_grade}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
+                      <tr key={scale.id}>
+                        <td className="px-4 py-3 font-medium text-gray-900">{scale.scale_name}</td>
+                        <td className="px-4 py-3 hidden sm:table-cell text-gray-600 capitalize">{scale.scale_type}</td>
+                        <td className="px-4 py-3 hidden lg:table-cell text-gray-600">{scale.max_gpa}</td>
+                        <td className="px-4 py-3 hidden sm:table-cell text-gray-600">{scale.passing_grade}</td>
+                        <td className="px-4 py-3 hidden lg:table-cell text-gray-600">
                           {scale.applicable_standards?.join(', ') || 'All'}
                         </td>
-                        <td className="px-4 py-3 text-sm">
+                        <td className="px-4 py-3">
                           {scale.is_default ? (
-                            <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">Default</span>
+                            <Badge variant="success" className="text-[10px] sm:text-xs">Default</Badge>
                           ) : (
-                            <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">No</span>
+                            <Badge variant="outline" className="text-[10px] sm:text-xs text-gray-400">No</Badge>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-sm space-x-2">
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => handleEditGradingScale(scale)}
-                          >
-                            Edit
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="destructive"
-                            onClick={() => handleDeleteGradingScale(scale.id)}
-                          >
-                            Delete
-                          </Button>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => handleEditGradingScale(scale)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-red-600" onClick={() => handleDeleteGradingScale(scale.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -3777,13 +3775,12 @@ const Settings = () => {
               <div className="text-center py-12 text-gray-500">
                 <Award className="h-12 w-12 mx-auto mb-3 opacity-50" />
                 <p>No grading scales configured yet.</p>
-                <p className="text-sm mt-2">Click &quot;Configure Grading&quot; to create your first grading scale.</p>
               </div>
             )}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsViewGradesModalOpen(false)}>Close</Button>
-            <Button className="bg-emerald-500 hover:bg-emerald-600" onClick={handleConfigureGrading}>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setIsViewGradesModalOpen(false)} className="w-full sm:w-auto">Close</Button>
+            <Button className="bg-emerald-500 hover:bg-emerald-600 w-full sm:w-auto" onClick={handleConfigureGrading}>
               Add New Scale
             </Button>
           </DialogFooter>
@@ -3792,28 +3789,28 @@ const Settings = () => {
 
       {/* Configure Grading Modal */}
       <Dialog open={isConfigureGradingModalOpen} onOpenChange={setIsConfigureGradingModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {isEditGradingMode ? 'Edit Grading Scale' : 'Configure Grading Scale'}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
                 <Label>Scale Name *</Label>
                 <input
                   type="text"
-                  className="w-full mt-1 px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 border rounded-md text-sm sm:text-base"
                   placeholder="e.g., 10-Point Scale, CBSE Pattern"
                   value={gradingFormData.scale_name}
                   onChange={(e) => setGradingFormData({...gradingFormData, scale_name: e.target.value})}
                 />
               </div>
-              <div>
+              <div className="space-y-1.5">
                 <Label>Scale Type</Label>
                 <select
-                  className="w-full mt-1 px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 border rounded-md text-sm sm:text-base"
                   value={gradingFormData.scale_type}
                   onChange={(e) => setGradingFormData({...gradingFormData, scale_type: e.target.value})}
                 >
@@ -3824,32 +3821,32 @@ const Settings = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
-              <div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-1.5">
                 <Label>Maximum GPA</Label>
                 <input
                   type="number"
                   step="0.1"
-                  className="w-full mt-1 px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 border rounded-md text-sm sm:text-base"
                   value={gradingFormData.max_gpa}
                   onChange={(e) => setGradingFormData({...gradingFormData, max_gpa: parseFloat(e.target.value)})}
                 />
               </div>
-              <div>
+              <div className="space-y-1.5">
                 <Label>Passing Grade</Label>
                 <input
                   type="text"
-                  className="w-full mt-1 px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 border rounded-md text-sm sm:text-base"
                   placeholder="e.g., D"
                   value={gradingFormData.passing_grade}
                   onChange={(e) => setGradingFormData({...gradingFormData, passing_grade: e.target.value})}
                 />
               </div>
-              <div className="flex items-center mt-6">
+              <div className="flex items-center pt-2 sm:pt-8">
                 <input
                   type="checkbox"
                   id="is_default"
-                  className="mr-2"
+                  className="h-4 w-4 mr-2"
                   checked={gradingFormData.is_default}
                   onChange={(e) => setGradingFormData({...gradingFormData, is_default: e.target.checked})}
                 />
@@ -3857,17 +3854,17 @@ const Settings = () => {
               </div>
             </div>
 
-            <div>
-              <Label>Grade Boundaries</Label>
-              <div className="mt-2 border rounded-lg overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
+            <div className="space-y-3">
+              <Label className="font-semibold">Grade Boundaries</Label>
+              <div className="overflow-x-auto border rounded-lg">
+                <table className="w-full text-sm sm:text-base">
+                  <thead className="bg-muted/50 border-b">
                     <tr>
-                      <th className="px-3 py-2 text-left text-sm font-medium text-gray-900">Grade</th>
-                      <th className="px-3 py-2 text-left text-sm font-medium text-gray-900">Min %</th>
-                      <th className="px-3 py-2 text-left text-sm font-medium text-gray-900">Max %</th>
-                      <th className="px-3 py-2 text-left text-sm font-medium text-gray-900">GPA Points</th>
-                      <th className="px-3 py-2 text-left text-sm font-medium text-gray-900">Description</th>
+                      <th className="px-3 py-2 text-left font-medium">Grade</th>
+                      <th className="px-3 py-2 text-left font-medium">Min %</th>
+                      <th className="px-3 py-2 text-left font-medium hidden sm:table-cell">Max %</th>
+                      <th className="px-3 py-2 text-left font-medium">GPA Points</th>
+                      <th className="px-3 py-2 text-left font-medium hidden lg:table-cell">Description</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -3897,7 +3894,7 @@ const Settings = () => {
                             }}
                           />
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-3 py-2 hidden sm:table-cell">
                           <input
                             type="number"
                             className="w-full px-2 py-1 border rounded text-sm"
@@ -3922,7 +3919,7 @@ const Settings = () => {
                             }}
                           />
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-3 py-2 hidden lg:table-cell">
                           <input
                             type="text"
                             className="w-full px-2 py-1 border rounded text-sm"
@@ -3940,17 +3937,17 @@ const Settings = () => {
                   </tbody>
                 </table>
               </div>
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-xs text-muted-foreground">
                 Default grade boundaries are pre-filled. Modify as needed for your school&apos;s grading system.
               </p>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsConfigureGradingModalOpen(false)}>Cancel</Button>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-6">
+            <Button variant="outline" onClick={() => setIsConfigureGradingModalOpen(false)} className="w-full sm:w-auto">Cancel</Button>
             <Button 
               onClick={handleSaveGradingScale} 
               disabled={loading || !gradingFormData.scale_name.trim()}
-              className={!gradingFormData.scale_name.trim() ? 'opacity-50 cursor-not-allowed' : ''}
+              className={`w-full sm:w-auto ${!gradingFormData.scale_name.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {loading ? (isEditGradingMode ? 'Updating...' : 'Creating...') : (isEditGradingMode ? 'Update Scale' : 'Create Scale')}
             </Button>
@@ -3960,15 +3957,15 @@ const Settings = () => {
 
       {/* Curriculum Dashboard Modal */}
       <Dialog open={isCurriculumDashboardOpen} onOpenChange={setIsCurriculumDashboardOpen}>
-        <DialogContent className="max-w-7xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Curriculum Management - Course Structure</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <div>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="w-full sm:w-auto">
                 <select
-                  className="px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 border rounded-md text-sm"
                   value={selectedClassFilter}
                   onChange={(e) => setSelectedClassFilter(e.target.value)}
                 >
@@ -3982,75 +3979,81 @@ const Settings = () => {
                   <option value="12th">12th Standard</option>
                 </select>
               </div>
-              <Button className="bg-emerald-500 hover:bg-emerald-600" onClick={handleAddSubject}>
-                + Add New Subject
+              <Button className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600" onClick={handleAddSubject}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add New Subject
               </Button>
             </div>
 
             {subjects.filter(s => selectedClassFilter === 'all' || s.class_standard === selectedClassFilter).length > 0 ? (
-              <div className="border rounded-lg overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
+              <div className="overflow-x-auto border rounded-lg">
+                <table className="w-full text-sm sm:text-base">
+                  <thead className="bg-muted/50 border-b">
                     <tr>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Subject</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Code</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Class</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Credits</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Units</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Progress</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Actions</th>
+                      <th className="px-4 py-3 text-left font-medium">Subject</th>
+                      <th className="px-4 py-3 text-left font-medium hidden sm:table-cell">Code</th>
+                      <th className="px-4 py-3 text-left font-medium hidden lg:table-cell">Class</th>
+                      <th className="px-4 py-3 text-left font-medium hidden lg:table-cell">Credits</th>
+                      <th className="px-4 py-3 text-left font-medium hidden sm:table-cell">Units</th>
+                      <th className="px-4 py-3 text-left font-medium">Progress</th>
+                      <th className="px-4 py-3 text-right font-medium">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {subjects.filter(s => selectedClassFilter === 'all' || s.class_standard === selectedClassFilter).map((subject) => {
                       const progress = calculateSubjectProgress(subject);
                       return (
-                        <tr key={subject.id} className="hover:bg-gray-50">
+                        <tr key={subject.id} className="hover:bg-gray-50/50">
                           <td className="px-4 py-3">
-                            <div className="text-sm font-medium text-gray-900">{subject.subject_name}</div>
+                            <div className="font-medium text-gray-900">{subject.subject_name}</div>
                             {subject.description && (
-                              <div className="text-xs text-gray-500 mt-1">{subject.description}</div>
+                              <div className="text-xs text-gray-500 mt-0.5 truncate max-w-[200px] sm:max-w-none">{subject.description}</div>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{subject.subject_code}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{subject.class_standard}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{subject.credits || 'N/A'}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">
+                          <td className="px-4 py-3 hidden sm:table-cell text-gray-600">{subject.subject_code}</td>
+                          <td className="px-4 py-3 hidden lg:table-cell text-gray-600">{subject.class_standard}</td>
+                          <td className="px-4 py-3 hidden lg:table-cell text-gray-600">{subject.credits || 'N/A'}</td>
+                          <td className="px-4 py-3 hidden sm:table-cell text-gray-600">
                             {subject.syllabus?.length || 0} units
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center space-x-2">
-                              <div className="w-20 bg-gray-200 rounded-full h-2">
+                              <div className="w-16 sm:w-20 bg-gray-200 rounded-full h-1.5 sm:h-2">
                                 <div 
-                                  className="bg-emerald-500 h-2 rounded-full" 
+                                  className="bg-emerald-500 h-full rounded-full" 
                                   style={{ width: `${progress}%` }}
                                 ></div>
                               </div>
-                              <span className="text-xs text-gray-600">{progress}%</span>
+                              <span className="text-xs font-medium">{progress}%</span>
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-sm space-x-2">
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => handleOpenSyllabusBuilder(subject)}
-                            >
-                              Syllabus
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => handleEditSubject(subject)}
-                            >
-                              Edit
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="destructive"
-                              onClick={() => handleDeleteSubject(subject.id)}
-                            >
-                              Delete
-                            </Button>
+                          <td className="px-4 py-3 text-right">
+                            <div className="flex justify-end gap-1.5 sm:gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                className="h-8 px-2 sm:px-3 text-xs"
+                                onClick={() => handleOpenSyllabusBuilder(subject)}
+                              >
+                                Syllabus
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                className="h-8 w-8 p-0"
+                                onClick={() => handleEditSubject(subject)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                className="h-8 w-8 p-0 text-red-600"
+                                onClick={() => handleDeleteSubject(subject.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -4059,44 +4062,43 @@ const Settings = () => {
                 </table>
               </div>
             ) : (
-              <div className="text-center py-12 text-gray-500">
+              <div className="text-center py-12 text-gray-500 border rounded-lg bg-gray-50/50">
                 <BookOpen className="h-12 w-12 mx-auto mb-3 opacity-50" />
                 <p>No subjects configured yet for {selectedClassFilter === 'all' ? 'any class' : selectedClassFilter}.</p>
-                <p className="text-sm mt-2">Click &quot;Add New Subject&quot; to create your first subject.</p>
               </div>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCurriculumDashboardOpen(false)}>Close</Button>
+            <Button variant="outline" onClick={() => setIsCurriculumDashboardOpen(false)} className="w-full sm:w-auto">Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Add/Edit Subject Modal */}
       <Dialog open={isAddSubjectModalOpen} onOpenChange={setIsAddSubjectModalOpen}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {isEditSubjectMode ? 'Edit Subject' : 'Add New Subject'}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
                 <Label>Subject Name *</Label>
                 <input
                   type="text"
-                  className="w-full mt-1 px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 border rounded-md text-sm sm:text-base"
                   placeholder="e.g., Mathematics, English, Science"
                   value={subjectFormData.subject_name}
                   onChange={(e) => setSubjectFormData({...subjectFormData, subject_name: e.target.value})}
                 />
               </div>
-              <div>
+              <div className="space-y-1.5">
                 <Label>Subject Code *</Label>
                 <input
                   type="text"
-                  className="w-full mt-1 px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 border rounded-md text-sm sm:text-base"
                   placeholder="e.g., MATH6, ENG7"
                   value={subjectFormData.subject_code}
                   onChange={(e) => setSubjectFormData({...subjectFormData, subject_code: e.target.value})}
@@ -4104,11 +4106,11 @@ const Settings = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
-              <div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-1.5">
                 <Label>Class Standard *</Label>
                 <select
-                  className="w-full mt-1 px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 border rounded-md text-sm sm:text-base"
                   value={subjectFormData.class_standard}
                   onChange={(e) => setSubjectFormData({...subjectFormData, class_standard: e.target.value})}
                 >
@@ -4121,21 +4123,21 @@ const Settings = () => {
                   <option value="12th">12th Standard</option>
                 </select>
               </div>
-              <div>
+              <div className="space-y-1.5">
                 <Label>Credits</Label>
                 <input
                   type="number"
                   step="0.5"
-                  className="w-full mt-1 px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 border rounded-md text-sm sm:text-base"
                   value={subjectFormData.credits}
                   onChange={(e) => setSubjectFormData({...subjectFormData, credits: parseFloat(e.target.value)})}
                 />
               </div>
-              <div>
+              <div className="space-y-1.5">
                 <Label>Total Hours</Label>
                 <input
                   type="number"
-                  className="w-full mt-1 px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 border rounded-md text-sm sm:text-base"
                   placeholder="Optional"
                   value={subjectFormData.total_hours || ''}
                   onChange={(e) => setSubjectFormData({...subjectFormData, total_hours: e.target.value ? parseFloat(e.target.value) : null})}
@@ -4143,10 +4145,10 @@ const Settings = () => {
               </div>
             </div>
 
-            <div>
+            <div className="space-y-1.5">
               <Label>Description</Label>
               <textarea
-                className="w-full mt-1 px-3 py-2 border rounded-md"
+                className="w-full px-3 py-2 border rounded-md text-sm sm:text-base"
                 rows="3"
                 placeholder="Brief description of the subject..."
                 value={subjectFormData.description}
@@ -4154,23 +4156,23 @@ const Settings = () => {
               />
             </div>
 
-            <div className="flex items-center">
+            <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
                 id="is_elective"
-                className="mr-2"
+                className="h-4 w-4"
                 checked={subjectFormData.is_elective}
                 onChange={(e) => setSubjectFormData({...subjectFormData, is_elective: e.target.checked})}
               />
               <Label htmlFor="is_elective" className="mb-0">This is an elective subject</Label>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddSubjectModalOpen(false)}>Cancel</Button>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-6">
+            <Button variant="outline" onClick={() => setIsAddSubjectModalOpen(false)} className="w-full sm:w-auto">Cancel</Button>
             <Button 
               onClick={handleSaveSubject} 
               disabled={loading || !subjectFormData.subject_name.trim() || !subjectFormData.subject_code.trim()}
-              className={(!subjectFormData.subject_name.trim() || !subjectFormData.subject_code.trim()) ? 'opacity-50 cursor-not-allowed' : ''}
+              className={`w-full sm:w-auto ${(!subjectFormData.subject_name.trim() || !subjectFormData.subject_code.trim()) ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {loading ? (isEditSubjectMode ? 'Updating...' : 'Creating...') : (isEditSubjectMode ? 'Update Subject' : 'Create Subject')}
             </Button>
@@ -4346,43 +4348,42 @@ const Settings = () => {
 
       {/* Institution Update Modal */}
       <Dialog open={isInstitutionModalOpen} onOpenChange={setIsInstitutionModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Update Institution Details</DialogTitle>
           </DialogHeader>
-          <div className="space-y-6">
+          <div className="space-y-8">
             {/* Basic Information */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-gray-900 flex items-center">
                 <Building className="h-4 w-4 mr-2 text-emerald-500" />
                 Basic Information
               </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
                   <Label>School Name *</Label>
                   <input
                     type="text"
-                    className="w-full mt-1 px-3 py-2 border rounded-md"
+                    className="w-full px-3 py-2 border rounded-md text-sm"
                     placeholder="Enter school name"
                     value={institutionData.school_name}
                     onChange={(e) => setInstitutionData({...institutionData, school_name: e.target.value})}
                   />
                 </div>
-                <div>
+                <div className="space-y-1.5">
                   <Label>School Code</Label>
                   <input
                     type="text"
-                    className="w-full mt-1 px-3 py-2 border rounded-md bg-gray-100 dark:bg-gray-700 cursor-not-allowed"
+                    className="w-full px-3 py-2 border rounded-md bg-gray-50 text-sm cursor-not-allowed"
                     placeholder="e.g., SCH001"
                     value={institutionData.school_code}
                     disabled
-                    title="School code is assigned by super admin and cannot be changed"
                   />
                 </div>
-                <div>
+                <div className="space-y-1.5">
                   <Label>School Type</Label>
                   <select
-                    className="w-full mt-1 px-3 py-2 border rounded-md"
+                    className="w-full px-3 py-2 border rounded-md text-sm"
                     value={institutionData.school_type}
                     onChange={(e) => setInstitutionData({...institutionData, school_type: e.target.value})}
                   >
@@ -4394,20 +4395,20 @@ const Settings = () => {
                     <option value="International">International School</option>
                   </select>
                 </div>
-                <div>
+                <div className="space-y-1.5">
                   <Label>Established Year</Label>
                   <input
                     type="number"
-                    className="w-full mt-1 px-3 py-2 border rounded-md"
+                    className="w-full px-3 py-2 border rounded-md text-sm"
                     placeholder="e.g., 1990"
                     value={institutionData.established_year || ''}
                     onChange={(e) => setInstitutionData({...institutionData, established_year: e.target.value ? parseInt(e.target.value) : null})}
                   />
                 </div>
-                <div>
+                <div className="space-y-1.5">
                   <Label>Currency</Label>
                   <select
-                    className="w-full mt-1 px-3 py-2 border rounded-md"
+                    className="w-full px-3 py-2 border rounded-md text-sm"
                     value={institutionData.currency}
                     onChange={(e) => setInstitutionData({...institutionData, currency: e.target.value})}
                   >
@@ -4422,49 +4423,49 @@ const Settings = () => {
             </div>
 
             {/* Contact Information */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-gray-900 flex items-center">
                 <Phone className="h-4 w-4 mr-2 text-blue-500" />
                 Contact Information
               </h3>
-              <div className="space-y-3">
-                <div>
+              <div className="space-y-4">
+                <div className="space-y-1.5">
                   <Label>Address</Label>
                   <textarea
-                    className="w-full mt-1 px-3 py-2 border rounded-md"
+                    className="w-full px-3 py-2 border rounded-md text-sm"
                     rows="2"
                     placeholder="Enter full address"
                     value={institutionData.address}
                     onChange={(e) => setInstitutionData({...institutionData, address: e.target.value})}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
                     <Label>Phone</Label>
                     <input
                       type="tel"
-                      className="w-full mt-1 px-3 py-2 border rounded-md"
+                      className="w-full px-3 py-2 border rounded-md text-sm"
                       placeholder="+91-XXX-XXX-XXXX"
                       value={institutionData.phone}
                       onChange={(e) => setInstitutionData({...institutionData, phone: e.target.value})}
                     />
                   </div>
-                  <div>
+                  <div className="space-y-1.5">
                     <Label>Email</Label>
                     <input
                       type="email"
-                      className="w-full mt-1 px-3 py-2 border rounded-md"
+                      className="w-full px-3 py-2 border rounded-md text-sm"
                       placeholder="school@example.com"
                       value={institutionData.email}
                       onChange={(e) => setInstitutionData({...institutionData, email: e.target.value})}
                     />
                   </div>
                 </div>
-                <div>
+                <div className="space-y-1.5">
                   <Label>Website</Label>
                   <input
                     type="url"
-                    className="w-full mt-1 px-3 py-2 border rounded-md"
+                    className="w-full px-3 py-2 border rounded-md text-sm"
                     placeholder="https://www.school.com"
                     value={institutionData.website}
                     onChange={(e) => setInstitutionData({...institutionData, website: e.target.value})}
@@ -4474,17 +4475,17 @@ const Settings = () => {
             </div>
 
             {/* Branding */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-gray-900 flex items-center">
                 <Palette className="h-4 w-4 mr-2 text-purple-500" />
                 Branding
               </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="space-y-1.5">
                   <Label>School Logo</Label>
-                  <div className="mt-1 flex items-center space-x-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     {institutionData.logo_url && (
-                      <div className="relative w-16 h-16 border rounded-md overflow-hidden bg-gray-100">
+                      <div className="relative w-16 h-16 border rounded-md overflow-hidden bg-gray-50">
                         <img 
                           src={institutionData.logo_url.startsWith('http') ? institutionData.logo_url : `${API_BASE_URL.replace('/api', '')}${institutionData.logo_url}`} 
                           alt="Logo" 
@@ -4495,7 +4496,7 @@ const Settings = () => {
                         />
                       </div>
                     )}
-                    <div className="flex-1">
+                    <div className="flex-1 w-full">
                       <input
                         type="file"
                         accept="image/*"
@@ -4533,27 +4534,27 @@ const Settings = () => {
                       />
                       <label
                         htmlFor="logo-upload"
-                        className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer"
+                        className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer"
                       >
                         <Upload className="h-4 w-4 mr-2" />
                         Upload Logo
                       </label>
-                      <p className="text-xs text-gray-500 mt-1">Max 2MB (PNG, JPG, GIF, WebP)</p>
+                      <p className="text-[10px] text-gray-500 mt-1">Max 2MB (PNG, JPG, GIF, WebP)</p>
                     </div>
                   </div>
                 </div>
-                <div>
+                <div className="space-y-1.5">
                   <Label>Theme Color</Label>
-                  <div className="flex items-center mt-1 space-x-2">
+                  <div className="flex items-center gap-2">
                     <input
                       type="color"
-                      className="h-10 w-20 border rounded-md cursor-pointer"
+                      className="h-9 w-12 border rounded cursor-pointer"
                       value={institutionData.theme_color}
                       onChange={(e) => setInstitutionData({...institutionData, theme_color: e.target.value})}
                     />
                     <input
                       type="text"
-                      className="flex-1 px-3 py-2 border rounded-md"
+                      className="flex-1 px-3 py-2 border rounded-md text-sm"
                       placeholder="#10b981"
                       value={institutionData.theme_color}
                       onChange={(e) => setInstitutionData({...institutionData, theme_color: e.target.value})}
@@ -4564,36 +4565,36 @@ const Settings = () => {
             </div>
 
             {/* Other Information */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-gray-900 flex items-center">
                 <Info className="h-4 w-4 mr-2 text-orange-500" />
                 Other Information
               </h3>
-              <div className="space-y-3">
-                <div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5 sm:col-span-2">
                   <Label>Principal/Headmaster Name</Label>
                   <input
                     type="text"
-                    className="w-full mt-1 px-3 py-2 border rounded-md"
+                    className="w-full px-3 py-2 border rounded-md text-sm"
                     placeholder="Enter principal name"
                     value={institutionData.principal_name}
                     onChange={(e) => setInstitutionData({...institutionData, principal_name: e.target.value})}
                   />
                 </div>
-                <div>
+                <div className="space-y-1.5 sm:col-span-2">
                   <Label>School Motto</Label>
                   <input
                     type="text"
-                    className="w-full mt-1 px-3 py-2 border rounded-md"
+                    className="w-full px-3 py-2 border rounded-md text-sm"
                     placeholder="e.g., Excellence in Education"
                     value={institutionData.motto}
                     onChange={(e) => setInstitutionData({...institutionData, motto: e.target.value})}
                   />
                 </div>
-                <div>
+                <div className="space-y-1.5 sm:col-span-2">
                   <Label>Vision Statement</Label>
                   <textarea
-                    className="w-full mt-1 px-3 py-2 border rounded-md"
+                    className="w-full px-3 py-2 border rounded-md text-sm"
                     rows="3"
                     placeholder="Enter school vision and mission"
                     value={institutionData.vision}
@@ -4604,17 +4605,17 @@ const Settings = () => {
             </div>
 
             {/* Social Links */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-gray-900 flex items-center">
                 <Globe className="h-4 w-4 mr-2 text-cyan-500" />
                 Social Media Links
               </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
                   <Label>Facebook</Label>
                   <input
                     type="url"
-                    className="w-full mt-1 px-3 py-2 border rounded-md"
+                    className="w-full px-3 py-2 border rounded-md text-sm"
                     placeholder="https://facebook.com/school"
                     value={institutionData.social_links?.facebook || ''}
                     onChange={(e) => setInstitutionData({
@@ -4623,11 +4624,11 @@ const Settings = () => {
                     })}
                   />
                 </div>
-                <div>
+                <div className="space-y-1.5">
                   <Label>Twitter</Label>
                   <input
                     type="url"
-                    className="w-full mt-1 px-3 py-2 border rounded-md"
+                    className="w-full px-3 py-2 border rounded-md text-sm"
                     placeholder="https://twitter.com/school"
                     value={institutionData.social_links?.twitter || ''}
                     onChange={(e) => setInstitutionData({
@@ -4636,11 +4637,11 @@ const Settings = () => {
                     })}
                   />
                 </div>
-                <div>
+                <div className="space-y-1.5">
                   <Label>Instagram</Label>
                   <input
                     type="url"
-                    className="w-full mt-1 px-3 py-2 border rounded-md"
+                    className="w-full px-3 py-2 border rounded-md text-sm"
                     placeholder="https://instagram.com/school"
                     value={institutionData.social_links?.instagram || ''}
                     onChange={(e) => setInstitutionData({
@@ -4649,11 +4650,11 @@ const Settings = () => {
                     })}
                   />
                 </div>
-                <div>
+                <div className="space-y-1.5">
                   <Label>LinkedIn</Label>
                   <input
                     type="url"
-                    className="w-full mt-1 px-3 py-2 border rounded-md"
+                    className="w-full px-3 py-2 border rounded-md text-sm"
                     placeholder="https://linkedin.com/school"
                     value={institutionData.social_links?.linkedin || ''}
                     onChange={(e) => setInstitutionData({
@@ -4665,12 +4666,12 @@ const Settings = () => {
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsInstitutionModalOpen(false)}>Cancel</Button>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-6">
+            <Button variant="outline" onClick={() => setIsInstitutionModalOpen(false)} className="w-full sm:w-auto">Cancel</Button>
             <Button 
               onClick={handleSaveInstitution} 
               disabled={loading || !institutionData.school_name.trim()}
-              className={!institutionData.school_name.trim() ? 'opacity-50 cursor-not-allowed' : ''}
+              className={`w-full sm:w-auto ${!institutionData.school_name.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {loading ? 'Saving...' : 'Update Institution'}
             </Button>
@@ -4680,56 +4681,60 @@ const Settings = () => {
 
       {/* Staff Settings Main Modal */}
       <Dialog open={isStaffSettingsModalOpen} onOpenChange={setIsStaffSettingsModalOpen}>
-        <DialogContent className="max-w-6xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Staff Management Settings</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <Tabs value={activeSettingsTab} onValueChange={setActiveSettingsTab}>
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="roles">Staff Roles</TabsTrigger>
-                <TabsTrigger value="departments">Departments</TabsTrigger>
-                <TabsTrigger value="employment">Employment Types</TabsTrigger>
-              </TabsList>
+              <div className="overflow-x-auto">
+                <TabsList className="flex w-full min-w-max">
+                  <TabsTrigger value="roles" className="flex-1">Staff Roles</TabsTrigger>
+                  <TabsTrigger value="departments" className="flex-1">Departments</TabsTrigger>
+                  <TabsTrigger value="employment" className="flex-1">Employment Types</TabsTrigger>
+                </TabsList>
+              </div>
 
-              <TabsContent value="roles" className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <p className="text-sm text-gray-600">Manage staff roles and positions</p>
-                  <Button className="bg-emerald-500 hover:bg-emerald-600" onClick={handleAddRole}>
+              <TabsContent value="roles" className="space-y-4 mt-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <p className="text-sm text-muted-foreground">Manage staff roles and positions</p>
+                  <Button className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600" onClick={handleAddRole}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add Role
                   </Button>
                 </div>
                 {staffRoles.length > 0 ? (
-                  <div className="border rounded-lg overflow-hidden">
-                    <table className="w-full">
-                      <thead className="bg-gray-50">
+                  <div className="overflow-x-auto border rounded-lg">
+                    <table className="w-full text-sm sm:text-base">
+                      <thead className="bg-muted/50 border-b">
                         <tr>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Role Name</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Description</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Status</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Actions</th>
+                          <th className="px-4 py-3 text-left font-medium">Role Name</th>
+                          <th className="px-4 py-3 text-left font-medium hidden sm:table-cell">Description</th>
+                          <th className="px-4 py-3 text-left font-medium">Status</th>
+                          <th className="px-4 py-3 text-right font-medium">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
                         {staffRoles.map((role) => (
-                          <tr key={role.id} className="hover:bg-gray-50">
-                            <td className="px-4 py-3 text-sm text-gray-900 font-medium">{role.role_name}</td>
-                            <td className="px-4 py-3 text-sm text-gray-600">{role.description || 'N/A'}</td>
-                            <td className="px-4 py-3 text-sm">
+                          <tr key={role.id} className="hover:bg-gray-50/50">
+                            <td className="px-4 py-3 font-medium text-gray-900">{role.role_name}</td>
+                            <td className="px-4 py-3 hidden sm:table-cell text-gray-600">{role.description || 'N/A'}</td>
+                            <td className="px-4 py-3">
                               {role.is_active ? (
-                                <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">Active</span>
+                                <Badge variant="success" className="text-[10px] sm:text-xs">Active</Badge>
                               ) : (
-                                <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">Inactive</span>
+                                <Badge variant="outline" className="text-[10px] sm:text-xs text-gray-400">Inactive</Badge>
                               )}
                             </td>
-                            <td className="px-4 py-3 text-sm space-x-2">
-                              <Button size="sm" variant="outline" onClick={() => handleEditRole(role)}>
-                                <Edit className="h-3 w-3" />
-                              </Button>
-                              <Button size="sm" variant="destructive" onClick={() => handleDeleteRole(role.id)}>
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
+                            <td className="px-4 py-3 text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => handleEditRole(role)}>
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-red-600" onClick={() => handleDeleteRole(role.id)}>
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -4737,51 +4742,53 @@ const Settings = () => {
                     </table>
                   </div>
                 ) : (
-                  <div className="text-center py-12 border rounded-lg">
+                  <div className="text-center py-12 border rounded-lg bg-gray-50/50">
                     <Users className="h-12 w-12 mx-auto text-gray-400 mb-3" />
                     <p className="text-gray-500">No roles configured yet</p>
                   </div>
                 )}
               </TabsContent>
 
-              <TabsContent value="departments" className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <p className="text-sm text-gray-600">Manage school departments</p>
-                  <Button className="bg-emerald-500 hover:bg-emerald-600" onClick={handleAddDepartment}>
+              <TabsContent value="departments" className="space-y-4 mt-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <p className="text-sm text-muted-foreground">Manage school departments</p>
+                  <Button className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600" onClick={handleAddDepartment}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add Department
                   </Button>
                 </div>
                 {departments.length > 0 ? (
-                  <div className="border rounded-lg overflow-hidden">
-                    <table className="w-full">
-                      <thead className="bg-gray-50">
+                  <div className="overflow-x-auto border rounded-lg">
+                    <table className="w-full text-sm sm:text-base">
+                      <thead className="bg-muted/50 border-b">
                         <tr>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Department Name</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Description</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Status</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Actions</th>
+                          <th className="px-4 py-3 text-left font-medium">Department Name</th>
+                          <th className="px-4 py-3 text-left font-medium hidden sm:table-cell">Description</th>
+                          <th className="px-4 py-3 text-left font-medium">Status</th>
+                          <th className="px-4 py-3 text-right font-medium">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
                         {departments.map((dept) => (
-                          <tr key={dept.id} className="hover:bg-gray-50">
-                            <td className="px-4 py-3 text-sm text-gray-900 font-medium">{dept.department_name}</td>
-                            <td className="px-4 py-3 text-sm text-gray-600">{dept.description || 'N/A'}</td>
-                            <td className="px-4 py-3 text-sm">
+                          <tr key={dept.id} className="hover:bg-gray-50/50">
+                            <td className="px-4 py-3 font-medium text-gray-900">{dept.department_name}</td>
+                            <td className="px-4 py-3 hidden sm:table-cell text-gray-600">{dept.description || 'N/A'}</td>
+                            <td className="px-4 py-3">
                               {dept.is_active ? (
-                                <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">Active</span>
+                                <Badge variant="success" className="text-[10px] sm:text-xs">Active</Badge>
                               ) : (
-                                <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">Inactive</span>
+                                <Badge variant="outline" className="text-[10px] sm:text-xs text-gray-400">Inactive</Badge>
                               )}
                             </td>
-                            <td className="px-4 py-3 text-sm space-x-2">
-                              <Button size="sm" variant="outline" onClick={() => handleEditDepartment(dept)}>
-                                <Edit className="h-3 w-3" />
-                              </Button>
-                              <Button size="sm" variant="destructive" onClick={() => handleDeleteDepartment(dept.id)}>
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
+                            <td className="px-4 py-3 text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => handleEditDepartment(dept)}>
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-red-600" onClick={() => handleDeleteDepartment(dept.id)}>
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -4789,51 +4796,53 @@ const Settings = () => {
                     </table>
                   </div>
                 ) : (
-                  <div className="text-center py-12 border rounded-lg">
+                  <div className="text-center py-12 border rounded-lg bg-gray-50/50">
                     <Building className="h-12 w-12 mx-auto text-gray-400 mb-3" />
                     <p className="text-gray-500">No departments configured yet</p>
                   </div>
                 )}
               </TabsContent>
 
-              <TabsContent value="employment" className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <p className="text-sm text-gray-600">Manage employment types</p>
-                  <Button className="bg-emerald-500 hover:bg-emerald-600" onClick={handleAddEmploymentType}>
+              <TabsContent value="employment" className="space-y-4 mt-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <p className="text-sm text-muted-foreground">Manage employment types</p>
+                  <Button className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600" onClick={handleAddEmploymentType}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add Employment Type
                   </Button>
                 </div>
                 {employmentTypes.length > 0 ? (
-                  <div className="border rounded-lg overflow-hidden">
-                    <table className="w-full">
-                      <thead className="bg-gray-50">
+                  <div className="overflow-x-auto border rounded-lg">
+                    <table className="w-full text-sm sm:text-base">
+                      <thead className="bg-muted/50 border-b">
                         <tr>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Type Name</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Description</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Status</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Actions</th>
+                          <th className="px-4 py-3 text-left font-medium">Type Name</th>
+                          <th className="px-4 py-3 text-left font-medium hidden sm:table-cell">Description</th>
+                          <th className="px-4 py-3 text-left font-medium">Status</th>
+                          <th className="px-4 py-3 text-right font-medium">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
                         {employmentTypes.map((emp) => (
-                          <tr key={emp.id} className="hover:bg-gray-50">
-                            <td className="px-4 py-3 text-sm text-gray-900 font-medium">{emp.type_name}</td>
-                            <td className="px-4 py-3 text-sm text-gray-600">{emp.description || 'N/A'}</td>
-                            <td className="px-4 py-3 text-sm">
+                          <tr key={emp.id} className="hover:bg-gray-50/50">
+                            <td className="px-4 py-3 font-medium text-gray-900">{emp.type_name}</td>
+                            <td className="px-4 py-3 hidden sm:table-cell text-gray-600">{emp.description || 'N/A'}</td>
+                            <td className="px-4 py-3">
                               {emp.is_active ? (
-                                <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">Active</span>
+                                <Badge variant="success" className="text-[10px] sm:text-xs">Active</Badge>
                               ) : (
-                                <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">Inactive</span>
+                                <Badge variant="outline" className="text-[10px] sm:text-xs text-gray-400">Inactive</Badge>
                               )}
                             </td>
-                            <td className="px-4 py-3 text-sm space-x-2">
-                              <Button size="sm" variant="outline" onClick={() => handleEditEmploymentType(emp)}>
-                                <Edit className="h-3 w-3" />
-                              </Button>
-                              <Button size="sm" variant="destructive" onClick={() => handleDeleteEmploymentType(emp.id)}>
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
+                            <td className="px-4 py-3 text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => handleEditEmploymentType(emp)}>
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-red-600" onClick={() => handleDeleteEmploymentType(emp.id)}>
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -4841,7 +4850,7 @@ const Settings = () => {
                     </table>
                   </div>
                 ) : (
-                  <div className="text-center py-12 border rounded-lg">
+                  <div className="text-center py-12 border rounded-lg bg-gray-50/50">
                     <Users className="h-12 w-12 mx-auto text-gray-400 mb-3" />
                     <p className="text-gray-500">No employment types configured yet</p>
                   </div>
@@ -4850,52 +4859,52 @@ const Settings = () => {
             </Tabs>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsStaffSettingsModalOpen(false)}>Close</Button>
+            <Button variant="outline" onClick={() => setIsStaffSettingsModalOpen(false)} className="w-full sm:w-auto">Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Add/Edit Role Modal */}
       <Dialog open={isAddRoleModalOpen} onOpenChange={setIsAddRoleModalOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md w-[95vw]">
           <DialogHeader>
             <DialogTitle>{editingRole ? 'Edit Role' : 'Add New Role'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
+            <div className="space-y-1.5">
               <Label>Role Name *</Label>
               <input
                 type="text"
-                className="w-full mt-1 px-3 py-2 border rounded-md"
+                className="w-full px-3 py-2 border rounded-md text-sm"
                 placeholder="e.g., Teacher, Accountant, Admin Staff"
                 value={roleFormData.role_name}
                 onChange={(e) => setRoleFormData({...roleFormData, role_name: e.target.value})}
               />
             </div>
-            <div>
+            <div className="space-y-1.5">
               <Label>Description</Label>
               <textarea
-                className="w-full mt-1 px-3 py-2 border rounded-md"
+                className="w-full px-3 py-2 border rounded-md text-sm"
                 rows="3"
                 placeholder="Enter role description"
                 value={roleFormData.description}
                 onChange={(e) => setRoleFormData({...roleFormData, description: e.target.value})}
               />
             </div>
-            <div className="flex items-center">
+            <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
                 id="role_active"
-                className="mr-2"
+                className="h-4 w-4"
                 checked={roleFormData.is_active}
                 onChange={(e) => setRoleFormData({...roleFormData, is_active: e.target.checked})}
               />
               <Label htmlFor="role_active" className="mb-0">Active</Label>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddRoleModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveRole} disabled={loading || !roleFormData.role_name.trim()}>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setIsAddRoleModalOpen(false)} className="w-full sm:w-auto">Cancel</Button>
+            <Button onClick={handleSaveRole} disabled={loading || !roleFormData.role_name.trim()} className="w-full sm:w-auto">
               {loading ? 'Saving...' : (editingRole ? 'Update' : 'Create')}
             </Button>
           </DialogFooter>
@@ -4904,45 +4913,45 @@ const Settings = () => {
 
       {/* Add/Edit Department Modal */}
       <Dialog open={isAddDepartmentModalOpen} onOpenChange={setIsAddDepartmentModalOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md w-[95vw]">
           <DialogHeader>
             <DialogTitle>{editingDepartment ? 'Edit Department' : 'Add New Department'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
+            <div className="space-y-1.5">
               <Label>Department Name *</Label>
               <input
                 type="text"
-                className="w-full mt-1 px-3 py-2 border rounded-md"
+                className="w-full px-3 py-2 border rounded-md text-sm"
                 placeholder="e.g., Science, Mathematics, Administration"
                 value={departmentFormData.department_name}
                 onChange={(e) => setDepartmentFormData({...departmentFormData, department_name: e.target.value})}
               />
             </div>
-            <div>
+            <div className="space-y-1.5">
               <Label>Description</Label>
               <textarea
-                className="w-full mt-1 px-3 py-2 border rounded-md"
+                className="w-full px-3 py-2 border rounded-md text-sm"
                 rows="3"
                 placeholder="Enter department description"
                 value={departmentFormData.description}
                 onChange={(e) => setDepartmentFormData({...departmentFormData, description: e.target.value})}
               />
             </div>
-            <div className="flex items-center">
+            <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
                 id="dept_active"
-                className="mr-2"
+                className="h-4 w-4"
                 checked={departmentFormData.is_active}
                 onChange={(e) => setDepartmentFormData({...departmentFormData, is_active: e.target.checked})}
               />
               <Label htmlFor="dept_active" className="mb-0">Active</Label>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddDepartmentModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveDepartment} disabled={loading || !departmentFormData.department_name.trim()}>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setIsAddDepartmentModalOpen(false)} className="w-full sm:w-auto">Cancel</Button>
+            <Button onClick={handleSaveDepartment} disabled={loading || !departmentFormData.department_name.trim()} className="w-full sm:w-auto">
               {loading ? 'Saving...' : (editingDepartment ? 'Update' : 'Create')}
             </Button>
           </DialogFooter>
@@ -4951,45 +4960,45 @@ const Settings = () => {
 
       {/* Add/Edit Employment Type Modal */}
       <Dialog open={isAddEmploymentModalOpen} onOpenChange={setIsAddEmploymentModalOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md w-[95vw]">
           <DialogHeader>
             <DialogTitle>{editingEmploymentType ? 'Edit Employment Type' : 'Add New Employment Type'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
+            <div className="space-y-1.5">
               <Label>Employment Type Name *</Label>
               <input
                 type="text"
-                className="w-full mt-1 px-3 py-2 border rounded-md"
+                className="w-full px-3 py-2 border rounded-md text-sm"
                 placeholder="e.g., Full-time, Part-time, Contract"
                 value={employmentFormData.type_name}
                 onChange={(e) => setEmploymentFormData({...employmentFormData, type_name: e.target.value})}
               />
             </div>
-            <div>
+            <div className="space-y-1.5">
               <Label>Description</Label>
               <textarea
-                className="w-full mt-1 px-3 py-2 border rounded-md"
+                className="w-full px-3 py-2 border rounded-md text-sm"
                 rows="3"
                 placeholder="Enter employment type description"
                 value={employmentFormData.description}
                 onChange={(e) => setEmploymentFormData({...employmentFormData, description: e.target.value})}
               />
             </div>
-            <div className="flex items-center">
+            <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
                 id="emp_active"
-                className="mr-2"
+                className="h-4 w-4"
                 checked={employmentFormData.is_active}
                 onChange={(e) => setEmploymentFormData({...employmentFormData, is_active: e.target.checked})}
               />
               <Label htmlFor="emp_active" className="mb-0">Active</Label>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddEmploymentModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveEmploymentType} disabled={loading || !employmentFormData.type_name.trim()}>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setIsAddEmploymentModalOpen(false)} className="w-full sm:w-auto">Cancel</Button>
+            <Button onClick={handleSaveEmploymentType} disabled={loading || !employmentFormData.type_name.trim()} className="w-full sm:w-auto">
               {loading ? 'Saving...' : (editingEmploymentType ? 'Update' : 'Create')}
             </Button>
           </DialogFooter>
@@ -4998,7 +5007,7 @@ const Settings = () => {
 
       {/* View Roles Modal */}
       <Dialog open={isViewRolesModalOpen} onOpenChange={setIsViewRolesModalOpen}>
-        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
               <Shield className="h-5 w-5 text-red-500" />
@@ -5006,31 +5015,31 @@ const Settings = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <p className="text-sm text-gray-600">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <p className="text-sm text-muted-foreground">
                 Manage user roles and their access permissions
               </p>
-              <Button onClick={handleManagePermissions} className="bg-emerald-500 hover:bg-emerald-600">
+              <Button onClick={handleManagePermissions} className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600">
                 <Plus className="h-4 w-4 mr-2" />
                 Create New Role
               </Button>
             </div>
             
             {roles.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
+              <div className="text-center py-12 text-gray-500 border rounded-lg bg-gray-50/50">
                 <Shield className="h-16 w-16 mx-auto text-gray-300 mb-4" />
                 <p>No roles found. Create your first role to get started.</p>
               </div>
             ) : (
-              <div className="border rounded-lg overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+              <div className="overflow-x-auto border rounded-lg">
+                <table className="w-full text-sm sm:text-base">
+                  <thead className="bg-muted/50 border-b">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role Name</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Permissions</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      <th className="px-4 py-3 text-left font-medium">Role Name</th>
+                      <th className="px-4 py-3 text-left font-medium hidden sm:table-cell">Description</th>
+                      <th className="px-4 py-3 text-left font-medium">Status</th>
+                      <th className="px-4 py-3 text-left font-medium hidden lg:table-cell">Permissions</th>
+                      <th className="px-4 py-3 text-right font-medium">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -5040,43 +5049,47 @@ const Settings = () => {
                       }, 0);
                       
                       return (
-                        <tr key={role.id} className="hover:bg-gray-50">
+                        <tr key={role.id} className="hover:bg-gray-50/50">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
-                              <Shield className="h-5 w-5 text-red-500 mr-2" />
-                              <span className="text-sm font-medium text-gray-900">{role.role_name}</span>
+                              <Shield className="h-5 w-5 text-red-500 mr-2 flex-shrink-0" />
+                              <span className="font-medium text-gray-900">{role.role_name}</span>
                             </div>
                           </td>
+                          <td className="px-6 py-4 hidden sm:table-cell">
+                            <div className="text-gray-500 truncate max-w-xs">{role.description || 'No description'}</div>
+                          </td>
                           <td className="px-6 py-4">
-                            <span className="text-sm text-gray-600">{role.description || 'No description'}</span>
+                            {role.is_active ? (
+                              <Badge variant="success" className="text-[10px] sm:text-xs">Active</Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-[10px] sm:text-xs text-gray-400">Inactive</Badge>
+                            )}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <Badge variant={role.is_active ? 'success' : 'secondary'}>
-                              {role.is_active ? 'Active' : 'Inactive'}
-                            </Badge>
+                          <td className="px-6 py-4 hidden lg:table-cell whitespace-nowrap">
+                            <span className="text-gray-600">{permissionCount} permissions</span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="text-sm text-gray-600">{permissionCount} permissions</span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => handleEditRolePermissions(role)}
-                              className="text-blue-600 hover:text-blue-900"
-                            >
-                              <Edit className="h-4 w-4 mr-1" />
-                              Edit
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => handleDeleteRolePermission(role.id)}
-                              className="text-red-600 hover:text-red-900"
-                            >
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Delete
-                            </Button>
+                          <td className="px-6 py-4 text-right whitespace-nowrap">
+                            <div className="flex justify-end gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-8 w-8 p-0 text-blue-600"
+                                onClick={() => handleEditRolePermissions(role)}
+                                title="Edit Role"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-8 w-8 p-0 text-red-600"
+                                onClick={() => handleDeleteRolePermission(role.id)}
+                                title="Delete Role"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -5086,12 +5099,15 @@ const Settings = () => {
               </div>
             )}
           </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsViewRolesModalOpen(false)} className="w-full sm:w-auto">Close</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Manage Permissions Modal */}
       <Dialog open={isManagePermissionsModalOpen} onOpenChange={setIsManagePermissionsModalOpen}>
-        <DialogContent className="max-w-6xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
               <Shield className="h-5 w-5 text-red-500" />
@@ -5099,20 +5115,18 @@ const Settings = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
                 <Label>Role Name *</Label>
                 <Input
-                  className="mt-1"
                   placeholder="e.g., Admin, Teacher, Accountant"
                   value={permissionFormData.role_name}
                   onChange={(e) => setPermissionFormData({...permissionFormData, role_name: e.target.value})}
                 />
               </div>
-              <div>
+              <div className="space-y-1.5">
                 <Label>Description</Label>
                 <Input
-                  className="mt-1"
                   placeholder="Brief description of this role"
                   value={permissionFormData.description}
                   onChange={(e) => setPermissionFormData({...permissionFormData, description: e.target.value})}
@@ -5120,27 +5134,27 @@ const Settings = () => {
               </div>
             </div>
 
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium text-gray-900">Module Permissions</h3>
-                <p className="text-xs text-gray-500">Configure CRUD permissions for each module</p>
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <h3 className="text-sm font-semibold text-gray-900">Module Permissions</h3>
+                <p className="text-xs text-muted-foreground">Configure CRUD permissions for each module</p>
               </div>
               
-              <div className="border rounded-lg overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+              <div className="overflow-x-auto border rounded-lg">
+                <table className="w-full text-sm sm:text-base">
+                  <thead className="bg-muted/50 border-b">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Module</th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Create</th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Read</th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Update</th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Delete</th>
+                      <th className="px-4 py-3 text-left font-medium">Module</th>
+                      <th className="px-4 py-3 text-center font-medium">Create</th>
+                      <th className="px-4 py-3 text-center font-medium">Read</th>
+                      <th className="px-4 py-3 text-center font-medium">Update</th>
+                      <th className="px-4 py-3 text-center font-medium">Delete</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {permissionModules.map((module) => (
-                      <tr key={module.key} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{module.label}</td>
+                      <tr key={module.key} className="hover:bg-gray-50/50">
+                        <td className="px-4 py-3 font-medium text-gray-900">{module.label}</td>
                         <td className="px-4 py-3 text-center">
                           <input
                             type="checkbox"
@@ -5180,23 +5194,23 @@ const Settings = () => {
               </div>
             </div>
 
-            <div className="flex items-center">
+            <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
                 id="role_active"
-                className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded mr-2 cursor-pointer"
+                className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded cursor-pointer"
                 checked={permissionFormData.is_active}
                 onChange={(e) => setPermissionFormData({...permissionFormData, is_active: e.target.checked})}
               />
-              <Label htmlFor="role_active" className="mb-0 cursor-pointer">Active</Label>
+              <Label htmlFor="role_active" className="mb-0 cursor-pointer text-sm">Active</Label>
             </div>
           </div>
-          <DialogFooter className="mt-6">
-            <Button variant="outline" onClick={() => setIsManagePermissionsModalOpen(false)}>Cancel</Button>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-6">
+            <Button variant="outline" onClick={() => setIsManagePermissionsModalOpen(false)} className="w-full sm:w-auto">Cancel</Button>
             <Button 
               onClick={handleSavePermissions} 
               disabled={loading || !permissionFormData.role_name.trim()}
-              className="bg-emerald-500 hover:bg-emerald-600"
+              className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600"
             >
               {loading ? 'Saving...' : (editingPermissionRole ? 'Update Role' : 'Create Role')}
             </Button>

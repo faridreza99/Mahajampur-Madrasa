@@ -70,38 +70,38 @@ const TeacherDashboard = () => {
   const { teacher, today, assigned, attendance_summary, pending_tasks, notifications } = dashboardData;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white truncate">
             Welcome, {teacher?.name || 'Teacher'}
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
             {teacher?.designation || 'Teacher'} | {today?.day}, {new Date(today?.date).toLocaleDateString()}
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => navigate('/attendance')} className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button onClick={() => navigate('/attendance')} className="w-full sm:w-auto flex items-center justify-center gap-2">
             <ClipboardList className="h-4 w-4" />
             Take Attendance
           </Button>
-          <Button variant="outline" onClick={() => navigate('/homework')} className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => navigate('/homework')} className="w-full sm:w-auto flex items-center justify-center gap-2">
             <FileText className="h-4 w-4" />
             Add Homework
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Today's Classes</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">{today?.total_periods || 0}</p>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">Today's Classes</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{today?.total_periods || 0}</p>
               </div>
-              <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-full">
-                <Clock className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              <div className="p-2 sm:p-3 bg-blue-100 dark:bg-blue-900 rounded-full flex-shrink-0">
+                <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
               </div>
             </div>
           </CardContent>
@@ -110,26 +110,12 @@ const TeacherDashboard = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Students</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">{assigned?.total_students || 0}</p>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">Total Students</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{assigned?.total_students || 0}</p>
               </div>
-              <div className="p-3 bg-green-100 dark:bg-green-900 rounded-full">
-                <Users className="h-6 w-6 text-green-600 dark:text-green-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Assigned Classes</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">{assigned?.classes?.length || 0}</p>
-              </div>
-              <div className="p-3 bg-purple-100 dark:bg-purple-900 rounded-full">
-                <GraduationCap className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+              <div className="p-2 sm:p-3 bg-green-100 dark:bg-green-900 rounded-full flex-shrink-0">
+                <Users className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 dark:text-green-400" />
               </div>
             </div>
           </CardContent>
@@ -138,12 +124,26 @@ const TeacherDashboard = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Subjects</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">{assigned?.subjects?.length || 0}</p>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">Assigned Classes</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{assigned?.classes?.length || 0}</p>
               </div>
-              <div className="p-3 bg-orange-100 dark:bg-orange-900 rounded-full">
-                <BookOpen className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+              <div className="p-2 sm:p-3 bg-purple-100 dark:bg-purple-900 rounded-full flex-shrink-0">
+                <GraduationCap className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">Subjects</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{assigned?.subjects?.length || 0}</p>
+              </div>
+              <div className="p-2 sm:p-3 bg-orange-100 dark:bg-orange-900 rounded-full flex-shrink-0">
+                <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-orange-600 dark:text-orange-400" />
               </div>
             </div>
           </CardContent>
@@ -152,73 +152,73 @@ const TeacherDashboard = () => {
 
       {attendance_summary && attendance_summary.total > 0 && (
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
+          <CardHeader className="p-4 pb-2 sm:p-6 sm:pb-3">
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
               <ClipboardList className="h-5 w-5 text-blue-600" />
               Today's Attendance Summary
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-4">
+          <CardContent className="p-4 sm:p-6 sm:pt-0">
+            <div className="flex flex-wrap gap-3 sm:gap-4">
               <div className="flex items-center gap-2">
-                <span className="w-3 h-3 bg-green-500 rounded-full"></span>
-                <span className="text-sm text-gray-600 dark:text-gray-400">Present:</span>
-                <span className="font-semibold text-green-600">{attendance_summary.present}</span>
+                <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 rounded-full"></span>
+                <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Present:</span>
+                <span className="text-xs sm:text-sm font-semibold text-green-600">{attendance_summary.present}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="w-3 h-3 bg-red-500 rounded-full"></span>
-                <span className="text-sm text-gray-600 dark:text-gray-400">Absent:</span>
-                <span className="font-semibold text-red-600">{attendance_summary.absent}</span>
+                <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-red-500 rounded-full"></span>
+                <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Absent:</span>
+                <span className="text-xs sm:text-sm font-semibold text-red-600">{attendance_summary.absent}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="w-3 h-3 bg-orange-500 rounded-full"></span>
-                <span className="text-sm text-gray-600 dark:text-gray-400">Late:</span>
-                <span className="font-semibold text-orange-600">{attendance_summary.late}</span>
+                <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-orange-500 rounded-full"></span>
+                <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Late:</span>
+                <span className="text-xs sm:text-sm font-semibold text-orange-600">{attendance_summary.late}</span>
               </div>
-              <div className="flex items-center gap-2 ml-auto">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Total:</span>
-                <span className="font-semibold">{attendance_summary.total}</span>
+              <div className="flex items-center gap-2 sm:ml-auto">
+                <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Total:</span>
+                <span className="text-xs sm:text-sm font-semibold">{attendance_summary.total}</span>
               </div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
               <Calendar className="h-5 w-5 text-blue-600" />
               Today's Schedule
             </CardTitle>
-            <CardDescription>Your classes for {today?.day}</CardDescription>
+            <CardDescription className="text-xs sm:text-sm">Your classes for {today?.day}</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6 sm:pt-0">
             {today?.classes && today.classes.length > 0 ? (
               <div className="space-y-3">
                 {today.classes.map((cls, index) => (
                   <div 
                     key={index}
-                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border dark:border-gray-700"
+                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border dark:border-gray-700 min-w-0"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="text-center min-w-[60px]">
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Period</p>
-                        <p className="text-lg font-bold text-blue-600">{cls.period_number}</p>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="text-center min-w-[50px] sm:min-w-[60px]">
+                        <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Period</p>
+                        <p className="text-base sm:text-lg font-bold text-blue-600">{cls.period_number}</p>
                       </div>
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-white">
+                      <div className="min-w-0">
+                        <p className="text-sm sm:text-base font-medium text-gray-900 dark:text-white truncate">
                           {cls.class_name} {cls.section && `- ${cls.section}`}
                         </p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">{cls.subject}</p>
+                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">{cls.subject}</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-[11px] sm:text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">
                         {cls.start_time} - {cls.end_time}
                       </p>
                       {cls.room_number && (
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Room: {cls.room_number}</p>
+                        <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Room: {cls.room_number}</p>
                       )}
                     </div>
                   </div>
@@ -226,44 +226,44 @@ const TeacherDashboard = () => {
               </div>
             ) : (
               <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p className="text-lg font-medium">No classes scheduled for today</p>
-                <p className="text-sm">Enjoy your day off!</p>
+                <Calendar className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 opacity-50" />
+                <p className="text-base sm:text-lg font-medium">No classes today</p>
+                <p className="text-xs sm:text-sm">Enjoy your day off!</p>
               </div>
             )}
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-orange-600" />
               Pending Tasks
             </CardTitle>
-            <CardDescription>Tasks that need your attention</CardDescription>
+            <CardDescription className="text-xs sm:text-sm">Tasks that need your attention</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6 sm:pt-0">
             {pending_tasks && pending_tasks.length > 0 ? (
               <div className="space-y-3">
                 {pending_tasks.map((task, index) => (
                   <div 
                     key={index}
-                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border dark:border-gray-700"
+                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border dark:border-gray-700 min-w-0"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
                       {task.type === 'marks_entry' ? (
-                        <BookMarked className="h-5 w-5 text-blue-600" />
+                        <BookMarked className="h-5 w-5 text-blue-600 flex-shrink-0" />
                       ) : (
-                        <FileText className="h-5 w-5 text-green-600" />
+                        <FileText className="h-5 w-5 text-green-600 flex-shrink-0" />
                       )}
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-white">{task.title}</p>
+                      <div className="min-w-0">
+                        <p className="text-sm sm:text-base font-medium text-gray-900 dark:text-white truncate">{task.title}</p>
                         {task.class_name && (
-                          <p className="text-sm text-gray-600 dark:text-gray-400">{task.class_name}</p>
+                          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">{task.class_name}</p>
                         )}
                       </div>
                     </div>
-                    <Badge variant={task.priority === 'high' ? 'destructive' : 'secondary'}>
+                    <Badge variant={task.priority === 'high' ? 'destructive' : 'secondary'} className="text-[10px] sm:text-xs">
                       {task.priority}
                     </Badge>
                   </div>
@@ -271,48 +271,48 @@ const TeacherDashboard = () => {
               </div>
             ) : (
               <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-500" />
-                <p className="text-lg font-medium">All caught up!</p>
-                <p className="text-sm">No pending tasks at the moment</p>
+                <CheckCircle className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 text-green-500" />
+                <p className="text-base sm:text-lg font-medium">All caught up!</p>
+                <p className="text-xs sm:text-sm">No pending tasks</p>
               </div>
             )}
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-purple-600" />
               My Classes & Subjects
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6 sm:pt-0">
             <div className="space-y-4">
               <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Classes</p>
+                <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Classes</p>
                 <div className="flex flex-wrap gap-2">
                   {assigned?.classes?.map((cls, index) => (
-                    <Badge key={index} variant="outline" className="text-sm">
+                    <Badge key={index} variant="outline" className="text-[10px] sm:text-xs">
                       {cls}
                     </Badge>
                   ))}
                   {(!assigned?.classes || assigned.classes.length === 0) && (
-                    <span className="text-sm text-gray-500">No classes assigned</span>
+                    <span className="text-xs sm:text-sm text-gray-500">No classes assigned</span>
                   )}
                 </div>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Subjects</p>
+                <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Subjects</p>
                 <div className="flex flex-wrap gap-2">
                   {assigned?.subjects?.map((subject, index) => (
-                    <Badge key={index} variant="secondary" className="text-sm">
+                    <Badge key={index} variant="secondary" className="text-[10px] sm:text-xs">
                       {subject}
                     </Badge>
                   ))}
                   {(!assigned?.subjects || assigned.subjects.length === 0) && (
-                    <span className="text-sm text-gray-500">No subjects assigned</span>
+                    <span className="text-xs sm:text-sm text-gray-500">No subjects assigned</span>
                   )}
                 </div>
               </div>
@@ -321,24 +321,24 @@ const TeacherDashboard = () => {
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
               <Bell className="h-5 w-5 text-yellow-600" />
               Recent Notifications
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6 sm:pt-0">
             {notifications && notifications.length > 0 ? (
               <div className="space-y-3">
                 {notifications.map((notif, index) => (
                   <div 
                     key={notif.id || index}
-                    className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border dark:border-gray-700"
+                    className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border dark:border-gray-700 min-w-0"
                   >
-                    <Bell className="h-4 w-4 text-blue-600 mt-1 flex-shrink-0" />
+                    <Bell className="h-4 w-4 text-blue-600 mt-0.5 sm:mt-1 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 dark:text-white text-sm">{notif.title}</p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 truncate">{notif.message}</p>
+                      <p className="font-medium text-gray-900 dark:text-white text-xs sm:text-sm truncate">{notif.title}</p>
+                      <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 truncate">{notif.message}</p>
                     </div>
                   </div>
                 ))}
@@ -346,7 +346,7 @@ const TeacherDashboard = () => {
             ) : (
               <div className="text-center py-6 text-gray-500 dark:text-gray-400">
                 <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No new notifications</p>
+                <p className="text-xs sm:text-sm">No new notifications</p>
               </div>
             )}
           </CardContent>
@@ -354,41 +354,41 @@ const TeacherDashboard = () => {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-base sm:text-lg">Quick Actions</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <CardContent className="p-4 sm:p-6 sm:pt-0">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
             <Button 
               variant="outline" 
-              className="h-auto py-4 flex flex-col items-center gap-2"
+              className="h-auto py-3 sm:py-4 flex flex-col items-center gap-2 text-xs sm:text-sm"
               onClick={() => navigate('/attendance')}
             >
-              <ClipboardList className="h-6 w-6 text-blue-600" />
-              <span>Take Attendance</span>
+              <ClipboardList className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+              <span>Attendance</span>
             </Button>
             <Button 
               variant="outline" 
-              className="h-auto py-4 flex flex-col items-center gap-2"
+              className="h-auto py-3 sm:py-4 flex flex-col items-center gap-2 text-xs sm:text-sm"
               onClick={() => navigate('/homework')}
             >
-              <FileText className="h-6 w-6 text-green-600" />
+              <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
               <span>Homework</span>
             </Button>
             <Button 
               variant="outline" 
-              className="h-auto py-4 flex flex-col items-center gap-2"
+              className="h-auto py-3 sm:py-4 flex flex-col items-center gap-2 text-xs sm:text-sm"
               onClick={() => navigate('/lesson-plans')}
             >
-              <BookMarked className="h-6 w-6 text-purple-600" />
+              <BookMarked className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
               <span>Lesson Plans</span>
             </Button>
             <Button 
               variant="outline" 
-              className="h-auto py-4 flex flex-col items-center gap-2"
+              className="h-auto py-3 sm:py-4 flex flex-col items-center gap-2 text-xs sm:text-sm"
               onClick={() => navigate('/results')}
             >
-              <GraduationCap className="h-6 w-6 text-orange-600" />
+              <GraduationCap className="h-5 w-5 sm:h-6 sm:w-6 text-orange-600" />
               <span>Enter Marks</span>
             </Button>
           </div>

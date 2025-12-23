@@ -234,20 +234,20 @@ const LessonPlans = () => {
   );
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Lesson Plans</h1>
-          <p className="text-gray-600 dark:text-gray-400">Plan and track your teaching lessons</p>
+    <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white truncate">Lesson Plans</h1>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Plan and track your teaching lessons</p>
         </div>
         <Dialog open={showDialog} onOpenChange={setShowDialog}>
           <DialogTrigger asChild>
-            <Button className="flex items-center gap-2">
+            <Button className="w-full sm:w-auto flex items-center justify-center gap-2">
               <Plus className="h-4 w-4" />
               New Lesson Plan
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
             <DialogHeader>
               <DialogTitle>Create Lesson Plan</DialogTitle>
               <DialogDescription>
@@ -255,7 +255,7 @@ const LessonPlans = () => {
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="title">Title *</Label>
                   <Input
@@ -278,7 +278,7 @@ const LessonPlans = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="class">Class *</Label>
                   <Select
@@ -318,7 +318,7 @@ const LessonPlans = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="planned_date">Planned Date</Label>
                   <Input
@@ -345,7 +345,7 @@ const LessonPlans = () => {
                 <Label htmlFor="objectives">Learning Objectives</Label>
                 <textarea
                   id="objectives"
-                  className="w-full min-h-[60px] p-2 border rounded-md dark:bg-gray-800 dark:border-gray-700"
+                  className="w-full min-h-[60px] p-2 border rounded-md dark:bg-gray-800 dark:border-gray-700 text-sm"
                   value={formData.objectives}
                   onChange={(e) => setFormData({ ...formData, objectives: e.target.value })}
                   placeholder="What students will learn..."
@@ -356,40 +356,18 @@ const LessonPlans = () => {
                 <Label htmlFor="content">Lesson Content</Label>
                 <textarea
                   id="content"
-                  className="w-full min-h-[80px] p-2 border rounded-md dark:bg-gray-800 dark:border-gray-700"
+                  className="w-full min-h-[80px] p-2 border rounded-md dark:bg-gray-800 dark:border-gray-700 text-sm"
                   value={formData.content}
                   onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                   placeholder="Main content to be covered..."
                 />
               </div>
 
-              <div>
-                <Label htmlFor="activities">Activities</Label>
-                <textarea
-                  id="activities"
-                  className="w-full min-h-[60px] p-2 border rounded-md dark:bg-gray-800 dark:border-gray-700"
-                  value={formData.activities}
-                  onChange={(e) => setFormData({ ...formData, activities: e.target.value })}
-                  placeholder="Class activities and exercises..."
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="resources">Resources Needed</Label>
-                <textarea
-                  id="resources"
-                  className="w-full min-h-[40px] p-2 border rounded-md dark:bg-gray-800 dark:border-gray-700"
-                  value={formData.resources}
-                  onChange={(e) => setFormData({ ...formData, resources: e.target.value })}
-                  placeholder="Books, materials, equipment..."
-                />
-              </div>
-
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setShowDialog(false)}>
+              <DialogFooter className="flex-col sm:flex-row gap-2">
+                <Button type="button" variant="outline" onClick={() => setShowDialog(false)} className="w-full sm:w-auto">
                   Cancel
                 </Button>
-                <Button type="submit" disabled={submitting}>
+                <Button type="submit" disabled={submitting} className="w-full sm:w-auto">
                   {submitting ? 'Creating...' : 'Create Lesson Plan'}
                 </Button>
               </DialogFooter>
@@ -400,7 +378,7 @@ const LessonPlans = () => {
 
       <div className="flex gap-4 flex-wrap">
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
@@ -412,95 +390,95 @@ const LessonPlans = () => {
         </Select>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="pt-6 p-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Planned</p>
-                <p className="text-2xl font-bold">{lessonPlans.filter(p => p.status === 'planned').length}</p>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">Planned</p>
+                <p className="text-xl sm:text-2xl font-bold">{lessonPlans.filter(p => p.status === 'planned').length}</p>
               </div>
-              <Calendar className="h-8 w-8 text-blue-600 opacity-50" />
+              <Calendar className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 opacity-50 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="pt-6 p-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">In Progress</p>
-                <p className="text-2xl font-bold">{lessonPlans.filter(p => p.status === 'in_progress').length}</p>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">In Progress</p>
+                <p className="text-xl sm:text-2xl font-bold">{lessonPlans.filter(p => p.status === 'in_progress').length}</p>
               </div>
-              <Clock className="h-8 w-8 text-orange-600 opacity-50" />
+              <Clock className="h-6 w-6 sm:h-8 sm:w-8 text-orange-600 opacity-50 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="sm:col-span-2 md:col-span-1">
+          <CardContent className="pt-6 p-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Completed</p>
-                <p className="text-2xl font-bold">{lessonPlans.filter(p => p.status === 'completed').length}</p>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">Completed</p>
+                <p className="text-xl sm:text-2xl font-bold">{lessonPlans.filter(p => p.status === 'completed').length}</p>
               </div>
-              <CheckCircle className="h-8 w-8 text-green-600 opacity-50" />
+              <CheckCircle className="h-6 w-6 sm:h-8 sm:w-8 text-green-600 opacity-50 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-base sm:text-lg flex items-center gap-2">
             <BookMarked className="h-5 w-5 text-purple-600" />
             Lesson Plans
           </CardTitle>
-          <CardDescription>Your teaching plans and progress</CardDescription>
+          <CardDescription className="text-xs sm:text-sm">Your teaching plans and progress</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6 sm:pt-0">
           {filteredPlans.length > 0 ? (
             <div className="space-y-4">
               {filteredPlans.map((plan) => (
                 <div 
                   key={plan.id}
-                  className="p-4 border dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
+                  className="p-3 sm:p-4 border dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="font-semibold text-gray-900 dark:text-white">{plan.title}</h3>
-                        <Badge variant={getStatusColor(plan.status)} className="flex items-center gap-1">
+                  <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0 w-full">
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base truncate">{plan.title}</h3>
+                        <Badge variant={getStatusColor(plan.status)} className="flex items-center gap-1 text-[10px] sm:text-xs">
                           {getStatusIcon(plan.status)}
                           {plan.status || 'Planned'}
                         </Badge>
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-600 dark:text-gray-400">
-                        <div>
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 text-[11px] sm:text-sm text-gray-600 dark:text-gray-400">
+                        <div className="truncate">
                           <span className="font-medium">Class:</span> {plan.class_name}
                         </div>
-                        <div>
+                        <div className="truncate">
                           <span className="font-medium">Subject:</span> {plan.subject}
                         </div>
-                        <div>
+                        <div className="truncate">
                           <span className="font-medium">Topic:</span> {plan.topic}
                         </div>
-                        <div>
+                        <div className="truncate">
                           <span className="font-medium">Duration:</span> {plan.duration_minutes} min
                         </div>
                       </div>
                       {plan.objectives && (
-                        <div className="mt-2 text-sm">
+                        <div className="mt-2 text-xs sm:text-sm">
                           <span className="font-medium text-gray-700 dark:text-gray-300">Objectives:</span>
-                          <p className="text-gray-600 dark:text-gray-400">{plan.objectives}</p>
+                          <p className="text-gray-600 dark:text-gray-400 line-clamp-2">{plan.objectives}</p>
                         </div>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 ml-4">
+                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                       {plan.status !== 'completed' && (
                         <Select
                           value={plan.status}
                           onValueChange={(value) => handleStatusUpdate(plan.id, value)}
                         >
-                          <SelectTrigger className="w-[130px]">
+                          <SelectTrigger className="w-[110px] sm:w-[130px] h-8 sm:h-9 text-[11px] sm:text-xs">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -513,7 +491,7 @@ const LessonPlans = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-red-600 hover:text-red-700"
+                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                         onClick={() => handleDelete(plan.id)}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -525,9 +503,9 @@ const LessonPlans = () => {
             </div>
           ) : (
             <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-              <BookMarked className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium">No lesson plans yet</p>
-              <p className="text-sm">Click "New Lesson Plan" to create your first plan</p>
+              <BookMarked className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 opacity-50" />
+              <p className="text-base sm:text-lg font-medium">No lesson plans yet</p>
+              <p className="text-xs sm:text-sm">Click "New Lesson Plan" to create your first plan</p>
             </div>
           )}
         </CardContent>

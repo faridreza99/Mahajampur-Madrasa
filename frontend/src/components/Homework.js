@@ -202,20 +202,20 @@ const Homework = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Homework & Assignments</h1>
-          <p className="text-gray-600 dark:text-gray-400">Create and manage homework for your classes</p>
+    <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white truncate">Homework & Assignments</h1>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Create and manage homework for your classes</p>
         </div>
         <Dialog open={showDialog} onOpenChange={setShowDialog}>
           <DialogTrigger asChild>
-            <Button className="flex items-center gap-2">
+            <Button className="w-full sm:w-auto flex items-center justify-center gap-2">
               <Plus className="h-4 w-4" />
               Add Homework
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg w-[95vw] sm:w-full">
             <DialogHeader>
               <DialogTitle>Create New Homework</DialogTitle>
               <DialogDescription>
@@ -234,7 +234,7 @@ const Homework = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="class">Class *</Label>
                   <Select
@@ -289,7 +289,7 @@ const Homework = () => {
                 <Label htmlFor="description">Description</Label>
                 <textarea
                   id="description"
-                  className="w-full min-h-[80px] p-2 border rounded-md dark:bg-gray-800 dark:border-gray-700"
+                  className="w-full min-h-[80px] p-2 border rounded-md dark:bg-gray-800 dark:border-gray-700 text-sm"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Enter homework description"
@@ -300,7 +300,7 @@ const Homework = () => {
                 <Label htmlFor="instructions">Instructions</Label>
                 <textarea
                   id="instructions"
-                  className="w-full min-h-[60px] p-2 border rounded-md dark:bg-gray-800 dark:border-gray-700"
+                  className="w-full min-h-[60px] p-2 border rounded-md dark:bg-gray-800 dark:border-gray-700 text-sm"
                   value={formData.instructions}
                   onChange={(e) => setFormData({ ...formData, instructions: e.target.value })}
                   placeholder="Enter additional instructions"
@@ -315,16 +315,17 @@ const Homework = () => {
                     type="file"
                     onChange={(e) => setFile(e.target.files[0])}
                     accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                    className="text-xs sm:text-sm"
                   />
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Max 10MB. Supported: PDF, DOC, DOCX, PNG, JPG</p>
+                <p className="text-[10px] sm:text-xs text-gray-500 mt-1">Max 10MB. Supported: PDF, DOC, DOCX, PNG, JPG</p>
               </div>
 
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setShowDialog(false)}>
+              <DialogFooter className="flex-col sm:flex-row gap-2">
+                <Button type="button" variant="outline" onClick={() => setShowDialog(false)} className="w-full sm:w-auto">
                   Cancel
                 </Button>
-                <Button type="submit" disabled={submitting}>
+                <Button type="submit" disabled={submitting} className="w-full sm:w-auto">
                   {submitting ? 'Creating...' : 'Create Homework'}
                 </Button>
               </DialogFooter>
@@ -335,7 +336,7 @@ const Homework = () => {
 
       <div className="flex gap-4 flex-wrap">
         <Select value={selectedClass} onValueChange={setSelectedClass}>
-          <SelectTrigger className="w-[200px]">
+          <SelectTrigger className="w-full sm:w-[200px]">
             <SelectValue placeholder="Filter by class" />
           </SelectTrigger>
           <SelectContent>
@@ -350,25 +351,25 @@ const Homework = () => {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-base sm:text-lg flex items-center gap-2">
             <FileText className="h-5 w-5 text-blue-600" />
             Homework List
           </CardTitle>
-          <CardDescription>All homework assignments you've created</CardDescription>
+          <CardDescription className="text-xs sm:text-sm">All homework assignments you've created</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0 sm:p-6 sm:pt-0">
           {homework.length > 0 ? (
-            <div className="rounded-md border dark:border-gray-700">
+            <div className="overflow-x-auto min-w-0">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Class</TableHead>
-                    <TableHead>Subject</TableHead>
+                    <TableHead className="min-w-[150px]">Title</TableHead>
+                    <TableHead className="hidden sm:table-cell">Class</TableHead>
+                    <TableHead className="hidden md:table-cell">Subject</TableHead>
                     <TableHead>Due Date</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -376,38 +377,42 @@ const Homework = () => {
                     .filter(hw => !selectedClass || selectedClass === 'all' || hw.class_id === selectedClass)
                     .map((hw) => (
                     <TableRow key={hw.id}>
-                      <TableCell>
+                      <TableCell className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <BookOpen className="h-4 w-4 text-gray-500" />
-                          <div>
-                            <p className="font-medium">{hw.title}</p>
+                          <BookOpen className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm sm:text-base truncate">{hw.title}</p>
                             {hw.description && (
-                              <p className="text-xs text-gray-500 truncate max-w-[200px]">{hw.description}</p>
+                              <p className="text-[10px] sm:text-xs text-gray-500 truncate max-w-[200px]">{hw.description}</p>
                             )}
+                            <div className="sm:hidden mt-1 text-[10px] text-gray-500">
+                              {hw.class_name} | {hw.subject}
+                            </div>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell text-sm">
                         {hw.class_name} {hw.section_name && `- ${hw.section_name}`}
                       </TableCell>
-                      <TableCell>{hw.subject}</TableCell>
-                      <TableCell>
+                      <TableCell className="hidden md:table-cell text-sm">{hw.subject}</TableCell>
+                      <TableCell className="text-xs sm:text-sm">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
                           {hw.due_date ? new Date(hw.due_date).toLocaleDateString() : '-'}
                         </span>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={getStatusColor(hw.status)}>
+                        <Badge variant={getStatusColor(hw.status)} className="text-[10px] sm:text-xs">
                           {hw.status || 'Active'}
                         </Badge>
                       </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1 sm:gap-2">
                           {hw.file_url && (
                             <Button
                               variant="ghost"
                               size="sm"
+                              className="h-8 w-8 p-0"
                               onClick={() => {
                                 const link = document.createElement('a');
                                 link.href = hw.file_url;
@@ -421,7 +426,7 @@ const Homework = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-red-600 hover:text-red-700"
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
                             onClick={() => handleDelete(hw.id)}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -435,9 +440,9 @@ const Homework = () => {
             </div>
           ) : (
             <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-              <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium">No homework created yet</p>
-              <p className="text-sm">Click "Add Homework" to create your first assignment</p>
+              <FileText className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 opacity-50" />
+              <p className="text-base sm:text-lg font-medium">No homework yet</p>
+              <p className="text-xs sm:text-sm">Click "Add Homework" to start</p>
             </div>
           )}
         </CardContent>

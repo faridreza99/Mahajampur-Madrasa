@@ -459,29 +459,29 @@ const StaffListView = () => {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 fade-in">
+    <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6 fade-in">
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">Staff Management</h1>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 truncate">Staff Management</h1>
           <p className="text-xs sm:text-sm text-gray-600 mt-1">Manage school staff and employee records</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <Button variant="outline" size="sm" className="text-xs sm:text-sm h-8 sm:h-9" onClick={handleImport}>
+          <Button variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm h-8 sm:h-9" onClick={handleImport}>
             <Upload className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-            <span className="hidden sm:inline">Import</span>
+            <span>Import</span>
           </Button>
-          <Button variant="outline" size="sm" className="text-xs sm:text-sm h-8 sm:h-9 hidden md:flex" onClick={() => setIsBulkPhotoModalOpen(true)}>
+          <Button variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm h-8 sm:h-9" onClick={() => setIsBulkPhotoModalOpen(true)}>
             <Camera className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             Photos
           </Button>
-          <Button variant="outline" size="sm" className="text-xs sm:text-sm h-8 sm:h-9" onClick={() => setIsExportModalOpen(true)}>
+          <Button variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm h-8 sm:h-9" onClick={() => setIsExportModalOpen(true)}>
             <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-            <span className="hidden sm:inline">Export</span>
+            <span>Export</span>
           </Button>
           <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-emerald-500 hover:bg-emerald-600 text-xs sm:text-sm h-8 sm:h-9">
+              <Button className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600 text-xs sm:text-sm h-8 sm:h-9">
                 <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 Add Staff
               </Button>
@@ -681,52 +681,52 @@ const StaffListView = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <Card className="card-hover">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Staff</p>
-                <p className="text-2xl font-bold text-gray-900">{staff.length}</p>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Total Staff</p>
+                <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">{staff.length}</p>
               </div>
-              <UserCheck className="h-8 w-8 text-emerald-500" />
+              <UserCheck className="h-6 w-6 sm:h-8 sm:w-8 text-emerald-500 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
         <Card className="card-hover">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Teachers</p>
-                <p className="text-2xl font-bold text-gray-900">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Teachers</p>
+                <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
                   {staff.filter(s => s.designation.toLowerCase().includes('teacher')).length}
                 </p>
               </div>
-              <GraduationCap className="h-8 w-8 text-blue-500" />
+              <GraduationCap className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
         <Card className="card-hover">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Admin Staff</p>
-                <p className="text-2xl font-bold text-gray-900">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Admin Staff</p>
+                <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
                   {staff.filter(s => s.department === 'Administration').length}
                 </p>
               </div>
-              <UserCheck className="h-8 w-8 text-purple-500" />
+              <UserCheck className="h-6 w-6 sm:h-8 sm:w-8 text-purple-500 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
         <Card className="card-hover">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Departments</p>
-                <p className="text-2xl font-bold text-gray-900">{departments.length}</p>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Departments</p>
+                <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">{departments.length}</p>
               </div>
-              <UserCheck className="h-8 w-8 text-orange-500" />
+              <UserCheck className="h-6 w-6 sm:h-8 sm:w-8 text-orange-500 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
@@ -734,21 +734,21 @@ const StaffListView = () => {
 
       {/* Filters */}
       <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex flex-col md:flex-row gap-3 sm:gap-4">
+            <div className="flex-1 min-w-0">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   placeholder="Search by name, employee ID, or email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 text-sm h-9 sm:h-10"
                 />
               </div>
             </div>
             <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-              <SelectTrigger className="w-full sm:w-48">
+              <SelectTrigger className="w-full md:w-48 h-9 sm:h-10 text-sm">
                 <SelectValue placeholder="All Departments" />
               </SelectTrigger>
               <SelectContent>
@@ -766,35 +766,35 @@ const StaffListView = () => {
 
       {/* Staff Table */}
       <Card>
-        <CardHeader>
+        <CardHeader className="p-4 sm:p-6">
           <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <UserCheck className="h-5 w-5 text-emerald-500" />
-              <span>Staff List</span>
-              <Badge variant="secondary">{filteredStaff.length} members</Badge>
+            <div className="flex items-center space-x-2 min-w-0">
+              <UserCheck className="h-5 w-5 text-emerald-500 flex-shrink-0" />
+              <span className="truncate">Staff List</span>
+              <Badge variant="secondary" className="text-[10px] sm:text-xs">{filteredStaff.length} members</Badge>
             </div>
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
+        <CardContent className="p-0 sm:p-6 sm:pt-0">
+          <div className="overflow-x-auto min-w-0">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-12">#</TableHead>
+                  <TableHead className="w-12 hidden sm:table-cell">#</TableHead>
                   <TableHead>Staff Member</TableHead>
-                  <TableHead>Employee ID</TableHead>
+                  <TableHead className="hidden md:table-cell">Employee ID</TableHead>
                   <TableHead>Designation</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Experience</TableHead>
-                  <TableHead>Salary</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="hidden lg:table-cell">Department</TableHead>
+                  <TableHead className="hidden xl:table-cell">Experience</TableHead>
+                  <TableHead className="hidden xl:table-cell">Salary</TableHead>
+                  <TableHead className="hidden md:table-cell">Contact</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredStaff.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-gray-500">
+                    <TableCell colSpan={9} className="text-center py-8 text-gray-500 text-sm">
                       {searchTerm || selectedDepartment
                         ? 'No staff found matching your search criteria'
                         : 'No staff added yet'
@@ -804,72 +804,77 @@ const StaffListView = () => {
                 ) : (
                   filteredStaff.map((member, index) => (
                     <TableRow key={member.id}>
-                      <TableCell className="font-medium">{index + 1}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-3">
-                          <Avatar className="h-10 w-10">
+                      <TableCell className="font-medium hidden sm:table-cell">{index + 1}</TableCell>
+                      <TableCell className="min-w-[150px]">
+                        <div className="flex items-center space-x-2 sm:space-x-3">
+                          <Avatar className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0">
                             <AvatarImage src={member.photo_url} />
-                            <AvatarFallback className="bg-blue-100 text-blue-700">
+                            <AvatarFallback className="bg-blue-100 text-blue-700 text-xs sm:text-sm">
                               {member.name.split(' ').map(n => n[0]).join('')}
                             </AvatarFallback>
                           </Avatar>
-                          <div>
-                            <p className="font-medium">{member.name}</p>
-                            <p className="text-sm text-gray-500">{member.qualification}</p>
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm sm:text-base truncate">{member.name}</p>
+                            <p className="text-[10px] sm:text-sm text-gray-500 truncate">{member.qualification}</p>
+                            <div className="md:hidden mt-1 flex flex-col gap-1">
+                              <span className="text-[10px] text-gray-500">{member.employee_id}</span>
+                              <span className="text-[10px] text-gray-500">{member.phone}</span>
+                            </div>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{member.employee_id}</Badge>
+                      <TableCell className="hidden md:table-cell">
+                        <Badge variant="outline" className="text-[10px] sm:text-xs">{member.employee_id}</Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge className={getDesignationColor(member.designation)}>
+                        <Badge className={`text-[10px] sm:text-xs ${getDesignationColor(member.designation)}`}>
                           {member.designation}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden lg:table-cell">
                         <span className="text-sm">{member.department}</span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden xl:table-cell">
                         <div className="flex items-center text-sm">
                           <Calendar className="h-4 w-4 mr-1 text-gray-400" />
                           {member.experience_years} years
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden xl:table-cell">
                         <div className="flex items-center text-sm">
                           <DollarSign className="h-4 w-4 mr-1 text-gray-400" />
                           ₹{member.salary?.toLocaleString()}
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
+                      <TableCell className="hidden md:table-cell">
+                        <div className="text-[10px] sm:text-xs">
                           <div className="flex items-center text-gray-500">
                             <Phone className="h-3 w-3 mr-1" />
                             {member.phone}
                           </div>
                           <div className="flex items-center text-gray-500 mt-1">
                             <Mail className="h-3 w-3 mr-1" />
-                            {member.email}
+                            <span className="truncate max-w-[120px]">{member.email}</span>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1 sm:space-x-2">
                           <Button
                             variant="ghost"
                             size="sm"
+                            className="h-7 w-7 sm:h-8 sm:w-8 p-0"
                             onClick={() => handleEdit(member)}
                           >
-                            <Edit className="h-4 w-4" />
+                            <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                           </Button>
                           <Button 
                             variant="ghost" 
                             size="sm" 
-                            className="text-red-600 hover:text-red-700"
+                            className="h-7 w-7 sm:h-8 sm:w-8 p-0 text-red-600 hover:text-red-700"
                             onClick={() => handleDeleteClick(member)}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                           </Button>
                         </div>
                       </TableCell>

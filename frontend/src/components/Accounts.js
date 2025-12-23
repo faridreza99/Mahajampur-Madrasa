@@ -245,17 +245,18 @@ const Accounts = () => {
 
 
   return (
-    <div className="space-y-6 fade-in">
+    <div className="p-3 sm:p-4 lg:p-6 space-y-3 sm:space-y-4 lg:space-y-6 fade-in">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Accounts</h1>
-          <p className="text-gray-600 mt-1">Financial management and transaction tracking</p>
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">Accounts</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Financial management and transaction tracking</p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <Button 
             variant="outline" 
             size="sm"
+            className="flex-1 sm:flex-none"
             onClick={() => setDateFilter({from: new Date().toISOString().split('T')[0], to: new Date().toISOString().split('T')[0]})}
           >
             <Calendar className="h-4 w-4 mr-2" />
@@ -264,6 +265,7 @@ const Accounts = () => {
           <Button 
             variant="outline" 
             size="sm"
+            className="flex-1 sm:flex-none"
             onClick={() => {
               const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
               const lastDay = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
@@ -275,6 +277,7 @@ const Accounts = () => {
           <Button 
             variant="outline" 
             size="sm"
+            className="flex-1 sm:flex-none"
             onClick={() => {
               const firstDay = new Date(new Date().getFullYear(), 0, 1);
               const lastDay = new Date(new Date().getFullYear(), 11, 31);
@@ -286,22 +289,24 @@ const Accounts = () => {
           <Button 
             variant="outline" 
             size="sm"
+            className="flex-1 sm:flex-none"
             onClick={() => handleExport('excel')}
           >
             <Download className="h-4 w-4 mr-2" />
-            Export Excel
+            Excel
           </Button>
           <Button 
             variant="outline" 
             size="sm"
+            className="flex-1 sm:flex-none"
             onClick={() => handleExport('pdf')}
           >
             <Download className="h-4 w-4 mr-2" />
-            Export PDF
+            PDF
           </Button>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-emerald-500 hover:bg-emerald-600">
+              <Button className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Transaction
               </Button>
@@ -410,67 +415,67 @@ const Accounts = () => {
       </div>
 
       {/* Financial Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
         <Card className="card-hover">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Opening Balance</p>
-                <p className="text-2xl font-bold text-gray-900">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center justify-between min-w-0">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Opening Balance</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900 truncate">
                   {loading ? 'Loading...' : formatCurrency(dashboardData?.opening_balance || 0)}
                 </p>
               </div>
-              <Calculator className="h-8 w-8 text-blue-500" />
+              <Calculator className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
         
         <Card className="card-hover">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Closing Balance</p>
-                <p className="text-2xl font-bold text-gray-900">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center justify-between min-w-0">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Closing Balance</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900 truncate">
                   {loading ? 'Loading...' : formatCurrency(dashboardData?.closing_balance || 0)}
                 </p>
               </div>
-              <Calculator className="h-8 w-8 text-emerald-500" />
+              <Calculator className="h-6 w-6 sm:h-8 sm:w-8 text-emerald-500 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="card-hover">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Income</p>
-                <p className="text-2xl font-bold text-emerald-600">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center justify-between min-w-0">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Total Income</p>
+                <p className="text-lg sm:text-2xl font-bold text-emerald-600 truncate">
                   {loading ? 'Loading...' : formatCurrency(dashboardData?.total_income || 0)}
                 </p>
-                <div className="flex items-center text-xs text-emerald-500">
+                <div className="flex items-center text-[10px] sm:text-xs text-emerald-500">
                   <TrendingUp className="h-3 w-3 mr-1" />
                   {loading ? '' : `${dashboardData?.transactions_count || 0} transactions`}
                 </div>
               </div>
-              <TrendingUp className="h-8 w-8 text-emerald-500" />
+              <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-emerald-500 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="card-hover">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Expenses</p>
-                <p className="text-2xl font-bold text-red-600">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center justify-between min-w-0">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Total Expenses</p>
+                <p className="text-lg sm:text-2xl font-bold text-red-600 truncate">
                   {loading ? 'Loading...' : formatCurrency(dashboardData?.total_expenses || 0)}
                 </p>
-                <div className="flex items-center text-xs text-red-500">
+                <div className="flex items-center text-[10px] sm:text-xs text-red-500">
                   <TrendingDown className="h-3 w-3 mr-1" />
                   Cash: {loading ? '' : formatCurrency(dashboardData?.cash_balance || 0)}
                 </div>
               </div>
-              <TrendingDown className="h-8 w-8 text-red-500" />
+              <TrendingDown className="h-6 w-6 sm:h-8 sm:w-8 text-red-500 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
@@ -479,55 +484,61 @@ const Accounts = () => {
       {/* Filters */}
       <Card>
         <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-            <div className="md:col-span-2">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+            <div className="flex-1 min-w-0">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   placeholder="Search transactions..."
-                  className="pl-10"
+                  className="pl-10 text-sm sm:text-base"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
             </div>
-            <Input 
-              type="date" 
-              placeholder="From Date" 
-              value={dateFilter.from}
-              onChange={(e) => setDateFilter(prev => ({...prev, from: e.target.value}))}
-            />
-            <Input 
-              type="date" 
-              placeholder="To Date" 
-              value={dateFilter.to}
-              onChange={(e) => setDateFilter(prev => ({...prev, to: e.target.value}))}
-            />
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="Income">Income</SelectItem>
-                <SelectItem value="Expense">Expense</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem value="Fees">Fees</SelectItem>
-                <SelectItem value="Salaries">Salaries</SelectItem>
-                <SelectItem value="Utilities">Utilities</SelectItem>
-                <SelectItem value="Donations">Donations</SelectItem>
-                <SelectItem value="Equipment">Equipment</SelectItem>
-                <SelectItem value="Maintenance">Maintenance</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="grid grid-cols-2 sm:flex gap-2 sm:gap-4">
+              <Input 
+                type="date" 
+                className="text-sm sm:text-base"
+                placeholder="From Date" 
+                value={dateFilter.from}
+                onChange={(e) => setDateFilter(prev => ({...prev, from: e.target.value}))}
+              />
+              <Input 
+                type="date" 
+                className="text-sm sm:text-base"
+                placeholder="To Date" 
+                value={dateFilter.to}
+                onChange={(e) => setDateFilter(prev => ({...prev, to: e.target.value}))}
+              />
+            </div>
+            <div className="grid grid-cols-2 sm:flex gap-2 sm:gap-4">
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="text-sm sm:text-base">
+                  <SelectValue placeholder="Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="Income">Income</SelectItem>
+                  <SelectItem value="Expense">Expense</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="text-sm sm:text-base">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  <SelectItem value="Fees">Fees</SelectItem>
+                  <SelectItem value="Salaries">Salaries</SelectItem>
+                  <SelectItem value="Utilities">Utilities</SelectItem>
+                  <SelectItem value="Donations">Donations</SelectItem>
+                  <SelectItem value="Equipment">Equipment</SelectItem>
+                  <SelectItem value="Maintenance">Maintenance</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -544,105 +555,111 @@ const Accounts = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Txn ID</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Payment Method</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
+          <div className="overflow-x-auto">
+            <div className="rounded-md border min-w-[800px] sm:min-w-0">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                      Loading transactions...
-                    </TableCell>
+                    <TableHead className="text-xs sm:text-sm">Txn ID</TableHead>
+                    <TableHead className="text-xs sm:text-sm">Date</TableHead>
+                    <TableHead className="text-xs sm:text-sm">Description</TableHead>
+                    <TableHead className="hidden sm:table-cell text-xs sm:text-sm">Category</TableHead>
+                    <TableHead className="hidden lg:table-cell text-xs sm:text-sm">Type</TableHead>
+                    <TableHead className="text-xs sm:text-sm">Amount</TableHead>
+                    <TableHead className="hidden md:table-cell text-xs sm:text-sm">Payment Method</TableHead>
+                    <TableHead className="text-xs sm:text-sm text-right">Actions</TableHead>
                   </TableRow>
-                ) : filteredTransactions.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                      No transactions found
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredTransactions.map((transaction) => (
-                    <TableRow key={transaction.id}>
-                      <TableCell className="font-medium">{transaction.receipt_no || `TXN${transaction.id.slice(-6)}`}</TableCell>
-                      <TableCell>{new Date(transaction.transaction_date).toLocaleDateString()}</TableCell>
-                      <TableCell>{transaction.description}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{transaction.category}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant={transaction.transaction_type === 'Income' ? 'default' : 'secondary'}
-                          className={transaction.transaction_type === 'Income' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}
-                        >
-                          {transaction.transaction_type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className={transaction.transaction_type === 'Income' ? 'text-emerald-600 font-semibold' : 'text-red-600 font-semibold'}>
-                        {transaction.transaction_type === 'Income' ? '+' : '-'}{formatCurrency(transaction.amount)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center">
-                          {transaction.payment_method === 'Cash' ? 
-                            <DollarSign className="h-4 w-4 mr-1 text-green-500" /> :
-                            <CreditCard className="h-4 w-4 mr-1 text-blue-500" />
-                          }
-                          <span className="text-sm">{transaction.payment_method}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => openEditDialog(transaction)}
-                          >
-                            Edit
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleDeleteTransaction(transaction.id)}
-                          >
-                            Delete
-                          </Button>
-                        </div>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8 text-gray-500 text-sm">
+                        Loading transactions...
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : filteredTransactions.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8 text-gray-500 text-sm">
+                        No transactions found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredTransactions.map((transaction) => (
+                      <TableRow key={transaction.id}>
+                        <TableCell className="font-medium text-xs sm:text-sm">{transaction.receipt_no || `TXN${transaction.id.slice(-6)}`}</TableCell>
+                        <TableCell className="text-xs sm:text-sm">{new Date(transaction.transaction_date).toLocaleDateString()}</TableCell>
+                        <TableCell className="text-xs sm:text-sm max-w-[150px] truncate">{transaction.description}</TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                          <Badge variant="outline" className="text-[10px] sm:text-xs">{transaction.category}</Badge>
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell">
+                          <Badge 
+                            variant={transaction.transaction_type === 'Income' ? 'default' : 'secondary'}
+                            className={transaction.transaction_type === 'Income' ? 'bg-emerald-100 text-emerald-800 text-[10px] sm:text-xs' : 'bg-red-100 text-red-800 text-[10px] sm:text-xs'}
+                          >
+                            {transaction.transaction_type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className={`${transaction.transaction_type === 'Income' ? 'text-emerald-600' : 'text-red-600'} font-semibold text-xs sm:text-sm`}>
+                          {transaction.transaction_type === 'Income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          <div className="flex items-center">
+                            {transaction.payment_method === 'Cash' ? 
+                              <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 mr-1 text-green-500" /> :
+                              <CreditCard className="h-3 w-3 sm:h-4 sm:w-4 mr-1 text-blue-500" />
+                            }
+                            <span className="text-xs sm:text-sm">{transaction.payment_method}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1 sm:gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              className="h-8 w-8 p-0 sm:h-auto sm:w-auto sm:px-2"
+                              onClick={() => openEditDialog(transaction)}
+                            >
+                              <span className="hidden sm:inline text-xs">Edit</span>
+                              <Plus className="h-4 w-4 sm:hidden rotate-45" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              className="h-8 w-8 p-0 sm:h-auto sm:w-auto sm:px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => handleDeleteTransaction(transaction.id)}
+                            >
+                              <span className="hidden sm:inline text-xs">Delete</span>
+                              <X className="h-4 w-4 sm:hidden" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
 
           {/* Summary Footer */}
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-              <div>
-                <p className="text-sm text-gray-600">Total Income</p>
-                <p className="text-lg font-semibold text-emerald-600">
+          <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-gray-50 rounded-lg">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-center">
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-sm text-gray-600 uppercase tracking-wider font-medium">Total Income</p>
+                <p className="text-base sm:text-lg font-bold text-emerald-600 truncate">
                   +{loading ? '...' : formatCurrency(dashboardData?.total_income || 0)}
                 </p>
               </div>
-              <div>
-                <p className="text-sm text-gray-600">Total Expenses</p>
-                <p className="text-lg font-semibold text-red-600">
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-sm text-gray-600 uppercase tracking-wider font-medium">Total Expenses</p>
+                <p className="text-base sm:text-lg font-bold text-red-600 truncate">
                   -{loading ? '...' : formatCurrency(dashboardData?.total_expenses || 0)}
                 </p>
               </div>
-              <div>
-                <p className="text-sm text-gray-600">Net Balance</p>
-                <p className="text-lg font-semibold text-blue-600">
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-sm text-gray-600 uppercase tracking-wider font-medium">Net Balance</p>
+                <p className="text-base sm:text-lg font-bold text-blue-600 truncate">
                   {loading ? '...' : formatCurrency(dashboardData?.net_balance || 0)}
                 </p>
               </div>

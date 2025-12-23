@@ -386,20 +386,20 @@ const Notifications = () => {
   );
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+    <div className="p-3 sm:p-4 lg:p-6 space-y-3 sm:space-y-4 lg:space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 sm:mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800 flex items-center">
-            <Bell className="h-7 w-7 mr-3 text-emerald-600" />
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-800 flex items-center">
+            <Bell className="h-6 w-6 sm:h-7 sm:w-7 mr-2 sm:mr-3 text-emerald-600" />
             Notifications
           </h1>
-          <p className="text-gray-500 mt-1">
+          <p className="text-xs sm:text-sm text-gray-500 mt-1">
             Manage and view school notifications
           </p>
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-col sm:flex-row items-center w-full sm:w-auto gap-2 sm:gap-3">
           {unreadCount > 0 && (
-            <Button variant="outline" onClick={handleMarkAllAsRead}>
+            <Button variant="outline" onClick={handleMarkAllAsRead} className="w-full sm:w-auto text-xs sm:text-sm h-8 sm:h-9">
               <CheckCheck className="h-4 w-4 mr-2" />
               Mark All Read ({unreadCount})
             </Button>
@@ -410,7 +410,7 @@ const Notifications = () => {
                 resetForm();
                 setIsCreateModalOpen(true);
               }}
-              className="bg-emerald-600 hover:bg-emerald-700"
+              className="bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto text-xs sm:text-sm h-8 sm:h-9"
             >
               <Plus className="h-4 w-4 mr-2" />
               Create Notification
@@ -419,21 +419,21 @@ const Notifications = () => {
         </div>
       </div>
 
-      <Card className="mb-6">
-        <CardContent className="p-4">
-          <div className="flex flex-wrap gap-4 items-center">
-            <div className="relative flex-1 min-w-[200px]">
+      <Card className="mb-4 sm:mb-6">
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-4 items-center">
+            <div className="relative w-full sm:flex-1 min-w-0">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
                 placeholder="Search notifications..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-10 text-xs sm:text-sm h-8 sm:h-9"
               />
             </div>
 
             <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px] text-xs sm:text-sm h-8 sm:h-9">
                 <Filter className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Filter by type" />
               </SelectTrigger>
@@ -449,7 +449,7 @@ const Notifications = () => {
 
             {canManageNotifications && (
               <Select value={filterRole} onValueChange={setFilterRole}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px] text-xs sm:text-sm h-8 sm:h-9">
                   <Users className="h-4 w-4 mr-2" />
                   <SelectValue placeholder="Filter by audience" />
                 </SelectTrigger>
@@ -467,7 +467,7 @@ const Notifications = () => {
             <Button
               variant={showUnreadOnly ? "default" : "outline"}
               onClick={() => setShowUnreadOnly(!showUnreadOnly)}
-              className={showUnreadOnly ? "bg-emerald-600" : ""}
+              className={`${showUnreadOnly ? "bg-emerald-600" : ""} w-full sm:w-auto text-xs sm:text-sm h-8 sm:h-9`}
             >
               {showUnreadOnly ? <Check className="h-4 w-4 mr-2" /> : null}
               Unread Only
@@ -476,15 +476,15 @@ const Notifications = () => {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Total Notifications</p>
-                <p className="text-2xl font-bold">{notifications.length}</p>
+                <p className="text-xs sm:text-sm text-gray-500">Total Notifications</p>
+                <p className="text-xl sm:text-2xl font-bold">{notifications.length}</p>
               </div>
-              <Bell className="h-8 w-8 text-blue-500" />
+              <Bell className="h-7 w-7 sm:h-8 sm:w-8 text-blue-500" />
             </div>
           </CardContent>
         </Card>
@@ -492,12 +492,12 @@ const Notifications = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Unread</p>
-                <p className="text-2xl font-bold text-orange-600">
+                <p className="text-xs sm:text-sm text-gray-500">Unread</p>
+                <p className="text-xl sm:text-2xl font-bold text-orange-600">
                   {unreadCount}
                 </p>
               </div>
-              <AlertCircle className="h-8 w-8 text-orange-500" />
+              <AlertCircle className="h-7 w-7 sm:h-8 sm:w-8 text-orange-500" />
             </div>
           </CardContent>
         </Card>
@@ -505,8 +505,8 @@ const Notifications = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">High Priority</p>
-                <p className="text-2xl font-bold text-red-600">
+                <p className="text-xs sm:text-sm text-gray-500">High Priority</p>
+                <p className="text-xl sm:text-2xl font-bold text-red-600">
                   {
                     notifications.filter(
                       (n) => n.priority === "high" || n.priority === "urgent",
@@ -514,7 +514,7 @@ const Notifications = () => {
                   }
                 </p>
               </div>
-              <AlertCircle className="h-8 w-8 text-red-500" />
+              <AlertCircle className="h-7 w-7 sm:h-8 sm:w-8 text-red-500" />
             </div>
           </CardContent>
         </Card>
@@ -522,10 +522,10 @@ const Notifications = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Templates</p>
-                <p className="text-2xl font-bold">{templates.length}</p>
+                <p className="text-xs sm:text-sm text-gray-500">Templates</p>
+                <p className="text-xl sm:text-2xl font-bold">{templates.length}</p>
               </div>
-              <FileText className="h-8 w-8 text-emerald-500" />
+              <FileText className="h-7 w-7 sm:h-8 sm:w-8 text-emerald-500" />
             </div>
           </CardContent>
         </Card>
@@ -542,7 +542,7 @@ const Notifications = () => {
             <h3 className="text-lg font-medium text-gray-600">
               No notifications found
             </h3>
-            <p className="text-gray-400 mt-2">
+            <p className="text-gray-400 mt-2 text-sm">
               {searchTerm
                 ? "Try a different search term"
                 : "No notifications to display"}
@@ -550,7 +550,7 @@ const Notifications = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {filteredNotifications.map((notification) => {
             const TypeIcon = getTypeIcon(notification.notification_type);
             return (
@@ -558,41 +558,41 @@ const Notifications = () => {
                 key={notification.id}
                 className={`transition-all hover:shadow-md ${!notification.is_read ? "border-l-4 border-l-emerald-500 bg-emerald-50/30" : ""}`}
               >
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start space-x-4 flex-1">
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
+                    <div className="flex items-start space-x-3 sm:space-x-4 flex-1 min-w-0">
                       <div
-                        className={`p-2 rounded-lg ${!notification.is_read ? "bg-emerald-100" : "bg-gray-100"}`}
+                        className={`p-2 rounded-lg shrink-0 ${!notification.is_read ? "bg-emerald-100" : "bg-gray-100"}`}
                       >
                         <TypeIcon
-                          className={`h-5 w-5 ${!notification.is_read ? "text-emerald-600" : "text-gray-500"}`}
+                          className={`h-4 w-4 sm:h-5 sm:w-5 ${!notification.is_read ? "text-emerald-600" : "text-gray-500"}`}
                         />
                       </div>
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
                           <h3
-                            className={`font-semibold ${!notification.is_read ? "text-gray-900" : "text-gray-700"}`}
+                            className={`font-semibold text-sm sm:text-base truncate ${!notification.is_read ? "text-gray-900" : "text-gray-700"}`}
                           >
                             {notification.title}
                           </h3>
                           <Badge
-                            className={getPriorityBadge(notification.priority)}
+                            className={`text-[10px] sm:text-xs ${getPriorityBadge(notification.priority)}`}
                           >
                             {notification.priority}
                           </Badge>
                           {!notification.is_read && (
-                            <Badge className="bg-emerald-100 text-emerald-800">
+                            <Badge className="bg-emerald-100 text-emerald-800 text-[10px] sm:text-xs">
                               New
                             </Badge>
                           )}
                         </div>
-                        <p className="text-gray-600 text-sm mb-2">
+                        <p className="text-gray-600 text-xs sm:text-sm mb-2 line-clamp-3 sm:line-clamp-none">
                           {notification.body}
                         </p>
-                        <div className="flex items-center space-x-4 text-xs text-gray-400">
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] sm:text-xs text-gray-400">
                           <span className="flex items-center">
                             <Clock className="h-3 w-3 mr-1" />
-                            {new Date(notification.created_at).toLocaleString()}
+                            {new Date(notification.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
                           </span>
                           <span className="flex items-center">
                             <Users className="h-3 w-3 mr-1" />
@@ -601,18 +601,19 @@ const Notifications = () => {
                             )?.label || "All"}
                           </span>
                           {notification.created_by_name && (
-                            <span>By: {notification.created_by_name}</span>
+                            <span className="truncate max-w-[150px]">By: {notification.created_by_name}</span>
                           )}
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-1 sm:space-x-2 w-full sm:w-auto justify-end border-t sm:border-0 pt-2 sm:pt-0 mt-1 sm:mt-0">
                       {!notification.is_read && (
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleMarkAsRead(notification.id)}
                           title="Mark as read"
+                          className="h-8 w-8 p-0"
                         >
                           <Check className="h-4 w-4" />
                         </Button>
@@ -624,6 +625,7 @@ const Notifications = () => {
                             size="sm"
                             onClick={() => handleEditClick(notification)}
                             title="Edit"
+                            className="h-8 w-8 p-0"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -633,7 +635,7 @@ const Notifications = () => {
                             onClick={() =>
                               handleDeleteNotification(notification.id)
                             }
-                            className="text-red-600 hover:text-red-700"
+                            className="text-red-600 hover:text-red-700 h-8 w-8 p-0"
                             title="Delete"
                           >
                             <Trash2 className="h-4 w-4" />

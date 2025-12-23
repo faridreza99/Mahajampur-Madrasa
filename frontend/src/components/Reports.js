@@ -969,23 +969,23 @@ const Reports = () => {
   }, [reportSlug, currentTab]);
 
   return (
-    <div className="space-y-4 sm:space-y-6 fade-in">
+    <div className="p-3 sm:p-4 lg:p-6 space-y-3 sm:space-y-4 lg:space-y-6 fade-in">
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Reports</h1>
           <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">Comprehensive reporting and analytics dashboard</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <Button variant="outline" size="sm" className="text-xs sm:text-sm h-8 sm:h-9">
+        <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-2 sm:gap-3">
+          <Button variant="outline" size="sm" className="text-xs sm:text-sm h-8 sm:h-9 w-full sm:w-auto">
             <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             Date
           </Button>
-          <Button variant="outline" size="sm" className="text-xs sm:text-sm h-8 sm:h-9">
+          <Button variant="outline" size="sm" className="text-xs sm:text-sm h-8 sm:h-9 w-full sm:w-auto">
             <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             Export
           </Button>
-          <Button className="bg-emerald-500 hover:bg-emerald-600 text-xs sm:text-sm h-8 sm:h-9">
+          <Button className="bg-emerald-500 hover:bg-emerald-600 text-xs sm:text-sm h-8 sm:h-9 w-full sm:w-auto">
             <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             Generate
           </Button>
@@ -993,7 +993,7 @@ const Reports = () => {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
         {quickReports.map((report, index) => (
           <Card key={index} className="card-hover">
             <CardContent className="p-3 sm:p-4 md:p-6">
@@ -1027,7 +1027,7 @@ const Reports = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 <Card className="border border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-500 transition-colors cursor-pointer">
                   <CardContent className="p-4">
                     <h3 className="font-semibold mb-2 dark:text-white">Consolidated Marksheet</h3>
@@ -1084,7 +1084,7 @@ const Reports = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 <Card className="border border-gray-200 dark:border-gray-600 hover:border-emerald-300 dark:hover:border-emerald-500 transition-colors cursor-pointer">
                   <CardContent className="p-4">
                     <h3 className="font-semibold mb-2 dark:text-white">Daily Attendance</h3>
@@ -1147,8 +1147,8 @@ const Reports = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Filters */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <div className="space-y-2">
+                <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="w-full sm:w-[180px] space-y-2">
                     <Label>Academic Year</Label>
                     <Select 
                       value={admissionFilters.year} 
@@ -1164,7 +1164,7 @@ const Reports = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
+                  <div className="w-full sm:w-[180px] space-y-2">
                     <Label>Class</Label>
                     <Select 
                       value={admissionFilters.class} 
@@ -1181,7 +1181,7 @@ const Reports = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
+                  <div className="w-full sm:w-[180px] space-y-2">
                     <Label>Gender</Label>
                     <Select 
                       value={admissionFilters.gender} 
@@ -1198,7 +1198,7 @@ const Reports = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
+                  <div className="w-full sm:w-[180px] space-y-2">
                     <Label>Status</Label>
                     <Select 
                       value={admissionFilters.status} 
@@ -1229,40 +1229,40 @@ const Reports = () => {
                   </div>
                 ) : (
                   <>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                       <Card className="bg-blue-50 dark:bg-blue-900/30">
                         <CardContent className="p-4 text-center">
-                          <div className="text-2xl font-bold text-blue-600">{admissionData.length}</div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400">Total Students</div>
+                          <div className="text-xl sm:text-2xl font-bold text-blue-600">{admissionData.length}</div>
+                          <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Total Students</div>
                         </CardContent>
                       </Card>
                       <Card className="bg-green-50 dark:bg-green-900/30">
                         <CardContent className="p-4 text-center">
-                          <div className="text-2xl font-bold text-green-600">
+                          <div className="text-xl sm:text-2xl font-bold text-green-600">
                             {admissionData.filter(s => s.gender === 'Male').length}
                           </div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400">Male Students</div>
+                          <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Male Students</div>
                         </CardContent>
                       </Card>
                       <Card className="bg-pink-50 dark:bg-pink-900/30">
                         <CardContent className="p-4 text-center">
-                          <div className="text-2xl font-bold text-pink-600">
+                          <div className="text-xl sm:text-2xl font-bold text-pink-600">
                             {admissionData.filter(s => s.gender === 'Female').length}
                           </div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400">Female Students</div>
+                          <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Female Students</div>
                         </CardContent>
                       </Card>
                     </div>
 
-                    <div className="border rounded-lg overflow-hidden">
+                    <div className="border rounded-lg overflow-x-auto min-w-0">
                       <Table>
                         <TableHeader>
                           <TableRow>
                             <TableHead>Admission No</TableHead>
                             <TableHead>Student Name</TableHead>
-                            <TableHead>Class</TableHead>
-                            <TableHead>Gender</TableHead>
-                            <TableHead>Admission Date</TableHead>
+                            <TableHead className="hidden sm:table-cell">Class</TableHead>
+                            <TableHead className="hidden lg:table-cell">Gender</TableHead>
+                            <TableHead className="hidden xl:table-cell">Admission Date</TableHead>
                             <TableHead>Status</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -1270,10 +1270,10 @@ const Reports = () => {
                           {admissionData.slice(0, 50).map((student, index) => (
                             <TableRow key={index}>
                               <TableCell className="font-medium">{student.admission_no || 'N/A'}</TableCell>
-                              <TableCell>{student.full_name || student.name || 'N/A'}</TableCell>
-                              <TableCell>{student.class_name || student.class || 'N/A'}</TableCell>
-                              <TableCell>{student.gender || 'N/A'}</TableCell>
-                              <TableCell>{student.admission_date || 'N/A'}</TableCell>
+                              <TableCell className="min-w-0">{student.full_name || student.name || 'N/A'}</TableCell>
+                              <TableCell className="hidden sm:table-cell">{student.class_name || student.class || 'N/A'}</TableCell>
+                              <TableCell className="hidden lg:table-cell">{student.gender || 'N/A'}</TableCell>
+                              <TableCell className="hidden xl:table-cell">{student.admission_date || 'N/A'}</TableCell>
                               <TableCell>
                                 <Badge variant={student.is_active ? "success" : "secondary"}>
                                   {student.is_active ? 'Active' : 'Inactive'}
@@ -1312,8 +1312,8 @@ const Reports = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Filters */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <div className="space-y-2">
+                <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="w-full sm:w-[180px] space-y-2">
                     <Label>Start Date</Label>
                     <Input
                       type="date"
@@ -1321,7 +1321,7 @@ const Reports = () => {
                       onChange={(e) => setLoginFilters({...loginFilters, startDate: e.target.value})}
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div className="w-full sm:w-[180px] space-y-2">
                     <Label>End Date</Label>
                     <Input
                       type="date"
@@ -1329,7 +1329,7 @@ const Reports = () => {
                       onChange={(e) => setLoginFilters({...loginFilters, endDate: e.target.value})}
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div className="w-full sm:w-[180px] space-y-2">
                     <Label>Status</Label>
                     <Select 
                       value={loginFilters.status} 
@@ -1360,40 +1360,40 @@ const Reports = () => {
                   </div>
                 ) : (
                   <>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4">
                       <Card className="bg-blue-50 dark:bg-blue-900/30">
                         <CardContent className="p-4 text-center">
-                          <div className="text-2xl font-bold text-blue-600">{loginActivityData.length}</div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400">Total Logins</div>
+                          <div className="text-xl sm:text-2xl font-bold text-blue-600">{loginActivityData.length}</div>
+                          <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Total Logins</div>
                         </CardContent>
                       </Card>
                       <Card className="bg-green-50 dark:bg-green-900/30">
                         <CardContent className="p-4 text-center">
-                          <div className="text-2xl font-bold text-green-600">
+                          <div className="text-xl sm:text-2xl font-bold text-green-600">
                             {loginActivityData.filter(l => l.status === 'Success').length}
                           </div>
-                          <div className="text-sm text-gray-600">Successful</div>
+                          <div className="text-xs sm:text-sm text-gray-600">Successful</div>
                         </CardContent>
                       </Card>
                       <Card className="bg-red-50">
                         <CardContent className="p-4 text-center">
-                          <div className="text-2xl font-bold text-red-600">
+                          <div className="text-xl sm:text-2xl font-bold text-red-600">
                             {loginActivityData.filter(l => l.status === 'Failed').length}
                           </div>
-                          <div className="text-sm text-gray-600">Failed</div>
+                          <div className="text-xs sm:text-sm text-gray-600">Failed</div>
                         </CardContent>
                       </Card>
                     </div>
 
-                    <div className="border rounded-lg overflow-hidden">
+                    <div className="border rounded-lg overflow-x-auto min-w-0">
                       <Table>
                         <TableHeader>
                           <TableRow>
                             <TableHead>User Email</TableHead>
-                            <TableHead>Login Date</TableHead>
-                            <TableHead>Login Time</TableHead>
-                            <TableHead>IP Address</TableHead>
-                            <TableHead>Device</TableHead>
+                            <TableHead className="hidden sm:table-cell">Login Date</TableHead>
+                            <TableHead className="hidden lg:table-cell">Login Time</TableHead>
+                            <TableHead className="hidden lg:table-cell">IP Address</TableHead>
+                            <TableHead className="hidden sm:table-cell">Device</TableHead>
                             <TableHead>Status</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -1403,11 +1403,11 @@ const Reports = () => {
                             .slice(0, 50)
                             .map((login, index) => (
                             <TableRow key={index}>
-                              <TableCell className="font-medium">{login.user_email || 'N/A'}</TableCell>
-                              <TableCell>{login.login_date || 'N/A'}</TableCell>
-                              <TableCell>{login.login_time || 'N/A'}</TableCell>
-                              <TableCell>{login.ip_address || 'N/A'}</TableCell>
-                              <TableCell>{login.device || 'N/A'}</TableCell>
+                              <TableCell className="font-medium min-w-0">{login.user_email || 'N/A'}</TableCell>
+                              <TableCell className="hidden sm:table-cell">{login.login_date || 'N/A'}</TableCell>
+                              <TableCell className="hidden lg:table-cell">{login.login_time || 'N/A'}</TableCell>
+                              <TableCell className="hidden lg:table-cell">{login.ip_address || 'N/A'}</TableCell>
+                              <TableCell className="hidden sm:table-cell">{login.device || 'N/A'}</TableCell>
                               <TableCell>
                                 <Badge variant={login.status === 'Success' ? "success" : "destructive"}>
                                   {login.status || 'N/A'}
@@ -1448,8 +1448,8 @@ const Reports = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Filters */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <div className="space-y-2">
+                <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="w-full sm:w-[180px] space-y-2">
                     <Label>Class</Label>
                     <Select 
                       value={studentFilters.class} 
@@ -1468,7 +1468,7 @@ const Reports = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
+                  <div className="w-full sm:w-[180px] space-y-2">
                     <Label>Section</Label>
                     <Select 
                       value={studentFilters.section} 
@@ -1485,7 +1485,7 @@ const Reports = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
+                  <div className="w-full sm:w-[180px] space-y-2">
                     <Label>Status</Label>
                     <Select 
                       value={studentFilters.status} 
@@ -1501,7 +1501,7 @@ const Reports = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
+                  <div className="flex-1 min-w-0 space-y-2">
                     <Label>Search Student</Label>
                     <Input
                       type="text"
@@ -1524,49 +1524,49 @@ const Reports = () => {
                   </div>
                 ) : (
                   <>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4">
                       <Card className="bg-blue-50 dark:bg-blue-900/30">
                         <CardContent className="p-4 text-center">
-                          <div className="text-2xl font-bold text-blue-600">{studentInfoData.length}</div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400">Total Students</div>
+                          <div className="text-xl sm:text-2xl font-bold text-blue-600">{studentInfoData.length}</div>
+                          <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Total Students</div>
                         </CardContent>
                       </Card>
                       <Card className="bg-green-50 dark:bg-green-900/30">
                         <CardContent className="p-4 text-center">
-                          <div className="text-2xl font-bold text-green-600">
+                          <div className="text-xl sm:text-2xl font-bold text-green-600">
                             {studentInfoData.filter(s => s.is_active || s.status === 'active').length}
                           </div>
-                          <div className="text-sm text-gray-600">Active Students</div>
+                          <div className="text-xs sm:text-sm text-gray-600">Active Students</div>
                         </CardContent>
                       </Card>
                       <Card className="bg-purple-50">
                         <CardContent className="p-4 text-center">
-                          <div className="text-2xl font-bold text-purple-600">
+                          <div className="text-xl sm:text-2xl font-bold text-purple-600">
                             {studentInfoData.filter(s => s.gender === 'Male').length}
                           </div>
-                          <div className="text-sm text-gray-600">Male</div>
+                          <div className="text-xs sm:text-sm text-gray-600">Male</div>
                         </CardContent>
                       </Card>
                       <Card className="bg-pink-50 dark:bg-pink-900/30">
                         <CardContent className="p-4 text-center">
-                          <div className="text-2xl font-bold text-pink-600">
+                          <div className="text-xl sm:text-2xl font-bold text-pink-600">
                             {studentInfoData.filter(s => s.gender === 'Female').length}
                           </div>
-                          <div className="text-sm text-gray-600">Female</div>
+                          <div className="text-xs sm:text-sm text-gray-600">Female</div>
                         </CardContent>
                       </Card>
                     </div>
 
-                    <div className="border rounded-lg overflow-hidden">
+                    <div className="border rounded-lg overflow-x-auto min-w-0">
                       <Table>
                         <TableHeader>
                           <TableRow>
                             <TableHead>Roll No</TableHead>
                             <TableHead>Student Name</TableHead>
-                            <TableHead>Class</TableHead>
-                            <TableHead>Section</TableHead>
-                            <TableHead>Stream</TableHead>
-                            <TableHead>Admission Date</TableHead>
+                            <TableHead className="hidden sm:table-cell">Class</TableHead>
+                            <TableHead className="hidden sm:table-cell">Section</TableHead>
+                            <TableHead className="hidden lg:table-cell">Stream</TableHead>
+                            <TableHead className="hidden xl:table-cell">Admission Date</TableHead>
                             <TableHead>Status</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -1585,11 +1585,11 @@ const Reports = () => {
                             .map((student, index) => (
                             <TableRow key={index}>
                               <TableCell className="font-medium">{student.roll_no || student.admission_no || 'N/A'}</TableCell>
-                              <TableCell>{student.full_name || student.name || 'N/A'}</TableCell>
-                              <TableCell>{student.class_name || student.class || 'N/A'}</TableCell>
-                              <TableCell>{student.section || 'N/A'}</TableCell>
-                              <TableCell>{student.stream || student.department || 'N/A'}</TableCell>
-                              <TableCell>{student.admission_date || student.date_of_admission || 'N/A'}</TableCell>
+                              <TableCell className="min-w-0">{student.full_name || student.name || 'N/A'}</TableCell>
+                              <TableCell className="hidden sm:table-cell">{student.class_name || student.class || 'N/A'}</TableCell>
+                              <TableCell className="hidden sm:table-cell">{student.section || 'N/A'}</TableCell>
+                              <TableCell className="hidden lg:table-cell">{student.stream || student.department || 'N/A'}</TableCell>
+                              <TableCell className="hidden xl:table-cell">{student.admission_date || student.date_of_admission || 'N/A'}</TableCell>
                               <TableCell>
                                 <Badge variant={(student.is_active || student.status === 'active') ? "success" : "secondary"}>
                                   {(student.is_active || student.status === 'active') ? 'Active' : 'Inactive'}
@@ -1630,8 +1630,8 @@ const Reports = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Filters */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <div className="space-y-2">
+                <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="w-full sm:w-[180px] space-y-2">
                     <Label>Academic Year</Label>
                     <Select 
                       value={crossCountFilters.year} 
@@ -1647,7 +1647,7 @@ const Reports = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
+                  <div className="w-full sm:w-[180px] space-y-2">
                     <Label>Department</Label>
                     <Select 
                       value={crossCountFilters.department} 
@@ -1664,7 +1664,7 @@ const Reports = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
+                  <div className="w-full sm:w-[180px] space-y-2">
                     <Label>Class Filter</Label>
                     <Select 
                       value={crossCountFilters.class} 
@@ -1697,48 +1697,48 @@ const Reports = () => {
                 ) : (
                   <>
                     {/* Summary Statistics */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4">
                       <Card className="bg-blue-50 dark:bg-blue-900/30">
                         <CardContent className="p-4 text-center">
-                          <div className="text-2xl font-bold text-blue-600">{crossCountData.length}</div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400">Total Students</div>
+                          <div className="text-xl sm:text-2xl font-bold text-blue-600">{crossCountData.length}</div>
+                          <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Total Students</div>
                         </CardContent>
                       </Card>
                       <Card className="bg-green-50 dark:bg-green-900/30">
                         <CardContent className="p-4 text-center">
-                          <div className="text-2xl font-bold text-green-600">
+                          <div className="text-xl sm:text-2xl font-bold text-green-600">
                             {crossCountData.filter(s => s.gender === 'Male').length}
                           </div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400">Male Students</div>
+                          <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Male Students</div>
                         </CardContent>
                       </Card>
                       <Card className="bg-pink-50 dark:bg-pink-900/30">
                         <CardContent className="p-4 text-center">
-                          <div className="text-2xl font-bold text-pink-600">
+                          <div className="text-xl sm:text-2xl font-bold text-pink-600">
                             {crossCountData.filter(s => s.gender === 'Female').length}
                           </div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400">Female Students</div>
+                          <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Female Students</div>
                         </CardContent>
                       </Card>
                       <Card className="bg-purple-50">
                         <CardContent className="p-4 text-center">
-                          <div className="text-2xl font-bold text-purple-600">
+                          <div className="text-xl sm:text-2xl font-bold text-purple-600">
                             {new Set(crossCountData.map(s => s.class_name || s.class)).size}
                           </div>
-                          <div className="text-sm text-gray-600">Total Classes</div>
+                          <div className="text-xs sm:text-sm text-gray-600">Total Classes</div>
                         </CardContent>
                       </Card>
                     </div>
 
                     {/* Cross-Tabulation Table */}
-                    <div className="border rounded-lg overflow-hidden">
+                    <div className="border rounded-lg overflow-x-auto min-w-0">
                       <Table>
                         <TableHeader>
                           <TableRow>
                             <TableHead className="font-bold">Class</TableHead>
                             <TableHead className="text-center font-bold">Male</TableHead>
                             <TableHead className="text-center font-bold">Female</TableHead>
-                            <TableHead className="text-center font-bold">Other</TableHead>
+                            <TableHead className="text-center font-bold hidden sm:table-cell">Other</TableHead>
                             <TableHead className="text-center font-bold">Total</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -1776,7 +1776,7 @@ const Reports = () => {
                                     <TableCell className="font-medium">{className}</TableCell>
                                     <TableCell className="text-center">{counts.male}</TableCell>
                                     <TableCell className="text-center">{counts.female}</TableCell>
-                                    <TableCell className="text-center">{counts.other}</TableCell>
+                                    <TableCell className="text-center hidden sm:table-cell">{counts.other}</TableCell>
                                     <TableCell className="text-center font-semibold">{counts.total}</TableCell>
                                   </TableRow>
                                 ))}
@@ -1784,7 +1784,7 @@ const Reports = () => {
                                   <TableCell>Grand Total</TableCell>
                                   <TableCell className="text-center">{grandTotal.male}</TableCell>
                                   <TableCell className="text-center">{grandTotal.female}</TableCell>
-                                  <TableCell className="text-center">{grandTotal.other}</TableCell>
+                                  <TableCell className="text-center hidden sm:table-cell">{grandTotal.other}</TableCell>
                                   <TableCell className="text-center">{grandTotal.total}</TableCell>
                                 </TableRow>
                               </>
@@ -1842,8 +1842,8 @@ const Reports = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Filters */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <div className="space-y-2">
+                <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="w-full sm:w-[180px] space-y-2">
                     <Label>Department</Label>
                     <Select 
                       value={teacherFilters.department} 
@@ -1862,7 +1862,7 @@ const Reports = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
+                  <div className="w-full sm:w-[180px] space-y-2">
                     <Label>Designation</Label>
                     <Select 
                       value={teacherFilters.designation} 
@@ -1882,7 +1882,7 @@ const Reports = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
+                  <div className="w-full sm:w-[180px] space-y-2">
                     <Label>Status</Label>
                     <Select 
                       value={teacherFilters.status} 
@@ -1898,7 +1898,7 @@ const Reports = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
+                  <div className="flex-1 min-w-0 space-y-2">
                     <Label>Search Teacher</Label>
                     <Input
                       type="text"
@@ -1922,41 +1922,41 @@ const Reports = () => {
                   </div>
                 ) : (
                   <>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4">
                       <Card className="bg-blue-50 dark:bg-blue-900/30">
                         <CardContent className="p-4 text-center">
-                          <div className="text-2xl font-bold text-blue-600">{teacherData.length}</div>
-                          <div className="text-sm text-gray-600">Total Teachers</div>
+                          <div className="text-xl sm:text-2xl font-bold text-blue-600">{teacherData.length}</div>
+                          <div className="text-xs sm:text-sm text-gray-600">Total Teachers</div>
                         </CardContent>
                       </Card>
                       <Card className="bg-green-50 dark:bg-green-900/30">
                         <CardContent className="p-4 text-center">
-                          <div className="text-2xl font-bold text-green-600">
+                          <div className="text-xl sm:text-2xl font-bold text-green-600">
                             {teacherData.filter(t => t.is_active || t.status === 'active').length}
                           </div>
-                          <div className="text-sm text-gray-600">Active Teachers</div>
+                          <div className="text-xs sm:text-sm text-gray-600">Active Teachers</div>
                         </CardContent>
                       </Card>
                       <Card className="bg-red-50">
                         <CardContent className="p-4 text-center">
-                          <div className="text-2xl font-bold text-red-600">
+                          <div className="text-xl sm:text-2xl font-bold text-red-600">
                             {teacherData.filter(t => !t.is_active && t.status !== 'active').length}
                           </div>
-                          <div className="text-sm text-gray-600">Inactive Teachers</div>
+                          <div className="text-xs sm:text-sm text-gray-600">Inactive Teachers</div>
                         </CardContent>
                       </Card>
                     </div>
 
-                    <div className="border rounded-lg overflow-hidden">
+                    <div className="border rounded-lg overflow-x-auto min-w-0">
                       <Table>
                         <TableHeader>
                           <TableRow>
                             <TableHead>Employee ID</TableHead>
                             <TableHead>Teacher Name</TableHead>
-                            <TableHead>Department</TableHead>
-                            <TableHead>Subject</TableHead>
-                            <TableHead>Designation</TableHead>
-                            <TableHead>Joining Date</TableHead>
+                            <TableHead className="hidden sm:table-cell">Department</TableHead>
+                            <TableHead className="hidden lg:table-cell">Subject</TableHead>
+                            <TableHead className="hidden sm:table-cell">Designation</TableHead>
+                            <TableHead className="hidden xl:table-cell">Joining Date</TableHead>
                             <TableHead>Status</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -1993,11 +1993,11 @@ const Reports = () => {
                             .map((teacher, index) => (
                             <TableRow key={index}>
                               <TableCell className="font-medium">{teacher.employee_id || teacher.staff_id || 'N/A'}</TableCell>
-                              <TableCell>{teacher.full_name || teacher.name || 'N/A'}</TableCell>
-                              <TableCell>{teacher.department || 'N/A'}</TableCell>
-                              <TableCell>{teacher.subject || teacher.subjects?.join(', ') || 'N/A'}</TableCell>
-                              <TableCell>{teacher.designation || teacher.role || 'N/A'}</TableCell>
-                              <TableCell>{teacher.joining_date || teacher.date_of_joining || 'N/A'}</TableCell>
+                              <TableCell className="min-w-0">{teacher.full_name || teacher.name || 'N/A'}</TableCell>
+                              <TableCell className="hidden sm:table-cell">{teacher.department || 'N/A'}</TableCell>
+                              <TableCell className="hidden lg:table-cell">{teacher.subject || teacher.subjects?.join(', ') || 'N/A'}</TableCell>
+                              <TableCell className="hidden sm:table-cell">{teacher.designation || teacher.role || 'N/A'}</TableCell>
+                              <TableCell className="hidden xl:table-cell">{teacher.joining_date || teacher.date_of_joining || 'N/A'}</TableCell>
                               <TableCell>
                                 <Badge variant={(teacher.is_active || teacher.status === 'active') ? "success" : "secondary"}>
                                   {(teacher.is_active || teacher.status === 'active') ? 'Active' : 'Inactive'}
@@ -2049,7 +2049,7 @@ const Reports = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   <Card className="border border-gray-200 dark:border-gray-600 hover:border-purple-300 transition-colors cursor-pointer">
                     <CardContent className="p-4">
                       <h3 className="font-semibold mb-2 dark:text-white">Admission Report</h3>
@@ -2097,7 +2097,7 @@ const Reports = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 <Card className="border border-gray-200 dark:border-gray-600 hover:border-orange-300 transition-colors cursor-pointer">
                   <CardContent className="p-4">
                     <h3 className="font-semibold mb-2 dark:text-white">Vehicle Report</h3>
@@ -2138,14 +2138,15 @@ const Reports = () => {
 
       {/* Daily Attendance Modal */}
       {showDailyAttendanceModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-2 sm:p-4">
+          <div className="bg-white rounded-lg p-3 sm:p-6 max-w-4xl w-full mx-auto max-h-[90vh] overflow-y-auto shadow-xl">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Daily Attendance - {new Date().toLocaleDateString()}</h2>
+              <h2 className="text-lg sm:text-xl font-semibold">Daily Attendance - {new Date().toLocaleDateString()}</h2>
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={() => setShowDailyAttendanceModal(false)}
+                className="h-8 w-8 p-0"
               >
                 ✕
               </Button>
@@ -2161,76 +2162,74 @@ const Reports = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
                   <Card>
-                    <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-green-600">
+                    <CardContent className="p-3 sm:p-4 text-center">
+                      <div className="text-lg sm:text-2xl font-bold text-green-600">
                         {dailyAttendanceData.filter(record => record.status === 'present').length}
                       </div>
-                      <div className="text-sm text-gray-600">Present</div>
+                      <div className="text-[10px] sm:text-sm text-gray-600">Present</div>
                     </CardContent>
                   </Card>
                   <Card>
-                    <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-red-600">
+                    <CardContent className="p-3 sm:p-4 text-center">
+                      <div className="text-lg sm:text-2xl font-bold text-red-600">
                         {dailyAttendanceData.filter(record => record.status === 'absent').length}
                       </div>
-                      <div className="text-sm text-gray-600">Absent</div>
+                      <div className="text-[10px] sm:text-sm text-gray-600">Absent</div>
                     </CardContent>
                   </Card>
                   <Card>
-                    <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-yellow-600">
+                    <CardContent className="p-3 sm:p-4 text-center">
+                      <div className="text-lg sm:text-2xl font-bold text-yellow-600">
                         {dailyAttendanceData.filter(record => record.status === 'late').length}
                       </div>
-                      <div className="text-sm text-gray-600">Late</div>
+                      <div className="text-[10px] sm:text-sm text-gray-600">Late</div>
                     </CardContent>
                   </Card>
                   <Card>
-                    <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-blue-600">
+                    <CardContent className="p-3 sm:p-4 text-center">
+                      <div className="text-lg sm:text-2xl font-bold text-blue-600">
                         {dailyAttendanceData.length}
                       </div>
-                      <div className="text-sm text-gray-600">Total</div>
+                      <div className="text-[10px] sm:text-sm text-gray-600">Total</div>
                     </CardContent>
                   </Card>
                 </div>
                 
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse border border-gray-300">
+                <div className="overflow-x-auto min-w-0 border rounded-lg">
+                  <table className="w-full border-collapse">
                     <thead>
                       <tr className="bg-gray-50">
-                        <th className="border border-gray-300 px-4 py-2 text-left">Staff Name</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">Department</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">Status</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">Notes</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">Marked By</th>
+                        <th className="border-b border-gray-200 px-3 py-2 text-left text-xs sm:text-sm font-semibold">Staff</th>
+                        <th className="border-b border-gray-200 px-3 py-2 text-left text-xs sm:text-sm font-semibold hidden sm:table-cell">Dept.</th>
+                        <th className="border-b border-gray-200 px-3 py-2 text-left text-xs sm:text-sm font-semibold">Status</th>
+                        <th className="border-b border-gray-200 px-3 py-2 text-left text-xs sm:text-sm font-semibold hidden md:table-cell">Notes</th>
                       </tr>
                     </thead>
                     <tbody>
                       {dailyAttendanceData.map((record, index) => (
-                        <tr key={index} className="hover:bg-gray-50">
-                          <td className="border border-gray-300 px-4 py-2">{record.staff_name || 'N/A'}</td>
-                          <td className="border border-gray-300 px-4 py-2">{record.department || 'N/A'}</td>
-                          <td className="border border-gray-300 px-4 py-2">
+                        <tr key={index} className="hover:bg-gray-50 border-b border-gray-100 last:border-0">
+                          <td className="px-3 py-2 text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none">{record.staff_name || 'N/A'}</td>
+                          <td className="px-3 py-2 text-xs sm:text-sm hidden sm:table-cell">{record.department || 'N/A'}</td>
+                          <td className="px-3 py-2">
                             <Badge 
                               variant={
                                 record.status === 'present' ? 'default' : 
                                 record.status === 'absent' ? 'destructive' :
                                 record.status === 'late' ? 'secondary' : 'outline'
                               }
-                              className={
+                              className={`text-[10px] sm:text-xs px-2 py-0 h-5 ${
                                 record.status === 'present' ? 'bg-green-100 text-green-800' :
                                 record.status === 'absent' ? 'bg-red-100 text-red-800' :
                                 record.status === 'late' ? 'bg-yellow-100 text-yellow-800' :
                                 'bg-blue-100 text-blue-800'
-                              }
+                              }`}
                             >
                               {record.status || 'Unknown'}
                             </Badge>
                           </td>
-                          <td className="border border-gray-300 px-4 py-2">{record.notes || '-'}</td>
-                          <td className="border border-gray-300 px-4 py-2">{record.marked_by_name || 'System'}</td>
+                          <td className="px-3 py-2 text-xs sm:text-sm hidden md:table-cell italic text-gray-500">{record.notes || '-'}</td>
                         </tr>
                       ))}
                     </tbody>

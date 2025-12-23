@@ -2542,21 +2542,21 @@ const Certificates = () => {
   });
 
   return (
-    <div className="space-y-4 sm:space-y-6 fade-in">
+    <div className="p-3 sm:p-4 lg:p-6 space-y-3 sm:space-y-4 lg:space-y-6 fade-in">
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">Certificates</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 truncate">Certificates</h1>
           <p className="text-xs sm:text-sm text-gray-600 mt-1">Generate and manage various academic certificates</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <Button variant="outline" size="sm" className="text-xs sm:text-sm h-8 sm:h-9">
+          <Button variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm h-8 sm:h-9">
             <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             Templates
           </Button>
           <Button 
             onClick={handleGenerateCertificate}
-            className="bg-emerald-500 hover:bg-emerald-600 text-xs sm:text-sm h-8 sm:h-9"
+            className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600 text-xs sm:text-sm h-8 sm:h-9"
           >
             <Award className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             Generate
@@ -2565,7 +2565,7 @@ const Certificates = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
         <Card className="card-hover">
           <CardContent className="p-3 sm:p-4 md:p-6">
             <div className="flex items-center justify-between">
@@ -2651,19 +2651,19 @@ const Certificates = () => {
                 </CardHeader>
                 <CardContent>
                   {/* Search and Filters */}
-                  <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                    <div className="relative flex-1">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-6">
+                    <div className="relative flex-1 min-w-0">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                       <input
                         type="text"
                         placeholder="Search by student name, admission number, or course..."
-                        className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                        className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm sm:text-base"
                         value={ccSearchTerm}
                         onChange={(e) => setCcSearchTerm(e.target.value)}
                       />
                     </div>
                     <select
-                      className="px-3 py-2 border rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      className="px-3 py-2 border rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm sm:text-base w-full sm:w-auto"
                       value={ccStatusFilter}
                       onChange={(e) => setCcStatusFilter(e.target.value)}
                     >
@@ -2685,7 +2685,7 @@ const Certificates = () => {
                           setCcView('form');
                           resetCourseForm();
                         }}
-                        className="bg-emerald-500 hover:bg-emerald-600"
+                        className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600"
                       >
                         <Plus className="h-4 w-4 mr-2" />
                         Create Certificate
@@ -2693,68 +2693,70 @@ const Certificates = () => {
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Details</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completion Date</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {filteredCCRecords.map((cc) => (
-                            <tr key={cc.id} className="hover:bg-gray-50">
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div>
-                                  <div className="text-sm font-medium text-gray-900">{cc.student_name}</div>
-                                  <div className="text-sm text-gray-500">Adm: {cc.admission_no}</div>
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm text-gray-900">{cc.course_name}</div>
-                                <div className="text-sm text-gray-500">{cc.course_duration || 'N/A'}</div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {new Date(cc.completion_date).toLocaleDateString()}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <Badge className={
-                                  cc.grade_obtained === 'A+' || cc.grade_obtained === 'A' ? 'bg-green-100 text-green-800' :
-                                  cc.grade_obtained === 'B+' || cc.grade_obtained === 'B' ? 'bg-blue-100 text-blue-800' :
-                                  'bg-gray-100 text-gray-800'
-                                }>
-                                  {cc.grade_obtained || 'N/A'}
-                                </Badge>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <Badge className={
-                                  cc.status === 'issued' ? 'bg-green-100 text-green-800' :
-                                  cc.status === 'pending_approval' ? 'bg-yellow-100 text-yellow-800' :
-                                  'bg-gray-100 text-gray-800'
-                                }>
-                                  {cc.status}
-                                </Badge>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <div className="flex space-x-2">
-                                  <Button variant="ghost" size="sm" onClick={() => handleViewCC(cc.id)}>
-                                    <Eye className="h-4 w-4" />
-                                  </Button>
-                                  <Button variant="ghost" size="sm" onClick={() => handleDownloadCC(cc)}>
-                                    <Download className="h-4 w-4" />
-                                  </Button>
-                                  <Button variant="ghost" size="sm" onClick={() => handlePrintCC(cc)}>
-                                    <Printer className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </td>
+                      <div className="rounded-md border min-w-[800px] sm:min-w-0">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-4 sm:px-6 py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Student Details</th>
+                              <th className="px-4 sm:px-6 py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Course</th>
+                              <th className="hidden sm:table-cell px-4 sm:px-6 py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Completion Date</th>
+                              <th className="hidden lg:table-cell px-4 sm:px-6 py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</th>
+                              <th className="px-4 sm:px-6 py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                              <th className="px-4 sm:px-6 py-3 text-right text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {filteredCCRecords.map((cc) => (
+                              <tr key={cc.id} className="hover:bg-gray-50">
+                                <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                                  <div className="min-w-0">
+                                    <div className="text-sm font-medium text-gray-900 truncate">{cc.student_name}</div>
+                                    <div className="text-xs sm:text-sm text-gray-500 truncate">Adm: {cc.admission_no}</div>
+                                  </div>
+                                </td>
+                                <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                                  <div className="text-sm text-gray-900 truncate">{cc.course_name}</div>
+                                  <div className="text-xs sm:text-sm text-gray-500 truncate">{cc.course_duration || 'N/A'}</div>
+                                </td>
+                                <td className="hidden sm:table-cell px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {new Date(cc.completion_date).toLocaleDateString()}
+                                </td>
+                                <td className="hidden lg:table-cell px-4 sm:px-6 py-4 whitespace-nowrap">
+                                  <Badge className={
+                                    cc.grade_obtained === 'A+' || cc.grade_obtained === 'A' ? 'bg-green-100 text-green-800' :
+                                    cc.grade_obtained === 'B+' || cc.grade_obtained === 'B' ? 'bg-blue-100 text-blue-800' :
+                                    'bg-gray-100 text-gray-800'
+                                  }>
+                                    {cc.grade_obtained || 'N/A'}
+                                  </Badge>
+                                </td>
+                                <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                                  <Badge className={
+                                    cc.status === 'issued' ? 'bg-green-100 text-green-800' :
+                                    cc.status === 'pending_approval' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-gray-100 text-gray-800'
+                                  }>
+                                    {cc.status}
+                                  </Badge>
+                                </td>
+                                <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
+                                  <div className="flex justify-end space-x-1 sm:space-x-2">
+                                    <Button variant="ghost" size="sm" onClick={() => handleViewCC(cc.id)}>
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="ghost" size="sm" onClick={() => handleDownloadCC(cc)}>
+                                      <Download className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="ghost" size="sm" className="hidden sm:inline-flex" onClick={() => handlePrintCC(cc)}>
+                                      <Printer className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   )}
                 </CardContent>
@@ -2944,19 +2946,19 @@ const Certificates = () => {
                 </CardHeader>
                 <CardContent>
                   {/* Search and Filters */}
-                  <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                    <div className="relative flex-1">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-6">
+                    <div className="relative flex-1 min-w-0">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                       <input
                         type="text"
                         placeholder="Search by student name or admission number..."
-                        className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                        className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm sm:text-base"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                       />
                     </div>
                     <select
-                      className="px-3 py-2 border rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      className="px-3 py-2 border rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm sm:text-base w-full sm:w-auto"
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
                     >
@@ -2978,104 +2980,108 @@ const Certificates = () => {
                       </p>
                       <Button 
                         onClick={() => setTcView('form')}
-                        className="bg-emerald-500 hover:bg-emerald-600"
+                        className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600"
                       >
                         Generate First TC
                       </Button>
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Details</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Class & Section</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date of Leaving</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {filteredTCRecords.map((tc) => (
-                            <tr key={tc.id} className="hover:bg-gray-50">
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div>
-                                  <div className="text-sm font-medium text-gray-900">{tc.student_name}</div>
-                                  <div className="text-sm text-gray-500">Adm: {tc.admission_no}</div>
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm text-gray-900">{tc.last_class} - {tc.last_section}</div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm text-gray-900">{tc.date_of_leaving}</div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <Badge className={
-                                  tc.status === 'issued' ? 'bg-green-100 text-green-800' :
-                                  tc.status === 'pending_approval' ? 'bg-yellow-100 text-yellow-800' :
-                                  tc.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                                  'bg-gray-100 text-gray-800'
-                                }>
-                                  {tc.status === 'pending_approval' ? 'Pending Approval' : 
-                                   tc.status.charAt(0).toUpperCase() + tc.status.slice(1)}
-                                </Badge>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <div className="flex flex-wrap gap-2">
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm"
-                                    onClick={() => handleViewTC(tc.id)}
-                                  >
-                                    <Eye className="h-4 w-4 mr-1" />
-                                    View
-                                  </Button>
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm"
-                                    onClick={() => handlePDFTC(tc)}
-                                  >
-                                    <Download className="h-4 w-4 mr-1" />
-                                    PDF
-                                  </Button>
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm"
-                                    onClick={() => handlePrintTC(tc)}
-                                  >
-                                    <Printer className="h-4 w-4 mr-1" />
-                                    Print
-                                  </Button>
-                                  {/* Status Change Buttons */}
-                                  {(tc.status === 'draft' || tc.status === 'pending_approval') && (
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm"
-                                      onClick={() => handleIssueTC(tc.id)}
-                                      className="bg-green-50 text-green-700 hover:bg-green-100 border-green-300"
-                                    >
-                                      <CheckCircle className="h-4 w-4 mr-1" />
-                                      Issue
-                                    </Button>
-                                  )}
-                                  {tc.status === 'issued' && (
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm"
-                                      onClick={() => handleCancelTC(tc.id)}
-                                      className="bg-red-50 text-red-700 hover:bg-red-100 border-red-300"
-                                    >
-                                      <XCircle className="h-4 w-4 mr-1" />
-                                      Cancel
-                                    </Button>
-                                  )}
-                                </div>
-                              </td>
+                      <div className="rounded-md border min-w-[800px] sm:min-w-0">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-4 sm:px-6 py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Student Details</th>
+                              <th className="hidden sm:table-cell px-4 sm:px-6 py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Class & Section</th>
+                              <th className="hidden lg:table-cell px-4 sm:px-6 py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Date of Leaving</th>
+                              <th className="px-4 sm:px-6 py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                              <th className="px-4 sm:px-6 py-3 text-right text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {filteredTCRecords.map((tc) => (
+                              <tr key={tc.id} className="hover:bg-gray-50">
+                                <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                                  <div className="min-w-0">
+                                    <div className="text-sm font-medium text-gray-900 truncate">{tc.student_name}</div>
+                                    <div className="text-xs sm:text-sm text-gray-500 truncate">Adm: {tc.admission_no}</div>
+                                  </div>
+                                </td>
+                                <td className="hidden sm:table-cell px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {tc.last_class} - {tc.last_section}
+                                </td>
+                                <td className="hidden lg:table-cell px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {tc.date_of_leaving}
+                                </td>
+                                <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                                  <Badge className={
+                                    tc.status === 'issued' ? 'bg-green-100 text-green-800' :
+                                    tc.status === 'pending_approval' ? 'bg-yellow-100 text-yellow-800' :
+                                    tc.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                    'bg-gray-100 text-gray-800'
+                                  }>
+                                    {tc.status === 'pending_approval' ? 'Pending Approval' : 
+                                     tc.status.charAt(0).toUpperCase() + tc.status.slice(1)}
+                                  </Badge>
+                                </td>
+                                <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
+                                  <div className="flex justify-end flex-wrap gap-1 sm:gap-2">
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      className="h-8 w-8 p-0 sm:h-auto sm:w-auto sm:px-3"
+                                      onClick={() => handleViewTC(tc.id)}
+                                    >
+                                      <Eye className="h-4 w-4 sm:mr-1" />
+                                      <span className="hidden sm:inline">View</span>
+                                    </Button>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      className="h-8 w-8 p-0 sm:h-auto sm:w-auto sm:px-3"
+                                      onClick={() => handlePDFTC(tc)}
+                                    >
+                                      <Download className="h-4 w-4 sm:mr-1" />
+                                      <span className="hidden sm:inline">PDF</span>
+                                    </Button>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      className="hidden md:inline-flex"
+                                      onClick={() => handlePrintTC(tc)}
+                                    >
+                                      <Printer className="h-4 w-4 sm:mr-1" />
+                                      Print
+                                    </Button>
+                                    {(tc.status === 'draft' || tc.status === 'pending_approval') && (
+                                      <Button 
+                                        variant="outline" 
+                                        size="sm"
+                                        onClick={() => handleIssueTC(tc.id)}
+                                        className="bg-green-50 text-green-700 hover:bg-green-100 border-green-300 h-8 w-8 p-0 sm:h-auto sm:w-auto sm:px-3"
+                                      >
+                                        <CheckCircle className="h-4 w-4 sm:mr-1" />
+                                        <span className="hidden sm:inline">Issue</span>
+                                      </Button>
+                                    )}
+                                    {tc.status === 'issued' && (
+                                      <Button 
+                                        variant="outline" 
+                                        size="sm"
+                                        onClick={() => handleCancelTC(tc.id)}
+                                        className="bg-red-50 text-red-700 hover:bg-red-100 border-red-300 h-8 w-8 p-0 sm:h-auto sm:w-auto sm:px-3"
+                                      >
+                                        <XCircle className="h-4 w-4 sm:mr-1" />
+                                        <span className="hidden sm:inline">Cancel</span>
+                                      </Button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   )}
                 </CardContent>
@@ -3336,38 +3342,41 @@ const Certificates = () => {
           {prView === 'list' ? (
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Progress Reports</CardTitle>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <CardTitle className="truncate">Progress Reports</CardTitle>
+                    <p className="text-sm text-gray-600 mt-1">Manage and issue student progress reports</p>
+                  </div>
                   <Button 
                     onClick={() => {
                       setPrView('form');
                       resetProgressForm();
                     }}
-                    className="bg-emerald-500 hover:bg-emerald-600"
+                    className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600"
                   >
                     <Plus className="h-4 w-4 mr-2" />
-                    Create Progress Report
+                    Create Report
                   </Button>
                 </div>
               </CardHeader>
               <CardContent>
                 {/* Search and Filter Controls */}
-                <div className="flex space-x-4 mb-6">
-                  <div className="flex-1">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-6">
+                  <div className="flex-1 min-w-0">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                       <input
                         type="text"
                         placeholder="Search progress reports..."
-                        className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                        className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm sm:text-base"
                         value={prSearchTerm}
                         onChange={(e) => setPrSearchTerm(e.target.value)}
                       />
                     </div>
                   </div>
-                  <div className="w-48">
+                  <div className="w-full sm:w-48">
                     <select
-                      className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm sm:text-base"
                       value={prStatusFilter}
                       onChange={(e) => setPrStatusFilter(e.target.value)}
                     >
@@ -3390,7 +3399,7 @@ const Certificates = () => {
                         setPrView('form');
                         resetProgressForm();
                       }}
-                      className="bg-emerald-500 hover:bg-emerald-600"
+                      className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600"
                     >
                       <Plus className="h-4 w-4 mr-2" />
                       Create Progress Report
@@ -3398,77 +3407,80 @@ const Certificates = () => {
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Details</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Academic Year</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Semester</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {filteredPRRecords.map((report) => (
-                          <tr key={report._id || report.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div>
-                                <div className="text-sm font-medium text-gray-900">{report.student_name}</div>
-                                <div className="text-sm text-gray-500">Admission: {report.admission_no}</div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {report.academic_year}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {report.semester}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {report.overall_grade || 'N/A'}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`px-2 py-1 text-xs rounded-full font-medium ${
-                                report.status === 'issued' ? 'bg-green-100 text-green-800' :
-                                report.status === 'pending_approval' ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-gray-100 text-gray-800'
-                              }`}>
-                                {report.status}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-blue-600 hover:text-blue-900"
-                                onClick={() => handleViewPR(report.id || report._id)}
-                              >
-                                <Eye className="h-4 w-4 mr-1" />
-                                View
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-green-600 hover:text-green-900"
-                                onClick={() => handlePDFPR(report)}
-                              >
-                                <Download className="h-4 w-4 mr-1" />
-                                PDF
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-gray-600 hover:text-gray-900"
-                                onClick={() => handlePrintPR(report)}
-                              >
-                                <Printer className="h-4 w-4 mr-1" />
-                                Print
-                              </Button>
-                            </td>
+                    <div className="rounded-md border min-w-[800px] sm:min-w-0">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 sm:px-6 py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Student Details</th>
+                            <th className="hidden sm:table-cell px-4 sm:px-6 py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Academic Year</th>
+                            <th className="hidden lg:table-cell px-4 sm:px-6 py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Semester</th>
+                            <th className="px-4 sm:px-6 py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</th>
+                            <th className="px-4 sm:px-6 py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th className="px-4 sm:px-6 py-3 text-right text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {filteredPRRecords.map((report) => (
+                            <tr key={report._id || report.id} className="hover:bg-gray-50">
+                              <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                                <div className="min-w-0">
+                                  <div className="text-sm font-medium text-gray-900 truncate">{report.student_name}</div>
+                                  <div className="text-xs sm:text-sm text-gray-500 truncate">Admission: {report.admission_no}</div>
+                                </div>
+                              </td>
+                              <td className="hidden sm:table-cell px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {report.academic_year}
+                              </td>
+                              <td className="hidden lg:table-cell px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {report.semester}
+                              </td>
+                              <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {report.overall_grade || 'N/A'}
+                              </td>
+                              <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                                <Badge variant="outline" className={
+                                  report.status === 'issued' ? 'bg-green-100 text-green-800' :
+                                  report.status === 'pending_approval' ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-gray-100 text-gray-800'
+                                }>
+                                  {report.status}
+                                </Badge>
+                              </td>
+                              <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
+                                <div className="flex justify-end space-x-1 sm:space-x-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 sm:h-auto sm:w-auto sm:px-2"
+                                    onClick={() => handleViewPR(report.id || report._id)}
+                                  >
+                                    <Eye className="h-4 w-4 sm:mr-1" />
+                                    <span className="hidden sm:inline">View</span>
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 sm:h-auto sm:w-auto sm:px-2"
+                                    onClick={() => handlePDFPR(report)}
+                                  >
+                                    <Download className="h-4 w-4 sm:mr-1" />
+                                    <span className="hidden sm:inline">PDF</span>
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="hidden sm:inline-flex"
+                                    onClick={() => handlePrintPR(report)}
+                                  >
+                                    <Printer className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -3730,14 +3742,17 @@ const Certificates = () => {
           {aeView === 'list' ? (
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Adhar Extracts</CardTitle>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <CardTitle className="truncate">Adhar Extracts</CardTitle>
+                    <p className="text-sm text-gray-600 mt-1">Manage and issue student adhar extracts</p>
+                  </div>
                   <Button 
                     onClick={() => {
                       setAeView('form');
                       resetAdharForm();
                     }}
-                    className="bg-emerald-500 hover:bg-emerald-600"
+                    className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600"
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Create Adhar Extract
@@ -3746,22 +3761,22 @@ const Certificates = () => {
               </CardHeader>
               <CardContent>
                 {/* Search and Filter Controls */}
-                <div className="flex space-x-4 mb-6">
-                  <div className="flex-1">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-6">
+                  <div className="flex-1 min-w-0">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                       <input
                         type="text"
                         placeholder="Search adhar extracts..."
-                        className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                        className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm sm:text-base"
                         value={aeSearchTerm}
                         onChange={(e) => setAeSearchTerm(e.target.value)}
                       />
                     </div>
                   </div>
-                  <div className="w-48">
+                  <div className="w-full sm:w-48">
                     <select
-                      className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm sm:text-base"
                       value={aeStatusFilter}
                       onChange={(e) => setAeStatusFilter(e.target.value)}
                     >
@@ -3784,7 +3799,7 @@ const Certificates = () => {
                         setAeView('form');
                         resetAdharForm();
                       }}
-                      className="bg-emerald-500 hover:bg-emerald-600"
+                      className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600"
                     >
                       <Plus className="h-4 w-4 mr-2" />
                       Create Adhar Extract
@@ -3792,74 +3807,65 @@ const Certificates = () => {
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Details</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Adhar Number</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Purpose</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Guardian</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {filteredAERecords.map((extract) => (
-                          <tr key={extract._id || extract.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div>
-                                <div className="text-sm font-medium text-gray-900">{extract.student_name}</div>
-                                <div className="text-sm text-gray-500">Admission: {extract.admission_no}</div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {extract.adhar_number ? `****-****-${extract.adhar_number.slice(-4)}` : 'N/A'}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {extract.purpose}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {extract.guardian_name || 'N/A'}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`px-2 py-1 text-xs rounded-full font-medium ${
-                                extract.status === 'issued' ? 'bg-green-100 text-green-800' :
-                                extract.status === 'pending_approval' ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-gray-100 text-gray-800'
-                              }`}>
-                                {extract.status}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-blue-600 hover:text-blue-900"
-                              >
-                                <Eye className="h-4 w-4 mr-1" />
-                                View
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-green-600 hover:text-green-900"
-                              >
-                                <Download className="h-4 w-4 mr-1" />
-                                PDF
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-gray-600 hover:text-gray-900"
-                              >
-                                <Printer className="h-4 w-4 mr-1" />
-                                Print
-                              </Button>
-                            </td>
+                    <div className="rounded-md border min-w-[800px] sm:min-w-0">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 sm:px-6 py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Student Details</th>
+                            <th className="hidden sm:table-cell px-4 sm:px-6 py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Adhar Number</th>
+                            <th className="hidden lg:table-cell px-4 sm:px-6 py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Purpose</th>
+                            <th className="hidden md:table-cell px-4 sm:px-6 py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Guardian</th>
+                            <th className="px-4 sm:px-6 py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th className="px-4 sm:px-6 py-3 text-right text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {filteredAERecords.map((extract) => (
+                            <tr key={extract._id || extract.id} className="hover:bg-gray-50">
+                              <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                                <div className="min-w-0">
+                                  <div className="text-sm font-medium text-gray-900 truncate">{extract.student_name}</div>
+                                  <div className="text-xs sm:text-sm text-gray-500 truncate">Admission: {extract.admission_no}</div>
+                                </div>
+                              </td>
+                              <td className="hidden sm:table-cell px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {extract.adhar_number ? `****-****-${extract.adhar_number.slice(-4)}` : 'N/A'}
+                              </td>
+                              <td className="hidden lg:table-cell px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {extract.purpose}
+                              </td>
+                              <td className="hidden md:table-cell px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {extract.guardian_name || 'N/A'}
+                              </td>
+                              <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                                <Badge variant="outline" className={
+                                  extract.status === 'issued' ? 'bg-green-100 text-green-800' :
+                                  extract.status === 'pending_approval' ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-gray-100 text-gray-800'
+                                }>
+                                  {extract.status}
+                                </Badge>
+                              </td>
+                              <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
+                                <div className="flex justify-end space-x-1 sm:space-x-2">
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 sm:h-auto sm:w-auto sm:px-2">
+                                    <Eye className="h-4 w-4 sm:mr-1" />
+                                    <span className="hidden sm:inline">View</span>
+                                  </Button>
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 sm:h-auto sm:w-auto sm:px-2">
+                                    <Download className="h-4 w-4 sm:mr-1" />
+                                    <span className="hidden sm:inline">PDF</span>
+                                  </Button>
+                                  <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
+                                    <Printer className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -4183,38 +4189,41 @@ const Certificates = () => {
           {bfView === 'list' ? (
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Bonafide Certificates</CardTitle>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <CardTitle className="truncate">Bonafide Certificates</CardTitle>
+                    <p className="text-sm text-gray-600 mt-1">Manage and issue student bonafide certificates</p>
+                  </div>
                   <Button 
                     onClick={() => {
                       setBfView('form');
                       resetBonafideForm();
                     }}
-                    className="bg-emerald-500 hover:bg-emerald-600"
+                    className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600"
                   >
                     <Plus className="h-4 w-4 mr-2" />
-                    Create Bonafide Certificate
+                    Create Bonafide
                   </Button>
                 </div>
               </CardHeader>
               <CardContent>
                 {/* Search and Filter Controls */}
-                <div className="flex space-x-4 mb-6">
-                  <div className="flex-1">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-6">
+                  <div className="flex-1 min-w-0">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                       <input
                         type="text"
                         placeholder="Search bonafide certificates..."
-                        className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                        className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm sm:text-base"
                         value={bfSearchTerm}
                         onChange={(e) => setBfSearchTerm(e.target.value)}
                       />
                     </div>
                   </div>
-                  <div className="w-48">
+                  <div className="w-full sm:w-48">
                     <select
-                      className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm sm:text-base"
                       value={bfStatusFilter}
                       onChange={(e) => setBfStatusFilter(e.target.value)}
                     >
@@ -4237,7 +4246,7 @@ const Certificates = () => {
                         setBfView('form');
                         resetBonafideForm();
                       }}
-                      className="bg-emerald-500 hover:bg-emerald-600"
+                      className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600"
                     >
                       <Plus className="h-4 w-4 mr-2" />
                       Create Bonafide Certificate
@@ -4245,74 +4254,65 @@ const Certificates = () => {
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Details</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Purpose</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Academic Year</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Class</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {filteredBFRecords.map((certificate) => (
-                          <tr key={certificate._id || certificate.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div>
-                                <div className="text-sm font-medium text-gray-900">{certificate.student_name}</div>
-                                <div className="text-sm text-gray-500">Admission: {certificate.admission_no}</div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {certificate.purpose}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {certificate.academic_year}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {certificate.class_studying || 'N/A'}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`px-2 py-1 text-xs rounded-full font-medium ${
-                                certificate.status === 'issued' ? 'bg-green-100 text-green-800' :
-                                certificate.status === 'pending_approval' ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-gray-100 text-gray-800'
-                              }`}>
-                                {certificate.status}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-blue-600 hover:text-blue-900"
-                              >
-                                <Eye className="h-4 w-4 mr-1" />
-                                View
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-green-600 hover:text-green-900"
-                              >
-                                <Download className="h-4 w-4 mr-1" />
-                                PDF
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-gray-600 hover:text-gray-900"
-                              >
-                                <Printer className="h-4 w-4 mr-1" />
-                                Print
-                              </Button>
-                            </td>
+                    <div className="rounded-md border min-w-[800px] sm:min-w-0">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 sm:px-6 py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Student Details</th>
+                            <th className="px-4 sm:px-6 py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Purpose</th>
+                            <th className="hidden sm:table-cell px-4 sm:px-6 py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Academic Year</th>
+                            <th className="hidden lg:table-cell px-4 sm:px-6 py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Class</th>
+                            <th className="px-4 sm:px-6 py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th className="px-4 sm:px-6 py-3 text-right text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {filteredBFRecords.map((certificate) => (
+                            <tr key={certificate._id || certificate.id} className="hover:bg-gray-50">
+                              <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                                <div className="min-w-0">
+                                  <div className="text-sm font-medium text-gray-900 truncate">{certificate.student_name}</div>
+                                  <div className="text-xs sm:text-sm text-gray-500 truncate">Admission: {certificate.admission_no}</div>
+                                </div>
+                              </td>
+                              <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 truncate max-w-[150px]">
+                                {certificate.purpose}
+                              </td>
+                              <td className="hidden sm:table-cell px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {certificate.academic_year}
+                              </td>
+                              <td className="hidden lg:table-cell px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {certificate.class_studying || 'N/A'}
+                              </td>
+                              <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                                <Badge variant="outline" className={
+                                  certificate.status === 'issued' ? 'bg-green-100 text-green-800' :
+                                  certificate.status === 'pending_approval' ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-gray-100 text-gray-800'
+                                }>
+                                  {certificate.status}
+                                </Badge>
+                              </td>
+                              <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
+                                <div className="flex justify-end space-x-1 sm:space-x-2">
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 sm:h-auto sm:w-auto sm:px-2">
+                                    <Eye className="h-4 w-4 sm:mr-1" />
+                                    <span className="hidden sm:inline">View</span>
+                                  </Button>
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 sm:h-auto sm:w-auto sm:px-2">
+                                    <Download className="h-4 w-4 sm:mr-1" />
+                                    <span className="hidden sm:inline">PDF</span>
+                                  </Button>
+                                  <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
+                                    <Printer className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -4557,17 +4557,17 @@ const Certificates = () => {
                   <CreditCard className="h-16 w-16 mx-auto text-gray-400 mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">Student & Staff ID Cards</h3>
                   <p className="text-gray-600 mb-4">Generate and print identification cards</p>
-                  <div className="flex justify-center space-x-3">
-                    <Button variant="outline" onClick={handleStudentIDsClick}>
+                  <div className="flex flex-col sm:flex-row justify-center gap-3">
+                    <Button variant="outline" onClick={handleStudentIDsClick} className="w-full sm:w-auto">
                       <Users className="h-4 w-4 mr-2" />
                       Student IDs
                     </Button>
-                    <Button variant="outline" onClick={handleStaffIDsClick}>
+                    <Button variant="outline" onClick={handleStaffIDsClick} className="w-full sm:w-auto">
                       <Users className="h-4 w-4 mr-2" />
                       Staff IDs  
                     </Button>
                     <Button 
-                      className="bg-emerald-500 hover:bg-emerald-600"
+                      className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600"
                       onClick={() => {
                         if (generatedIdCards.length > 0) {
                           setIdCardsView('generated');
@@ -4577,25 +4577,25 @@ const Certificates = () => {
                       }}
                     >
                       <Eye className="h-4 w-4 mr-2" />
-                      View Generated Cards ({generatedIdCards.length})
+                      View Generated ({generatedIdCards.length})
                     </Button>
                   </div>
                 </div>
               ) : (
                 <div className="space-y-6">
                   {/* Header with navigation */}
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900">Generated ID Cards</h3>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="min-w-0">
+                      <h3 className="text-lg font-medium text-gray-900 truncate">Generated ID Cards</h3>
                       <p className="text-sm text-gray-600">{generatedIdCards.length} cards generated</p>
                     </div>
-                    <div className="space-x-3">
-                      <Button variant="outline" onClick={() => setIdCardsView('main')}>
+                    <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-2">
+                      <Button variant="outline" onClick={() => setIdCardsView('main')} className="w-full sm:w-auto">
                         <ArrowLeft className="h-4 w-4 mr-2" />
                         Back to Generation
                       </Button>
                       <Button 
-                        className="bg-emerald-500 hover:bg-emerald-600"
+                        className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600"
                         onClick={handlePrintAllCards}
                         disabled={generatedIdCards.length === 0}
                       >
@@ -4606,24 +4606,24 @@ const Certificates = () => {
                   </div>
 
                   {/* Generated Cards Display */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                     {generatedIdCards.map((card) => (
                       <div key={card.id} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                         <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 p-4 text-white">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h4 className="font-bold text-lg">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="min-w-0">
+                              <h4 className="font-bold text-base sm:text-lg truncate">
                                 {card.type === 'student' ? card.studentData?.name : card.staffData?.name}
                               </h4>
-                              <p className="text-emerald-100 text-sm">
+                              <p className="text-emerald-100 text-xs sm:text-sm">
                                 {card.type === 'student' ? 'Student' : 'Staff Member'}
                               </p>
                             </div>
-                            <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white bg-opacity-20 rounded-full flex-shrink-0 flex items-center justify-center">
                               {card.type === 'student' ? (
-                                <Users className="h-8 w-8 text-white" />
+                                <Users className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
                               ) : (
-                                <User className="h-8 w-8 text-white" />
+                                <User className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
                               )}
                             </div>
                           </div>
@@ -4631,54 +4631,55 @@ const Certificates = () => {
                         
                         <div className="p-4 space-y-3">
                           {card.type === 'student' ? (
-                            <>
+                            <div className="grid grid-cols-2 gap-3">
                               <div>
-                                <p className="text-sm text-gray-600">Admission No:</p>
-                                <p className="font-medium">{card.studentData?.admission_no}</p>
+                                <p className="text-[10px] sm:text-xs text-gray-500 uppercase">Admission No</p>
+                                <p className="text-sm font-medium truncate">{card.studentData?.admission_no}</p>
                               </div>
                               <div>
-                                <p className="text-sm text-gray-600">Class & Section:</p>
-                                <p className="font-medium">{card.studentData?.class_name}</p>
+                                <p className="text-[10px] sm:text-xs text-gray-500 uppercase">Class & Section</p>
+                                <p className="text-sm font-medium truncate">{card.studentData?.class_name}</p>
                               </div>
                               <div>
-                                <p className="text-sm text-gray-600">Roll Number:</p>
-                                <p className="font-medium">{card.studentData?.roll_number}</p>
+                                <p className="text-[10px] sm:text-xs text-gray-500 uppercase">Roll Number</p>
+                                <p className="text-sm font-medium">{card.studentData?.roll_number}</p>
                               </div>
                               <div>
-                                <p className="text-sm text-gray-600">Blood Group:</p>
-                                <p className="font-medium">{card.studentData?.blood_group}</p>
+                                <p className="text-[10px] sm:text-xs text-gray-500 uppercase">Blood Group</p>
+                                <p className="text-sm font-medium">{card.studentData?.blood_group}</p>
                               </div>
-                            </>
+                            </div>
                           ) : (
-                            <>
+                            <div className="grid grid-cols-2 gap-3">
                               <div>
-                                <p className="text-sm text-gray-600">Employee ID:</p>
-                                <p className="font-medium">{card.staffData?.employee_id}</p>
+                                <p className="text-[10px] sm:text-xs text-gray-500 uppercase">Employee ID</p>
+                                <p className="text-sm font-medium truncate">{card.staffData?.employee_id}</p>
                               </div>
                               <div>
-                                <p className="text-sm text-gray-600">Department:</p>
-                                <p className="font-medium">{card.staffData?.department}</p>
+                                <p className="text-[10px] sm:text-xs text-gray-500 uppercase">Department</p>
+                                <p className="text-sm font-medium truncate">{card.staffData?.department}</p>
                               </div>
                               <div>
-                                <p className="text-sm text-gray-600">Designation:</p>
-                                <p className="font-medium">{card.staffData?.designation}</p>
+                                <p className="text-[10px] sm:text-xs text-gray-500 uppercase">Designation</p>
+                                <p className="text-sm font-medium truncate">{card.staffData?.designation}</p>
                               </div>
                               <div>
-                                <p className="text-sm text-gray-600">Phone:</p>
-                                <p className="font-medium">{card.staffData?.phone}</p>
+                                <p className="text-[10px] sm:text-xs text-gray-500 uppercase">Phone</p>
+                                <p className="text-sm font-medium truncate">{card.staffData?.phone}</p>
                               </div>
-                            </>
+                            </div>
                           )}
                           
-                          <div className="flex items-center justify-between pt-3 border-t">
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-3 border-t gap-3">
                             <div>
-                              <p className="text-xs text-gray-500">Card No:</p>
-                              <p className="text-sm font-medium">{card.cardNumber}</p>
+                              <p className="text-[10px] text-gray-500 uppercase">Card No</p>
+                              <p className="text-xs sm:text-sm font-medium">{card.cardNumber}</p>
                             </div>
-                            <div className="space-x-2">
+                            <div className="flex gap-2 w-full sm:w-auto">
                               <Button 
                                 variant="outline" 
                                 size="sm"
+                                className="flex-1 sm:flex-none h-8 px-2"
                                 onClick={() => handleCardPreview(card)}
                               >
                                 <Eye className="h-3 w-3 mr-1" />
@@ -4687,6 +4688,7 @@ const Certificates = () => {
                               <Button 
                                 variant="outline" 
                                 size="sm"
+                                className="flex-1 sm:flex-none h-8 px-2"
                                 onClick={() => handleCardPrint(card)}
                               >
                                 <Printer className="h-3 w-3 mr-1" />
@@ -4704,7 +4706,7 @@ const Certificates = () => {
                       <CreditCard className="h-16 w-16 mx-auto text-gray-400 mb-4" />
                       <h3 className="text-lg font-medium text-gray-900 mb-2">No ID Cards Generated</h3>
                       <p className="text-gray-600 mb-4">Generate student or staff ID cards to see them here</p>
-                      <Button onClick={() => setIdCardsView('main')}>
+                      <Button onClick={() => setIdCardsView('main')} className="w-full sm:w-auto">
                         <Plus className="h-4 w-4 mr-2" />
                         Generate ID Cards
                       </Button>
