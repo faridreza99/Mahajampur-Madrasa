@@ -55,6 +55,7 @@ import Homework from "./components/Homework";
 import LessonPlans from "./components/LessonPlans";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
+import Search from "./components/Search";
 import { Toaster } from "./components/ui/sonner";
 
 const API = process.env.REACT_APP_API_URL || "http://localhost:8000/api";
@@ -285,6 +286,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <Dashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/search"
+                  element={
+                    <ProtectedRoute>
+                      <Search />
                     </ProtectedRoute>
                   }
                 />
