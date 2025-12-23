@@ -23,6 +23,7 @@ import {
   Menu,
   X,
   ClipboardCheck,
+  ClipboardList,
   Sparkles,
   Target,
   FileText,
@@ -140,6 +141,29 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           title: "Calendar",
           path: "/calendar",
           roles: ["student"],
+        },
+      ],
+    },
+    {
+      key: "teacher-portal",
+      title: "My Work",
+      icon: ClipboardList,
+      roles: ["teacher"],
+      subItems: [
+        {
+          title: "My Dashboard",
+          path: "/teacher/dashboard",
+          roles: ["teacher"],
+        },
+        {
+          title: "Homework",
+          path: "/homework",
+          roles: ["teacher"],
+        },
+        {
+          title: "Lesson Plans",
+          path: "/lesson-plans",
+          roles: ["teacher"],
         },
       ],
     },

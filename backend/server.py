@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, Request, File, UploadFile, BackgroundTasks
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, Request, File, UploadFile, BackgroundTasks, Form
 from starlette.background import BackgroundTask
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
@@ -23956,6 +23956,681 @@ async def get_student_fees(current_user: User = Depends(get_current_user)):
     except Exception as e:
         logger.error(f"Error fetching student fees: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch fee information")
+
+# ==================== TEACHER PORTAL ====================
+
+@api_router.get("/teacher/dashboard")
+async def get_teacher_dashboard(current_user: User = Depends(get_current_user)):
+    """Get teacher dashboard data including today's classes, assigned subjects, attendance summary, and pending tasks"""
+    try:
+        if current_user.role != "teacher":
+            raise HTTPException(status_code=403, detail="This endpoint is for teachers only")
+        
+        today = datetime.utcnow().date()
+        days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        current_day = days_of_week[today.weekday()]
+        
+        # Find staff record for this teacher
+        staff = await db.staff.find_one({
+            "user_id": current_user.id,
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        })
+        
+        teacher_id = staff["id"] if staff else current_user.id
+        teacher_name = staff.get("full_name", current_user.full_name) if staff else current_user.full_name
+        
+        # Get all timetables where this teacher is assigned
+        timetables = await db.timetables.find({
+            "tenant_id": current_user.tenant_id,
+            "is_active": True,
+            "weekly_schedule.periods.teacher_id": teacher_id
+        }).to_list(100)
+        
+        # Extract today's classes and all assigned classes/subjects
+        todays_classes = []
+        assigned_classes = set()
+        assigned_subjects = set()
+        class_ids = set()
+        
+        for timetable in timetables:
+            class_name = timetable.get("class_name", "")
+            class_id = timetable.get("class_id", "")
+            
+            for day_schedule in timetable.get("weekly_schedule", []):
+                for period in day_schedule.get("periods", []):
+                    if period.get("teacher_id") == teacher_id and not period.get("is_break", False):
+                        subject = period.get("subject", "")
+                        assigned_subjects.add(subject)
+                        assigned_classes.add(class_name)
+                        if class_id:
+                            class_ids.add(class_id)
+                        
+                        if day_schedule.get("day") == current_day:
+                            todays_classes.append({
+                                "class_name": class_name,
+                                "section": timetable.get("section_name", ""),
+                                "subject": subject,
+                                "period_number": period.get("period_number"),
+                                "start_time": period.get("start_time"),
+                                "end_time": period.get("end_time"),
+                                "room_number": period.get("room_number", "")
+                            })
+        
+        # Sort today's classes by period number
+        todays_classes.sort(key=lambda x: x.get("period_number", 0))
+        
+        # Get attendance summary for today (for assigned classes)
+        attendance_today = {"total": 0, "present": 0, "absent": 0, "late": 0}
+        if class_ids:
+            today_str = today.isoformat()
+            attendance_records = await db.attendance.find({
+                "tenant_id": current_user.tenant_id,
+                "class_id": {"$in": list(class_ids)},
+                "date": today_str,
+                "type": "student"
+            }).to_list(500)
+            
+            attendance_today["total"] = len(attendance_records)
+            for record in attendance_records:
+                status = record.get("status", "").lower()
+                if status == "present":
+                    attendance_today["present"] += 1
+                elif status == "absent":
+                    attendance_today["absent"] += 1
+                elif status == "late":
+                    attendance_today["late"] += 1
+        
+        # Get pending tasks (marks entry, homework)
+        pending_tasks = []
+        
+        # Check for pending marks entry
+        pending_results = await db.exam_terms.find({
+            "tenant_id": current_user.tenant_id,
+            "is_active": True,
+            "is_published": {"$ne": True}
+        }).to_list(10)
+        
+        for exam in pending_results:
+            pending_tasks.append({
+                "type": "marks_entry",
+                "title": f"Enter marks for {exam.get('name', 'Exam')}",
+                "due_date": exam.get("end_date"),
+                "priority": "high"
+            })
+        
+        # Get homework due for review
+        pending_homework = await db.homework.find({
+            "tenant_id": current_user.tenant_id,
+            "created_by": current_user.id,
+            "status": {"$ne": "completed"}
+        }).to_list(10)
+        
+        for hw in pending_homework:
+            pending_tasks.append({
+                "type": "homework",
+                "title": f"Review: {hw.get('title', 'Homework')}",
+                "due_date": hw.get("due_date"),
+                "class_name": hw.get("class_name"),
+                "priority": "medium"
+            })
+        
+        # Get recent notifications
+        notifications = await db.notifications.find({
+            "tenant_id": current_user.tenant_id,
+            "$or": [
+                {"target_role": {"$in": ["teacher", "staff", "all"]}},
+                {"target_user_id": current_user.id}
+            ],
+            "is_active": True
+        }).sort("created_at", -1).to_list(5)
+        
+        # Get student count for assigned classes
+        student_count = 0
+        if class_ids:
+            student_count = await db.students.count_documents({
+                "tenant_id": current_user.tenant_id,
+                "class_id": {"$in": list(class_ids)},
+                "is_active": True
+            })
+        
+        return {
+            "teacher": {
+                "name": teacher_name,
+                "employee_id": staff.get("employee_id", "") if staff else "",
+                "department": staff.get("department", "") if staff else "",
+                "designation": staff.get("designation", "Teacher") if staff else "Teacher"
+            },
+            "today": {
+                "date": today.isoformat(),
+                "day": current_day,
+                "classes": todays_classes,
+                "total_periods": len(todays_classes)
+            },
+            "assigned": {
+                "classes": list(assigned_classes),
+                "subjects": list(assigned_subjects),
+                "total_students": student_count
+            },
+            "attendance_summary": attendance_today,
+            "pending_tasks": pending_tasks[:10],
+            "notifications": [sanitize_mongo_data(n) for n in notifications]
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching teacher dashboard: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch teacher dashboard")
+
+@api_router.get("/teacher/assigned-classes")
+async def get_teacher_assigned_classes(current_user: User = Depends(get_current_user)):
+    """Get all classes and sections assigned to the teacher"""
+    try:
+        if current_user.role != "teacher":
+            raise HTTPException(status_code=403, detail="This endpoint is for teachers only")
+        
+        # Find staff record
+        staff = await db.staff.find_one({
+            "user_id": current_user.id,
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        })
+        
+        teacher_id = staff["id"] if staff else current_user.id
+        
+        # Get timetables where teacher is assigned
+        timetables = await db.timetables.find({
+            "tenant_id": current_user.tenant_id,
+            "is_active": True,
+            "weekly_schedule.periods.teacher_id": teacher_id
+        }).to_list(100)
+        
+        assigned_classes = {}
+        for timetable in timetables:
+            class_id = timetable.get("class_id", "")
+            class_name = timetable.get("class_name", "")
+            section_name = timetable.get("section_name", "")
+            
+            key = f"{class_id}_{section_name}"
+            if key not in assigned_classes:
+                # Get subjects taught by this teacher
+                subjects = set()
+                for day_schedule in timetable.get("weekly_schedule", []):
+                    for period in day_schedule.get("periods", []):
+                        if period.get("teacher_id") == teacher_id:
+                            subjects.add(period.get("subject", ""))
+                
+                assigned_classes[key] = {
+                    "class_id": class_id,
+                    "class_name": class_name,
+                    "section_name": section_name,
+                    "subjects": list(subjects),
+                    "standard": timetable.get("standard", "")
+                }
+        
+        return {"classes": list(assigned_classes.values())}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching teacher assigned classes: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch assigned classes")
+
+@api_router.get("/teacher/students")
+async def get_teacher_students(
+    class_id: Optional[str] = None,
+    section_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get students from teacher's assigned classes"""
+    try:
+        if current_user.role != "teacher":
+            raise HTTPException(status_code=403, detail="This endpoint is for teachers only")
+        
+        # Find staff record
+        staff = await db.staff.find_one({
+            "user_id": current_user.id,
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        })
+        
+        teacher_id = staff["id"] if staff else current_user.id
+        
+        # Get assigned class IDs
+        timetables = await db.timetables.find({
+            "tenant_id": current_user.tenant_id,
+            "is_active": True,
+            "weekly_schedule.periods.teacher_id": teacher_id
+        }).to_list(100)
+        
+        assigned_class_ids = set()
+        for timetable in timetables:
+            if timetable.get("class_id"):
+                assigned_class_ids.add(timetable["class_id"])
+        
+        if not assigned_class_ids:
+            return {"students": [], "total": 0}
+        
+        # Build query
+        query = {
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        }
+        
+        if class_id:
+            if class_id not in assigned_class_ids:
+                raise HTTPException(status_code=403, detail="You are not assigned to this class")
+            query["class_id"] = class_id
+        else:
+            query["class_id"] = {"$in": list(assigned_class_ids)}
+        
+        if section_id:
+            query["section_id"] = section_id
+        
+        students = await db.students.find(query).sort("roll_no", 1).to_list(500)
+        
+        # Add class and section names
+        for student in students:
+            class_doc = await db.classes.find_one({"id": student.get("class_id")})
+            section_doc = await db.sections.find_one({"id": student.get("section_id")})
+            student["class_name"] = class_doc.get("name", "") if class_doc else ""
+            student["section_name"] = section_doc.get("name", "") if section_doc else ""
+        
+        return {
+            "students": [sanitize_mongo_data(s) for s in students],
+            "total": len(students)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching teacher students: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch students")
+
+# ==================== HOMEWORK MODULE ====================
+
+@api_router.post("/homework")
+async def create_homework(
+    title: str = Form(...),
+    description: str = Form(None),
+    class_id: str = Form(...),
+    section_id: str = Form(None),
+    subject: str = Form(...),
+    due_date: str = Form(...),
+    instructions: str = Form(None),
+    file: UploadFile = File(None),
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new homework assignment"""
+    try:
+        if current_user.role not in ["teacher", "admin", "super_admin"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        school_id = getattr(current_user, 'school_id', None)
+        
+        # Handle file upload
+        file_url = None
+        file_name = None
+        if file:
+            file_content = await file.read()
+            if len(file_content) > 10 * 1024 * 1024:  # 10MB limit
+                raise HTTPException(status_code=400, detail="File too large (max 10MB)")
+            
+            import base64
+            file_name = file.filename
+            file_url = f"data:{file.content_type};base64,{base64.b64encode(file_content).decode()}"
+        
+        # Get class and section names
+        class_doc = await db.classes.find_one({"id": class_id})
+        section_doc = await db.sections.find_one({"id": section_id}) if section_id else None
+        
+        homework = {
+            "id": str(uuid.uuid4()),
+            "tenant_id": current_user.tenant_id,
+            "school_id": school_id,
+            "title": title,
+            "description": description,
+            "class_id": class_id,
+            "class_name": class_doc.get("name", "") if class_doc else "",
+            "section_id": section_id,
+            "section_name": section_doc.get("name", "") if section_doc else "",
+            "subject": subject,
+            "due_date": due_date,
+            "instructions": instructions,
+            "file_url": file_url,
+            "file_name": file_name,
+            "status": "active",
+            "created_by": current_user.id,
+            "created_by_name": current_user.full_name,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+            "is_active": True
+        }
+        
+        await db.homework.insert_one(homework)
+        
+        logger.info(f"Homework created: {title} by {current_user.full_name}")
+        return {"message": "Homework created successfully", "homework": sanitize_mongo_data(homework)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating homework: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create homework")
+
+@api_router.get("/homework")
+async def get_homework_list(
+    class_id: Optional[str] = None,
+    subject: Optional[str] = None,
+    status: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get list of homework assignments"""
+    try:
+        query = {
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        }
+        
+        # Teachers see only their own homework
+        if current_user.role == "teacher":
+            query["created_by"] = current_user.id
+        
+        if class_id:
+            query["class_id"] = class_id
+        if subject:
+            query["subject"] = subject
+        if status:
+            query["status"] = status
+        
+        homework_list = await db.homework.find(query).sort("created_at", -1).to_list(100)
+        return {"homework": [sanitize_mongo_data(hw) for hw in homework_list]}
+    except Exception as e:
+        logger.error(f"Error fetching homework: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch homework")
+
+@api_router.get("/homework/{homework_id}")
+async def get_homework(homework_id: str, current_user: User = Depends(get_current_user)):
+    """Get a specific homework assignment"""
+    try:
+        homework = await db.homework.find_one({
+            "id": homework_id,
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        })
+        
+        if not homework:
+            raise HTTPException(status_code=404, detail="Homework not found")
+        
+        return sanitize_mongo_data(homework)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching homework: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch homework")
+
+@api_router.put("/homework/{homework_id}")
+async def update_homework(
+    homework_id: str,
+    title: str = Form(None),
+    description: str = Form(None),
+    due_date: str = Form(None),
+    instructions: str = Form(None),
+    status: str = Form(None),
+    current_user: User = Depends(get_current_user)
+):
+    """Update a homework assignment"""
+    try:
+        if current_user.role not in ["teacher", "admin", "super_admin"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        homework = await db.homework.find_one({
+            "id": homework_id,
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        })
+        
+        if not homework:
+            raise HTTPException(status_code=404, detail="Homework not found")
+        
+        # Teachers can only update their own homework
+        if current_user.role == "teacher" and homework.get("created_by") != current_user.id:
+            raise HTTPException(status_code=403, detail="You can only edit your own homework")
+        
+        update_data = {"updated_at": datetime.utcnow()}
+        if title:
+            update_data["title"] = title
+        if description is not None:
+            update_data["description"] = description
+        if due_date:
+            update_data["due_date"] = due_date
+        if instructions is not None:
+            update_data["instructions"] = instructions
+        if status:
+            update_data["status"] = status
+        
+        await db.homework.update_one({"id": homework_id}, {"$set": update_data})
+        
+        updated = await db.homework.find_one({"id": homework_id})
+        return {"message": "Homework updated successfully", "homework": sanitize_mongo_data(updated)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating homework: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update homework")
+
+@api_router.delete("/homework/{homework_id}")
+async def delete_homework(homework_id: str, current_user: User = Depends(get_current_user)):
+    """Delete a homework assignment (soft delete)"""
+    try:
+        if current_user.role not in ["teacher", "admin", "super_admin"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        homework = await db.homework.find_one({
+            "id": homework_id,
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        })
+        
+        if not homework:
+            raise HTTPException(status_code=404, detail="Homework not found")
+        
+        # Teachers can only delete their own homework
+        if current_user.role == "teacher" and homework.get("created_by") != current_user.id:
+            raise HTTPException(status_code=403, detail="You can only delete your own homework")
+        
+        await db.homework.update_one(
+            {"id": homework_id},
+            {"$set": {"is_active": False, "updated_at": datetime.utcnow()}}
+        )
+        
+        return {"message": "Homework deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting homework: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete homework")
+
+# ==================== LESSON PLAN MODULE ====================
+
+@api_router.post("/lesson-plans")
+async def create_lesson_plan(
+    title: str = Form(...),
+    class_id: str = Form(...),
+    section_id: str = Form(None),
+    subject: str = Form(...),
+    topic: str = Form(...),
+    objectives: str = Form(None),
+    content: str = Form(None),
+    activities: str = Form(None),
+    resources: str = Form(None),
+    planned_date: str = Form(None),
+    duration_minutes: int = Form(45),
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new lesson plan"""
+    try:
+        if current_user.role not in ["teacher", "admin", "super_admin"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        school_id = getattr(current_user, 'school_id', None)
+        
+        class_doc = await db.classes.find_one({"id": class_id})
+        section_doc = await db.sections.find_one({"id": section_id}) if section_id else None
+        
+        lesson_plan = {
+            "id": str(uuid.uuid4()),
+            "tenant_id": current_user.tenant_id,
+            "school_id": school_id,
+            "title": title,
+            "class_id": class_id,
+            "class_name": class_doc.get("name", "") if class_doc else "",
+            "section_id": section_id,
+            "section_name": section_doc.get("name", "") if section_doc else "",
+            "subject": subject,
+            "topic": topic,
+            "objectives": objectives,
+            "content": content,
+            "activities": activities,
+            "resources": resources,
+            "planned_date": planned_date,
+            "duration_minutes": duration_minutes,
+            "status": "planned",  # planned, in_progress, completed
+            "created_by": current_user.id,
+            "created_by_name": current_user.full_name,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+            "is_active": True
+        }
+        
+        await db.lesson_plans.insert_one(lesson_plan)
+        
+        logger.info(f"Lesson plan created: {title} by {current_user.full_name}")
+        return {"message": "Lesson plan created successfully", "lesson_plan": sanitize_mongo_data(lesson_plan)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating lesson plan: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create lesson plan")
+
+@api_router.get("/lesson-plans")
+async def get_lesson_plans(
+    class_id: Optional[str] = None,
+    subject: Optional[str] = None,
+    status: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get list of lesson plans"""
+    try:
+        query = {
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        }
+        
+        # Teachers see only their own lesson plans
+        if current_user.role == "teacher":
+            query["created_by"] = current_user.id
+        
+        if class_id:
+            query["class_id"] = class_id
+        if subject:
+            query["subject"] = subject
+        if status:
+            query["status"] = status
+        
+        lesson_plans = await db.lesson_plans.find(query).sort("created_at", -1).to_list(100)
+        return {"lesson_plans": [sanitize_mongo_data(lp) for lp in lesson_plans]}
+    except Exception as e:
+        logger.error(f"Error fetching lesson plans: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch lesson plans")
+
+@api_router.put("/lesson-plans/{plan_id}")
+async def update_lesson_plan(
+    plan_id: str,
+    title: str = Form(None),
+    topic: str = Form(None),
+    objectives: str = Form(None),
+    content: str = Form(None),
+    activities: str = Form(None),
+    resources: str = Form(None),
+    planned_date: str = Form(None),
+    status: str = Form(None),
+    current_user: User = Depends(get_current_user)
+):
+    """Update a lesson plan"""
+    try:
+        if current_user.role not in ["teacher", "admin", "super_admin"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        lesson_plan = await db.lesson_plans.find_one({
+            "id": plan_id,
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        })
+        
+        if not lesson_plan:
+            raise HTTPException(status_code=404, detail="Lesson plan not found")
+        
+        if current_user.role == "teacher" and lesson_plan.get("created_by") != current_user.id:
+            raise HTTPException(status_code=403, detail="You can only edit your own lesson plans")
+        
+        update_data = {"updated_at": datetime.utcnow()}
+        if title:
+            update_data["title"] = title
+        if topic:
+            update_data["topic"] = topic
+        if objectives is not None:
+            update_data["objectives"] = objectives
+        if content is not None:
+            update_data["content"] = content
+        if activities is not None:
+            update_data["activities"] = activities
+        if resources is not None:
+            update_data["resources"] = resources
+        if planned_date:
+            update_data["planned_date"] = planned_date
+        if status:
+            update_data["status"] = status
+        
+        await db.lesson_plans.update_one({"id": plan_id}, {"$set": update_data})
+        
+        updated = await db.lesson_plans.find_one({"id": plan_id})
+        return {"message": "Lesson plan updated successfully", "lesson_plan": sanitize_mongo_data(updated)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating lesson plan: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update lesson plan")
+
+@api_router.delete("/lesson-plans/{plan_id}")
+async def delete_lesson_plan(plan_id: str, current_user: User = Depends(get_current_user)):
+    """Delete a lesson plan (soft delete)"""
+    try:
+        if current_user.role not in ["teacher", "admin", "super_admin"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        lesson_plan = await db.lesson_plans.find_one({
+            "id": plan_id,
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        })
+        
+        if not lesson_plan:
+            raise HTTPException(status_code=404, detail="Lesson plan not found")
+        
+        if current_user.role == "teacher" and lesson_plan.get("created_by") != current_user.id:
+            raise HTTPException(status_code=403, detail="You can only delete your own lesson plans")
+        
+        await db.lesson_plans.update_one(
+            {"id": plan_id},
+            {"$set": {"is_active": False, "updated_at": datetime.utcnow()}}
+        )
+        
+        return {"message": "Lesson plan deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting lesson plan: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete lesson plan")
+
+# ==================== STUDENT PORTAL ====================
 
 @api_router.get("/student/dashboard")
 async def get_student_dashboard(current_user: User = Depends(get_current_user)):
