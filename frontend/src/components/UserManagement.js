@@ -21,8 +21,10 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { useAuth } from '../App';
 
 const UserManagement = () => {
+  const { user: currentUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState([]);
   const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
@@ -507,7 +509,9 @@ const UserManagement = () => {
                   <SelectItem value="teacher">Teacher</SelectItem>
                   <SelectItem value="student">Student</SelectItem>
                   <SelectItem value="parent">Parent</SelectItem>
-                  <SelectItem value="super_admin">Super Admin</SelectItem>
+                  {currentUser?.role === 'super_admin' && (
+                    <SelectItem value="super_admin">Super Admin</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -570,7 +574,9 @@ const UserManagement = () => {
                   <SelectItem value="teacher">Teacher</SelectItem>
                   <SelectItem value="student">Student</SelectItem>
                   <SelectItem value="parent">Parent</SelectItem>
-                  <SelectItem value="super_admin">Super Admin</SelectItem>
+                  {currentUser?.role === 'super_admin' && (
+                    <SelectItem value="super_admin">Super Admin</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
