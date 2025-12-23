@@ -495,6 +495,7 @@ class Staff(BaseModel):
     classes: List[str] = []  # class IDs for teachers
     subjects: List[str] = []  # subject IDs for teachers
     tags: List[str] = []  # Staff tags for categorization
+    user_id: Optional[str] = None  # Link to user account for teachers
     created_by: Optional[str] = None
     is_active: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -3781,6 +3782,56 @@ async def create_staff(staff_data: StaffCreate, current_user: User = Depends(get
         count = await db.staff.count_documents({"tenant_id": current_user.tenant_id})
         current_year = datetime.now().year
         staff_dict["employee_id"] = f"EMP-{current_year}-{str(count + 1).zfill(4)}"
+    
+    # Create user account for teachers automatically (similar to student accounts)
+    user_id = None
+    if staff_dict.get("role", "").lower() == "teacher":
+        # Get school info for username prefix
+        school = await db.schools.find_one({"id": school_id})
+        school_code = school.get("school_code", "SCH") if school else "SCH"
+        
+        # Generate teacher username and temporary password
+        employee_id = staff_dict.get("employee_id", "")
+        teacher_username = f"{school_code.lower()}_{employee_id.lower().replace('-', '_')}"
+        temp_password = f"{employee_id}@{datetime.utcnow().year}"
+        hashed_password = bcrypt.hashpw(temp_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        
+        # Check if user with email already exists
+        existing_user = await db.users.find_one({
+            "email": staff_dict["email"],
+            "tenant_id": current_user.tenant_id
+        })
+        
+        if not existing_user:
+            user_id = str(uuid.uuid4())
+            teacher_user = {
+                "id": user_id,
+                "tenant_id": current_user.tenant_id,
+                "email": staff_dict["email"],
+                "username": teacher_username,
+                "full_name": staff_dict["name"],
+                "password_hash": hashed_password,
+                "role": "teacher",
+                "school_id": school_id,
+                "is_active": True,
+                "must_change_password": True,
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }
+            
+            try:
+                await db.users.insert_one(teacher_user)
+                logging.info(f"Teacher user account created: {teacher_username}")
+            except Exception as e:
+                logging.error(f"Failed to create teacher user account: {e}")
+                raise HTTPException(status_code=500, detail="Failed to create teacher account")
+        else:
+            user_id = existing_user.get("id")
+            logging.info(f"Using existing user account for teacher: {staff_dict['email']}")
+    
+    # Link user_id to staff record if created
+    if user_id:
+        staff_dict["user_id"] = user_id
     
     staff = Staff(**staff_dict)
     
