@@ -24,54 +24,22 @@ import {
   Receipt,
   AlertCircle,
   Copy,
-  Check
+  Check,
+  Pencil,
+  Trash2,
+  Plus,
+  Settings
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const SUBSCRIPTION_PLANS = [
-  {
-    id: 'basic',
-    name: 'Basic',
-    price: 2999,
-    currency: 'BDT',
-    period: 'month',
-    features: ['Up to 500 students', '5 Staff accounts', 'Core modules only', 'Email support'],
-    modules: ['home', 'students', 'staff', 'class', 'attendance', 'fees']
-  },
-  {
-    id: 'standard',
-    name: 'Standard',
-    price: 5999,
-    currency: 'BDT',
-    period: 'month',
-    features: ['Up to 2000 students', '20 Staff accounts', 'All core + academic modules', 'Priority support'],
-    modules: ['home', 'students', 'staff', 'class', 'attendance', 'fees', 'results', 'certificates', 'calendar', 'timetable', 'reports']
-  },
-  {
-    id: 'premium',
-    name: 'Premium',
-    price: 9999,
-    currency: 'BDT',
-    period: 'month',
-    features: ['Unlimited students', 'Unlimited staff', 'All modules + AI features', '24/7 support', 'Custom branding'],
-    modules: ['all']
-  },
-  {
-    id: 'enterprise',
-    name: 'Enterprise',
-    price: 19999,
-    currency: 'BDT',
-    period: 'month',
-    features: ['Multi-branch support', 'Dedicated server', 'Custom development', 'On-site training', 'SLA guarantee'],
-    modules: ['all']
-  }
-];
+// Plans are now fetched from API
 
 const SubscriptionManagement = () => {
   const { user } = useAuth();
   const [tenants, setTenants] = useState([]);
   const [subscriptions, setSubscriptions] = useState([]);
   const [payments, setPayments] = useState([]);
+  const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('subscriptions');
   const [searchQuery, setSearchQuery] = useState('');
@@ -79,12 +47,22 @@ const SubscriptionManagement = () => {
   
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [isAssignPlanDialogOpen, setIsAssignPlanDialogOpen] = useState(false);
+  const [isEditPlanDialogOpen, setIsEditPlanDialogOpen] = useState(false);
+  const [isBkashConfigDialogOpen, setIsBkashConfigDialogOpen] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState(null);
+  const [editingPlan, setEditingPlan] = useState(null);
+  const [bkashConfig, setBkashConfig] = useState({ bkash_merchant_number: '', bkash_merchant_name: '' });
   const [paymentForm, setPaymentForm] = useState({
     bkash_number: '',
     transaction_id: '',
     amount: 0
+  });
+  const [planForm, setPlanForm] = useState({
+    name: '',
+    price: '',
+    period: 'month',
+    modules: []
   });
   const [processingPayment, setProcessingPayment] = useState(false);
   const [copiedTxId, setCopiedTxId] = useState(false);
@@ -92,12 +70,16 @@ const SubscriptionManagement = () => {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [tenantsRes, subsRes, paymentsRes] = await Promise.all([
+      const [tenantsRes, subsRes, paymentsRes, plansRes, configRes] = await Promise.all([
         axios.get('/api/tenants'),
         axios.get('/api/subscriptions'),
-        axios.get('/api/payments')
+        axios.get('/api/payments'),
+        axios.get('/api/subscription-plans'),
+        axios.get('/api/payments/config')
       ]);
       setTenants(tenantsRes.data || []);
+      setPlans(plansRes.data || []);
+      setBkashConfig(configRes.data || {});
       setSubscriptions(subsRes.data || []);
       setPayments(paymentsRes.data || []);
     } catch (error) {
@@ -152,7 +134,7 @@ const SubscriptionManagement = () => {
 
   const openPaymentDialog = (tenant, subscription) => {
     setSelectedTenant(tenant);
-    const plan = SUBSCRIPTION_PLANS.find(p => p.id === subscription?.plan_id) || SUBSCRIPTION_PLANS[0];
+    const plan = plans.find(p => p.id === subscription?.plan_id) || plans[0] || {};
     setPaymentForm({
       bkash_number: '',
       transaction_id: '',
@@ -203,6 +185,69 @@ const SubscriptionManagement = () => {
     navigator.clipboard.writeText(text);
     setCopiedTxId(true);
     setTimeout(() => setCopiedTxId(false), 2000);
+  };
+
+  const handleCreatePlan = async () => {
+    try {
+      await axios.post('/api/subscription-plans', planForm);
+      toast.success('Plan created successfully');
+      setIsEditPlanDialogOpen(false);
+      setPlanForm({ name: '', price: '', period: 'month', modules: [] });
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to create plan');
+    }
+  };
+
+  const handleUpdatePlan = async () => {
+    try {
+      await axios.put(`/api/subscription-plans/${editingPlan.id}`, planForm);
+      toast.success('Plan updated successfully');
+      setIsEditPlanDialogOpen(false);
+      setEditingPlan(null);
+      setPlanForm({ name: '', price: '', period: 'month', modules: [] });
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to update plan');
+    }
+  };
+
+  const handleDeletePlan = async (planId) => {
+    if (!window.confirm('Are you sure you want to delete this plan?')) return;
+    try {
+      await axios.delete(`/api/subscription-plans/${planId}`);
+      toast.success('Plan deleted successfully');
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to delete plan');
+    }
+  };
+
+  const handleSaveBkashConfig = async () => {
+    try {
+      await axios.put('/api/payments/config', bkashConfig);
+      toast.success('bKash settings saved successfully');
+      setIsBkashConfigDialogOpen(false);
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to save bKash settings');
+    }
+  };
+
+  const openEditPlanDialog = (plan = null) => {
+    if (plan) {
+      setEditingPlan(plan);
+      setPlanForm({
+        name: plan.name,
+        price: plan.price,
+        period: plan.period || 'month',
+        modules: plan.modules || []
+      });
+    } else {
+      setEditingPlan(null);
+      setPlanForm({ name: '', price: '', period: 'month', modules: [] });
+    }
+    setIsEditPlanDialogOpen(true);
   };
 
   const filteredTenants = tenants.filter(t => {
@@ -289,7 +334,7 @@ const SubscriptionManagement = () => {
             ) : (
               filteredTenants.map((tenant) => {
                 const subscription = getSubscriptionForTenant(tenant.id);
-                const plan = SUBSCRIPTION_PLANS.find(p => p.id === subscription?.plan_id);
+                const plan = plans.find(p => p.id === subscription?.plan_id);
                 
                 return (
                   <Card key={tenant.id} className="dark:bg-gray-800">
@@ -362,33 +407,85 @@ const SubscriptionManagement = () => {
       )}
 
       {activeTab === 'plans' && (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {SUBSCRIPTION_PLANS.map((plan, index) => (
-            <Card key={plan.id} className={`relative dark:bg-gray-800 ${index === 2 ? 'border-2 border-emerald-500' : ''}`}>
-              {index === 2 && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <Badge className="bg-emerald-500 text-white">Most Popular</Badge>
+        <div className="space-y-4">
+          {/* bKash Settings */}
+          <Card className="dark:bg-gray-800 border-pink-200 dark:border-pink-800">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Smartphone className="w-5 h-5 text-pink-600" />
+                  bKash Payment Settings
+                </CardTitle>
+                <Button size="sm" onClick={() => setIsBkashConfigDialogOpen(true)} className="gap-1 bg-pink-600 hover:bg-pink-700">
+                  <Settings className="w-4 h-4" />
+                  Configure
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-4">
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Merchant Number</p>
+                  <p className="font-mono font-bold text-pink-600 dark:text-pink-400">{bkashConfig.bkash_merchant_number || 'Not configured'}</p>
                 </div>
-              )}
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg">{plan.name}</CardTitle>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-bold text-gray-900 dark:text-white">৳{plan.price.toLocaleString()}</span>
-                  <span className="text-gray-500 dark:text-gray-400">/{plan.period}</span>
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Merchant Name</p>
+                  <p className="font-medium dark:text-white">{bkashConfig.bkash_merchant_name || 'Not configured'}</p>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  {plan.features.map((feature, i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                      <CheckCircle className="h-4 w-4 text-emerald-500 shrink-0" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Plans Management */}
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold dark:text-white">Subscription Plans</h3>
+            <Button onClick={() => openEditPlanDialog()} className="gap-1 bg-emerald-600 hover:bg-emerald-700">
+              <Plus className="w-4 h-4" />
+              Add Plan
+            </Button>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {plans.map((plan, index) => (
+              <Card key={plan.id} className={`relative dark:bg-gray-800 ${index === 2 ? 'border-2 border-emerald-500' : ''}`}>
+                {index === 2 && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <Badge className="bg-emerald-500 text-white">Most Popular</Badge>
+                  </div>
+                )}
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">{plan.name}</CardTitle>
+                    <div className="flex gap-1">
+                      <Button size="icon" variant="ghost" onClick={() => openEditPlanDialog(plan)} className="h-8 w-8">
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" onClick={() => handleDeletePlan(plan.id)} className="h-8 w-8 text-red-500 hover:text-red-700">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-bold text-gray-900 dark:text-white">৳{plan.price?.toLocaleString()}</span>
+                    <span className="text-gray-500 dark:text-gray-400">/{plan.period || 'month'}</span>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Modules:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {(plan.modules || []).slice(0, 5).map((module, i) => (
+                        <Badge key={i} variant="secondary" className="text-xs">{module}</Badge>
+                      ))}
+                      {(plan.modules || []).length > 5 && (
+                        <Badge variant="secondary" className="text-xs">+{plan.modules.length - 5} more</Badge>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       )}
 
@@ -467,7 +564,7 @@ const SubscriptionManagement = () => {
               Select a plan for <strong>{selectedTenant?.name}</strong>
             </p>
             <div className="grid sm:grid-cols-2 gap-3">
-              {SUBSCRIPTION_PLANS.map((plan) => (
+              {plans.map((plan) => (
                 <div
                   key={plan.id}
                   onClick={() => setSelectedPlan(plan)}
@@ -568,6 +665,111 @@ const SubscriptionManagement = () => {
             >
               {processingPayment ? <RefreshCw className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
               Submit Payment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit/Create Plan Dialog */}
+      <Dialog open={isEditPlanDialogOpen} onOpenChange={setIsEditPlanDialogOpen}>
+        <DialogContent className="dark:bg-gray-800">
+          <DialogHeader>
+            <DialogTitle className="dark:text-white">
+              {editingPlan ? 'Edit Plan' : 'Create New Plan'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="dark:text-gray-300">Plan Name</Label>
+              <Input
+                value={planForm.name}
+                onChange={(e) => setPlanForm({...planForm, name: e.target.value})}
+                placeholder="e.g., Premium Plan"
+                className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              />
+            </div>
+            <div>
+              <Label className="dark:text-gray-300">Price (BDT)</Label>
+              <Input
+                type="number"
+                value={planForm.price}
+                onChange={(e) => setPlanForm({...planForm, price: parseInt(e.target.value) || 0})}
+                placeholder="e.g., 5999"
+                className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              />
+            </div>
+            <div>
+              <Label className="dark:text-gray-300">Billing Period</Label>
+              <select
+                value={planForm.period}
+                onChange={(e) => setPlanForm({...planForm, period: e.target.value})}
+                className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              >
+                <option value="month">Monthly</option>
+                <option value="year">Yearly</option>
+              </select>
+            </div>
+            <div>
+              <Label className="dark:text-gray-300">Modules (comma separated)</Label>
+              <Input
+                value={(planForm.modules || []).join(', ')}
+                onChange={(e) => setPlanForm({...planForm, modules: e.target.value.split(',').map(m => m.trim()).filter(Boolean)})}
+                placeholder="e.g., students, staff, classes, attendance"
+                className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditPlanDialogOpen(false)} className="dark:border-gray-600 dark:text-gray-300">
+              Cancel
+            </Button>
+            <Button onClick={editingPlan ? handleUpdatePlan : handleCreatePlan} className="bg-emerald-600 hover:bg-emerald-700">
+              {editingPlan ? 'Update' : 'Create'} Plan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* bKash Config Dialog */}
+      <Dialog open={isBkashConfigDialogOpen} onOpenChange={setIsBkashConfigDialogOpen}>
+        <DialogContent className="dark:bg-gray-800">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 dark:text-white">
+              <Smartphone className="w-5 h-5 text-pink-600" />
+              bKash Payment Settings
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="dark:text-gray-300">bKash Merchant Number</Label>
+              <Input
+                value={bkashConfig.bkash_merchant_number || ''}
+                onChange={(e) => setBkashConfig({...bkashConfig, bkash_merchant_number: e.target.value})}
+                placeholder="e.g., 01712-345678"
+                className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              />
+            </div>
+            <div>
+              <Label className="dark:text-gray-300">Merchant Name</Label>
+              <Input
+                value={bkashConfig.bkash_merchant_name || ''}
+                onChange={(e) => setBkashConfig({...bkashConfig, bkash_merchant_name: e.target.value})}
+                placeholder="e.g., Cloud School ERP"
+                className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              />
+            </div>
+            <div className="bg-pink-50 dark:bg-pink-900/20 rounded-lg p-3">
+              <p className="text-sm text-pink-800 dark:text-pink-300">
+                This is the bKash number where school admins will send payments. Make sure it's correct!
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsBkashConfigDialogOpen(false)} className="dark:border-gray-600 dark:text-gray-300">
+              Cancel
+            </Button>
+            <Button onClick={handleSaveBkashConfig} className="bg-pink-600 hover:bg-pink-700">
+              Save Settings
             </Button>
           </DialogFooter>
         </DialogContent>

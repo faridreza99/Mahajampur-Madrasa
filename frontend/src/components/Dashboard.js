@@ -29,13 +29,18 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { toast } from "sonner";
+import SubscriptionPopup from "./SubscriptionPopup";
+import { useAuth } from "../App";
 
 const BACKEND_URL = process.env.REACT_APP_API_URL;
 const API = BACKEND_URL;
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [showSubscriptionPopup, setShowSubscriptionPopup] = useState(false);
+  const [subscriptionChecked, setSubscriptionChecked] = useState(false);
   const [giniAnalytics, setGiniAnalytics] = useState(null);
   const [timePeriod, setTimePeriod] = useState(7); // 7 or 30 days
   const [selectedClass, setSelectedClass] = useState("all");
@@ -48,6 +53,27 @@ const Dashboard = () => {
     fetchGiniAnalytics();
     fetchClassesAndSubjects();
   }, [timePeriod, selectedClass, selectedSubject]);
+
+  useEffect(() => {
+    const checkSubscription = async () => {
+      if (user && user.role === 'admin' && !subscriptionChecked) {
+        try {
+          const token = localStorage.getItem("token");
+          const response = await axios.get(`${API}/subscriptions/current`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!response.data.is_active) {
+            setShowSubscriptionPopup(true);
+          }
+        } catch (error) {
+          console.error("Error checking subscription:", error);
+        } finally {
+          setSubscriptionChecked(true);
+        }
+      }
+    };
+    checkSubscription();
+  }, [user, subscriptionChecked]);
 
   const fetchGiniAnalytics = async () => {
     setLoading(true);
@@ -260,6 +286,13 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6 pb-6">
+      {/* Subscription Popup for Admins */}
+      <SubscriptionPopup 
+        isOpen={showSubscriptionPopup} 
+        onClose={() => setShowSubscriptionPopup(false)}
+        onPaymentSuccess={() => setShowSubscriptionPopup(false)}
+      />
+      
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>

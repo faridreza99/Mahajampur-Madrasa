@@ -2421,13 +2421,16 @@ async def get_payments(current_user: User = Depends(get_current_user)):
 
 @api_router.post("/payments")
 async def create_payment(data: dict, current_user: User = Depends(get_current_user)):
-    """Record a new payment - super_admin only"""
-    if current_user.role != "super_admin":
+    """Record a new payment - admin or super_admin"""
+    if current_user.role not in ["super_admin", "admin"]:
         raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # If admin, use their tenant_id
+    tenant_id = data.get("tenant_id") if current_user.role == "super_admin" else current_user.tenant_id
     
     payment = {
         "id": str(uuid.uuid4()),
-        "tenant_id": data.get("tenant_id"),
+        "tenant_id": tenant_id,
         "amount": data.get("amount"),
         "currency": data.get("currency", "BDT"),
         "payment_method": data.get("payment_method", "bkash"),
@@ -2489,6 +2492,148 @@ async def get_payment_config(current_user: User = Depends(get_current_user)):
     else:
         config.pop("_id", None)
     return config
+
+@api_router.put("/payments/config")
+async def update_payment_config(data: dict, current_user: User = Depends(get_current_user)):
+    """Update payment configuration - super_admin only"""
+    if current_user.role != "super_admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    config = {
+        "type": "payment_config",
+        "bkash_merchant_number": data.get("bkash_merchant_number", ""),
+        "bkash_merchant_name": data.get("bkash_merchant_name", "Cloud School ERP"),
+        "updated_at": datetime.utcnow().isoformat(),
+        "updated_by": current_user.id
+    }
+    
+    await db.settings.update_one(
+        {"type": "payment_config"},
+        {"$set": config},
+        upsert=True
+    )
+    return config
+
+# ==================== SUBSCRIPTION PLANS CRUD ====================
+
+@api_router.get("/subscription-plans")
+async def get_subscription_plans(current_user: User = Depends(get_current_user)):
+    """Get all subscription plans"""
+    plans = await db.subscription_plans.find({"is_active": True}).to_list(100)
+    if not plans:
+        default_plans = [
+            {"id": "basic", "name": "Basic Plan", "price": 2999, "currency": "BDT", "period": "month", 
+             "modules": ["students", "staff", "classes", "attendance", "fees"], "is_active": True, "order": 1},
+            {"id": "standard", "name": "Standard Plan", "price": 5999, "currency": "BDT", "period": "month",
+             "modules": ["students", "staff", "classes", "attendance", "fees", "ai_assistant", "quiz", "summary", "notes", "reports"], "is_active": True, "order": 2},
+            {"id": "premium", "name": "Premium Plan", "price": 9999, "currency": "BDT", "period": "month",
+             "modules": ["students", "staff", "classes", "attendance", "fees", "ai_assistant", "quiz", "summary", "notes", "reports", "test_generator", "cms", "transport", "biometrics", "certificates"], "is_active": True, "order": 3},
+            {"id": "enterprise", "name": "Enterprise Plan", "price": 19999, "currency": "BDT", "period": "month",
+             "modules": ["all"], "is_active": True, "order": 4}
+        ]
+        for plan in default_plans:
+            plan["created_at"] = datetime.utcnow().isoformat()
+            await db.subscription_plans.insert_one(plan)
+        return default_plans
+    for plan in plans:
+        plan.pop("_id", None)
+    return sorted(plans, key=lambda x: x.get("order", 0))
+
+@api_router.post("/subscription-plans")
+async def create_subscription_plan(data: dict, current_user: User = Depends(get_current_user)):
+    """Create a new subscription plan - super_admin only"""
+    if current_user.role != "super_admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    plan = {
+        "id": str(uuid.uuid4()),
+        "name": data.get("name"),
+        "price": data.get("price"),
+        "currency": data.get("currency", "BDT"),
+        "period": data.get("period", "month"),
+        "modules": data.get("modules", []),
+        "is_active": True,
+        "order": data.get("order", 99),
+        "created_at": datetime.utcnow().isoformat()
+    }
+    
+    await db.subscription_plans.insert_one(plan)
+    plan.pop("_id", None)
+    return plan
+
+@api_router.put("/subscription-plans/{plan_id}")
+async def update_subscription_plan(plan_id: str, data: dict, current_user: User = Depends(get_current_user)):
+    """Update a subscription plan - super_admin only"""
+    if current_user.role != "super_admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    existing = await db.subscription_plans.find_one({"id": plan_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    
+    update_data = {
+        "name": data.get("name", existing.get("name")),
+        "price": data.get("price", existing.get("price")),
+        "currency": data.get("currency", existing.get("currency")),
+        "period": data.get("period", existing.get("period")),
+        "modules": data.get("modules", existing.get("modules")),
+        "order": data.get("order", existing.get("order")),
+        "updated_at": datetime.utcnow().isoformat()
+    }
+    
+    await db.subscription_plans.update_one({"id": plan_id}, {"$set": update_data})
+    return {**existing, **update_data, "_id": None}
+
+@api_router.delete("/subscription-plans/{plan_id}")
+async def delete_subscription_plan(plan_id: str, current_user: User = Depends(get_current_user)):
+    """Delete a subscription plan - super_admin only"""
+    if current_user.role != "super_admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    result = await db.subscription_plans.update_one(
+        {"id": plan_id},
+        {"$set": {"is_active": False, "deleted_at": datetime.utcnow().isoformat()}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    
+    return {"message": "Plan deleted successfully"}
+
+# ==================== TENANT SUBSCRIPTION CHECK ====================
+
+@api_router.get("/subscriptions/current")
+async def get_current_subscription(current_user: User = Depends(get_current_user)):
+    """Get current tenant's subscription status - for admins to check their subscription"""
+    subscription = await db.subscriptions.find_one({"tenant_id": current_user.tenant_id})
+    
+    if not subscription:
+        return {
+            "has_subscription": False,
+            "status": "none",
+            "message": "No active subscription"
+        }
+    
+    subscription.pop("_id", None)
+    
+    is_active = subscription.get("status") == "active"
+    expires_at = subscription.get("expires_at")
+    is_expired = False
+    
+    if expires_at:
+        try:
+            expiry_date = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+            is_expired = expiry_date < datetime.utcnow().replace(tzinfo=expiry_date.tzinfo) if expiry_date.tzinfo else expiry_date < datetime.utcnow()
+        except:
+            pass
+    
+    return {
+        "has_subscription": True,
+        "is_active": is_active and not is_expired,
+        "is_expired": is_expired,
+        **subscription
+    }
+
 
 
 # ==================== SCHOOL MANAGEMENT ====================
