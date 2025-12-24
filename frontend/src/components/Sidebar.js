@@ -367,6 +367,11 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           roles: ["super_admin"],
         },
         {
+          title: "Subscriptions",
+          path: "/subscription-management",
+          roles: ["super_admin"],
+        },
+        {
           title: "Vehicle/Transport",
           path: "/transport/routes",
           roles: ["super_admin", "admin"],

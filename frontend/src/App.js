@@ -45,6 +45,7 @@ import StudentResults from "./components/StudentResults";
 import ParentResults from "./components/ParentResults";
 import ResultConfiguration from "./components/ResultConfiguration";
 import TenantManagement from "./components/TenantManagement";
+import SubscriptionManagement from "./components/SubscriptionManagement";
 import StudentDashboard from "./components/StudentDashboard";
 import StudentProfile from "./components/StudentProfile";
 import StudentFees from "./components/StudentFees";
@@ -466,6 +467,14 @@ function App() {
                   }
                 />
                 <Route
+                  path="/subscription-management"
+                  element={
+                    <ProtectedRoute>
+                      <SubscriptionManagement />
+                    </ProtectedRoute>
+                  }
+                />
+                  <Route
                   path="/cms"
                   element={
                     <ProtectedRoute>

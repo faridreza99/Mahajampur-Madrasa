@@ -2342,6 +2342,154 @@ async def get_current_tenant_modules(current_user: User = Depends(get_current_us
     ])
     
     return {"allowed_modules": allowed_modules}
+# ==================== SUBSCRIPTION MANAGEMENT ====================
+
+@api_router.get("/subscriptions")
+async def get_subscriptions(current_user: User = Depends(get_current_user)):
+    """Get all subscriptions - super_admin only"""
+    if current_user.role != "super_admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    subscriptions = await db.subscriptions.find().to_list(1000)
+    for sub in subscriptions:
+        sub.pop("_id", None)
+    return subscriptions
+
+@api_router.post("/subscriptions")
+async def create_subscription(data: dict, current_user: User = Depends(get_current_user)):
+    """Create or update a subscription for a tenant - super_admin only"""
+    if current_user.role != "super_admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    tenant_id = data.get("tenant_id")
+    if not tenant_id:
+        raise HTTPException(status_code=400, detail="tenant_id is required")
+    
+    existing = await db.subscriptions.find_one({"tenant_id": tenant_id})
+    
+    from datetime import timedelta
+    expires_at = datetime.utcnow() + timedelta(days=30)
+    
+    subscription = {
+        "id": existing.get("id") if existing else str(uuid.uuid4()),
+        "tenant_id": tenant_id,
+        "plan_id": data.get("plan_id"),
+        "plan_name": data.get("plan_name"),
+        "price": data.get("price"),
+        "currency": data.get("currency", "BDT"),
+        "period": data.get("period", "month"),
+        "modules": data.get("modules", []),
+        "status": "pending",
+        "created_at": existing.get("created_at") if existing else datetime.utcnow().isoformat(),
+        "updated_at": datetime.utcnow().isoformat(),
+        "expires_at": expires_at.isoformat()
+    }
+    
+    if existing:
+        await db.subscriptions.update_one({"tenant_id": tenant_id}, {"$set": subscription})
+    else:
+        await db.subscriptions.insert_one(subscription)
+    
+    subscription.pop("_id", None)
+    return subscription
+
+@api_router.get("/subscriptions/{tenant_id}")
+async def get_tenant_subscription(tenant_id: str, current_user: User = Depends(get_current_user)):
+    """Get subscription for a specific tenant"""
+    if current_user.role != "super_admin" and current_user.tenant_id != tenant_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    subscription = await db.subscriptions.find_one({"tenant_id": tenant_id})
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+    
+    subscription.pop("_id", None)
+    return subscription
+
+# ==================== PAYMENT MANAGEMENT ====================
+
+@api_router.get("/payments")
+async def get_payments(current_user: User = Depends(get_current_user)):
+    """Get all payments - super_admin only"""
+    if current_user.role != "super_admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    payments = await db.payments.find().sort("created_at", -1).to_list(1000)
+    for payment in payments:
+        payment.pop("_id", None)
+    return payments
+
+@api_router.post("/payments")
+async def create_payment(data: dict, current_user: User = Depends(get_current_user)):
+    """Record a new payment - super_admin only"""
+    if current_user.role != "super_admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    payment = {
+        "id": str(uuid.uuid4()),
+        "tenant_id": data.get("tenant_id"),
+        "amount": data.get("amount"),
+        "currency": data.get("currency", "BDT"),
+        "payment_method": data.get("payment_method", "bkash"),
+        "bkash_number": data.get("bkash_number"),
+        "transaction_id": data.get("transaction_id"),
+        "status": data.get("status", "pending"),
+        "created_at": datetime.utcnow().isoformat(),
+        "verified_at": None,
+        "verified_by": None
+    }
+    
+    await db.payments.insert_one(payment)
+    payment.pop("_id", None)
+    return payment
+
+@api_router.patch("/payments/{payment_id}/verify")
+async def verify_payment(payment_id: str, current_user: User = Depends(get_current_user)):
+    """Verify a payment and activate subscription - super_admin only"""
+    if current_user.role != "super_admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    payment = await db.payments.find_one({"id": payment_id})
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+    
+    await db.payments.update_one(
+        {"id": payment_id},
+        {"$set": {
+            "status": "verified",
+            "verified_at": datetime.utcnow().isoformat(),
+            "verified_by": current_user.id
+        }}
+    )
+    
+    from datetime import timedelta
+    expires_at = datetime.utcnow() + timedelta(days=30)
+    
+    await db.subscriptions.update_one(
+        {"tenant_id": payment.get("tenant_id")},
+        {"$set": {
+            "status": "active",
+            "expires_at": expires_at.isoformat(),
+            "last_payment_id": payment_id,
+            "updated_at": datetime.utcnow().isoformat()
+        }}
+    )
+    
+    return {"message": "Payment verified and subscription activated"}
+
+@api_router.get("/payments/config")
+async def get_payment_config(current_user: User = Depends(get_current_user)):
+    """Get payment configuration (bKash merchant number etc)"""
+    config = await db.settings.find_one({"type": "payment_config"})
+    if not config:
+        config = {
+            "bkash_merchant_number": "01712-345678",
+            "bkash_merchant_name": "Cloud School ERP"
+        }
+    else:
+        config.pop("_id", None)
+    return config
+
 
 # ==================== SCHOOL MANAGEMENT ====================
 
