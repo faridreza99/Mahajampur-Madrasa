@@ -258,7 +258,7 @@ const Layout = ({ children }) => {
     if (user && user.role === "admin" && !isLoginPage) {
       checkSubscription();
     }
-  }, [user, isLoginPage, checkSubscription]);
+  }, [user, isLoginPage, checkSubscription, location.pathname]);
 
   // Smooth scroll to top on route change
   React.useEffect(() => {
