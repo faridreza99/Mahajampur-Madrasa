@@ -38,7 +38,7 @@ const API = BACKEND_URL;
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
+  const [chartsLoading, setChartsLoading] = useState(true);
   const [showSubscriptionPopup, setShowSubscriptionPopup] = useState(false);
   const [subscriptionChecked, setSubscriptionChecked] = useState(false);
   const [subscriptionInfo, setSubscriptionInfo] = useState(null);
@@ -88,7 +88,7 @@ const Dashboard = () => {
   }, [user, subscriptionChecked]);
 
   const fetchGiniAnalytics = async () => {
-    setLoading(true);
+    setChartsLoading(true);
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get(
@@ -102,7 +102,7 @@ const Dashboard = () => {
       console.error("❌ Failed to fetch GiNi analytics:", error);
       toast.error("Failed to load analytics data");
     } finally {
-      setLoading(false);
+      setChartsLoading(false);
     }
   };
 
@@ -525,7 +525,7 @@ const Dashboard = () => {
       </div>
 
       {/* Charts Section */}
-      {loading ? (
+      {chartsLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {[...Array(3)].map((_, i) => (
             <Card key={i} className="animate-pulse dark:bg-gray-800 dark:border-gray-700">
