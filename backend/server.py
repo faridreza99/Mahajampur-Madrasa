@@ -2631,6 +2631,8 @@ async def create_payment(data: dict, current_user: User = Depends(get_current_us
         "payment_method": data.get("payment_method", "bkash"),
         "bkash_number": data.get("bkash_number"),
         "transaction_id": data.get("transaction_id"),
+        "plan_id": data.get("plan_id"),
+        "plan_name": data.get("plan_name"),
         "status": data.get("status", "pending"),
         "created_at": datetime.utcnow().isoformat(),
         "verified_at": None,
