@@ -46,6 +46,7 @@ import ParentResults from "./components/ParentResults";
 import ResultConfiguration from "./components/ResultConfiguration";
 import TenantManagement from "./components/TenantManagement";
 import SubscriptionManagement from "./components/SubscriptionManagement";
+import SubscriptionHistory from "./components/SubscriptionHistory";
 import SystemSettings from "./components/SystemSettings";
 import StudentDashboard from "./components/StudentDashboard";
 import StudentProfile from "./components/StudentProfile";
@@ -480,6 +481,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <SystemSettings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/subscription-history"
+                  element={
+                    <ProtectedRoute>
+                      <SubscriptionHistory />
                     </ProtectedRoute>
                   }
                 />

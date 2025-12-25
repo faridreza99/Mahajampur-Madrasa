@@ -2560,6 +2560,22 @@ async def get_payments(current_user: User = Depends(get_current_user)):
         payment.pop("_id", None)
     return payments
 
+
+@api_router.get("/payments/my-history")
+async def get_my_payment_history(current_user: User = Depends(get_current_user)):
+    """Get payment history for current tenant - for school admins"""
+    if current_user.role not in ["admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    payments = await db.payments.find(
+        {"tenant_id": current_user.tenant_id}
+    ).sort("created_at", -1).to_list(100)
+    
+    for payment in payments:
+        payment.pop("_id", None)
+    
+    return payments
+
 @api_router.post("/payments")
 async def create_payment(data: dict, current_user: User = Depends(get_current_user)):
     """Record a new payment - admin or super_admin"""
