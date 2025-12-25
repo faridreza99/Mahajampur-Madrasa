@@ -60,11 +60,14 @@ const SubscriptionPopup = ({ isOpen, onClose, onPaymentSuccess, isBlocking = fal
   useEffect(() => {
     if (isOpen) {
       fetchData();
-      setStep('plans');
-      setSelectedPlan(null);
-      setPaymentForm({ bkash_number: '', transaction_id: '' });
+      // Don't reset to 'plans' if subscription is pending - keep showing pending view
+      if (subscriptionStatus !== 'pending') {
+        setStep('plans');
+        setSelectedPlan(null);
+        setPaymentForm({ bkash_number: '', transaction_id: '' });
+      }
     }
-  }, [isOpen, fetchData]);
+  }, [isOpen, fetchData, subscriptionStatus]);
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
@@ -152,6 +155,36 @@ const SubscriptionPopup = ({ isOpen, onClose, onPaymentSuccess, isBlocking = fal
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
+          </div>
+        ) : step === 'pending' ? (
+          <div className="space-y-6 py-4">
+            <div className="flex flex-col items-center justify-center text-center">
+              <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-4">
+                <Clock className="w-8 h-8 text-amber-500" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-2">
+                Payment is Pending
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300 max-w-md">
+                Your payment has been submitted and is awaiting verification by the administrator.
+              </p>
+            </div>
+            
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium text-amber-800 dark:text-amber-300">Access Restricted</p>
+                  <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
+                    You cannot access the system until your payment is verified. This usually takes 24-48 hours during business days.
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="text-center text-sm text-gray-500 dark:text-gray-400">
+              <p>If you have any questions, please contact support.</p>
+            </div>
           </div>
         ) : step === 'plans' ? (
           <div className="space-y-4">
