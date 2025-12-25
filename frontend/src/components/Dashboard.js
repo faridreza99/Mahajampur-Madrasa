@@ -64,7 +64,8 @@ const Dashboard = () => {
             headers: { Authorization: `Bearer ${token}` },
           });
           setSubscriptionInfo(response.data);
-          // Show popup only for non-active, non-frozen subscriptions (no_plan or none status)
+          // Show popup for non-active subscriptions (no_plan, none, or pending)
+          // Blocking popup for no_plan/none/pending - user cannot use system
           if (!response.data.is_active && response.data.status !== 'frozen') {
             setShowSubscriptionPopup(true);
           }
@@ -297,11 +298,13 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6 pb-6">
-      {/* Subscription Popup for Admins */}
+      {/* Subscription Popup for Admins - Blocking when no plan or pending */}
       <SubscriptionPopup 
         isOpen={showSubscriptionPopup} 
         onClose={() => setShowSubscriptionPopup(false)}
-        onPaymentSuccess={() => setShowSubscriptionPopup(false)}
+        onPaymentSuccess={() => setSubscriptionChecked(false)}
+        isBlocking={subscriptionInfo?.status === 'no_plan' || subscriptionInfo?.status === 'none' || subscriptionInfo?.status === 'pending'}
+        subscriptionStatus={subscriptionInfo?.status}
       />
       
       {/* Header */}

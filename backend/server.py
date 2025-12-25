@@ -2432,6 +2432,17 @@ async def get_current_subscription(current_user: User = Depends(get_current_user
             "message": "No active subscription - please select a plan"
         }
     
+    # pending means payment submitted but not verified - block access
+    if status == "pending":
+        return {
+            "has_subscription": True,
+            "is_active": False,
+            "status": "pending",
+            "plan_name": subscription.get("pending_plan_name", "Pending"),
+            "message": "Payment pending verification - please wait for admin approval",
+            **subscription
+        }
+    
     # frozen subscriptions exist but are not active
     if status == "frozen":
         return {
@@ -2598,17 +2609,24 @@ async def verify_payment(payment_id: str, current_user: User = Depends(get_curre
     from datetime import timedelta
     expires_at = datetime.utcnow() + timedelta(days=30)
     
+    # Get plan details from payment
+    plan_id = payment.get("plan_id")
+    plan_name = payment.get("plan_name")
+    
     await db.subscriptions.update_one(
         {"tenant_id": payment.get("tenant_id")},
         {"$set": {
             "status": "active",
+            "plan_id": plan_id,
+            "plan_name": plan_name,
             "expires_at": expires_at.isoformat(),
             "last_payment_id": payment_id,
             "updated_at": datetime.utcnow().isoformat()
-        }}
+        }},
+        upsert=True
     )
     
-    return {"message": "Payment verified and subscription activated"}
+    return {"message": "Payment verified and subscription activated", "plan_name": plan_name}
 
 @api_router.get("/payments/config")
 async def get_payment_config(current_user: User = Depends(get_current_user)):
@@ -2642,6 +2660,282 @@ async def update_payment_config(data: dict, current_user: User = Depends(get_cur
         {"$set": config},
         upsert=True
     )
+    return config
+
+
+# ==================== SSLCOMMERZ PAYMENT INTEGRATION ====================
+
+@api_router.post("/payments/sslcommerz/init")
+async def init_sslcommerz_payment(data: dict, current_user: User = Depends(get_current_user)):
+    """Initialize SSLCommerz payment session"""
+    if current_user.role not in ["admin", "super_admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    tenant_id = current_user.tenant_id if current_user.role == "admin" else data.get("tenant_id")
+    
+    # Validate plan exists and price matches server-side (prevent tampering)
+    plan_id = data.get("plan_id")
+    if not plan_id:
+        raise HTTPException(status_code=400, detail="Plan ID is required")
+    
+    plan = await db.subscription_plans.find_one({"id": plan_id, "is_active": True})
+    if not plan:
+        raise HTTPException(status_code=404, detail="Invalid or inactive subscription plan")
+    
+    # Use server-side price, not client-provided
+    amount = plan.get("price")
+    plan_name = plan.get("name")
+    
+    # Get SSLCommerz config
+    config = await db.settings.find_one({"type": "sslcommerz_config"})
+    if not config or not config.get("store_id") or not config.get("store_password"):
+        raise HTTPException(status_code=400, detail="SSLCommerz is not configured. Please contact administrator.")
+    
+    import requests
+    import hashlib
+    
+    # Create payment record
+    tran_id = f"SSL-{uuid.uuid4().hex[:12].upper()}"
+    payment = {
+        "id": str(uuid.uuid4()),
+        "tenant_id": tenant_id,
+        "amount": data.get("amount"),
+        "currency": data.get("currency", "BDT"),
+        "payment_method": "sslcommerz",
+        "transaction_id": tran_id,
+        "plan_id": data.get("plan_id"),
+        "plan_name": data.get("plan_name"),
+        "status": "initiated",
+        "created_at": datetime.utcnow().isoformat()
+    }
+    await db.payments.insert_one(payment)
+    
+    # Get tenant info for customer details
+    tenant = await db.tenants.find_one({"tenant_id": tenant_id})
+    
+    # SSLCommerz API parameters
+    is_sandbox = config.get("is_sandbox", True)
+    api_url = "https://sandbox.sslcommerz.com/gwprocess/v4/api.php" if is_sandbox else "https://securepay.sslcommerz.com/gwprocess/v4/api.php"
+    
+    base_url = os.environ.get("REPL_URL", "https://example.com")
+    
+    ssl_params = {
+        "store_id": config.get("store_id"),
+        "store_passwd": config.get("store_password"),
+        "total_amount": amount,
+        "currency": plan.get("currency", "BDT"),
+        "tran_id": tran_id,
+        "success_url": f"{base_url}/api/payments/sslcommerz/success",
+        "fail_url": f"{base_url}/api/payments/sslcommerz/fail",
+        "cancel_url": f"{base_url}/api/payments/sslcommerz/cancel",
+        "ipn_url": f"{base_url}/api/payments/sslcommerz/ipn",
+        "cus_name": tenant.get("name", "Customer") if tenant else "Customer",
+        "cus_email": tenant.get("email", "customer@example.com") if tenant else "customer@example.com",
+        "cus_phone": tenant.get("phone", "01700000000") if tenant else "01700000000",
+        "cus_add1": tenant.get("address", "Bangladesh") if tenant else "Bangladesh",
+        "cus_city": "Dhaka",
+        "cus_country": "Bangladesh",
+        "shipping_method": "NO",
+        "product_name": data.get("plan_name", "Subscription"),
+        "product_category": "Subscription",
+        "product_profile": "non-physical-goods"
+    }
+    
+    try:
+        response = requests.post(api_url, data=ssl_params)
+        result = response.json()
+        
+        if result.get("status") == "SUCCESS":
+            await db.payments.update_one(
+                {"id": payment["id"]},
+                {"$set": {"sslcommerz_session": result.get("sessionkey")}}
+            )
+            return {"gateway_url": result.get("GatewayPageURL"), "tran_id": tran_id}
+        else:
+            return {"error": result.get("failedreason", "Failed to initialize payment")}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Payment gateway error: {str(e)}")
+
+async def validate_sslcommerz_hash(form_data: dict, store_password: str) -> bool:
+    """Validate SSLCommerz response hash to prevent forgery"""
+    import hashlib
+    
+    # Required fields for hash validation
+    verify_sign = form_data.get("verify_sign")
+    verify_key = form_data.get("verify_key")
+    
+    if not verify_sign or not verify_key:
+        return False
+    
+    # Build hash string from verify_key fields
+    key_fields = verify_key.split(",")
+    hash_string = ""
+    for field in key_fields:
+        value = form_data.get(field, "")
+        hash_string += f"{field}={value}&"
+    
+    hash_string = hash_string.rstrip("&")
+    
+    # Calculate expected hash
+    expected_hash = hashlib.md5((hash_string + store_password).encode()).hexdigest()
+    
+    return verify_sign == expected_hash
+
+@api_router.post("/payments/sslcommerz/success")
+async def sslcommerz_success(request: Request):
+    """Handle SSLCommerz success callback"""
+    from fastapi.responses import RedirectResponse
+    form_data = await request.form()
+    form_dict = dict(form_data)
+    
+    tran_id = form_dict.get("tran_id")
+    val_id = form_dict.get("val_id")
+    status = form_dict.get("status")
+    
+    if not tran_id or status != "VALID":
+        return RedirectResponse(url="/dashboard?payment=invalid", status_code=303)
+    
+    # Get SSLCommerz config for hash validation
+    config = await db.settings.find_one({"type": "sslcommerz_config"})
+    if config and config.get("store_password"):
+        is_valid = await validate_sslcommerz_hash(form_dict, config.get("store_password"))
+        if not is_valid:
+            return RedirectResponse(url="/dashboard?payment=invalid", status_code=303)
+    
+    payment = await db.payments.find_one({"transaction_id": tran_id})
+    if payment:
+        await db.payments.update_one(
+            {"transaction_id": tran_id},
+            {"$set": {
+                "status": "pending",
+                "sslcommerz_val_id": val_id,
+                "sslcommerz_verified": True,
+                "updated_at": datetime.utcnow().isoformat()
+            }}
+        )
+        
+        # Set subscription to pending (requires super_admin approval)
+        await db.subscriptions.update_one(
+            {"tenant_id": payment.get("tenant_id")},
+            {"$set": {
+                "status": "pending",
+                "pending_plan_id": payment.get("plan_id"),
+                "pending_plan_name": payment.get("plan_name"),
+                "pending_payment_id": payment["id"],
+                "updated_at": datetime.utcnow().isoformat()
+            }},
+            upsert=True
+        )
+    
+    return RedirectResponse(url="/dashboard?payment=success", status_code=303)
+
+@api_router.post("/payments/sslcommerz/fail")
+async def sslcommerz_fail(request: Request):
+    """Handle SSLCommerz failure callback"""
+    from fastapi.responses import RedirectResponse
+    form_data = await request.form()
+    tran_id = form_data.get("tran_id")
+    
+    if tran_id:
+        await db.payments.update_one(
+            {"transaction_id": tran_id},
+            {"$set": {"status": "failed", "updated_at": datetime.utcnow().isoformat()}}
+        )
+    
+    return RedirectResponse(url="/dashboard?payment=failed", status_code=303)
+
+@api_router.post("/payments/sslcommerz/cancel")
+async def sslcommerz_cancel(request: Request):
+    """Handle SSLCommerz cancel callback"""
+    from fastapi.responses import RedirectResponse
+    form_data = await request.form()
+    tran_id = form_data.get("tran_id")
+    
+    if tran_id:
+        await db.payments.update_one(
+            {"transaction_id": tran_id},
+            {"$set": {"status": "cancelled", "updated_at": datetime.utcnow().isoformat()}}
+        )
+    
+    return RedirectResponse(url="/dashboard?payment=cancelled", status_code=303)
+
+@api_router.post("/payments/sslcommerz/ipn")
+async def sslcommerz_ipn(request: Request):
+    """Handle SSLCommerz IPN (Instant Payment Notification)"""
+    form_data = await request.form()
+    form_dict = dict(form_data)
+    
+    tran_id = form_dict.get("tran_id")
+    status = form_dict.get("status")
+    
+    if not tran_id or status != "VALID":
+        return {"status": "invalid"}
+    
+    # Validate hash to prevent forgery
+    config = await db.settings.find_one({"type": "sslcommerz_config"})
+    if config and config.get("store_password"):
+        is_valid = await validate_sslcommerz_hash(form_dict, config.get("store_password"))
+        if not is_valid:
+            return {"status": "invalid_hash"}
+    
+    # Update payment as verified by IPN
+    await db.payments.update_one(
+        {"transaction_id": tran_id},
+        {"$set": {
+            "sslcommerz_verified": True,
+            "ipn_verified": True,
+            "ipn_received_at": datetime.utcnow().isoformat()
+        }}
+    )
+    
+    return {"status": "received"}
+
+@api_router.get("/payments/sslcommerz/config")
+async def get_sslcommerz_config(current_user: User = Depends(get_current_user)):
+    """Get SSLCommerz configuration - super_admin only"""
+    if current_user.role != "super_admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    config = await db.settings.find_one({"type": "sslcommerz_config"})
+    if not config:
+        return {"store_id": "", "is_sandbox": True, "is_configured": False}
+    
+    config.pop("_id", None)
+    config.pop("store_password", None)  # Don't expose password
+    config["is_configured"] = bool(config.get("store_id"))
+    return config
+
+@api_router.put("/payments/sslcommerz/config")
+async def update_sslcommerz_config(data: dict, current_user: User = Depends(get_current_user)):
+    """Update SSLCommerz configuration - super_admin only"""
+    if current_user.role != "super_admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Get existing config to preserve password if not provided
+    existing_config = await db.settings.find_one({"type": "sslcommerz_config"})
+    
+    config = {
+        "type": "sslcommerz_config",
+        "store_id": data.get("store_id", ""),
+        "is_sandbox": data.get("is_sandbox", True),
+        "updated_at": datetime.utcnow().isoformat(),
+        "updated_by": current_user.id
+    }
+    
+    # Only update password if provided (non-empty), otherwise retain existing
+    new_password = data.get("store_password", "")
+    if new_password:
+        config["store_password"] = new_password
+    elif existing_config and existing_config.get("store_password"):
+        config["store_password"] = existing_config.get("store_password")
+    
+    await db.settings.update_one(
+        {"type": "sslcommerz_config"},
+        {"$set": config},
+        upsert=True
+    )
+    
+    config.pop("store_password", None)
     return config
 
 # ==================== SUBSCRIPTION PLANS CRUD ====================

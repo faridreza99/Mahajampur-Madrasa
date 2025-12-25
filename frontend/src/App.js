@@ -46,6 +46,7 @@ import ParentResults from "./components/ParentResults";
 import ResultConfiguration from "./components/ResultConfiguration";
 import TenantManagement from "./components/TenantManagement";
 import SubscriptionManagement from "./components/SubscriptionManagement";
+import SystemSettings from "./components/SystemSettings";
 import StudentDashboard from "./components/StudentDashboard";
 import StudentProfile from "./components/StudentProfile";
 import StudentFees from "./components/StudentFees";
@@ -474,7 +475,15 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
-                  <Route
+                <Route
+                  path="/system-settings"
+                  element={
+                    <ProtectedRoute>
+                      <SystemSettings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/cms"
                   element={
                     <ProtectedRoute>

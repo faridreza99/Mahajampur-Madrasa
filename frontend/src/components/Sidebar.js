@@ -372,6 +372,11 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           roles: ["super_admin"],
         },
         {
+          title: "System Settings",
+          path: "/system-settings",
+          roles: ["super_admin"],
+        },
+        {
           title: "Vehicle/Transport",
           path: "/transport/routes",
           roles: ["super_admin", "admin"],
