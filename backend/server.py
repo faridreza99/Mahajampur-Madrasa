@@ -2476,6 +2476,44 @@ async def get_tenant_subscription(tenant_id: str, current_user: User = Depends(g
     subscription.pop("_id", None)
     return subscription
 
+
+@api_router.put("/subscriptions/{tenant_id}/sync-plan")
+async def sync_subscription_plan(tenant_id: str, current_user: User = Depends(get_current_user)):
+    """Sync subscription plan from last verified payment - for fixing legacy subscriptions"""
+    if current_user.role != "super_admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Find the last verified payment for this tenant
+    payment = await db.payments.find_one(
+        {"tenant_id": tenant_id, "status": "verified"},
+        sort=[("verified_at", -1)]
+    )
+    
+    if not payment:
+        # Try to find any payment with plan info
+        payment = await db.payments.find_one(
+            {"tenant_id": tenant_id, "plan_id": {"$exists": True, "$ne": None}},
+            sort=[("created_at", -1)]
+        )
+    
+    if not payment or not payment.get("plan_id"):
+        raise HTTPException(status_code=404, detail="No payment with plan info found for this tenant")
+    
+    # Update subscription with plan from payment
+    result = await db.subscriptions.update_one(
+        {"tenant_id": tenant_id},
+        {"$set": {
+            "plan_id": payment.get("plan_id"),
+            "plan_name": payment.get("plan_name"),
+            "updated_at": datetime.utcnow().isoformat()
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+    
+    return {"message": f"Subscription updated with plan: {payment.get('plan_name')}"}
+
 @api_router.put("/subscriptions/{tenant_id}/freeze")
 async def freeze_subscription(tenant_id: str, current_user: User = Depends(get_current_user)):
     """Freeze a tenant's subscription - super_admin only"""

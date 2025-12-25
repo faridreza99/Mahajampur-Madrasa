@@ -144,6 +144,16 @@ const SubscriptionManagement = () => {
     }
   };
 
+  const handleSyncPlan = async (tenantId) => {
+    try {
+      const response = await axios.put(`/api/subscriptions/${tenantId}/sync-plan`);
+      toast.success(response.data.message || 'Plan synced from payment');
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'No payment found with plan info');
+    }
+  };
+
   const handleAssignPlan = async () => {
     if (!selectedTenant || !selectedPlan) return;
     
@@ -420,6 +430,17 @@ const SubscriptionManagement = () => {
                             <CreditCard className="h-4 w-4" />
                             {subscription ? 'Change Plan' : 'Assign Plan'}
                           </Button>
+                          {subscription && !plan?.name && !subscription.plan_name && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleSyncPlan(tenant.id)}
+                              className="gap-1 text-amber-600 border-amber-300 hover:bg-amber-50 dark:text-amber-400 dark:border-amber-700 dark:hover:bg-amber-900/30"
+                            >
+                              <RefreshCw className="h-4 w-4" />
+                              Sync Plan
+                            </Button>
+                          )}
                           {subscription && (
                             <Button
                               size="sm"
