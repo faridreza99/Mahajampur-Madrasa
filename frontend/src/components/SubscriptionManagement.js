@@ -138,7 +138,7 @@ const SubscriptionManagement = () => {
     setPaymentForm({
       bkash_number: '',
       transaction_id: '',
-      amount: plan.price
+      amount: plan?.price || 0
     });
     setIsPaymentDialogOpen(true);
   };
@@ -239,7 +239,7 @@ const SubscriptionManagement = () => {
       setEditingPlan(plan);
       setPlanForm({
         name: plan.name,
-        price: plan.price,
+        price: plan?.price || 0,
         period: plan.period || 'month',
         modules: plan.modules || []
       });
@@ -478,7 +478,7 @@ const SubscriptionManagement = () => {
                         <Badge key={i} variant="secondary" className="text-xs">{module}</Badge>
                       ))}
                       {(plan.modules || []).length > 5 && (
-                        <Badge variant="secondary" className="text-xs">+{plan.modules.length - 5} more</Badge>
+                        <Badge variant="secondary" className="text-xs">+{(plan.modules || []).length - 5} more</Badge>
                       )}
                     </div>
                   </div>
@@ -578,9 +578,9 @@ const SubscriptionManagement = () => {
                     <h4 className="font-semibold text-gray-900 dark:text-white">{plan.name}</h4>
                     {selectedPlan?.id === plan.id && <CheckCircle className="h-5 w-5 text-emerald-500" />}
                   </div>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">৳{plan.price.toLocaleString()}<span className="text-sm font-normal text-gray-500">/{plan.period}</span></p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">৳{plan.price?.toLocaleString() || 0}<span className="text-sm font-normal text-gray-500">/{plan.period}</span></p>
                   <ul className="mt-2 space-y-1">
-                    {plan.features.slice(0, 3).map((f, i) => (
+                    {(plan.features || []).slice(0, 3).map((f, i) => (
                       <li key={i} className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
                         <CheckCircle className="h-3 w-3 text-emerald-500" /> {f}
                       </li>
