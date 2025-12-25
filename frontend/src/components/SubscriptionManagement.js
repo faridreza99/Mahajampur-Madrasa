@@ -388,8 +388,8 @@ const SubscriptionManagement = () => {
                                   <Badge className={getStatusBadge(subscription.status)}>
                                     {subscription.status}
                                   </Badge>
-                                  <Badge variant="outline" className="dark:border-gray-600">
-                                    {plan?.name || subscription.plan_name || 'Unknown'} Plan
+                                  <Badge variant="outline" className={`${!plan?.name && !subscription.plan_name ? 'bg-amber-50 border-amber-300 text-amber-700 dark:bg-amber-900/20 dark:border-amber-700 dark:text-amber-400' : 'dark:border-gray-600'}`}>
+                                    {plan?.name || subscription.plan_name || 'No Plan Assigned'}
                                   </Badge>
                                   {subscription.expires_at && (
                                     <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
