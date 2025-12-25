@@ -41,6 +41,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [showSubscriptionPopup, setShowSubscriptionPopup] = useState(false);
   const [subscriptionChecked, setSubscriptionChecked] = useState(false);
+  const [subscriptionInfo, setSubscriptionInfo] = useState(null);
   const [giniAnalytics, setGiniAnalytics] = useState(null);
   const [timePeriod, setTimePeriod] = useState(7); // 7 or 30 days
   const [selectedClass, setSelectedClass] = useState("all");
@@ -62,11 +63,21 @@ const Dashboard = () => {
           const response = await axios.get(`${API}/subscriptions/current`, {
             headers: { Authorization: `Bearer ${token}` },
           });
-          if (!response.data.is_active) {
+          setSubscriptionInfo(response.data);
+          // Show popup only for non-active, non-frozen subscriptions (no_plan or none status)
+          if (!response.data.is_active && response.data.status !== 'frozen') {
             setShowSubscriptionPopup(true);
           }
         } catch (error) {
           console.error("Error checking subscription:", error);
+          // Only show popup if it was a 404 (no subscription) or the response indicates no plan
+          if (error.response?.status === 404) {
+            setSubscriptionInfo({ is_active: false, status: 'none', plan_name: null });
+            setShowSubscriptionPopup(true);
+          } else {
+            // For other errors (network, auth), show error state but don't show popup
+            setSubscriptionInfo({ is_active: false, status: 'error', error: true });
+          }
         } finally {
           setSubscriptionChecked(true);
         }
@@ -303,6 +314,54 @@ const Dashboard = () => {
             Academic Year 2024-25 | Admin Profile
           </p>
         </div>
+        
+        {/* Subscription Status for Admin */}
+        {user?.role === 'admin' && subscriptionInfo && !subscriptionInfo.error && (
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${
+            subscriptionInfo.status === 'active' 
+              ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800' 
+              : subscriptionInfo.status === 'frozen'
+              ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800'
+              : subscriptionInfo.status === 'pending'
+              ? 'bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800'
+              : 'bg-gray-50 border-gray-200 dark:bg-gray-800 dark:border-gray-700'
+          }`}>
+            <span className={`w-2 h-2 rounded-full ${
+              subscriptionInfo.status === 'active' 
+                ? 'bg-green-500' 
+                : subscriptionInfo.status === 'frozen'
+                ? 'bg-blue-500'
+                : subscriptionInfo.status === 'pending'
+                ? 'bg-yellow-500'
+                : 'bg-gray-400'
+            }`}></span>
+            <div className="text-sm">
+              <span className="font-medium text-gray-700 dark:text-gray-300">Plan: </span>
+              <span className={`font-semibold ${
+                subscriptionInfo.status === 'active' 
+                  ? 'text-green-700 dark:text-green-400' 
+                  : subscriptionInfo.status === 'frozen'
+                  ? 'text-blue-700 dark:text-blue-400'
+                  : subscriptionInfo.status === 'pending'
+                  ? 'text-yellow-700 dark:text-yellow-400'
+                  : 'text-gray-600 dark:text-gray-400'
+              }`}>
+                {subscriptionInfo.plan_name || 'No Plan'}
+              </span>
+              {subscriptionInfo.status === 'frozen' && (
+                <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">(Frozen)</span>
+              )}
+              {subscriptionInfo.status === 'pending' && (
+                <span className="ml-2 text-xs text-yellow-600 dark:text-yellow-400">(Pending Verification)</span>
+              )}
+              {subscriptionInfo.expires_at && subscriptionInfo.status === 'active' && (
+                <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                  Expires: {new Date(subscriptionInfo.expires_at).toLocaleDateString()}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Filters Row */}

@@ -28,7 +28,10 @@ import {
   Pencil,
   Trash2,
   Plus,
-  Settings
+  Settings,
+  Snowflake,
+  Play,
+  Ban
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -104,9 +107,41 @@ const SubscriptionManagement = () => {
       active: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
       pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
       expired: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-      cancelled: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400'
+      cancelled: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400',
+      frozen: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+      no_plan: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-500'
     };
     return styles[status] || styles.pending;
+  };
+
+  const handleFreezeSubscription = async (tenantId) => {
+    try {
+      await axios.put(`/api/subscriptions/${tenantId}/freeze`);
+      toast.success('Subscription frozen successfully');
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to freeze subscription');
+    }
+  };
+
+  const handleUnfreezeSubscription = async (tenantId) => {
+    try {
+      await axios.put(`/api/subscriptions/${tenantId}/unfreeze`);
+      toast.success('Subscription unfrozen successfully');
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to unfreeze subscription');
+    }
+  };
+
+  const handleRemovePlan = async (tenantId) => {
+    try {
+      await axios.put(`/api/subscriptions/${tenantId}/remove-plan`);
+      toast.success('Subscription removed - Set to No Plan');
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to remove subscription');
+    }
   };
 
   const handleAssignPlan = async () => {
@@ -393,6 +428,39 @@ const SubscriptionManagement = () => {
                             >
                               <Smartphone className="h-4 w-4" />
                               bKash Payment
+                            </Button>
+                          )}
+                          {subscription && subscription.status !== 'frozen' && subscription.status !== 'no_plan' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleFreezeSubscription(tenant.id)}
+                              className="gap-1 text-blue-600 border-blue-300 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-700 dark:hover:bg-blue-900/30"
+                            >
+                              <Snowflake className="h-4 w-4" />
+                              Freeze
+                            </Button>
+                          )}
+                          {subscription && subscription.status === 'frozen' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleUnfreezeSubscription(tenant.id)}
+                              className="gap-1 text-green-600 border-green-300 hover:bg-green-50 dark:text-green-400 dark:border-green-700 dark:hover:bg-green-900/30"
+                            >
+                              <Play className="h-4 w-4" />
+                              Unfreeze
+                            </Button>
+                          )}
+                          {subscription && subscription.status !== 'no_plan' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleRemovePlan(tenant.id)}
+                              className="gap-1 text-red-600 border-red-300 hover:bg-red-50 dark:text-red-400 dark:border-red-700 dark:hover:bg-red-900/30"
+                            >
+                              <Ban className="h-4 w-4" />
+                              No Plan
                             </Button>
                           )}
                         </div>

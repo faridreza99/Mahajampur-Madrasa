@@ -2393,6 +2393,65 @@ async def create_subscription(data: dict, current_user: User = Depends(get_curre
     subscription.pop("_id", None)
     return subscription
 
+# ==================== TENANT SUBSCRIPTION CHECK ====================
+
+@api_router.get("/subscriptions/current")
+async def get_current_subscription(current_user: User = Depends(get_current_user)):
+    """Get current tenant's subscription status - for admins to check their subscription"""
+    subscription = await db.subscriptions.find_one({"tenant_id": current_user.tenant_id})
+    
+    if not subscription:
+        return {
+            "has_subscription": False,
+            "status": "none",
+            "message": "No active subscription"
+        }
+    
+    subscription.pop("_id", None)
+    
+    is_active = subscription.get("status") == "active"
+    expires_at = subscription.get("expires_at")
+    is_expired = False
+    
+    if expires_at:
+        try:
+            expiry_date = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+            is_expired = expiry_date < datetime.utcnow().replace(tzinfo=expiry_date.tzinfo) if expiry_date.tzinfo else expiry_date < datetime.utcnow()
+        except:
+            pass
+    
+    status = subscription.get("status", "none")
+    
+    # no_plan means they need to select a plan - treat as no subscription
+    if status == "no_plan":
+        return {
+            "has_subscription": False,
+            "is_active": False,
+            "status": "no_plan",
+            "plan_name": "No Plan",
+            "message": "No active subscription - please select a plan"
+        }
+    
+    # frozen subscriptions exist but are not active
+    if status == "frozen":
+        return {
+            "has_subscription": True,
+            "is_active": False,
+            "is_frozen": True,
+            "is_expired": is_expired,
+            **subscription
+        }
+    
+    return {
+        "has_subscription": True,
+        "is_active": is_active and not is_expired,
+        "is_expired": is_expired,
+        **subscription
+    }
+
+
+
+
 @api_router.get("/subscriptions/{tenant_id}")
 async def get_tenant_subscription(tenant_id: str, current_user: User = Depends(get_current_user)):
     """Get subscription for a specific tenant"""
@@ -2405,6 +2464,77 @@ async def get_tenant_subscription(tenant_id: str, current_user: User = Depends(g
     
     subscription.pop("_id", None)
     return subscription
+
+@api_router.put("/subscriptions/{tenant_id}/freeze")
+async def freeze_subscription(tenant_id: str, current_user: User = Depends(get_current_user)):
+    """Freeze a tenant's subscription - super_admin only"""
+    if current_user.role != "super_admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    subscription = await db.subscriptions.find_one({"tenant_id": tenant_id})
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+    
+    await db.subscriptions.update_one(
+        {"tenant_id": tenant_id},
+        {"$set": {"status": "frozen", "frozen_at": datetime.utcnow().isoformat()}}
+    )
+    
+    return {"message": "Subscription frozen successfully"}
+
+@api_router.put("/subscriptions/{tenant_id}/unfreeze")
+async def unfreeze_subscription(tenant_id: str, current_user: User = Depends(get_current_user)):
+    """Unfreeze a tenant's subscription - super_admin only"""
+    if current_user.role != "super_admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    subscription = await db.subscriptions.find_one({"tenant_id": tenant_id})
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+    
+    await db.subscriptions.update_one(
+        {"tenant_id": tenant_id},
+        {"$set": {"status": "active", "unfrozen_at": datetime.utcnow().isoformat()}, "$unset": {"frozen_at": ""}}
+    )
+    
+    return {"message": "Subscription unfrozen successfully"}
+
+@api_router.put("/subscriptions/{tenant_id}/remove-plan")
+async def remove_subscription_plan(tenant_id: str, current_user: User = Depends(get_current_user)):
+    """Remove a tenant's subscription (set to No Plan) - super_admin only"""
+    if current_user.role != "super_admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    subscription = await db.subscriptions.find_one({"tenant_id": tenant_id})
+    if subscription:
+        await db.subscriptions.update_one(
+            {"tenant_id": tenant_id},
+            {"$set": {
+                "status": "no_plan",
+                "plan_id": None,
+                "plan_name": "No Plan",
+                "price": 0,
+                "modules": [],
+                "updated_at": datetime.utcnow().isoformat()
+            }}
+        )
+    else:
+        await db.subscriptions.insert_one({
+            "id": str(uuid.uuid4()),
+            "tenant_id": tenant_id,
+            "status": "no_plan",
+            "plan_id": None,
+            "plan_name": "No Plan",
+            "price": 0,
+            "currency": "BDT",
+            "period": "month",
+            "modules": [],
+            "created_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.utcnow().isoformat()
+        })
+    
+    return {"message": "Subscription removed - Set to No Plan"}
+
 
 # ==================== PAYMENT MANAGEMENT ====================
 
@@ -2599,42 +2729,6 @@ async def delete_subscription_plan(plan_id: str, current_user: User = Depends(ge
         raise HTTPException(status_code=404, detail="Plan not found")
     
     return {"message": "Plan deleted successfully"}
-
-# ==================== TENANT SUBSCRIPTION CHECK ====================
-
-@api_router.get("/subscriptions/current")
-async def get_current_subscription(current_user: User = Depends(get_current_user)):
-    """Get current tenant's subscription status - for admins to check their subscription"""
-    subscription = await db.subscriptions.find_one({"tenant_id": current_user.tenant_id})
-    
-    if not subscription:
-        return {
-            "has_subscription": False,
-            "status": "none",
-            "message": "No active subscription"
-        }
-    
-    subscription.pop("_id", None)
-    
-    is_active = subscription.get("status") == "active"
-    expires_at = subscription.get("expires_at")
-    is_expired = False
-    
-    if expires_at:
-        try:
-            expiry_date = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
-            is_expired = expiry_date < datetime.utcnow().replace(tzinfo=expiry_date.tzinfo) if expiry_date.tzinfo else expiry_date < datetime.utcnow()
-        except:
-            pass
-    
-    return {
-        "has_subscription": True,
-        "is_active": is_active and not is_expired,
-        "is_expired": is_expired,
-        **subscription
-    }
-
-
 
 # ==================== SCHOOL MANAGEMENT ====================
 
