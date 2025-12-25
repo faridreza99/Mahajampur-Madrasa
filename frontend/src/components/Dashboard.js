@@ -29,7 +29,6 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { toast } from "sonner";
-import SubscriptionPopup from "./SubscriptionPopup";
 import { useAuth } from "../App";
 
 const BACKEND_URL = process.env.REACT_APP_API_URL;
@@ -39,8 +38,6 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [chartsLoading, setChartsLoading] = useState(true);
-  const [showSubscriptionPopup, setShowSubscriptionPopup] = useState(false);
-  const [subscriptionChecked, setSubscriptionChecked] = useState(false);
   const [subscriptionInfo, setSubscriptionInfo] = useState(null);
   const [giniAnalytics, setGiniAnalytics] = useState(null);
   const [timePeriod, setTimePeriod] = useState(7); // 7 or 30 days
@@ -55,37 +52,26 @@ const Dashboard = () => {
     fetchClassesAndSubjects();
   }, [timePeriod, selectedClass, selectedSubject]);
 
+  // Fetch subscription info for status display (popup is handled globally in Layout)
   useEffect(() => {
-    const checkSubscription = async () => {
-      if (user && user.role === 'admin' && !subscriptionChecked) {
+    const fetchSubscriptionInfo = async () => {
+      if (user && user.role === 'admin') {
         try {
           const token = localStorage.getItem("token");
           const response = await axios.get(`${API}/subscriptions/current`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           setSubscriptionInfo(response.data);
-          // Show popup for non-active subscriptions (no_plan, none, or pending)
-          // Blocking popup for no_plan/none/pending - user cannot use system
-          if (!response.data.is_active && response.data.status !== 'frozen') {
-            setShowSubscriptionPopup(true);
-          }
         } catch (error) {
-          console.error("Error checking subscription:", error);
-          // Only show popup if it was a 404 (no subscription) or the response indicates no plan
+          console.error("Error fetching subscription info:", error);
           if (error.response?.status === 404) {
             setSubscriptionInfo({ is_active: false, status: 'none', plan_name: null });
-            setShowSubscriptionPopup(true);
-          } else {
-            // For other errors (network, auth), show error state but don't show popup
-            setSubscriptionInfo({ is_active: false, status: 'error', error: true });
           }
-        } finally {
-          setSubscriptionChecked(true);
         }
       }
     };
-    checkSubscription();
-  }, [user, subscriptionChecked]);
+    fetchSubscriptionInfo();
+  }, [user]);
 
   const fetchGiniAnalytics = async () => {
     setChartsLoading(true);
@@ -298,15 +284,6 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6 pb-6">
-      {/* Subscription Popup for Admins - Blocking when no plan or pending */}
-      <SubscriptionPopup 
-        isOpen={showSubscriptionPopup} 
-        onClose={() => setShowSubscriptionPopup(false)}
-        onPaymentSuccess={() => setSubscriptionChecked(false)}
-        isBlocking={subscriptionInfo?.status === 'no_plan' || subscriptionInfo?.status === 'none' || subscriptionInfo?.status === 'pending'}
-        subscriptionStatus={subscriptionInfo?.status}
-      />
-      
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>

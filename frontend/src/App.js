@@ -59,6 +59,7 @@ import LessonPlans from "./components/LessonPlans";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import Search from "./components/Search";
+import SubscriptionPopup from "./components/SubscriptionPopup";
 import { Toaster } from "./components/ui/sonner";
 
 const API = process.env.REACT_APP_API_URL || "http://localhost:8000/api";
@@ -223,8 +224,41 @@ const Layout = ({ children }) => {
   const location = useLocation();
   const mainRef = React.useRef(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = React.useState(false);
+  const [subscriptionStatus, setSubscriptionStatus] = React.useState(null);
+  const [showSubscriptionPopup, setShowSubscriptionPopup] = React.useState(false);
 
   const isLoginPage = location.pathname === "/login";
+  const isSubscriptionHistoryPage = location.pathname === "/subscription-history";
+
+  // Check subscription status for school admins
+  const checkSubscription = React.useCallback(async () => {
+    if (!user || user.role !== "admin") return;
+    
+    try {
+      const response = await axios.get("/api/subscriptions/current");
+      const status = response.data.status;
+      setSubscriptionStatus(status);
+      
+      // Show blocking popup for no_plan, none, or pending status
+      if (status === "no_plan" || status === "none" || status === "pending") {
+        setShowSubscriptionPopup(true);
+      } else {
+        setShowSubscriptionPopup(false);
+      }
+    } catch (error) {
+      console.error("Failed to check subscription:", error);
+      if (error.response?.status === 404) {
+        setSubscriptionStatus("none");
+        setShowSubscriptionPopup(true);
+      }
+    }
+  }, [user]);
+
+  React.useEffect(() => {
+    if (user && user.role === "admin" && !isLoginPage) {
+      checkSubscription();
+    }
+  }, [user, isLoginPage, checkSubscription]);
 
   // Smooth scroll to top on route change
   React.useEffect(() => {
@@ -246,6 +280,9 @@ const Layout = ({ children }) => {
     return children;
   }
 
+  // Determine if popup should be blocking (can't be closed)
+  const isBlocking = subscriptionStatus === "no_plan" || subscriptionStatus === "none" || subscriptionStatus === "pending";
+
   return (
     <div className="flex min-h-screen overflow-hidden bg-gray-50 dark:bg-gray-950">
       <Sidebar
@@ -263,6 +300,17 @@ const Layout = ({ children }) => {
           </div>
         </main>
       </div>
+      
+      {/* Global Subscription Popup for School Admins */}
+      {user && user.role === "admin" && !isSubscriptionHistoryPage && (
+        <SubscriptionPopup
+          isOpen={showSubscriptionPopup}
+          onClose={() => !isBlocking && setShowSubscriptionPopup(false)}
+          isBlocking={isBlocking}
+          subscriptionStatus={subscriptionStatus}
+          onPaymentSuccess={checkSubscription}
+        />
+      )}
     </div>
   );
 };
