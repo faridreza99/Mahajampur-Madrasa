@@ -65,13 +65,26 @@ const QuestionPaperBuilder = () => {
 
   const [isAIDialogOpen, setIsAIDialogOpen] = useState(false);
   const [aiGenerating, setAiGenerating] = useState(false);
+  
+  const sectionOptions = [
+    { id: 'one_word', name_bn: 'একশব্দে উত্তর', name_en: 'One Word Answer', default_marks: 1 },
+    { id: 'fill_blanks', name_bn: 'শূন্যস্থান পূরণ', name_en: 'Fill in the Blanks', default_marks: 1 },
+    { id: 'true_false', name_bn: 'সত্য/মিথ্যা', name_en: 'True/False', default_marks: 1 },
+    { id: 'mcq', name_bn: 'বহুনির্বাচনী প্রশ্ন', name_en: 'MCQ', default_marks: 1 },
+    { id: 'short_answer', name_bn: 'সংক্ষেপে উত্তর', name_en: 'Short Answer', default_marks: 2 },
+    { id: 'matching', name_bn: 'মিলকরণ', name_en: 'Matching', default_marks: 1 },
+    { id: 'descriptive', name_bn: 'রচনামূলক প্রশ্ন', name_en: 'Descriptive', default_marks: 5 },
+    { id: 'application', name_bn: 'প্রয়োগমূলক প্রশ্ন', name_en: 'Application Based', default_marks: 5 }
+  ];
+
   const [aiForm, setAiForm] = useState({
     class_name: '',
     subject: '',
     total_marks: 100,
     duration_minutes: 120,
     exam_type: 'বার্ষিক পরীক্ষা',
-    difficulty_mix: 'balanced'
+    difficulty_mix: 'balanced',
+    selected_sections: ['one_word', 'fill_blanks', 'true_false', 'short_answer', 'descriptive']
   });
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
@@ -249,9 +262,26 @@ const QuestionPaperBuilder = () => {
     }
   };
 
+  const toggleSectionSelection = (sectionId) => {
+    setAiForm(prev => {
+      const isSelected = prev.selected_sections.includes(sectionId);
+      return {
+        ...prev,
+        selected_sections: isSelected
+          ? prev.selected_sections.filter(id => id !== sectionId)
+          : [...prev.selected_sections, sectionId]
+      };
+    });
+  };
+
   const handleAIGenerate = async () => {
     if (!aiForm.class_name || !aiForm.subject) {
       toast.error('Please select class and subject');
+      return;
+    }
+    
+    if (aiForm.selected_sections.length === 0) {
+      toast.error('Please select at least one section type');
       return;
     }
 
@@ -271,7 +301,8 @@ const QuestionPaperBuilder = () => {
         total_marks: 100,
         duration_minutes: 120,
         exam_type: 'বার্ষিক পরীক্ষা',
-        difficulty_mix: 'balanced'
+        difficulty_mix: 'balanced',
+        selected_sections: ['one_word', 'fill_blanks', 'true_false', 'short_answer', 'descriptive']
       });
       fetchPapers();
       
@@ -870,10 +901,32 @@ const QuestionPaperBuilder = () => {
               </Select>
             </div>
 
-            <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg">
-              <p className="text-sm text-purple-700 dark:text-purple-300">
-                AI will generate a complete question paper with multiple sections including:
-                একশব্দে উত্তর, শূন্যস্থান পূরণ, সত্য/মিথ্যা, সংক্ষেপে উত্তর, এবং রচনামূলক প্রশ্ন
+            <div className="space-y-2">
+              <Label className="dark:text-gray-300">Select Sections / বিভাগ নির্বাচন করুন</Label>
+              <div className="grid grid-cols-2 gap-2 p-3 border rounded-lg dark:border-gray-600 max-h-48 overflow-y-auto">
+                {sectionOptions.map(section => (
+                  <label 
+                    key={section.id} 
+                    className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
+                      aiForm.selected_sections.includes(section.id)
+                        ? 'bg-purple-100 dark:bg-purple-900/30 border border-purple-300 dark:border-purple-600'
+                        : 'hover:bg-gray-100 dark:hover:bg-gray-700 border border-transparent'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={aiForm.selected_sections.includes(section.id)}
+                      onChange={() => toggleSectionSelection(section.id)}
+                      className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="text-sm dark:text-gray-300">
+                      {section.name_bn}
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Selected: {aiForm.selected_sections.length} section(s)
               </p>
             </div>
           </div>

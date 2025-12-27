@@ -26645,13 +26645,29 @@ async def ai_generate_question_paper(
         duration_minutes = data.get("duration_minutes", 120)
         exam_type = data.get("exam_type", "বার্ষিক পরীক্ষা")
         difficulty_mix = data.get("difficulty_mix", "balanced")
-        include_sections = data.get("include_sections", [
-            "একশব্দে উত্তর দাও",
-            "শূন্যস্থান পূরণ কর",
-            "সত্য/মিথ্যা লেখ",
-            "সংক্ষেপে উত্তর দাও",
-            "রচনামূলক প্রশ্নের উত্তর দাও"
-        ])
+        # Map section IDs to Bengali names
+        section_id_to_name = {
+            'one_word': 'একশব্দে উত্তর দাও',
+            'fill_blanks': 'শূন্যস্থান পূরণ কর',
+            'true_false': 'সত্য/মিথ্যা লেখ',
+            'mcq': 'বহুনির্বাচনী প্রশ্ন',
+            'short_answer': 'সংক্ষেপে উত্তর দাও',
+            'matching': 'মিলকরণ',
+            'descriptive': 'রচনামূলক প্রশ্নের উত্তর দাও',
+            'application': 'প্রয়োগমূলক প্রশ্ন'
+        }
+        
+        selected_sections = data.get("selected_sections", ['one_word', 'fill_blanks', 'true_false', 'short_answer', 'descriptive'])
+        include_sections = [section_id_to_name.get(sid, sid) for sid in selected_sections if sid in section_id_to_name]
+        
+        if not include_sections:
+            include_sections = [
+                "একশব্দে উত্তর দাও",
+                "শূন্যস্থান পূরণ কর",
+                "সত্য/মিথ্যা লেখ",
+                "সংক্ষেপে উত্তর দাও",
+                "রচনামূলক প্রশ্নের উত্তর দাও"
+            ]
         
         if not class_name or not subject:
             raise HTTPException(status_code=400, detail="Class and subject are required")
