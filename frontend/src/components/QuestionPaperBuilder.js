@@ -35,15 +35,12 @@ const QuestionPaperBuilder = () => {
   const [papers, setPapers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
-  const [isQuestionPickerOpen, setIsQuestionPickerOpen] = useState(false);
   const [isPrintPreviewOpen, setIsPrintPreviewOpen] = useState(false);
   const [editingPaper, setEditingPaper] = useState(null);
-  const [currentSectionIndex, setCurrentSectionIndex] = useState(null);
   
   const [classes, setClasses] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [sectionTemplates, setSectionTemplates] = useState([]);
-  const [questionBank, setQuestionBank] = useState([]);
   const [printData, setPrintData] = useState(null);
   
   const [paperForm, setPaperForm] = useState({
@@ -55,12 +52,6 @@ const QuestionPaperBuilder = () => {
     duration_minutes: 120,
     total_marks: 100,
     sections: []
-  });
-
-  const [questionFilters, setQuestionFilters] = useState({
-    search: '',
-    question_type: 'all',
-    difficulty: 'all'
   });
 
   const [isAIDialogOpen, setIsAIDialogOpen] = useState(false);
@@ -146,38 +137,12 @@ const QuestionPaperBuilder = () => {
     }
   }, [API_BASE_URL]);
 
-  const fetchQuestions = useCallback(async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const params = new URLSearchParams();
-      if (paperForm.subject) params.append('subject', paperForm.subject);
-      if (paperForm.class_name) params.append('class_name', paperForm.class_name);
-      if (questionFilters.question_type && questionFilters.question_type !== 'all') params.append('question_type', questionFilters.question_type);
-      if (questionFilters.difficulty && questionFilters.difficulty !== 'all') params.append('difficulty', questionFilters.difficulty);
-      if (questionFilters.search) params.append('search', questionFilters.search);
-      params.append('limit', '100');
-      
-      const response = await axios.get(`${API_BASE_URL}/question-bank?${params.toString()}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setQuestionBank(response.data.questions || []);
-    } catch (error) {
-      console.error('Error fetching questions:', error);
-    }
-  }, [API_BASE_URL, paperForm.subject, paperForm.class_name, questionFilters]);
-
   useEffect(() => {
     fetchPapers();
     fetchClasses();
     fetchSubjects();
     fetchTemplates();
   }, [fetchPapers, fetchClasses, fetchSubjects, fetchTemplates]);
-
-  useEffect(() => {
-    if (isQuestionPickerOpen) {
-      fetchQuestions();
-    }
-  }, [isQuestionPickerOpen, fetchQuestions]);
 
   const handleCreatePaper = () => {
     setEditingPaper(null);
@@ -340,28 +305,6 @@ const QuestionPaperBuilder = () => {
       ...prev,
       sections: prev.sections.filter((_, i) => i !== index)
     }));
-  };
-
-  const handleOpenQuestionPicker = (sectionIndex) => {
-    setCurrentSectionIndex(sectionIndex);
-    setIsQuestionPickerOpen(true);
-  };
-
-  const handleAddQuestionToSection = (question) => {
-    if (currentSectionIndex === null) return;
-    
-    setPaperForm(prev => {
-      const sections = [...prev.sections];
-      const section = sections[currentSectionIndex];
-      
-      if (!section.question_ids.includes(question.id)) {
-        section.question_ids.push(question.id);
-        section.questions = [...(section.questions || []), question];
-      }
-      
-      return { ...prev, sections };
-    });
-    toast.success('Question added');
   };
 
   const handleRemoveQuestionFromSection = (sectionIndex, questionId) => {
@@ -598,16 +541,7 @@ const QuestionPaperBuilder = () => {
                             ({section.question_ids?.length || section.questions?.length || 0} questions × {section.marks_per_question || 0} marks)
                           </span>
                         </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleOpenQuestionPicker(sIndex)}
-                          >
-                            <Plus className="h-3 w-3 mr-1" />
-                            Add Questions
-                          </Button>
-                          <Button
+                        <Button
                             variant="ghost"
                             size="sm"
                             className="text-red-600"
@@ -615,7 +549,6 @@ const QuestionPaperBuilder = () => {
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
-                        </div>
                       </div>
                     </CardHeader>
                     {section.questions && section.questions.length > 0 && (
@@ -655,80 +588,6 @@ const QuestionPaperBuilder = () => {
             <Button onClick={handleSavePaper} className="bg-blue-600 hover:bg-blue-700" disabled={loading}>
               <Save className="h-4 w-4 mr-2" />
               {loading ? 'Saving...' : 'Save Paper'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isQuestionPickerOpen} onOpenChange={setIsQuestionPickerOpen}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto dark:bg-gray-800">
-          <DialogHeader>
-            <DialogTitle className="dark:text-white">Select Questions</DialogTitle>
-            <DialogDescription className="dark:text-gray-400">
-              Add questions from your Question Bank
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              <Input
-                placeholder="Search questions..."
-                value={questionFilters.search}
-                onChange={(e) => setQuestionFilters({ ...questionFilters, search: e.target.value })}
-                className="flex-1 min-w-[200px] dark:bg-gray-900 dark:border-gray-600 dark:text-white"
-              />
-              <Select value={questionFilters.question_type} onValueChange={(value) => setQuestionFilters({ ...questionFilters, question_type: value })}>
-                <SelectTrigger className="w-[150px] dark:bg-gray-900 dark:border-gray-600 dark:text-white">
-                  <SelectValue placeholder="Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="mcq">MCQ</SelectItem>
-                  <SelectItem value="short_answer">Short Answer</SelectItem>
-                  <SelectItem value="true_false">True/False</SelectItem>
-                  <SelectItem value="fill_blank">Fill Blank</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button onClick={fetchQuestions} variant="outline" className="dark:border-gray-600">
-                <Search className="h-4 w-4" />
-              </Button>
-            </div>
-
-            <div className="space-y-2 max-h-[400px] overflow-y-auto">
-              {questionBank.length === 0 ? (
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                  No questions found. Create questions in the Question Bank first.
-                </div>
-              ) : (
-                questionBank.map(question => (
-                  <div key={question.id} className="flex justify-between items-start p-3 border dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <div className="flex-1">
-                      <p className="text-sm dark:text-gray-200">{question.question_text}</p>
-                      <div className="flex gap-2 mt-1">
-                        <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded">
-                          {question.question_type}
-                        </span>
-                        <span className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">
-                          {question.difficulty}
-                        </span>
-                      </div>
-                    </div>
-                    <Button
-                      size="sm"
-                      onClick={() => handleAddQuestionToSection(question)}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button onClick={() => setIsQuestionPickerOpen(false)} className="dark:border-gray-600">
-              Done
             </Button>
           </DialogFooter>
         </DialogContent>
