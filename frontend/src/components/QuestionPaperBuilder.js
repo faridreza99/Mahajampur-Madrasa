@@ -72,11 +72,16 @@ const QuestionPaperBuilder = () => {
     class_name: '',
     subject: '',
     total_marks: 100,
-    total_questions: 25,
     duration_minutes: 120,
     exam_type: 'বার্ষিক পরীক্ষা',
     difficulty_mix: 'balanced',
-    selected_sections: ['one_word', 'fill_blanks', 'true_false', 'short_answer', 'descriptive']
+    section_config: {
+      one_word: { enabled: true, question_count: 5 },
+      fill_blanks: { enabled: true, question_count: 5 },
+      true_false: { enabled: true, question_count: 5 },
+      short_answer: { enabled: true, question_count: 5 },
+      descriptive: { enabled: true, question_count: 5 }
+    }
   });
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
@@ -230,14 +235,40 @@ const QuestionPaperBuilder = () => {
 
   const toggleSectionSelection = (sectionId) => {
     setAiForm(prev => {
-      const isSelected = prev.selected_sections.includes(sectionId);
+      const currentConfig = prev.section_config[sectionId] || { enabled: false, question_count: 5 };
       return {
         ...prev,
-        selected_sections: isSelected
-          ? prev.selected_sections.filter(id => id !== sectionId)
-          : [...prev.selected_sections, sectionId]
+        section_config: {
+          ...prev.section_config,
+          [sectionId]: { ...currentConfig, enabled: !currentConfig.enabled }
+        }
       };
     });
+  };
+
+  const updateSectionQuestionCount = (sectionId, count) => {
+    setAiForm(prev => {
+      const currentConfig = prev.section_config[sectionId] || { enabled: true, question_count: 5 };
+      return {
+        ...prev,
+        section_config: {
+          ...prev.section_config,
+          [sectionId]: { ...currentConfig, question_count: parseInt(count) || 1 }
+        }
+      };
+    });
+  };
+
+  const getEnabledSections = () => {
+    return Object.entries(aiForm.section_config)
+      .filter(([_, config]) => config.enabled)
+      .map(([id, _]) => id);
+  };
+
+  const getTotalQuestions = () => {
+    return Object.entries(aiForm.section_config)
+      .filter(([_, config]) => config.enabled)
+      .reduce((sum, [_, config]) => sum + (config.question_count || 0), 0);
   };
 
   const handleAIGenerate = async () => {
@@ -246,7 +277,8 @@ const QuestionPaperBuilder = () => {
       return;
     }
     
-    if (aiForm.selected_sections.length === 0) {
+    const enabledSections = getEnabledSections();
+    if (enabledSections.length === 0) {
       toast.error('Please select at least one section type');
       return;
     }
@@ -265,11 +297,16 @@ const QuestionPaperBuilder = () => {
         class_name: '',
         subject: '',
         total_marks: 100,
-        total_questions: 25,
         duration_minutes: 120,
         exam_type: 'বার্ষিক পরীক্ষা',
         difficulty_mix: 'balanced',
-        selected_sections: ['one_word', 'fill_blanks', 'true_false', 'short_answer', 'descriptive']
+        section_config: {
+          one_word: { enabled: true, question_count: 5 },
+          fill_blanks: { enabled: true, question_count: 5 },
+          true_false: { enabled: true, question_count: 5 },
+          short_answer: { enabled: true, question_count: 5 },
+          descriptive: { enabled: true, question_count: 5 }
+        }
       });
       fetchPapers();
       
@@ -709,7 +746,7 @@ const QuestionPaperBuilder = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="dark:text-gray-300">Total Marks / মোট নম্বর</Label>
                 <Input
@@ -720,18 +757,7 @@ const QuestionPaperBuilder = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="dark:text-gray-300">Total Questions / প্রশ্ন সংখ্যা</Label>
-                <Input
-                  type="number"
-                  min="5"
-                  max="100"
-                  value={aiForm.total_questions}
-                  onChange={(e) => setAiForm({ ...aiForm, total_questions: parseInt(e.target.value) || 25 })}
-                  className="dark:bg-gray-900 dark:border-gray-600 dark:text-white"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="dark:text-gray-300">Duration (min)</Label>
+                <Label className="dark:text-gray-300">Duration (min) / সময়</Label>
                 <Input
                   type="number"
                   value={aiForm.duration_minutes}
@@ -774,31 +800,49 @@ const QuestionPaperBuilder = () => {
             </div>
 
             <div className="space-y-2">
-              <Label className="dark:text-gray-300">Select Sections / বিভাগ নির্বাচন করুন</Label>
-              <div className="grid grid-cols-2 gap-2 p-3 border rounded-lg dark:border-gray-600 max-h-48 overflow-y-auto">
-                {sectionOptions.map(section => (
-                  <label 
-                    key={section.id} 
-                    className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
-                      aiForm.selected_sections.includes(section.id)
-                        ? 'bg-purple-100 dark:bg-purple-900/30 border border-purple-300 dark:border-purple-600'
-                        : 'hover:bg-gray-100 dark:hover:bg-gray-700 border border-transparent'
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={aiForm.selected_sections.includes(section.id)}
-                      onChange={() => toggleSectionSelection(section.id)}
-                      className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                    />
-                    <span className="text-sm dark:text-gray-300">
-                      {section.name_bn}
-                    </span>
-                  </label>
-                ))}
+              <Label className="dark:text-gray-300">Select Sections & Question Count / বিভাগ ও প্রশ্ন সংখ্যা নির্বাচন</Label>
+              <div className="space-y-2 p-3 border rounded-lg dark:border-gray-600 max-h-64 overflow-y-auto">
+                {sectionOptions.map(section => {
+                  const config = aiForm.section_config[section.id] || { enabled: false, question_count: 5 };
+                  return (
+                    <div 
+                      key={section.id} 
+                      className={`flex items-center justify-between p-2 rounded transition-colors ${
+                        config.enabled
+                          ? 'bg-purple-100 dark:bg-purple-900/30 border border-purple-300 dark:border-purple-600'
+                          : 'hover:bg-gray-100 dark:hover:bg-gray-700 border border-transparent'
+                      }`}
+                    >
+                      <label className="flex items-center gap-2 cursor-pointer flex-1">
+                        <input
+                          type="checkbox"
+                          checked={config.enabled}
+                          onChange={() => toggleSectionSelection(section.id)}
+                          className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                        />
+                        <span className="text-sm dark:text-gray-300">
+                          {section.name_bn}
+                        </span>
+                      </label>
+                      {config.enabled && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500 dark:text-gray-400">প্রশ্ন:</span>
+                          <Input
+                            type="number"
+                            min="1"
+                            max="50"
+                            value={config.question_count}
+                            onChange={(e) => updateSectionQuestionCount(section.id, e.target.value)}
+                            className="w-16 h-7 text-center text-sm dark:bg-gray-900 dark:border-gray-600 dark:text-white"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Selected: {aiForm.selected_sections.length} section(s)
+                Selected: {getEnabledSections().length} section(s) | Total Questions: {getTotalQuestions()}
               </p>
             </div>
           </div>

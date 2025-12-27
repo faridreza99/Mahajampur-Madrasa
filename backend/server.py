@@ -26645,30 +26645,58 @@ async def ai_generate_question_paper(
         duration_minutes = data.get("duration_minutes", 120)
         exam_type = data.get("exam_type", "বার্ষিক পরীক্ষা")
         difficulty_mix = data.get("difficulty_mix", "balanced")
-        total_questions = data.get("total_questions", 25)
-        # Map section IDs to Bengali names
-        section_id_to_name = {
-            'one_word': 'একশব্দে উত্তর দাও',
-            'fill_blanks': 'শূন্যস্থান পূরণ কর',
-            'true_false': 'সত্য/মিথ্যা লেখ',
-            'mcq': 'বহুনির্বাচনী প্রশ্ন',
-            'short_answer': 'সংক্ষেপে উত্তর দাও',
-            'matching': 'মিলকরণ',
-            'descriptive': 'রচনামূলক প্রশ্নের উত্তর দাও',
-            'application': 'প্রয়োগমূলক প্রশ্ন'
+        # Map section IDs to Bengali names with marks
+        section_info = {
+            'one_word': {'name': 'একশব্দে উত্তর দাও', 'marks': 1},
+            'fill_blanks': {'name': 'শূন্যস্থান পূরণ কর', 'marks': 1},
+            'true_false': {'name': 'সত্য/মিথ্যা লেখ', 'marks': 1},
+            'mcq': {'name': 'বহুনির্বাচনী প্রশ্ন', 'marks': 1},
+            'short_answer': {'name': 'সংক্ষেপে উত্তর দাও', 'marks': 2},
+            'matching': {'name': 'মিলকরণ', 'marks': 1},
+            'descriptive': {'name': 'রচনামূলক প্রশ্নের উত্তর দাও', 'marks': 5},
+            'application': {'name': 'প্রয়োগমূলক প্রশ্ন', 'marks': 5}
         }
         
-        selected_sections = data.get("selected_sections", ['one_word', 'fill_blanks', 'true_false', 'short_answer', 'descriptive'])
-        include_sections = [section_id_to_name.get(sid, sid) for sid in selected_sections if sid in section_id_to_name]
+        # Handle new section_config format with per-section question counts
+        section_config = data.get("section_config", {})
+        section_requirements = []
+        total_questions = 0
         
-        if not include_sections:
-            include_sections = [
-                "একশব্দে উত্তর দাও",
-                "শূন্যস্থান পূরণ কর",
-                "সত্য/মিথ্যা লেখ",
-                "সংক্ষেপে উত্তর দাও",
-                "রচনামূলক প্রশ্নের উত্তর দাও"
+        if section_config:
+            # New format: section_config with enabled and question_count per section
+            for section_id, config in section_config.items():
+                if config.get("enabled", False) and section_id in section_info:
+                    question_count = config.get("question_count", 5)
+                    section_requirements.append({
+                        "id": section_id,
+                        "name": section_info[section_id]["name"],
+                        "marks": section_info[section_id]["marks"],
+                        "count": question_count
+                    })
+                    total_questions += question_count
+        else:
+            # Fallback to old format for backward compatibility
+            selected_sections = data.get("selected_sections", ['one_word', 'fill_blanks', 'true_false', 'short_answer', 'descriptive'])
+            total_questions = data.get("total_questions", 25)
+            questions_per_section = max(1, total_questions // len(selected_sections)) if selected_sections else 5
+            for section_id in selected_sections:
+                if section_id in section_info:
+                    section_requirements.append({
+                        "id": section_id,
+                        "name": section_info[section_id]["name"],
+                        "marks": section_info[section_id]["marks"],
+                        "count": questions_per_section
+                    })
+        
+        if not section_requirements:
+            section_requirements = [
+                {"id": "one_word", "name": "একশব্দে উত্তর দাও", "marks": 1, "count": 5},
+                {"id": "fill_blanks", "name": "শূন্যস্থান পূরণ কর", "marks": 1, "count": 5},
+                {"id": "true_false", "name": "সত্য/মিথ্যা লেখ", "marks": 1, "count": 5},
+                {"id": "short_answer", "name": "সংক্ষেপে উত্তর দাও", "marks": 2, "count": 5},
+                {"id": "descriptive", "name": "রচনামূলক প্রশ্নের উত্তর দাও", "marks": 5, "count": 5}
             ]
+            total_questions = 25
         
         if not class_name or not subject:
             raise HTTPException(status_code=400, detail="Class and subject are required")
@@ -26690,6 +26718,13 @@ async def ai_generate_question_paper(
             for i, q in enumerate(existing_questions[:20], 1):
                 existing_questions_text += f"{i}. [{q.get('question_type')}] {q.get('question_text')}\n"
         
+        # Build section instructions for prompt
+        section_instructions = ""
+        bengali_labels = ['ক', 'খ', 'গ', 'ঘ', 'ঙ', 'চ', 'ছ', 'জ']
+        for i, sec in enumerate(section_requirements):
+            label = bengali_labels[i] if i < len(bengali_labels) else chr(ord('ক') + i)
+            section_instructions += f"- {label} বিভাগ: {sec['name']} - {sec['count']} questions x {sec['marks']} marks each\n"
+        
         prompt = f"""You are an expert Bengali school exam paper creator. Generate a complete question paper for:
 
 Class: {class_name}
@@ -26698,9 +26733,10 @@ Total Marks: {total_marks}
 Duration: {duration_minutes} minutes
 Exam Type: {exam_type}
 Difficulty Mix: {difficulty_mix}
-Total Questions: {total_questions} (distribute across all sections)
+Total Questions: {total_questions}
 
-Sections to include: {', '.join(include_sections)}
+IMPORTANT: Generate EXACTLY the following sections with the specified question counts:
+{section_instructions}
 
 {existing_questions_text}
 
