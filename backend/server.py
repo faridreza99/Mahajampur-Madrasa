@@ -26604,11 +26604,21 @@ async def get_printable_paper(
     
     # Fetch full question details for each section
     for section in paper.get("sections", []):
-        question_ids = section.get("question_ids", [])
-        if question_ids:
-            questions = await db.question_bank.find({"id": {"$in": question_ids}}).to_list(len(question_ids))
-            questions_map = {q["id"]: q for q in questions}
-            section["questions"] = [questions_map.get(qid, {}) for qid in question_ids if qid in questions_map]
+        # Check if questions are already inline (from AI generation)
+        if section.get("questions") and len(section.get("questions", [])) > 0:
+            # Questions are already present, just ensure they have IDs
+            for i, q in enumerate(section.get("questions", [])):
+                if not q.get("id"):
+                    q["id"] = f"q_{i+1}"
+        else:
+            # Fetch from question bank using question_ids
+            question_ids = section.get("question_ids", [])
+            if question_ids:
+                questions = await db.question_bank.find({"id": {"$in": question_ids}}).to_list(len(question_ids))
+                questions_map = {q["id"]: q for q in questions}
+                section["questions"] = [questions_map.get(qid, {}) for qid in question_ids if qid in questions_map]
+            else:
+                section["questions"] = []
     
     paper["_id"] = str(paper.get("_id", ""))
     
