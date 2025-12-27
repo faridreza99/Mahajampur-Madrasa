@@ -3,7 +3,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { 
   FileText, Plus, Trash2, Search, Printer, Save, Eye, 
-  ChevronDown, ChevronUp, GripVertical, X, BookOpen
+  ChevronDown, ChevronUp, GripVertical, X, BookOpen, Sparkles, Loader2
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -61,6 +61,17 @@ const QuestionPaperBuilder = () => {
     search: '',
     question_type: 'all',
     difficulty: 'all'
+  });
+
+  const [isAIDialogOpen, setIsAIDialogOpen] = useState(false);
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiForm, setAiForm] = useState({
+    class_name: '',
+    subject: '',
+    total_marks: 100,
+    duration_minutes: 120,
+    exam_type: 'বার্ষিক পরীক্ষা',
+    difficulty_mix: 'balanced'
   });
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
@@ -238,6 +249,43 @@ const QuestionPaperBuilder = () => {
     }
   };
 
+  const handleAIGenerate = async () => {
+    if (!aiForm.class_name || !aiForm.subject) {
+      toast.error('Please select class and subject');
+      return;
+    }
+
+    try {
+      setAiGenerating(true);
+      const token = localStorage.getItem('token');
+      
+      const response = await axios.post(`${API_BASE_URL}/question-papers/ai-generate`, aiForm, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      toast.success('Question paper generated successfully!');
+      setIsAIDialogOpen(false);
+      setAiForm({
+        class_name: '',
+        subject: '',
+        total_marks: 100,
+        duration_minutes: 120,
+        exam_type: 'বার্ষিক পরীক্ষা',
+        difficulty_mix: 'balanced'
+      });
+      fetchPapers();
+      
+      if (response.data.paper) {
+        handleEditPaper(response.data.paper);
+      }
+    } catch (error) {
+      console.error('AI generation error:', error);
+      toast.error(error.response?.data?.detail || 'Failed to generate question paper');
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
   const handleAddSection = (template) => {
     const newSection = {
       section_number: paperForm.sections.length + 1,
@@ -334,10 +382,16 @@ const QuestionPaperBuilder = () => {
           </h1>
           <p className="text-gray-600 dark:text-gray-400">Create and print exam papers with school branding</p>
         </div>
-        <Button onClick={handleCreatePaper} className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="h-4 w-4 mr-2" />
-          নতুন প্রশ্নপত্র / New Paper
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={handleCreatePaper} className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="h-4 w-4 mr-2" />
+            নতুন প্রশ্নপত্র / New Paper
+          </Button>
+          <Button onClick={() => setIsAIDialogOpen(true)} className="bg-purple-600 hover:bg-purple-700">
+            <Sparkles className="h-4 w-4 mr-2" />
+            AI প্রশ্নপত্র / AI Generate
+          </Button>
+        </div>
       </div>
 
       {loading && papers.length === 0 ? (
@@ -712,6 +766,130 @@ const QuestionPaperBuilder = () => {
             <Button onClick={handlePrint} className="bg-blue-600 hover:bg-blue-700">
               <Printer className="h-4 w-4 mr-2" />
               Print
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isAIDialogOpen} onOpenChange={setIsAIDialogOpen}>
+        <DialogContent className="max-w-lg dark:bg-gray-800">
+          <DialogHeader>
+            <DialogTitle className="dark:text-white flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-purple-500" />
+              AI প্রশ্নপত্র তৈরি / AI Question Paper Generator
+            </DialogTitle>
+            <DialogDescription className="dark:text-gray-400">
+              AI will create a complete question paper with sections and questions in Bengali
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="dark:text-gray-300">Class / শ্রেণী</Label>
+                <Select value={aiForm.class_name} onValueChange={(value) => setAiForm({ ...aiForm, class_name: value })}>
+                  <SelectTrigger className="dark:bg-gray-900 dark:border-gray-600 dark:text-white">
+                    <SelectValue placeholder="Select class" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {classes.map(cls => (
+                      <SelectItem key={cls.id || cls.name} value={cls.name}>{cls.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="dark:text-gray-300">Subject / বিষয়</Label>
+                <Select value={aiForm.subject} onValueChange={(value) => setAiForm({ ...aiForm, subject: value })}>
+                  <SelectTrigger className="dark:bg-gray-900 dark:border-gray-600 dark:text-white">
+                    <SelectValue placeholder="Select subject" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subjects.map(sub => (
+                      <SelectItem key={sub.id || sub.name} value={sub.name}>{sub.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="dark:text-gray-300">Total Marks / মোট নম্বর</Label>
+                <Input
+                  type="number"
+                  value={aiForm.total_marks}
+                  onChange={(e) => setAiForm({ ...aiForm, total_marks: parseInt(e.target.value) || 100 })}
+                  className="dark:bg-gray-900 dark:border-gray-600 dark:text-white"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="dark:text-gray-300">Duration (minutes)</Label>
+                <Input
+                  type="number"
+                  value={aiForm.duration_minutes}
+                  onChange={(e) => setAiForm({ ...aiForm, duration_minutes: parseInt(e.target.value) || 120 })}
+                  className="dark:bg-gray-900 dark:border-gray-600 dark:text-white"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="dark:text-gray-300">Exam Type / পরীক্ষার ধরন</Label>
+              <Select value={aiForm.exam_type} onValueChange={(value) => setAiForm({ ...aiForm, exam_type: value })}>
+                <SelectTrigger className="dark:bg-gray-900 dark:border-gray-600 dark:text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="বার্ষিক পরীক্ষা">বার্ষিক পরীক্ষা (Annual Exam)</SelectItem>
+                  <SelectItem value="অর্ধ-বার্ষিক পরীক্ষা">অর্ধ-বার্ষিক পরীক্ষা (Half-Yearly)</SelectItem>
+                  <SelectItem value="প্রথম সাময়িক পরীক্ষা">প্রথম সাময়িক পরীক্ষা (1st Term)</SelectItem>
+                  <SelectItem value="দ্বিতীয় সাময়িক পরীক্ষা">দ্বিতীয় সাময়িক পরীক্ষা (2nd Term)</SelectItem>
+                  <SelectItem value="মডেল টেস্ট">মডেল টেস্ট (Model Test)</SelectItem>
+                  <SelectItem value="সাপ্তাহিক পরীক্ষা">সাপ্তাহিক পরীক্ষা (Weekly Test)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="dark:text-gray-300">Difficulty Mix</Label>
+              <Select value={aiForm.difficulty_mix} onValueChange={(value) => setAiForm({ ...aiForm, difficulty_mix: value })}>
+                <SelectTrigger className="dark:bg-gray-900 dark:border-gray-600 dark:text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="balanced">Balanced (Easy, Medium, Hard)</SelectItem>
+                  <SelectItem value="easy">Mostly Easy</SelectItem>
+                  <SelectItem value="medium">Mostly Medium</SelectItem>
+                  <SelectItem value="challenging">Challenging</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg">
+              <p className="text-sm text-purple-700 dark:text-purple-300">
+                AI will generate a complete question paper with multiple sections including:
+                একশব্দে উত্তর, শূন্যস্থান পূরণ, সত্য/মিথ্যা, সংক্ষেপে উত্তর, এবং রচনামূলক প্রশ্ন
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAIDialogOpen(false)} disabled={aiGenerating}>
+              Cancel
+            </Button>
+            <Button onClick={handleAIGenerate} className="bg-purple-600 hover:bg-purple-700" disabled={aiGenerating}>
+              {aiGenerating ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Generate Paper
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

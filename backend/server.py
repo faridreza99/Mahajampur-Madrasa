@@ -26624,6 +26624,187 @@ async def get_printable_paper(
         }
     }
 
+
+@api_router.post("/question-papers/ai-generate")
+async def ai_generate_question_paper(
+    request: Request,
+    current_user: User = Depends(get_current_user)
+):
+    """AI-powered question paper generation"""
+    if current_user.role not in ["super_admin", "admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    try:
+        from openai import AsyncOpenAI
+        import json
+        
+        data = await request.json()
+        class_name = data.get("class_name", "")
+        subject = data.get("subject", "")
+        total_marks = data.get("total_marks", 100)
+        duration_minutes = data.get("duration_minutes", 120)
+        exam_type = data.get("exam_type", "বার্ষিক পরীক্ষা")
+        difficulty_mix = data.get("difficulty_mix", "balanced")
+        include_sections = data.get("include_sections", [
+            "একশব্দে উত্তর দাও",
+            "শূন্যস্থান পূরণ কর",
+            "সত্য/মিথ্যা লেখ",
+            "সংক্ষেপে উত্তর দাও",
+            "রচনামূলক প্রশ্নের উত্তর দাও"
+        ])
+        
+        if not class_name or not subject:
+            raise HTTPException(status_code=400, detail="Class and subject are required")
+        
+        # Initialize OpenAI client
+        openai_client = AsyncOpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
+        
+        # Get existing questions from the Question Bank for this class/subject
+        existing_questions = await db.question_bank.find({
+            "tenant_id": current_user.tenant_id,
+            "class_name": class_name,
+            "subject": subject,
+            "is_active": True
+        }).to_list(100)
+        
+        existing_questions_text = ""
+        if existing_questions:
+            existing_questions_text = "\n\nExisting questions in the Question Bank that you can reference:\n"
+            for i, q in enumerate(existing_questions[:20], 1):
+                existing_questions_text += f"{i}. [{q.get('question_type')}] {q.get('question_text')}\n"
+        
+        prompt = f"""You are an expert Bengali school exam paper creator. Generate a complete question paper for:
+
+Class: {class_name}
+Subject: {subject}
+Total Marks: {total_marks}
+Duration: {duration_minutes} minutes
+Exam Type: {exam_type}
+Difficulty Mix: {difficulty_mix}
+
+Sections to include: {', '.join(include_sections)}
+
+{existing_questions_text}
+
+Create a well-structured question paper with the following sections. For each section, provide appropriate questions in Bengali following Bangladeshi school examination format.
+
+Return ONLY a valid JSON object with this exact structure:
+{{
+    "title_bn": "{exam_type}",
+    "title_en": "Examination",
+    "sections": [
+        {{
+            "section_title_bn": "ক বিভাগ: একশব্দে উত্তর দাও",
+            "section_type": "one_word",
+            "marks_per_question": 1,
+            "questions": [
+                {{
+                    "question_text": "প্রশ্নের টেক্সট বাংলায়",
+                    "question_type": "short_answer",
+                    "correct_answer": "উত্তর",
+                    "difficulty": "easy"
+                }}
+            ]
+        }}
+    ]
+}}
+
+Important:
+- All question texts MUST be in Bengali (বাংলা)
+- Distribute marks evenly to reach total marks of {total_marks}
+- Include a good mix of easy, medium, and hard questions
+- Use Bengali section labels (ক বিভাগ, খ বিভাগ, etc.)
+- Return ONLY the JSON, no markdown or explanation"""
+
+        response = await openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant that creates Bengali school examination papers. Always respond with valid JSON only."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=4000
+        )
+        
+        result_text = response.choices[0].message.content.strip()
+        
+        # Clean up markdown if present
+        if result_text.startswith("```"):
+            lines = result_text.split("\n")
+            result_text = "\n".join(lines[1:-1] if lines[-1] == "```" else lines[1:])
+        
+        try:
+            paper_data = json.loads(result_text)
+        except json.JSONDecodeError:
+            # Try to extract JSON from the response
+            import re
+            json_match = re.search(r'\{.*\}', result_text, re.DOTALL)
+            if json_match:
+                paper_data = json.loads(json_match.group())
+            else:
+                raise HTTPException(status_code=500, detail="Failed to parse AI response")
+        
+        # Create paper structure
+        paper_id = str(uuid.uuid4())
+        sections = []
+        
+        for idx, section in enumerate(paper_data.get("sections", [])):
+            section_questions = []
+            for q in section.get("questions", []):
+                q_id = str(uuid.uuid4())
+                section_questions.append({
+                    "id": q_id,
+                    "question_text": q.get("question_text", ""),
+                    "question_type": q.get("question_type", "short_answer"),
+                    "correct_answer": q.get("correct_answer", ""),
+                    "difficulty": q.get("difficulty", "medium"),
+                    "options": q.get("options", [])
+                })
+            
+            sections.append({
+                "section_title_bn": section.get("section_title_bn", f"বিভাগ {idx + 1}"),
+                "section_type": section.get("section_type", "general"),
+                "marks_per_question": section.get("marks_per_question", 1),
+                "questions": section_questions
+            })
+        
+        paper = {
+            "id": paper_id,
+            "tenant_id": current_user.tenant_id,
+            "title_bn": paper_data.get("title_bn", exam_type),
+            "title_en": paper_data.get("title_en", "Examination"),
+            "class_name": class_name,
+            "subject": subject,
+            "exam_year": str(datetime.now().year),
+            "duration_minutes": duration_minutes,
+            "total_marks": total_marks,
+            "sections": sections,
+            "is_active": True,
+            "is_ai_generated": True,
+            "created_by": current_user.id,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+        
+        # Save to database
+        await db.question_papers.insert_one(paper)
+        
+        paper["_id"] = str(paper.get("_id", ""))
+        
+        logger.info(f"AI generated question paper for {class_name}/{subject} by {current_user.email}")
+        
+        return {
+            "message": "Question paper generated successfully",
+            "paper": paper
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating AI question paper: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate question paper: {str(e)}")
+
+
 # ==================== SCHOOL BRANDING ENDPOINTS ====================
 
 @api_router.get("/school-branding")
