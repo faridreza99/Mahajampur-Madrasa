@@ -26296,9 +26296,9 @@ Return a valid JSON array. Each object must have:
 Return ONLY valid JSON array, no markdown or code blocks."""
 
     try:
-        client = get_openai_client()
-        response = await asyncio.to_thread(
-            client.chat.completions.create,
+        from openai import AsyncOpenAI
+        openai_client = AsyncOpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
+        response = await openai_client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You are an expert teacher. Return only valid JSON arrays."},
