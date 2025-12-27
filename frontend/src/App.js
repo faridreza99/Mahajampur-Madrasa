@@ -36,6 +36,8 @@ import AILogs from "./components/AILogs";
 import AcademicCMS from "./components/AcademicCMS";
 import QuizTool from "./components/QuizTool";
 import TestGenerator from "./components/TestGenerator";
+import QuestionBank from "./components/QuestionBank";
+import SchoolBranding from "./components/SchoolBranding";
 import AISummary from "./components/AISummary";
 import AINotes from "./components/AINotes";
 import Notifications from "./components/Notifications";
@@ -533,6 +535,14 @@ function App() {
                   }
                 />
                 <Route
+                  path="/school-branding"
+                  element={
+                    <ProtectedRoute>
+                      <SchoolBranding />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/subscription-history"
                   element={
                     <ProtectedRoute>
@@ -577,6 +587,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <TestGenerator />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/question-bank"
+                  element={
+                    <ProtectedRoute>
+                      <QuestionBank />
                     </ProtectedRoute>
                   }
                 />

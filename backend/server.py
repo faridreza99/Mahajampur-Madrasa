@@ -25931,7 +25931,6 @@ async def upload_student_self_photo(
 # ============================================================================
 
 # Include router and middleware
-app.include_router(api_router)
 
 # Define allowed origins for CORS
 # When allow_credentials=True, you cannot use '*' - must list specific origins
@@ -26035,3 +26034,375 @@ async def startup_db_client():
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+
+# ==================== QUESTION BANK ENDPOINTS ====================
+
+@api_router.get("/question-bank")
+async def get_question_bank(
+    subject: str = None,
+    class_name: str = None,
+    chapter: str = None,
+    difficulty: str = None,
+    question_type: str = None,
+    search: str = None,
+    page: int = 1,
+    limit: int = 20,
+    current_user: User = Depends(get_current_user)
+):
+    """Get questions from the question bank with filtering"""
+    try:
+        tenant_id = current_user.tenant_id
+        questions_collection = db["question_bank"]
+        
+        query = {"tenant_id": tenant_id}
+        
+        if subject:
+            query["subject"] = subject
+        if class_name:
+            query["class_name"] = class_name
+        if chapter:
+            query["chapter"] = chapter
+        if difficulty:
+            query["difficulty"] = difficulty
+        if question_type:
+            query["question_type"] = question_type
+        if search:
+            query["$or"] = [
+                {"question_text": {"$regex": search, "$options": "i"}},
+                {"chapter": {"$regex": search, "$options": "i"}}
+            ]
+        
+        total = await questions_collection.count_documents(query)
+        skip = (page - 1) * limit
+        
+        questions = await questions_collection.find(query).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+        
+        result = []
+        for q in questions:
+            q.pop("_id", None)
+            result.append(q)
+        
+        return {
+            "questions": result,
+            "total": total,
+            "page": page,
+            "limit": limit,
+            "pages": (total + limit - 1) // limit
+        }
+    except Exception as e:
+        logger.error(f"Question bank fetch failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/question-bank")
+async def create_question(
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new question in the question bank"""
+    if current_user.role not in ["super_admin", "admin", "teacher", "principal"]:
+        raise HTTPException(status_code=403, detail="Not authorized to create questions")
+    
+    try:
+        tenant_id = current_user.tenant_id
+        questions_collection = db["question_bank"]
+        
+        question = {
+            "id": str(uuid.uuid4()),
+            "tenant_id": tenant_id,
+            "question_text": data.get("question_text"),
+            "question_type": data.get("question_type", "mcq"),
+            "subject": data.get("subject"),
+            "class_name": data.get("class_name"),
+            "chapter": data.get("chapter", ""),
+            "topic": data.get("topic", ""),
+            "difficulty": data.get("difficulty", "medium"),
+            "marks": data.get("marks", 1),
+            "options": data.get("options", []),
+            "correct_answer": data.get("correct_answer"),
+            "explanation": data.get("explanation", ""),
+            "hints": data.get("hints", []),
+            "tags": data.get("tags", []),
+            "created_by": current_user.id,
+            "created_by_name": current_user.full_name or current_user.username,
+            "created_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.utcnow().isoformat(),
+            "is_active": True,
+            "usage_count": 0
+        }
+        
+        await questions_collection.insert_one(question)
+        question.pop("_id", None)
+        
+        logger.info(f"Question created by {current_user.email}: {question['id']}")
+        return {"message": "Question created successfully", "question": question}
+    except Exception as e:
+        logger.error(f"Question creation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.put("/question-bank/{question_id}")
+async def update_question(
+    question_id: str,
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Update an existing question"""
+    if current_user.role not in ["super_admin", "admin", "teacher", "principal"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    try:
+        questions_collection = db["question_bank"]
+        
+        existing = await questions_collection.find_one({
+            "id": question_id,
+            "tenant_id": current_user.tenant_id
+        })
+        
+        if not existing:
+            raise HTTPException(status_code=404, detail="Question not found")
+        
+        update_data = {
+            "question_text": data.get("question_text", existing.get("question_text")),
+            "question_type": data.get("question_type", existing.get("question_type")),
+            "subject": data.get("subject", existing.get("subject")),
+            "class_name": data.get("class_name", existing.get("class_name")),
+            "chapter": data.get("chapter", existing.get("chapter")),
+            "topic": data.get("topic", existing.get("topic")),
+            "difficulty": data.get("difficulty", existing.get("difficulty")),
+            "marks": data.get("marks", existing.get("marks")),
+            "options": data.get("options", existing.get("options")),
+            "correct_answer": data.get("correct_answer", existing.get("correct_answer")),
+            "explanation": data.get("explanation", existing.get("explanation")),
+            "hints": data.get("hints", existing.get("hints")),
+            "tags": data.get("tags", existing.get("tags")),
+            "updated_at": datetime.utcnow().isoformat()
+        }
+        
+        await questions_collection.update_one(
+            {"id": question_id},
+            {"$set": update_data}
+        )
+        
+        return {"message": "Question updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Question update failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.delete("/question-bank/{question_id}")
+async def delete_question(
+    question_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a question from the question bank"""
+    if current_user.role not in ["super_admin", "admin", "teacher", "principal"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    try:
+        questions_collection = db["question_bank"]
+        
+        result = await questions_collection.delete_one({
+            "id": question_id,
+            "tenant_id": current_user.tenant_id
+        })
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Question not found")
+        
+        return {"message": "Question deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Question deletion failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/question-bank/stats")
+async def get_question_bank_stats(
+    current_user: User = Depends(get_current_user)
+):
+    """Get question bank statistics"""
+    try:
+        tenant_id = current_user.tenant_id
+        questions_collection = db["question_bank"]
+        
+        total = await questions_collection.count_documents({"tenant_id": tenant_id})
+        
+        by_type = {}
+        for qtype in ["mcq", "short_answer", "essay", "true_false", "fill_blank"]:
+            count = await questions_collection.count_documents({"tenant_id": tenant_id, "question_type": qtype})
+            by_type[qtype] = count
+        
+        by_difficulty = {}
+        for diff in ["easy", "medium", "hard"]:
+            count = await questions_collection.count_documents({"tenant_id": tenant_id, "difficulty": diff})
+            by_difficulty[diff] = count
+        
+        subjects = await questions_collection.distinct("subject", {"tenant_id": tenant_id})
+        
+        return {
+            "total_questions": total,
+            "by_type": by_type,
+            "by_difficulty": by_difficulty,
+            "subjects": subjects,
+            "subject_count": len(subjects)
+        }
+    except Exception as e:
+        logger.error(f"Question stats failed: {e}")
+        return {"total_questions": 0, "by_type": {}, "by_difficulty": {}, "subjects": []}
+
+
+# ==================== SCHOOL BRANDING ENDPOINTS ====================
+
+@api_router.get("/school-branding")
+async def get_school_branding(
+    tenant_id: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get school branding settings"""
+    try:
+        tid = tenant_id or current_user.tenant_id
+        branding_collection = db["school_branding"]
+        
+        branding = await branding_collection.find_one({"tenant_id": tid})
+        
+        if not branding:
+            return {
+                "tenant_id": tid,
+                "school_name": "School ERP",
+                "tagline": "Smart School Management System",
+                "logo_url": None,
+                "favicon_url": None,
+                "primary_color": "#10B981",
+                "secondary_color": "#3B82F6",
+                "accent_color": "#8B5CF6",
+                "address": "",
+                "phone": "",
+                "email": "",
+                "website": "",
+                "eiin_number": "",
+                "established_year": "",
+                "principal_name": "",
+                "principal_signature_url": None
+            }
+        
+        branding.pop("_id", None)
+        return branding
+    except Exception as e:
+        logger.error(f"School branding fetch failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/school-branding/public/{tenant_code}")
+async def get_public_school_branding(tenant_code: str):
+    """Get public school branding for login page (no auth required)"""
+    try:
+        branding_collection = db["school_branding"]
+        
+        branding = await branding_collection.find_one({"tenant_id": tenant_code})
+        
+        if not branding:
+            school = await db.schools.find_one({"tenant_id": tenant_code})
+            if school:
+                return {
+                    "school_name": school.get("name", "School ERP"),
+                    "tagline": school.get("tagline", "Smart School Management System"),
+                    "logo_url": school.get("logo_url"),
+                    "primary_color": "#10B981",
+                    "tenant_id": tenant_code
+                }
+            return {
+                "school_name": "School ERP",
+                "tagline": "Smart School Management System",
+                "logo_url": None,
+                "primary_color": "#10B981",
+                "tenant_id": tenant_code
+            }
+        
+        return {
+            "school_name": branding.get("school_name", "School ERP"),
+            "tagline": branding.get("tagline", "Smart School Management System"),
+            "logo_url": branding.get("logo_url"),
+            "primary_color": branding.get("primary_color", "#10B981"),
+            "favicon_url": branding.get("favicon_url"),
+            "tenant_id": tenant_code
+        }
+    except Exception as e:
+        logger.error(f"Public branding fetch failed: {e}")
+        return {"school_name": "School ERP", "tagline": "Smart School Management System", "logo_url": None, "primary_color": "#10B981"}
+
+@api_router.put("/school-branding")
+async def update_school_branding(
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Update school branding settings"""
+    if current_user.role not in ["super_admin", "admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    try:
+        tenant_id = current_user.tenant_id
+        branding_collection = db["school_branding"]
+        
+        branding_data = {
+            "tenant_id": tenant_id,
+            "school_name": data.get("school_name", "School ERP"),
+            "tagline": data.get("tagline", ""),
+            "logo_url": data.get("logo_url"),
+            "favicon_url": data.get("favicon_url"),
+            "primary_color": data.get("primary_color", "#10B981"),
+            "secondary_color": data.get("secondary_color", "#3B82F6"),
+            "accent_color": data.get("accent_color", "#8B5CF6"),
+            "address": data.get("address", ""),
+            "phone": data.get("phone", ""),
+            "email": data.get("email", ""),
+            "website": data.get("website", ""),
+            "eiin_number": data.get("eiin_number", ""),
+            "established_year": data.get("established_year", ""),
+            "principal_name": data.get("principal_name", ""),
+            "principal_signature_url": data.get("principal_signature_url"),
+            "updated_at": datetime.utcnow().isoformat(),
+            "updated_by": current_user.id
+        }
+        
+        await branding_collection.update_one(
+            {"tenant_id": tenant_id},
+            {"$set": branding_data},
+            upsert=True
+        )
+        
+        logger.info(f"School branding updated by {current_user.email}")
+        return {"message": "School branding updated successfully", "branding": branding_data}
+    except Exception as e:
+        logger.error(f"School branding update failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/school-branding/upload-logo")
+async def upload_school_logo(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    """Upload school logo"""
+    if current_user.role not in ["super_admin", "admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    try:
+        import base64
+        contents = await file.read()
+        
+        ext = file.filename.split('.')[-1].lower() if '.' in file.filename else 'png'
+        if ext not in ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg']:
+            raise HTTPException(status_code=400, detail="Invalid file type")
+        
+        mime_type = f"image/{ext}" if ext != 'svg' else "image/svg+xml"
+        base64_data = base64.b64encode(contents).decode('utf-8')
+        data_url = f"data:{mime_type};base64,{base64_data}"
+        
+        return {"logo_url": data_url, "message": "Logo uploaded successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Logo upload failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Include router at the end after all routes are defined
+app.include_router(api_router)

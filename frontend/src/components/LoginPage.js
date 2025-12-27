@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { useAuth } from '../App';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -16,6 +17,15 @@ const LoginPage = () => {
     password: '',
     tenantId: ''
   });
+  
+  const [schoolBranding, setSchoolBranding] = useState({
+    school_name: 'School ERP',
+    tagline: 'Sign in to your account',
+    logo_url: null,
+    primary_color: '#10B981'
+  });
+  
+  const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
   
   const [registerData, setRegisterData] = useState({
     email: '',
@@ -37,6 +47,37 @@ const LoginPage = () => {
     i18n.changeLanguage(newLang);
     setCurrentLang(newLang);
   };
+
+  const fetchSchoolBranding = useCallback(async (tenantCode) => {
+    if (!tenantCode || tenantCode.length < 2) return;
+    try {
+      const response = await axios.get(`${API_BASE_URL}/school-branding/public/${tenantCode}`);
+      if (response.data && response.data.school_name) {
+        setSchoolBranding({
+          school_name: response.data.school_name,
+          tagline: response.data.tagline || 'Sign in to your account',
+          logo_url: response.data.logo_url,
+          primary_color: response.data.primary_color || '#10B981'
+        });
+      }
+    } catch (error) {
+      setSchoolBranding({
+        school_name: 'School ERP',
+        tagline: 'Sign in to your account',
+        logo_url: null,
+        primary_color: '#10B981'
+      });
+    }
+  }, [API_BASE_URL]);
+
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      if (loginData.tenantId) {
+        fetchSchoolBranding(loginData.tenantId);
+      }
+    }, 500);
+    return () => clearTimeout(debounceTimer);
+  }, [loginData.tenantId, fetchSchoolBranding]);
 
   const t = (key) => {
     return i18n.t(key);
@@ -122,15 +163,27 @@ const LoginPage = () => {
           </Button>
         </div>
 
-        {/* Header */}
+        {/* Header - Dynamic School Branding */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
-            <div className="bg-emerald-500 p-3 rounded-xl">
-              <GraduationCap className="h-8 w-8 text-white" />
-            </div>
+            {schoolBranding.logo_url ? (
+              <img 
+                src={schoolBranding.logo_url} 
+                alt={schoolBranding.school_name} 
+                className="h-16 w-16 object-contain rounded-xl"
+              />
+            ) : (
+              <div className="p-3 rounded-xl" style={{ backgroundColor: schoolBranding.primary_color }}>
+                <GraduationCap className="h-8 w-8 text-white" />
+              </div>
+            )}
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">School ERP</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">{t('auth.loginTitle')}</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white" style={{ color: schoolBranding.primary_color }}>
+            {schoolBranding.school_name}
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
+            {schoolBranding.tagline || t('auth.loginTitle')}
+          </p>
         </div>
 
         {/* Features showcase */}

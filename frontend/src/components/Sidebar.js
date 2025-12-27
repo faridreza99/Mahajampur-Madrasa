@@ -50,12 +50,40 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const [, forceUpdate] = useState(0);
   const [allowedModules, setAllowedModules] = useState(null);
   const [modulesLoaded, setModulesLoaded] = useState(false);
+  const [schoolBranding, setSchoolBranding] = useState({
+    school_name: 'School ERP',
+    logo_url: null,
+    primary_color: '#10B981'
+  });
 
   useEffect(() => {
     const handleLanguageChange = () => forceUpdate((n) => n + 1);
     i18n.on("languageChanged", handleLanguageChange);
     return () => i18n.off("languageChanged", handleLanguageChange);
   }, []);
+
+  useEffect(() => {
+    const fetchSchoolBranding = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+        const response = await fetch("/api/school-branding", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setSchoolBranding({
+            school_name: data.school_name || 'School ERP',
+            logo_url: data.logo_url,
+            primary_color: data.primary_color || '#10B981'
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching branding:", error);
+      }
+    };
+    fetchSchoolBranding();
+  }, [user]);
 
   useEffect(() => {
     const fetchAllowedModules = async () => {
@@ -309,6 +337,11 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           roles: ["super_admin", "admin", "teacher"],
         },
         {
+          title: "Question Bank",
+          path: "/question-bank",
+          roles: ["super_admin", "admin", "teacher"],
+        },
+        {
           title: "AI Summary",
           path: "/ai-summary",
           roles: ["super_admin", "admin", "teacher", "student"],
@@ -380,6 +413,11 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           title: "System Settings",
           path: "/system-settings",
           roles: ["super_admin"],
+        },
+        {
+          title: "School Branding",
+          path: "/school-branding",
+          roles: ["super_admin", "admin"],
         },
         {
           title: "Vehicle/Transport",
@@ -514,15 +552,23 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
-      {/* Header */}
+      {/* Header - Dynamic School Branding */}
       <div className="p-6 border-b border-white/10">
         <div className="flex items-center space-x-3">
-          <div className="bg-emerald-500 p-2 rounded-lg">
-            <GraduationCap className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-white font-bold text-lg">School ERP</h1>
-            <p className="text-gray-300 text-xs">{user?.full_name}</p>
+          {schoolBranding.logo_url ? (
+            <img 
+              src={schoolBranding.logo_url} 
+              alt={schoolBranding.school_name} 
+              className="h-10 w-10 object-contain rounded-lg bg-white p-1"
+            />
+          ) : (
+            <div className="p-2 rounded-lg" style={{ backgroundColor: schoolBranding.primary_color }}>
+              <GraduationCap className="h-6 w-6 text-white" />
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <h1 className="text-white font-bold text-lg truncate">{schoolBranding.school_name}</h1>
+            <p className="text-gray-300 text-xs truncate">{user?.full_name}</p>
           </div>
         </div>
       </div>
