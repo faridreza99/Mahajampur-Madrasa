@@ -871,16 +871,31 @@ const QuestionPaperBuilder = () => {
       <style>{`
         @media print {
           body * {
-            visibility: hidden;
+            visibility: hidden !important;
           }
-          #print-content, #print-content * {
-            visibility: visible;
+          #print-content,
+          #print-content * {
+            visibility: visible !important;
+            color: black !important;
           }
           #print-content {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
+            position: fixed !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            padding: 20px !important;
+            background: white !important;
+            z-index: 99999 !important;
+          }
+          #print-content h1,
+          #print-content h2,
+          #print-content p,
+          #print-content span,
+          #print-content div {
+            color: black !important;
+          }
+          .print\\:hidden {
+            display: none !important;
           }
         }
       `}</style>
