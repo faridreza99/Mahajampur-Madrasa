@@ -26645,16 +26645,16 @@ async def ai_generate_question_paper(
         duration_minutes = data.get("duration_minutes", 120)
         exam_type = data.get("exam_type", "বার্ষিক পরীক্ষা")
         difficulty_mix = data.get("difficulty_mix", "balanced")
-        # Map section IDs to Bengali names with marks
+        # Map section IDs to Bengali names with marks and description
         section_info = {
-            'one_word': {'name': 'একশব্দে উত্তর দাও', 'marks': 1},
-            'fill_blanks': {'name': 'শূন্যস্থান পূরণ কর', 'marks': 1},
-            'true_false': {'name': 'সত্য/মিথ্যা লেখ', 'marks': 1},
-            'mcq': {'name': 'বহুনির্বাচনী প্রশ্ন', 'marks': 1},
-            'short_answer': {'name': 'সংক্ষেপে উত্তর দাও', 'marks': 2},
-            'matching': {'name': 'মিলকরণ', 'marks': 1},
-            'descriptive': {'name': 'রচনামূলক প্রশ্নের উত্তর দাও', 'marks': 5},
-            'application': {'name': 'প্রয়োগমূলক প্রশ্ন', 'marks': 5}
+            'one_word': {'name': 'একশব্দে উত্তর দাও', 'marks': 1, 'desc': 'Simple factual questions with one-word answers (names, numbers, dates)'},
+            'fill_blanks': {'name': 'শূন্যস্থান পূরণ কর', 'marks': 1, 'desc': 'Sentences with blanks to fill in the missing word'},
+            'true_false': {'name': 'সত্য/মিথ্যা লেখ', 'marks': 1, 'desc': 'Statements to mark as true or false'},
+            'mcq': {'name': 'বহুনির্বাচনী প্রশ্ন', 'marks': 1, 'desc': 'Questions with 4 options (ক, খ, গ, ঘ) to choose from'},
+            'short_answer': {'name': 'সংক্ষেপে উত্তর দাও', 'marks': 2, 'desc': 'Short answer questions requiring 2-3 sentences'},
+            'matching': {'name': 'মিলকরণ', 'marks': 1, 'desc': 'Match items from left column with right column'},
+            'descriptive': {'name': 'রচনামূলক প্রশ্নের উত্তর দাও', 'marks': 5, 'desc': 'ESSAY/LONG ANSWER questions requiring detailed explanation in 10-15 sentences. Examples: "বর্ণনা কর", "ব্যাখ্যা কর", "আলোচনা কর"'},
+            'application': {'name': 'প্রয়োগমূলক প্রশ্ন', 'marks': 5, 'desc': 'Application-based problems requiring practical knowledge application'}
         }
         
         # Handle new section_config format with per-section question counts
@@ -26671,7 +26671,8 @@ async def ai_generate_question_paper(
                         "id": section_id,
                         "name": section_info[section_id]["name"],
                         "marks": section_info[section_id]["marks"],
-                        "count": question_count
+                        "count": question_count,
+                        "desc": section_info[section_id].get("desc", "")
                     })
                     total_questions += question_count
         else:
@@ -26718,12 +26719,13 @@ async def ai_generate_question_paper(
             for i, q in enumerate(existing_questions[:20], 1):
                 existing_questions_text += f"{i}. [{q.get('question_type')}] {q.get('question_text')}\n"
         
-        # Build section instructions for prompt
+        # Build section instructions for prompt with descriptions
         section_instructions = ""
         bengali_labels = ['ক', 'খ', 'গ', 'ঘ', 'ঙ', 'চ', 'ছ', 'জ']
         for i, sec in enumerate(section_requirements):
             label = bengali_labels[i] if i < len(bengali_labels) else chr(ord('ক') + i)
-            section_instructions += f"- {label} বিভাগ: {sec['name']} - {sec['count']} questions x {sec['marks']} marks each\n"
+            desc = section_info.get(sec['id'], {}).get('desc', '')
+            section_instructions += f"- {label} বিভাগ: {sec['name']} - {sec['count']} questions x {sec['marks']} marks each\n  Type: {desc}\n"
         
         prompt = f"""You are an expert Bengali school exam paper creator. Generate a complete question paper for:
 
