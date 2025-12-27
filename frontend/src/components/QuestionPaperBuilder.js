@@ -809,7 +809,7 @@ const QuestionPaperBuilder = () => {
       </Dialog>
 
       <Dialog open={isAIDialogOpen} onOpenChange={setIsAIDialogOpen}>
-        <DialogContent className="max-w-lg dark:bg-gray-800">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto dark:bg-gray-800">
           <DialogHeader>
             <DialogTitle className="dark:text-white flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-purple-500" />
