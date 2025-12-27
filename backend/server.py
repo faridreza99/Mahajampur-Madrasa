@@ -10989,6 +10989,69 @@ async def _determine_attendance_status(punch_record: dict, conn):
         logger.error(f"Error determining attendance status: {e}")
         return {"status": "unknown", "type": "error"}
 
+
+@api_router.get("/biometric/dashboard-stats")
+async def get_biometric_dashboard_stats(
+    current_user: User = Depends(get_current_user)
+):
+    """Get biometric dashboard statistics"""
+    try:
+        tenant_id = current_user.tenant_id
+        devices_collection = db["biometric_devices"]
+        punch_collection = db["biometric_punches"]
+        
+        # Get device stats
+        devices = await devices_collection.find({"tenant_id": tenant_id}).to_list(1000)
+        total_devices = len(devices)
+        online_devices = len([d for d in devices if d.get("status") == "active"])
+        
+        # Get today's punches
+        today = datetime.now().strftime("%Y-%m-%d")
+        today_punches = await punch_collection.count_documents({
+            "tenant_id": tenant_id,
+            "punch_time": {"$regex": f"^{today}"}
+        })
+        
+        return {
+            "total_devices": total_devices,
+            "online_devices": online_devices,
+            "offline_devices": total_devices - online_devices,
+            "today_punches": today_punches
+        }
+    except Exception as e:
+        logger.error(f"Biometric dashboard stats failed: {e}")
+        return {"total_devices": 0, "online_devices": 0, "today_punches": 0}
+
+@api_router.get("/biometric/recent-punches")
+async def get_biometric_recent_punches(
+    limit: int = 10,
+    current_user: User = Depends(get_current_user)
+):
+    """Get recent biometric punches for dashboard"""
+    try:
+        tenant_id = current_user.tenant_id
+        punch_collection = db["biometric_punches"]
+        
+        punches = await punch_collection.find(
+            {"tenant_id": tenant_id}
+        ).sort("punch_time", -1).limit(limit).to_list(limit)
+        
+        result = []
+        for punch in punches:
+            result.append({
+                "punch_id": punch.get("punch_id"),
+                "staff_name": punch.get("staff_name") or punch.get("person_name", "Unknown"),
+                "person_name": punch.get("person_name") or punch.get("staff_name", "Unknown"),
+                "device_name": punch.get("device_name") or punch.get("device", "Unknown Device"),
+                "punch_type": punch.get("punch_type", "IN"),
+                "punch_time": punch.get("punch_time"),
+                "verification_method": punch.get("verification_method", "fingerprint")
+            })
+        
+        return {"punches": result, "count": len(result)}
+    except Exception as e:
+        logger.error(f"Recent punches fetch failed: {e}")
+        return {"punches": [], "count": 0}
 @api_router.get("/biometric/live-attendance")
 async def get_live_attendance(
     current_user: User = Depends(get_current_user)

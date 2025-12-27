@@ -98,9 +98,22 @@ const BiometricDevices = () => {
   }, []);
 
   const fetchBiometricData = async () => {
-    setTotalDevices(8);
-    setOnlineDevices(6);
-    setTodayPunches(234);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_BASE_URL}/biometric/dashboard-stats`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.data) {
+        setTotalDevices(response.data.total_devices || 0);
+        setOnlineDevices(response.data.online_devices || 0);
+        setTodayPunches(response.data.today_punches || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching biometric stats:', error);
+      setTotalDevices(devicesList.length);
+      setOnlineDevices(devicesList.filter(d => d.status === 'active').length);
+      setTodayPunches(0);
+    }
   };
 
   // Sample Data Generator Function
@@ -530,43 +543,32 @@ const BiometricDevices = () => {
     }
   };
 
-  // Mock device data
-  const devices = [
-    { 
-      id: 1, 
-      name: 'Main Entrance', 
-      location: 'Ground Floor', 
-      status: 'Online', 
-      lastSync: '2 mins ago',
-      punches: 45,
-      model: 'ZKTeco K40'
-    },
-    { 
-      id: 2, 
-      name: 'Staff Room', 
-      location: 'First Floor', 
-      status: 'Online', 
-      lastSync: '5 mins ago',
-      punches: 32,
-      model: 'ZKTeco K30'
-    },
-    { 
-      id: 3, 
-      name: 'Admin Block', 
-      location: 'Second Floor', 
-      status: 'Offline', 
-      lastSync: '2 hours ago',
-      punches: 0,
-      model: 'ZKTeco K40'
-    }
-  ];
+  const [recentPunchesData, setRecentPunchesData] = useState([]);
 
-  const recentPunches = [
-    { id: 1, employee: 'John Doe', time: '09:15 AM', type: 'IN', device: 'Main Entrance' },
-    { id: 2, employee: 'Jane Smith', time: '09:12 AM', type: 'IN', device: 'Staff Room' },
-    { id: 3, employee: 'Mike Johnson', time: '09:10 AM', type: 'IN', device: 'Main Entrance' },
-    { id: 4, employee: 'Sarah Wilson', time: '09:08 AM', type: 'IN', device: 'Admin Block' }
-  ];
+  useEffect(() => {
+    if (devicesList.length > 0) {
+      setTotalDevices(devicesList.length);
+      setOnlineDevices(devicesList.filter(d => d.status === 'active').length);
+    }
+  }, [devicesList]);
+
+  const fetchRecentPunches = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_BASE_URL}/biometric/recent-punches?limit=10`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setRecentPunchesData(response.data.punches || []);
+    } catch (error) {
+      console.error('Error fetching recent punches:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchRecentPunches();
+    const interval = setInterval(fetchRecentPunches, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="space-y-6 fade-in">
@@ -665,35 +667,59 @@ const BiometricDevices = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Device Status</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Device Status</span>
+                  <Button variant="outline" size="sm" onClick={fetchDevicesList}>
+                    <Clock className="h-4 w-4 mr-1" />
+                    Refresh
+                  </Button>
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {devices.map((device) => (
-                    <div key={device.id} className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-600 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <div className={`p-2 rounded-full ${device.status === 'Online' ? 'bg-emerald-100' : 'bg-red-100'}`}>
-                          {device.status === 'Online' ? 
-                            <CheckCircle className="h-4 w-4 text-emerald-600" /> :
-                            <AlertCircle className="h-4 w-4 text-red-600" />
-                          }
-                        </div>
-                        <div>
-                          <h4 className="font-medium">{device.name}</h4>
-                          <p className="text-sm text-gray-500">{device.location} • {device.model}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <Badge 
-                          variant={device.status === 'Online' ? 'default' : 'destructive'}
-                          className={device.status === 'Online' ? 'bg-emerald-100 text-emerald-800' : ''}
-                        >
-                          {device.status}
-                        </Badge>
-                        <p className="text-xs text-gray-500 mt-1">{device.lastSync}</p>
-                      </div>
+                  {devicesList.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Fingerprint className="h-12 w-12 mx-auto text-gray-400 mb-3" />
+                      <p className="text-gray-500">No devices configured yet</p>
+                      <Button 
+                        className="mt-3 bg-emerald-500 hover:bg-emerald-600" 
+                        size="sm"
+                        onClick={() => {
+                          handleTabChange('devices');
+                          handleAddNewDevice();
+                        }}
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Add First Device
+                      </Button>
                     </div>
-                  ))}
+                  ) : (
+                    devicesList.map((device) => (
+                      <div key={device.device_id} className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-600 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <div className={`p-2 rounded-full ${device.status === 'active' ? 'bg-emerald-100' : device.status === 'maintenance' ? 'bg-yellow-100' : 'bg-red-100'}`}>
+                            {device.status === 'active' ? 
+                              <CheckCircle className="h-4 w-4 text-emerald-600" /> :
+                              <AlertCircle className="h-4 w-4 text-red-600" />
+                            }
+                          </div>
+                          <div>
+                            <h4 className="font-medium dark:text-white">{device.device_name}</h4>
+                            <p className="text-sm text-gray-500">{device.location} • {device.device_model}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <Badge 
+                            variant={device.status === 'active' ? 'default' : 'destructive'}
+                            className={device.status === 'active' ? 'bg-emerald-100 text-emerald-800' : ''}
+                          >
+                            {device.status === 'active' ? 'Online' : device.status === 'maintenance' ? 'Maintenance' : 'Offline'}
+                          </Badge>
+                          <p className="text-xs text-gray-500 mt-1">{device.ip_address}:{device.port}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -738,29 +764,45 @@ const BiometricDevices = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle>Recent Punch Activity</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Recent Punch Activity</span>
+                  <Button variant="outline" size="sm" onClick={fetchRecentPunches}>
+                    <Clock className="h-4 w-4 mr-1" />
+                    Refresh
+                  </Button>
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {recentPunches.map((punch) => (
-                    <div key={punch.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <div className={`p-2 rounded-full ${punch.type === 'IN' ? 'bg-emerald-100' : 'bg-orange-100'}`}>
-                          <Clock className={`h-4 w-4 ${punch.type === 'IN' ? 'text-emerald-600' : 'text-orange-600'}`} />
-                        </div>
-                        <div>
-                          <h4 className="font-medium">{punch.employee}</h4>
-                          <p className="text-sm text-gray-500">{punch.device}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <Badge variant={punch.type === 'IN' ? 'default' : 'secondary'}>
-                          {punch.type}
-                        </Badge>
-                        <p className="text-xs text-gray-500 mt-1">{punch.time}</p>
-                      </div>
+                  {recentPunchesData.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Clock className="h-12 w-12 mx-auto text-gray-400 mb-3" />
+                      <p className="text-gray-500">No recent punch activity</p>
+                      <p className="text-sm text-gray-400 mt-1">Punches will appear here when staff use biometric devices</p>
                     </div>
-                  ))}
+                  ) : (
+                    recentPunchesData.map((punch, index) => (
+                      <div key={punch.punch_id || index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <div className={`p-2 rounded-full ${punch.punch_type === 'IN' ? 'bg-emerald-100' : 'bg-orange-100'}`}>
+                            <Clock className={`h-4 w-4 ${punch.punch_type === 'IN' ? 'text-emerald-600' : 'text-orange-600'}`} />
+                          </div>
+                          <div>
+                            <h4 className="font-medium dark:text-white">{punch.staff_name || punch.person_name}</h4>
+                            <p className="text-sm text-gray-500">{punch.device_name || punch.device}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <Badge variant={punch.punch_type === 'IN' ? 'default' : 'secondary'} className={punch.punch_type === 'IN' ? 'bg-emerald-100 text-emerald-800' : 'bg-orange-100 text-orange-800'}>
+                            {punch.punch_type}
+                          </Badge>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {new Date(punch.punch_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
