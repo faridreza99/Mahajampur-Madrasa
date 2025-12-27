@@ -26261,56 +26261,47 @@ async def ai_generate_questions(
     if current_user.role not in ["super_admin", "admin", "teacher"]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    try:
-        subject = request.get("subject", "")
-        class_name = request.get("class_name", "")
-        question_type = request.get("question_type", "mcq")
-        difficulty = request.get("difficulty", "medium")
-        count = min(request.get("count", 5), 10)
-        topic = request.get("topic", "")
-        
-        if not subject or not class_name:
-            raise HTTPException(status_code=400, detail="Subject and class are required")
-        
-        type_instructions = {
-            "mcq": "Generate multiple choice questions with exactly 4 options (A, B, C, D). Include the correct answer.",
-            "short_answer": "Generate short answer questions that require brief 1-2 sentence answers.",
-            "true_false": "Generate True/False statements. Include whether each statement is True or False.",
-            "fill_blank": "Generate fill-in-the-blank sentences where a key term is missing. Include the missing word/phrase."
-        }
-        
-        options_json = '"options": ["Option A", "Option B", "Option C", "Option D"],' if question_type == "mcq" else ""
-        
-        prompt = f"""Generate {count} {difficulty} difficulty {question_type} questions for:
+    subject = request.get("subject", "")
+    class_name = request.get("class_name", "")
+    question_type = request.get("question_type", "mcq")
+    difficulty = request.get("difficulty", "medium")
+    count = min(request.get("count", 5), 10)
+    topic = request.get("topic", "")
+    
+    if not subject or not class_name:
+        raise HTTPException(status_code=400, detail="Subject and class are required")
+    
+    type_instructions = {
+        "mcq": "Generate multiple choice questions with exactly 4 options labeled A, B, C, D. Include the correct answer letter.",
+        "short_answer": "Generate short answer questions that require brief 1-2 sentence answers.",
+        "true_false": "Generate True/False statements. Include whether each statement is True or False.",
+        "fill_blank": "Generate fill-in-the-blank sentences where a key term is missing. Include the missing word/phrase."
+    }
+    
+    mcq_note = 'Each MCQ must have an "options" array with exactly 4 strings.' if question_type == "mcq" else ""
+    
+    prompt = f"""Generate exactly {count} {difficulty} difficulty {question_type} questions for:
 Subject: {subject}
 Class: {class_name}
-{f"Topic: {topic}" if topic else ""}
+{"Topic: " + topic if topic else ""}
 
 {type_instructions.get(question_type, type_instructions["mcq"])}
 
-Return ONLY a valid JSON array with this structure:
-[
-  {{
-    "question_text": "The question text",
-    "question_type": "{question_type}",
-    "subject": "{subject}",
-    "class_name": "{class_name}",
-    "difficulty": "{difficulty}",
-    "marks": 1,
-    {options_json}
-    "correct_answer": "The correct answer",
-    "explanation": "Brief explanation"
-  }}
-]
+Return a valid JSON array. Each object must have:
+- question_text (string): The question
+- correct_answer (string): The answer
+- explanation (string): Brief explanation
+{mcq_note}
 
-Important: Return ONLY the JSON array, no markdown, no code blocks."""
+Return ONLY valid JSON array, no markdown or code blocks."""
 
+    try:
         client = get_openai_client()
         response = await asyncio.to_thread(
             client.chat.completions.create,
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are an expert teacher creating educational assessment questions. Return only valid JSON."},
+                {"role": "system", "content": "You are an expert teacher. Return only valid JSON arrays."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,
@@ -26319,7 +26310,8 @@ Important: Return ONLY the JSON array, no markdown, no code blocks."""
         
         content = response.choices[0].message.content.strip()
         if content.startswith("```"):
-            content = content.split("```")[1]
+            parts = content.split("```")
+            content = parts[1] if len(parts) > 1 else parts[0]
             if content.startswith("json"):
                 content = content[4:]
             content = content.strip()
@@ -26327,31 +26319,49 @@ Important: Return ONLY the JSON array, no markdown, no code blocks."""
             content = content[:-3].strip()
         
         import json as json_lib
-        questions = json_lib.loads(content)
+        try:
+            questions = json_lib.loads(content)
+        except json_lib.JSONDecodeError as e:
+            logger.error(f"AI response was not valid JSON: {content[:500]}")
+            raise HTTPException(status_code=500, detail="AI returned invalid response. Please try again.")
+        
+        if not isinstance(questions, list):
+            raise HTTPException(status_code=500, detail="AI did not return a question list. Please try again.")
         
         validated_questions = []
         for q in questions:
+            if not isinstance(q, dict) or not q.get("question_text"):
+                continue
             validated_q = {
-                "question_text": q.get("question_text", ""),
+                "question_text": str(q.get("question_text", "")),
                 "question_type": question_type,
                 "subject": subject,
                 "class_name": class_name,
                 "difficulty": difficulty,
-                "marks": q.get("marks", 1),
-                "correct_answer": q.get("correct_answer", ""),
-                "explanation": q.get("explanation", ""),
+                "marks": int(q.get("marks", 1)) if str(q.get("marks", 1)).isdigit() else 1,
+                "correct_answer": str(q.get("correct_answer", "")),
+                "explanation": str(q.get("explanation", "")),
                 "tags": []
             }
             if question_type == "mcq":
-                validated_q["options"] = q.get("options", ["", "", "", ""])[:4]
+                options = q.get("options", [])
+                if isinstance(options, list) and len(options) >= 4:
+                    validated_q["options"] = [str(o) for o in options[:4]]
+                else:
+                    validated_q["options"] = ["Option A", "Option B", "Option C", "Option D"]
             validated_questions.append(validated_q)
+        
+        if not validated_questions:
+            raise HTTPException(status_code=500, detail="AI did not generate valid questions. Please try again.")
         
         logger.info(f"AI generated {len(validated_questions)} questions for {current_user.email}")
         return {"questions": validated_questions}
     
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"AI question generation failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to generate questions. Please try again.")
 
 # ==================== SCHOOL BRANDING ENDPOINTS ====================
 

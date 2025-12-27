@@ -80,6 +80,18 @@ const QuestionBank = () => {
     topic: ''
   });
 
+  const resetAIModal = () => {
+    setAiFormData({
+      subject: '',
+      class_name: '',
+      question_type: 'mcq',
+      difficulty: 'medium',
+      count: 5,
+      topic: ''
+    });
+    setAiQuestions([]);
+  };
+
   const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
 
   const fetchQuestions = useCallback(async () => {
@@ -778,7 +790,7 @@ const QuestionBank = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isAIModalOpen} onOpenChange={setIsAIModalOpen}>
+      <Dialog open={isAIModalOpen} onOpenChange={(open) => { setIsAIModalOpen(open); if (!open) resetAIModal(); }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
