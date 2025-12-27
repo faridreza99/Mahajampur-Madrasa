@@ -362,8 +362,12 @@ const QuestionPaperBuilder = () => {
   };
 
   const calculateTotalMarks = () => {
+    if (!paperForm.sections || !Array.isArray(paperForm.sections)) {
+      return 0;
+    }
     return paperForm.sections.reduce((total, section) => {
-      return total + (section.question_ids.length * section.marks_per_question);
+      const questionCount = section.question_ids?.length || section.questions?.length || 0;
+      return total + (questionCount * (section.marks_per_question || 0));
     }, 0);
   };
 
