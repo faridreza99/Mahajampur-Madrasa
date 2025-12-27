@@ -59,8 +59,8 @@ const QuestionPaperBuilder = () => {
 
   const [questionFilters, setQuestionFilters] = useState({
     search: '',
-    question_type: '',
-    difficulty: ''
+    question_type: 'all',
+    difficulty: 'all'
   });
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
@@ -127,8 +127,8 @@ const QuestionPaperBuilder = () => {
       const params = new URLSearchParams();
       if (paperForm.subject) params.append('subject', paperForm.subject);
       if (paperForm.class_name) params.append('class_name', paperForm.class_name);
-      if (questionFilters.question_type) params.append('question_type', questionFilters.question_type);
-      if (questionFilters.difficulty) params.append('difficulty', questionFilters.difficulty);
+      if (questionFilters.question_type && questionFilters.question_type !== 'all') params.append('question_type', questionFilters.question_type);
+      if (questionFilters.difficulty && questionFilters.difficulty !== 'all') params.append('difficulty', questionFilters.difficulty);
       if (questionFilters.search) params.append('search', questionFilters.search);
       params.append('limit', '100');
       
@@ -591,7 +591,7 @@ const QuestionPaperBuilder = () => {
                   <SelectValue placeholder="Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Types</SelectItem>
+                  <SelectItem value="all">All Types</SelectItem>
                   <SelectItem value="mcq">MCQ</SelectItem>
                   <SelectItem value="short_answer">Short Answer</SelectItem>
                   <SelectItem value="true_false">True/False</SelectItem>
