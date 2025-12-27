@@ -26251,6 +26251,108 @@ async def get_question_bank_stats(
         return {"total_questions": 0, "by_type": {}, "by_difficulty": {}, "subjects": []}
 
 
+
+@api_router.post("/question-bank/ai-generate")
+async def ai_generate_questions(
+    request: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Generate questions using AI"""
+    if current_user.role not in ["super_admin", "admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    try:
+        subject = request.get("subject", "")
+        class_name = request.get("class_name", "")
+        question_type = request.get("question_type", "mcq")
+        difficulty = request.get("difficulty", "medium")
+        count = min(request.get("count", 5), 10)
+        topic = request.get("topic", "")
+        
+        if not subject or not class_name:
+            raise HTTPException(status_code=400, detail="Subject and class are required")
+        
+        type_instructions = {
+            "mcq": "Generate multiple choice questions with exactly 4 options (A, B, C, D). Include the correct answer.",
+            "short_answer": "Generate short answer questions that require brief 1-2 sentence answers.",
+            "true_false": "Generate True/False statements. Include whether each statement is True or False.",
+            "fill_blank": "Generate fill-in-the-blank sentences where a key term is missing. Include the missing word/phrase."
+        }
+        
+        options_json = '"options": ["Option A", "Option B", "Option C", "Option D"],' if question_type == "mcq" else ""
+        
+        prompt = f"""Generate {count} {difficulty} difficulty {question_type} questions for:
+Subject: {subject}
+Class: {class_name}
+{f"Topic: {topic}" if topic else ""}
+
+{type_instructions.get(question_type, type_instructions["mcq"])}
+
+Return ONLY a valid JSON array with this structure:
+[
+  {{
+    "question_text": "The question text",
+    "question_type": "{question_type}",
+    "subject": "{subject}",
+    "class_name": "{class_name}",
+    "difficulty": "{difficulty}",
+    "marks": 1,
+    {options_json}
+    "correct_answer": "The correct answer",
+    "explanation": "Brief explanation"
+  }}
+]
+
+Important: Return ONLY the JSON array, no markdown, no code blocks."""
+
+        client = get_openai_client()
+        response = await asyncio.to_thread(
+            client.chat.completions.create,
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are an expert teacher creating educational assessment questions. Return only valid JSON."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=3000
+        )
+        
+        content = response.choices[0].message.content.strip()
+        if content.startswith("```"):
+            content = content.split("```")[1]
+            if content.startswith("json"):
+                content = content[4:]
+            content = content.strip()
+        if content.endswith("```"):
+            content = content[:-3].strip()
+        
+        import json as json_lib
+        questions = json_lib.loads(content)
+        
+        validated_questions = []
+        for q in questions:
+            validated_q = {
+                "question_text": q.get("question_text", ""),
+                "question_type": question_type,
+                "subject": subject,
+                "class_name": class_name,
+                "difficulty": difficulty,
+                "marks": q.get("marks", 1),
+                "correct_answer": q.get("correct_answer", ""),
+                "explanation": q.get("explanation", ""),
+                "tags": []
+            }
+            if question_type == "mcq":
+                validated_q["options"] = q.get("options", ["", "", "", ""])[:4]
+            validated_questions.append(validated_q)
+        
+        logger.info(f"AI generated {len(validated_questions)} questions for {current_user.email}")
+        return {"questions": validated_questions}
+    
+    except Exception as e:
+        logger.error(f"AI question generation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # ==================== SCHOOL BRANDING ENDPOINTS ====================
 
 @api_router.get("/school-branding")

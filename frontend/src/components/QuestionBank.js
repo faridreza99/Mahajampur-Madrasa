@@ -25,7 +25,10 @@ import {
   BarChart3,
   ChevronLeft,
   ChevronRight,
-  X
+  X,
+  Sparkles,
+  Wand2,
+  Loader2
 } from 'lucide-react';
 
 const QuestionBank = () => {
@@ -33,6 +36,9 @@ const QuestionBank = () => {
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiQuestions, setAiQuestions] = useState([]);
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [subjects, setSubjects] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -57,14 +63,21 @@ const QuestionBank = () => {
     question_type: 'mcq',
     subject: '',
     class_name: '',
-    chapter: '',
-    topic: '',
     difficulty: 'medium',
     marks: 1,
     options: ['', '', '', ''],
     correct_answer: '',
     explanation: '',
     tags: []
+  });
+
+  const [aiFormData, setAiFormData] = useState({
+    subject: '',
+    class_name: '',
+    question_type: 'mcq',
+    difficulty: 'medium',
+    count: 5,
+    topic: ''
   });
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
@@ -120,10 +133,17 @@ const QuestionBank = () => {
         axios.get(`${API_BASE_URL}/subjects`, { headers: { Authorization: `Bearer ${token}` } }),
         axios.get(`${API_BASE_URL}/classes`, { headers: { Authorization: `Bearer ${token}` } })
       ]);
-      setSubjects(subjectsRes.data.subjects || subjectsRes.data || []);
+      const rawSubjects = subjectsRes.data.subjects || subjectsRes.data || [];
+      const normalizedSubjects = rawSubjects.map(s => ({
+        id: s.id,
+        name: s.subject_name || s.name || 'Unknown'
+      }));
+      const uniqueSubjects = [...new Map(normalizedSubjects.map(s => [s.name, s])).values()];
+      setSubjects(uniqueSubjects);
       setClasses(classesRes.data.classes || classesRes.data || []);
     } catch (error) {
       console.error('Error fetching subjects/classes:', error);
+      toast.error('Failed to load subjects/classes');
     }
   }, [API_BASE_URL]);
 
@@ -140,8 +160,6 @@ const QuestionBank = () => {
       question_type: 'mcq',
       subject: '',
       class_name: '',
-      chapter: '',
-      topic: '',
       difficulty: 'medium',
       marks: 1,
       options: ['', '', '', ''],
@@ -159,8 +177,6 @@ const QuestionBank = () => {
       question_type: question.question_type || 'mcq',
       subject: question.subject || '',
       class_name: question.class_name || '',
-      chapter: question.chapter || '',
-      topic: question.topic || '',
       difficulty: question.difficulty || 'medium',
       marks: question.marks || 1,
       options: question.options || ['', '', '', ''],
@@ -169,6 +185,74 @@ const QuestionBank = () => {
       tags: question.tags || []
     });
     setIsModalOpen(true);
+  };
+
+  const handleAIGenerate = async (e) => {
+    e.preventDefault();
+    if (!aiFormData.subject || !aiFormData.class_name) {
+      toast.error('Please select subject and class');
+      return;
+    }
+    
+    setAiGenerating(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(`${API_BASE_URL}/question-bank/ai-generate`, {
+        subject: aiFormData.subject,
+        class_name: aiFormData.class_name,
+        question_type: aiFormData.question_type,
+        difficulty: aiFormData.difficulty,
+        count: aiFormData.count,
+        topic: aiFormData.topic
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      setAiQuestions(response.data.questions || []);
+      toast.success(`Generated ${response.data.questions?.length || 0} questions!`);
+    } catch (error) {
+      console.error('Error generating questions:', error);
+      toast.error(error.response?.data?.detail || 'Failed to generate questions');
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
+  const handleSaveAIQuestion = async (question) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`${API_BASE_URL}/question-bank`, question, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Question saved to bank!');
+      setAiQuestions(prev => prev.filter(q => q !== question));
+      fetchQuestions();
+      fetchStats();
+    } catch (error) {
+      toast.error('Failed to save question');
+    }
+  };
+
+  const handleSaveAllAIQuestions = async () => {
+    if (aiQuestions.length === 0) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      let saved = 0;
+      for (const question of aiQuestions) {
+        await axios.post(`${API_BASE_URL}/question-bank`, question, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        saved++;
+      }
+      toast.success(`Saved ${saved} questions to bank!`);
+      setAiQuestions([]);
+      setIsAIModalOpen(false);
+      fetchQuestions();
+      fetchStats();
+    } catch (error) {
+      toast.error('Failed to save some questions');
+    }
   };
 
   const handleDeleteQuestion = async (questionId) => {
@@ -265,10 +349,16 @@ const QuestionBank = () => {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Question Bank</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">Create and manage questions for tests and quizzes</p>
         </div>
-        <Button className="bg-emerald-500 hover:bg-emerald-600" onClick={handleCreateQuestion}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Question
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" className="border-purple-500 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20" onClick={() => setIsAIModalOpen(true)}>
+            <Sparkles className="h-4 w-4 mr-2" />
+            Generate with AI
+          </Button>
+          <Button className="bg-emerald-500 hover:bg-emerald-600" onClick={handleCreateQuestion}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Question
+          </Button>
+        </div>
       </div>
 
       {stats && (
@@ -565,15 +655,7 @@ const QuestionBank = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label>Chapter</Label>
-                <Input
-                  value={formData.chapter}
-                  onChange={(e) => setFormData({ ...formData, chapter: e.target.value })}
-                  placeholder="e.g., Chapter 5: Forces"
-                />
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Difficulty *</Label>
                 <Select value={formData.difficulty} onValueChange={(value) => setFormData({ ...formData, difficulty: value })}>
@@ -693,6 +775,177 @@ const QuestionBank = () => {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isAIModalOpen} onOpenChange={setIsAIModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-purple-500" />
+              AI Question Generator
+            </DialogTitle>
+            <DialogDescription>
+              Generate questions automatically using AI. Review and save the ones you want.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {aiQuestions.length === 0 ? (
+            <form onSubmit={handleAIGenerate} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Subject *</Label>
+                  <Select value={aiFormData.subject} onValueChange={(value) => setAiFormData({ ...aiFormData, subject: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Subject" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {subjects.map(sub => (
+                        <SelectItem key={sub.id || sub.name} value={sub.name}>{sub.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Class *</Label>
+                  <Select value={aiFormData.class_name} onValueChange={(value) => setAiFormData({ ...aiFormData, class_name: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {classes.map(cls => (
+                        <SelectItem key={cls.id || cls.name} value={cls.name}>{cls.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label>Question Type</Label>
+                  <Select value={aiFormData.question_type} onValueChange={(value) => setAiFormData({ ...aiFormData, question_type: value })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mcq">Multiple Choice</SelectItem>
+                      <SelectItem value="short_answer">Short Answer</SelectItem>
+                      <SelectItem value="true_false">True/False</SelectItem>
+                      <SelectItem value="fill_blank">Fill in the Blank</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Difficulty</Label>
+                  <Select value={aiFormData.difficulty} onValueChange={(value) => setAiFormData({ ...aiFormData, difficulty: value })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="easy">Easy</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="hard">Hard</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Number of Questions</Label>
+                  <Select value={String(aiFormData.count)} onValueChange={(value) => setAiFormData({ ...aiFormData, count: parseInt(value) })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="3">3 Questions</SelectItem>
+                      <SelectItem value="5">5 Questions</SelectItem>
+                      <SelectItem value="10">10 Questions</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div>
+                <Label>Topic (Optional)</Label>
+                <Input
+                  value={aiFormData.topic}
+                  onChange={(e) => setAiFormData({ ...aiFormData, topic: e.target.value })}
+                  placeholder="e.g., Photosynthesis, Algebra, World War II..."
+                />
+              </div>
+              
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsAIModalOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" className="bg-purple-500 hover:bg-purple-600" disabled={aiGenerating}>
+                  {aiGenerating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="h-4 w-4 mr-2" />
+                      Generate Questions
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {aiQuestions.length} questions generated. Review and save the ones you want.
+                </p>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setAiQuestions([])}>
+                    Generate More
+                  </Button>
+                  <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600" onClick={handleSaveAllAIQuestions}>
+                    Save All ({aiQuestions.length})
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                {aiQuestions.map((question, index) => (
+                  <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge variant="outline">{question.question_type?.replace('_', ' ').toUpperCase()}</Badge>
+                          <Badge className={getDifficultyColor(question.difficulty)}>{question.difficulty}</Badge>
+                          <Badge variant="outline">{question.marks} marks</Badge>
+                        </div>
+                        <p className="text-gray-900 dark:text-white font-medium mb-2">{question.question_text}</p>
+                        {question.question_type === 'mcq' && question.options && (
+                          <div className="grid grid-cols-2 gap-1 mt-2">
+                            {question.options.map((opt, i) => (
+                              <div key={i} className={`text-sm px-2 py-1 rounded ${opt === question.correct_answer ? 'bg-green-100 text-green-800 dark:bg-green-900/30' : 'bg-gray-50 dark:bg-gray-700'}`}>
+                                {String.fromCharCode(65 + i)}. {opt}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {question.correct_answer && question.question_type !== 'mcq' && (
+                          <p className="text-sm text-green-600 mt-1">Answer: {question.correct_answer}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600" onClick={() => handleSaveAIQuestion(question)}>
+                          <CheckCircle className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" size="sm" className="text-red-600" onClick={() => setAiQuestions(prev => prev.filter((_, i) => i !== index))}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
