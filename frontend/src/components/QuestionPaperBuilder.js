@@ -593,7 +593,7 @@ const QuestionPaperBuilder = () => {
                           </span>
                           <span className="ml-2 font-medium dark:text-white">{section.section_title_bn}</span>
                           <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">
-                            ({section.question_ids.length} questions × {section.marks_per_question} marks)
+                            ({section.question_ids?.length || section.questions?.length || 0} questions × {section.marks_per_question || 0} marks)
                           </span>
                         </div>
                         <div className="flex gap-2">
