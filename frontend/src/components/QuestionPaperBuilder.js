@@ -81,6 +81,7 @@ const QuestionPaperBuilder = () => {
     class_name: '',
     subject: '',
     total_marks: 100,
+    total_questions: 25,
     duration_minutes: 120,
     exam_type: 'বার্ষিক পরীক্ষা',
     difficulty_mix: 'balanced',
@@ -299,6 +300,7 @@ const QuestionPaperBuilder = () => {
         class_name: '',
         subject: '',
         total_marks: 100,
+        total_questions: 25,
         duration_minutes: 120,
         exam_type: 'বার্ষিক পরীক্ষা',
         difficulty_mix: 'balanced',
@@ -848,7 +850,7 @@ const QuestionPaperBuilder = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label className="dark:text-gray-300">Total Marks / মোট নম্বর</Label>
                 <Input
@@ -859,7 +861,18 @@ const QuestionPaperBuilder = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="dark:text-gray-300">Duration (minutes)</Label>
+                <Label className="dark:text-gray-300">Total Questions / প্রশ্ন সংখ্যা</Label>
+                <Input
+                  type="number"
+                  min="5"
+                  max="100"
+                  value={aiForm.total_questions}
+                  onChange={(e) => setAiForm({ ...aiForm, total_questions: parseInt(e.target.value) || 25 })}
+                  className="dark:bg-gray-900 dark:border-gray-600 dark:text-white"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="dark:text-gray-300">Duration (min)</Label>
                 <Input
                   type="number"
                   value={aiForm.duration_minutes}

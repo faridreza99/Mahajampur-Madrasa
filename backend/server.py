@@ -26645,6 +26645,7 @@ async def ai_generate_question_paper(
         duration_minutes = data.get("duration_minutes", 120)
         exam_type = data.get("exam_type", "বার্ষিক পরীক্ষা")
         difficulty_mix = data.get("difficulty_mix", "balanced")
+        total_questions = data.get("total_questions", 25)
         # Map section IDs to Bengali names
         section_id_to_name = {
             'one_word': 'একশব্দে উত্তর দাও',
@@ -26697,6 +26698,7 @@ Total Marks: {total_marks}
 Duration: {duration_minutes} minutes
 Exam Type: {exam_type}
 Difficulty Mix: {difficulty_mix}
+Total Questions: {total_questions} (distribute across all sections)
 
 Sections to include: {', '.join(include_sections)}
 
