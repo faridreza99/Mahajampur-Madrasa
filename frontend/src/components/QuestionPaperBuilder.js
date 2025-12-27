@@ -371,7 +371,90 @@ const QuestionPaperBuilder = () => {
   };
 
   const handlePrint = () => {
-    window.print();
+    // Create a new window with print content
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    
+    if (!printWindow || !printData) return;
+    
+    const getBengaliNum = (n) => {
+      const bengaliDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+      return String(n).split('').map(d => bengaliDigits[parseInt(d)] || d).join('');
+    };
+    
+    let sectionsHtml = '';
+    printData.paper.sections?.forEach((section, sIndex) => {
+      const bengaliLabels = ['ক', 'খ', 'গ', 'ঘ', 'ঙ', 'চ', 'ছ', 'জ'];
+      const label = bengaliLabels[sIndex] || '';
+      
+      let questionsHtml = '';
+      section.questions?.forEach((q, qIndex) => {
+        const questionLabel = String.fromCharCode(2453 + qIndex);
+        questionsHtml += `<div style="margin-left: 20px; margin-bottom: 8px;"><span>${questionLabel})</span> ${q.question_text || ''}</div>`;
+      });
+      
+      sectionsHtml += `
+        <div style="border-top: 1px solid #ccc; padding-top: 15px; margin-top: 15px;">
+          <div style="margin-bottom: 10px;">
+            <strong>${label} বিভাগ: ${section.section_title_bn || ''}</strong>
+            <span style="margin-left: 10px; color: #666;">(${section.marks_per_question || 0} × ${section.questions?.length || 0} = ${(section.marks_per_question || 0) * (section.questions?.length || 0)})</span>
+          </div>
+          ${section.instructions_bn ? `<p style="font-style: italic; color: #666; margin-bottom: 10px;">${section.instructions_bn}</p>` : ''}
+          ${questionsHtml}
+        </div>
+      `;
+    });
+    
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>${printData.paper.title_bn} - ${printData.paper.class_name}</title>
+        <style>
+          body { font-family: 'SolaimanLipi', 'Noto Sans Bengali', Arial, sans-serif; margin: 40px; color: black; }
+          .header { text-align: center; border-bottom: 2px solid black; padding-bottom: 20px; margin-bottom: 20px; }
+          .logo { height: 60px; margin-bottom: 10px; }
+          h1 { margin: 5px 0; font-size: 24px; }
+          h2 { margin: 10px 0; font-size: 18px; }
+          .info { display: flex; justify-content: center; gap: 30px; margin-top: 10px; }
+          .meta { display: flex; justify-content: space-between; margin-top: 10px; }
+          @media print { body { margin: 20px; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          ${printData.branding.logo_url ? `<img src="${printData.branding.logo_url}" class="logo" alt="Logo">` : ''}
+          <h1 style="color: ${printData.branding.primary_color};">${printData.branding.school_name_bn || ''}</h1>
+          <p style="margin: 5px 0; color: #666;">${printData.branding.school_name_en || ''}</p>
+          ${printData.branding.address ? `<p style="font-size: 12px; color: #888;">${printData.branding.address}</p>` : ''}
+        </div>
+        
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h2>${printData.paper.title_bn || ''} - ${printData.paper.exam_year || ''}</h2>
+          <div class="info">
+            <span>শ্রেণী: ${printData.paper.class_name || ''}</span>
+            <span>বিষয়: ${printData.paper.subject || ''}</span>
+          </div>
+          <div class="meta">
+            <span>সময়: ${Math.floor((printData.paper.duration_minutes || 0) / 60)} ঘণ্টা</span>
+            <span>পূর্ণমান: ${printData.paper.total_marks || 0}</span>
+          </div>
+        </div>
+        
+        <div>${sectionsHtml}</div>
+      </body>
+      </html>
+    `;
+    
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    
+    // Wait for images to load then print
+    printWindow.onload = () => {
+      setTimeout(() => {
+        printWindow.print();
+      }, 500);
+    };
   };
 
   const calculateTotalMarks = () => {
