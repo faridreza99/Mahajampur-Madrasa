@@ -26363,6 +26363,267 @@ Return ONLY valid JSON array, no markdown or code blocks."""
         logger.error(f"AI question generation failed: {e}")
         raise HTTPException(status_code=500, detail="Failed to generate questions. Please try again.")
 
+
+# ==================== QUESTION PAPER BUILDER ENDPOINTS ====================
+
+class ExamSection(BaseModel):
+    section_number: int
+    section_title_bn: str  # Bengali title like "একশব্দে উত্তর দাও"
+    section_title_en: Optional[str] = None
+    instructions_bn: Optional[str] = None
+    instructions_en: Optional[str] = None
+    question_ids: List[str] = []
+    marks_per_question: float = 1
+    total_marks: float = 0
+
+class QuestionPaper(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    school_id: str
+    title_bn: str  # Bengali title like "বার্ষিক পরীক্ষা - ২০২৫"
+    title_en: Optional[str] = None
+    class_name: str
+    subject: str
+    exam_year: str
+    duration_minutes: int = 120
+    total_marks: float = 100
+    sections: List[dict] = []
+    created_by: str
+    status: str = "draft"  # draft, published
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+# Bengali section templates
+BENGALI_SECTION_TEMPLATES = [
+    {"id": "one_word", "title_bn": "একশব্দে উত্তর দাও", "title_en": "Answer in one word", "instructions_bn": "নিম্নলিখিত প্রশ্নগুলির একশব্দে উত্তর দাও:", "default_marks": 1},
+    {"id": "fill_blank", "title_bn": "শূন্যস্থান পূরণ কর", "title_en": "Fill in the blanks", "instructions_bn": "নিম্নলিখিত শূন্যস্থান পূরণ কর:", "default_marks": 1},
+    {"id": "true_false", "title_bn": "সত্য/মিথ্যা লেখ", "title_en": "Write True/False", "instructions_bn": "সত্য হলে 'সত্য' এবং মিথ্যা হলে 'মিথ্যা' লেখ:", "default_marks": 1},
+    {"id": "mcq", "title_bn": "সঠিক উত্তরটি লেখ", "title_en": "Write the correct answer", "instructions_bn": "সঠিক উত্তরটি বেছে নিয়ে লেখ:", "default_marks": 1},
+    {"id": "short_answer", "title_bn": "সংক্ষেপে উত্তর দাও", "title_en": "Answer briefly", "instructions_bn": "নিম্নলিখিত প্রশ্নগুলির সংক্ষেপে উত্তর দাও:", "default_marks": 2},
+    {"id": "descriptive", "title_bn": "বিস্তারিত উত্তর দাও", "title_en": "Answer in detail", "instructions_bn": "নিম্নলিখিত প্রশ্নগুলির বিস্তারিত উত্তর দাও:", "default_marks": 5},
+    {"id": "match", "title_bn": "মিলাও", "title_en": "Match the following", "instructions_bn": "বাম দিকের সাথে ডান দিকের মিলাও:", "default_marks": 1},
+    {"id": "any_one", "title_bn": "যে কোনো একটি প্রশ্নের উত্তর দাও", "title_en": "Answer any one", "instructions_bn": "নিম্নলিখিত প্রশ্নগুলি থেকে যে কোনো একটির উত্তর দাও:", "default_marks": 10},
+]
+
+@api_router.get("/question-paper/templates")
+async def get_section_templates():
+    """Get Bengali section templates"""
+    return {"templates": BENGALI_SECTION_TEMPLATES}
+
+@api_router.get("/question-papers")
+async def get_question_papers(
+    class_name: str = None,
+    subject: str = None,
+    status: str = None,
+    page: int = 1,
+    limit: int = 20,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all question papers for the tenant"""
+    if current_user.role not in ["super_admin", "admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    query = {"tenant_id": current_user.tenant_id, "is_active": True}
+    if class_name:
+        query["class_name"] = class_name
+    if subject:
+        query["subject"] = subject
+    if status:
+        query["status"] = status
+    
+    skip = (page - 1) * limit
+    total = await db.question_papers.count_documents(query)
+    papers = await db.question_papers.find(query).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    for paper in papers:
+        paper["_id"] = str(paper.get("_id", ""))
+    
+    return {
+        "papers": papers,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "pages": (total + limit - 1) // limit
+    }
+
+@api_router.get("/question-papers/{paper_id}")
+async def get_question_paper(
+    paper_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get a specific question paper with full question details"""
+    if current_user.role not in ["super_admin", "admin", "teacher", "student"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    paper = await db.question_papers.find_one({
+        "id": paper_id,
+        "tenant_id": current_user.tenant_id
+    })
+    
+    if not paper:
+        raise HTTPException(status_code=404, detail="Question paper not found")
+    
+    # Fetch full question details for each section
+    for section in paper.get("sections", []):
+        question_ids = section.get("question_ids", [])
+        if question_ids:
+            questions = await db.question_bank.find({"id": {"$in": question_ids}}).to_list(len(question_ids))
+            # Maintain order
+            questions_map = {q["id"]: q for q in questions}
+            section["questions"] = [questions_map.get(qid, {}) for qid in question_ids if qid in questions_map]
+    
+    paper["_id"] = str(paper.get("_id", ""))
+    return paper
+
+@api_router.post("/question-papers")
+async def create_question_paper(
+    request: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new question paper"""
+    if current_user.role not in ["super_admin", "admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    paper = {
+        "id": str(uuid.uuid4()),
+        "tenant_id": current_user.tenant_id,
+        "school_id": current_user.school_id,
+        "title_bn": request.get("title_bn", "পরীক্ষা"),
+        "title_en": request.get("title_en"),
+        "class_name": request.get("class_name", ""),
+        "subject": request.get("subject", ""),
+        "exam_year": request.get("exam_year", str(datetime.now().year)),
+        "duration_minutes": request.get("duration_minutes", 120),
+        "total_marks": request.get("total_marks", 100),
+        "sections": request.get("sections", []),
+        "created_by": current_user.id,
+        "status": "draft",
+        "is_active": True,
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow()
+    }
+    
+    await db.question_papers.insert_one(paper)
+    paper["_id"] = str(paper.get("_id", ""))
+    
+    logger.info(f"Question paper created: {paper['id']} by {current_user.email}")
+    return paper
+
+@api_router.put("/question-papers/{paper_id}")
+async def update_question_paper(
+    paper_id: str,
+    request: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Update a question paper"""
+    if current_user.role not in ["super_admin", "admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    existing = await db.question_papers.find_one({
+        "id": paper_id,
+        "tenant_id": current_user.tenant_id
+    })
+    
+    if not existing:
+        raise HTTPException(status_code=404, detail="Question paper not found")
+    
+    update_data = {
+        "title_bn": request.get("title_bn", existing.get("title_bn")),
+        "title_en": request.get("title_en", existing.get("title_en")),
+        "class_name": request.get("class_name", existing.get("class_name")),
+        "subject": request.get("subject", existing.get("subject")),
+        "exam_year": request.get("exam_year", existing.get("exam_year")),
+        "duration_minutes": request.get("duration_minutes", existing.get("duration_minutes")),
+        "total_marks": request.get("total_marks", existing.get("total_marks")),
+        "sections": request.get("sections", existing.get("sections", [])),
+        "status": request.get("status", existing.get("status")),
+        "updated_at": datetime.utcnow()
+    }
+    
+    await db.question_papers.update_one(
+        {"id": paper_id, "tenant_id": current_user.tenant_id},
+        {"$set": update_data}
+    )
+    
+    updated = await db.question_papers.find_one({"id": paper_id})
+    updated["_id"] = str(updated.get("_id", ""))
+    return updated
+
+@api_router.delete("/question-papers/{paper_id}")
+async def delete_question_paper(
+    paper_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a question paper"""
+    if current_user.role not in ["super_admin", "admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    result = await db.question_papers.update_one(
+        {"id": paper_id, "tenant_id": current_user.tenant_id},
+        {"$set": {"is_active": False, "updated_at": datetime.utcnow()}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Question paper not found")
+    
+    return {"message": "Question paper deleted successfully"}
+
+@api_router.get("/question-papers/{paper_id}/print")
+async def get_printable_paper(
+    paper_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get question paper data formatted for printing with school branding"""
+    if current_user.role not in ["super_admin", "admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Get paper
+    paper = await db.question_papers.find_one({
+        "id": paper_id,
+        "tenant_id": current_user.tenant_id
+    })
+    
+    if not paper:
+        raise HTTPException(status_code=404, detail="Question paper not found")
+    
+    # Get school branding
+    branding = await db.school_branding.find_one({"tenant_id": current_user.tenant_id})
+    if not branding:
+        # Default branding
+        branding = {
+            "school_name_bn": "বিদ্যালয়ের নাম",
+            "school_name_en": "School Name",
+            "logo_url": None,
+            "primary_color": "#1e40af",
+            "secondary_color": "#3b82f6"
+        }
+    
+    # Get institution info
+    institution = await db.institutions.find_one({"tenant_id": current_user.tenant_id})
+    
+    # Fetch full question details for each section
+    for section in paper.get("sections", []):
+        question_ids = section.get("question_ids", [])
+        if question_ids:
+            questions = await db.question_bank.find({"id": {"$in": question_ids}}).to_list(len(question_ids))
+            questions_map = {q["id"]: q for q in questions}
+            section["questions"] = [questions_map.get(qid, {}) for qid in question_ids if qid in questions_map]
+    
+    paper["_id"] = str(paper.get("_id", ""))
+    
+    return {
+        "paper": paper,
+        "branding": {
+            "school_name_bn": branding.get("school_name_bn") or branding.get("school_name", "বিদ্যালয়"),
+            "school_name_en": branding.get("school_name_en") or branding.get("school_name", "School"),
+            "logo_url": branding.get("logo_url"),
+            "primary_color": branding.get("primary_color", "#1e40af"),
+            "secondary_color": branding.get("secondary_color", "#3b82f6"),
+            "address": institution.get("address") if institution else ""
+        }
+    }
+
 # ==================== SCHOOL BRANDING ENDPOINTS ====================
 
 @api_router.get("/school-branding")

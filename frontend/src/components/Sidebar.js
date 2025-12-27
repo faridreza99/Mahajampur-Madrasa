@@ -342,6 +342,11 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           roles: ["super_admin", "admin", "teacher"],
         },
         {
+          title: "প্রশ্নপত্র তৈরি",
+          path: "/question-paper-builder",
+          roles: ["super_admin", "admin", "teacher"],
+        },
+        {
           title: "AI Summary",
           path: "/ai-summary",
           roles: ["super_admin", "admin", "teacher", "student"],

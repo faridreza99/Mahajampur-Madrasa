@@ -37,6 +37,7 @@ import AcademicCMS from "./components/AcademicCMS";
 import QuizTool from "./components/QuizTool";
 import TestGenerator from "./components/TestGenerator";
 import QuestionBank from "./components/QuestionBank";
+import QuestionPaperBuilder from "./components/QuestionPaperBuilder";
 import SchoolBranding from "./components/SchoolBranding";
 import AISummary from "./components/AISummary";
 import AINotes from "./components/AINotes";
@@ -595,6 +596,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <QuestionBank />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/question-paper-builder"
+                  element={
+                    <ProtectedRoute>
+                      <QuestionPaperBuilder />
                     </ProtectedRoute>
                   }
                 />
