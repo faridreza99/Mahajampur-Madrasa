@@ -6905,7 +6905,7 @@ async def download_hss_transfer_certificate_pdf(
         sig_table.setStyle(TableStyle([
             ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
             ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
             ('TOPPADDING', (0, 0), (-1, 0), 0.3*inch),
             ('TOPPADDING', (0, 1), (-1, 1), 5),
             ('TOPPADDING', (0, 2), (-1, 2), 3),
@@ -14730,7 +14730,7 @@ async def download_conduct_certificate_pdf(
         sig_table.setStyle(TableStyle([
             ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
             ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
             ('TOPPADDING', (0, 0), (-1, 0), 0.3*inch),
             ('TOPPADDING', (0, 1), (-1, 1), 5),
             ('TOPPADDING', (0, 2), (-1, 2), 3),
@@ -17585,7 +17585,7 @@ async def export_accounts_report(
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                 ('FONTSIZE', (0, 0), (-1, 0), 10),
-                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                ('ALIGN', (0, 0), (-1, 0), 'LEFT'),
                 # Data rows - alternating background
                 ('BACKGROUND', (0, 1), (-1, -1), colors.white),
                 ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F9FAFB')]),
@@ -17596,9 +17596,9 @@ async def export_accounts_report(
                 ('BOX', (0, 0), (-1, -1), 1.5, colors.HexColor('#D1D5DB')),
                 ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E5E7EB')),
                 # Alignment
-                ('ALIGN', (0, 1), (0, -1), 'CENTER'),  # Date center
+                ('ALIGN', (0, 1), (0, -1), 'LEFT'),  # Date center
                 ('ALIGN', (1, 1), (1, -1), 'LEFT'),     # Description left
-                ('ALIGN', (2, 1), (2, -1), 'CENTER'),   # Type center
+                ('ALIGN', (2, 1), (2, -1), 'LEFT'),   # Type center
                 ('ALIGN', (3, 1), (3, -1), 'RIGHT'),    # Amount right-aligned
                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                 # Padding
@@ -17625,7 +17625,7 @@ async def export_accounts_report(
                 ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#6B7280')),
                 ('ALIGN', (0, 0), (0, -1), 'LEFT'),
                 ('ALIGN', (2, 0), (2, -1), 'RIGHT'),
-                ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+                ('ALIGN', (1, 0), (1, -1), 'LEFT'),
                 ('TOPPADDING', (0, 0), (-1, 1), 20),
                 ('TOPPADDING', (0, 2), (-1, 2), 5),
             ]))
@@ -18697,7 +18697,7 @@ async def export_admission_applications(
             table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.086, 0.627, 0.522)),  # Emerald header
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                 ('FONTSIZE', (0, 0), (-1, 0), 10),
                 ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
@@ -26004,7 +26004,7 @@ async def get_student_admit_card(
         subject_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, -1), 10),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
@@ -26018,7 +26018,7 @@ async def get_student_admit_card(
                    ["Student Signature", "Parent Signature", "Principal Signature"]]
         sig_table = Table(sig_data, colWidths=[2*inch, 2*inch, 2*inch])
         sig_table.setStyle(TableStyle([
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
             ('FONTSIZE', (0, 0), (-1, -1), 9),
             ('TOPPADDING', (0, 1), (-1, 1), 40),
         ]))
