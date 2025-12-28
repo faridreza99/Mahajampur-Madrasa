@@ -6905,7 +6905,7 @@ async def download_hss_transfer_certificate_pdf(
         sig_table.setStyle(TableStyle([
             ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
             ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('TOPPADDING', (0, 0), (-1, 0), 0.3*inch),
             ('TOPPADDING', (0, 1), (-1, 1), 5),
             ('TOPPADDING', (0, 2), (-1, 2), 3),
@@ -12328,17 +12328,13 @@ def create_professional_pdf_template(school_name: str = "School ERP System", sch
     from reportlab.pdfbase.ttfonts import TTFont
     import os
     
-    # Register Bengali font with HarfBuzz layout engine for proper complex script shaping
+    # Register Bengali font for proper Unicode support
     bengali_font_path = os.path.join(os.path.dirname(__file__), "fonts", "NotoSansBengali-Regular.ttf")
     if os.path.exists(bengali_font_path):
         try:
-            # Use HarfBuzz for proper Bengali vowel-consonant conjuncts
-            pdfmetrics.registerFont(TTFont("NotoSansBengali", bengali_font_path, layoutEngine=TTFont.HARFBUZZ_LAYOUT_ENGINE))
+            pdfmetrics.registerFont(TTFont("NotoSansBengali", bengali_font_path))
         except Exception:
-            try:
-                pdfmetrics.registerFont(TTFont("NotoSansBengali", bengali_font_path))
-            except Exception:
-                pass  # Font may already be registered
+            pass  # Font may already be registered
     
     # Default school colors (professional blue-green theme)
     if not school_colors:
@@ -12432,8 +12428,7 @@ def create_professional_pdf_template(school_name: str = "School ERP System", sch
         'header': [
             ('BACKGROUND', (0, 0), (-1, 0), primary_color),
             ('TEXTCOLOR', (0, 0), (-1, 0), rl_colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, 0), 10),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
@@ -12472,44 +12467,6 @@ def create_professional_pdf_template(school_name: str = "School ERP System", sch
     }
 
 
-
-def render_bengali_text_image(text, font_size=16, bg_color=(30, 58, 138), text_color=(255, 255, 255)):
-    """
-    Render Bengali text as an image using Pillow for proper complex script shaping.
-    Returns the path to the temporary image file.
-    """
-    from PIL import Image, ImageDraw, ImageFont
-    import tempfile
-    import os
-    
-    font_path = os.path.join(os.path.dirname(__file__), "fonts", "NotoSansBengali-Regular.ttf")
-    
-    try:
-        # Use LAYOUT_RAQM for proper Bengali text shaping with HarfBuzz
-        font = ImageFont.truetype(font_path, font_size, layout_engine=ImageFont.Layout.RAQM)
-    except Exception:
-        return None
-    
-    # Create a temporary image to measure text size
-    temp_img = Image.new('RGBA', (1, 1), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(temp_img)
-    
-    # Get text bounding box
-    bbox = draw.textbbox((0, 0), text, font=font)
-    text_width = bbox[2] - bbox[0] + 10
-    text_height = bbox[3] - bbox[1] + 10
-    
-    # Create the actual image with transparent background
-    img = Image.new('RGBA', (text_width, text_height + 5), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(img)
-    draw.text((5, 2), text, font=font, fill=text_color)
-    
-    # Save to temporary file
-    temp_file = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
-    img.save(temp_file.name, 'PNG')
-    return temp_file.name
-
-
 def add_pdf_header_footer(canvas, doc, school_name, report_title, generated_by, page_num_text=True, school_address=None, school_contact=None, logo_path=None):
     """
     Add professional header and footer to PDF pages with school branding, logo, and contact info
@@ -12531,109 +12488,69 @@ def add_pdf_header_footer(canvas, doc, school_name, report_title, generated_by, 
     import os
     
     
-    # Register Bengali font with HarfBuzz layout engine for proper complex script shaping
+    # Register Bengali font for proper Unicode support
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
     bengali_font_path = os.path.join(os.path.dirname(__file__), "fonts", "NotoSansBengali-Regular.ttf")
-    bengali_font_registered = False
     if os.path.exists(bengali_font_path):
         try:
-            # Use HarfBuzz layout engine for proper Bengali text shaping (vowel-consonant conjuncts)
-            pdfmetrics.registerFont(TTFont("NotoSansBengali", bengali_font_path, layoutEngine=TTFont.HARFBUZZ_LAYOUT_ENGINE))
-            bengali_font_registered = True
-        except Exception as e:
-            # Fallback to default layout if HarfBuzz fails
-            try:
-                pdfmetrics.registerFont(TTFont("NotoSansBengali", bengali_font_path))
-                bengali_font_registered = True
-            except Exception:
-                pass
+            pdfmetrics.registerFont(TTFont("NotoSansBengali", bengali_font_path))
+        except Exception:
+            pass
     canvas.saveState()
     
-    # Header with school branding - TALL header for all elements
-    header_height = 120
+    # Header with school branding - increased height for logo and info
     canvas.setFillColor(colors.Color(0.11, 0.23, 0.54))  # Deep blue
-    canvas.rect(0, doc.pagesize[1] - header_height, doc.pagesize[0], header_height, fill=True, stroke=False)
+    canvas.rect(0, doc.pagesize[1] - 90, doc.pagesize[0], 90, fill=True, stroke=False)
     
-    page_width = doc.pagesize[0]
-    page_center_x = page_width / 2
-    header_top = doc.pagesize[1]
-    
-    # School logo - centered at top of header
-    logo_width = 55
-    logo_height = 55
-    logo_x = page_center_x - (logo_width / 2)
-    logo_y = header_top - 60
+    # School logo (top-left corner) if provided
+    logo_x = 45
+    logo_y = doc.pagesize[1] - 80
+    logo_width = 60
+    logo_height = 60
     
     if logo_path and os.path.exists(logo_path):
         try:
             canvas.drawImage(logo_path, logo_x, logo_y, width=logo_width, height=logo_height, preserveAspectRatio=True, mask='auto')
         except:
-            pass
+            # If logo fails to load, show placeholder
+            canvas.setStrokeColor(colors.whitesmoke)
+            canvas.setLineWidth(2)
+            canvas.rect(logo_x, logo_y, logo_width, logo_height, stroke=True, fill=False)
+            canvas.setFont('Helvetica', 8)
+            canvas.setFillColor(colors.whitesmoke)
+            canvas.drawCentredString(logo_x + logo_width/2, logo_y + logo_height/2 - 3, "LOGO")
+    else:
+        # Placeholder for logo
+        canvas.setStrokeColor(colors.whitesmoke)
+        canvas.setLineWidth(2)
+        canvas.rect(logo_x, logo_y, logo_width, logo_height, stroke=True, fill=False)
+        canvas.setFont('Helvetica', 8)
+        canvas.setFillColor(colors.whitesmoke)
+        canvas.drawCentredString(logo_x + logo_width/2, logo_y + logo_height/2 - 3, "LOGO")
     
-    # School name - centered below logo
-    name_y = logo_y - 8
+    # School information beside the logo
+    info_x = logo_x + logo_width + 15
+    
+    # School name
     canvas.setFillColor(colors.whitesmoke)
-    name_img_path = None
-    try:
-        name_img_path = render_bengali_text_image(school_name, font_size=26, text_color=(255, 255, 255, 255))
-        if name_img_path:
-            from PIL import Image as PILImage
-            with PILImage.open(name_img_path) as img:
-                scaled_height = 20
-                img_width = img.width * (scaled_height / img.height)
-            name_x = page_center_x - (img_width / 2)
-            canvas.drawImage(name_img_path, name_x, name_y - scaled_height, height=scaled_height, preserveAspectRatio=True, mask='auto')
-        else:
-            canvas.setFont('Helvetica-Bold', 14)
-            canvas.drawCentredString(page_center_x, name_y - 14, school_name)
-    except Exception:
-        canvas.setFont('Helvetica-Bold', 14)
-        canvas.drawCentredString(page_center_x, name_y - 14, school_name)
-    finally:
-        if name_img_path:
-            try:
-                os.remove(name_img_path)
-            except:
-                pass
+    canvas.setFont('NotoSansBengali', 16)
+    canvas.drawString(info_x, doc.pagesize[1] - 35, school_name)
     
-    # School address - centered below name
-    addr_y = name_y - 26
+    # School address
     if school_address:
-        addr_img_path = None
-        try:
-            addr_img_path = render_bengali_text_image(school_address, font_size=12, text_color=(220, 220, 220, 255))
-            if addr_img_path:
-                from PIL import Image as PILImage
-                with PILImage.open(addr_img_path) as img:
-                    scaled_height = 11
-                    img_width = img.width * (scaled_height / img.height)
-                addr_x = page_center_x - (img_width / 2)
-                canvas.drawImage(addr_img_path, addr_x, addr_y - scaled_height, height=scaled_height, preserveAspectRatio=True, mask='auto')
-            else:
-                canvas.setFont('Helvetica', 9)
-                canvas.drawCentredString(page_center_x, addr_y - 9, school_address)
-        except Exception:
-            canvas.setFont('Helvetica', 9)
-            canvas.drawCentredString(page_center_x, addr_y - 9, school_address)
-        finally:
-            if addr_img_path:
-                try:
-                    os.remove(addr_img_path)
-                except:
-                    pass
+        canvas.setFont('NotoSansBengali', 9)
+        canvas.drawString(info_x, doc.pagesize[1] - 52, school_address)
     
-    # School contact info - centered below address
-    contact_y = addr_y - 16
+    # School contact info
     if school_contact:
         canvas.setFont('Helvetica', 9)
-        canvas.setFillColor(colors.whitesmoke)
-        canvas.drawCentredString(page_center_x, contact_y - 9, school_contact)
+        canvas.drawString(info_x, doc.pagesize[1] - 67, school_contact)
     
     # Report title below the header (on white background)
     canvas.setFillColor(colors.Color(0.11, 0.23, 0.54))  # Deep blue text
-    canvas.setFont('Helvetica-Bold', 14)
-    canvas.drawCentredString(doc.pagesize[0]/2, doc.pagesize[1] - header_height - 18, report_title)
+    canvas.setFont('Helvetica-Bold', 12)
+    canvas.drawCentredString(doc.pagesize[0]/2, doc.pagesize[1] - 105, report_title)
     
     # Footer line
     canvas.setStrokeColor(colors.Color(0.02, 0.59, 0.41))  # Emerald green
@@ -14732,7 +14649,7 @@ async def download_conduct_certificate_pdf(
         sig_table.setStyle(TableStyle([
             ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
             ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('TOPPADDING', (0, 0), (-1, 0), 0.3*inch),
             ('TOPPADDING', (0, 1), (-1, 1), 5),
             ('TOPPADDING', (0, 2), (-1, 2), 3),
@@ -17587,7 +17504,7 @@ async def export_accounts_report(
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                 ('FONTSIZE', (0, 0), (-1, 0), 10),
-                ('ALIGN', (0, 0), (-1, 0), 'LEFT'),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
                 # Data rows - alternating background
                 ('BACKGROUND', (0, 1), (-1, -1), colors.white),
                 ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F9FAFB')]),
@@ -17598,9 +17515,9 @@ async def export_accounts_report(
                 ('BOX', (0, 0), (-1, -1), 1.5, colors.HexColor('#D1D5DB')),
                 ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E5E7EB')),
                 # Alignment
-                ('ALIGN', (0, 1), (0, -1), 'LEFT'),  # Date center
+                ('ALIGN', (0, 1), (0, -1), 'CENTER'),  # Date center
                 ('ALIGN', (1, 1), (1, -1), 'LEFT'),     # Description left
-                ('ALIGN', (2, 1), (2, -1), 'LEFT'),   # Type center
+                ('ALIGN', (2, 1), (2, -1), 'CENTER'),   # Type center
                 ('ALIGN', (3, 1), (3, -1), 'RIGHT'),    # Amount right-aligned
                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                 # Padding
@@ -17627,7 +17544,7 @@ async def export_accounts_report(
                 ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#6B7280')),
                 ('ALIGN', (0, 0), (0, -1), 'LEFT'),
                 ('ALIGN', (2, 0), (2, -1), 'RIGHT'),
-                ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+                ('ALIGN', (1, 0), (1, -1), 'CENTER'),
                 ('TOPPADDING', (0, 0), (-1, 1), 20),
                 ('TOPPADDING', (0, 2), (-1, 2), 5),
             ]))
@@ -18699,7 +18616,7 @@ async def export_admission_applications(
             table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.086, 0.627, 0.522)),  # Emerald header
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                 ('FONTSIZE', (0, 0), (-1, 0), 10),
                 ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
@@ -26006,7 +25923,7 @@ async def get_student_admit_card(
         subject_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, -1), 10),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
@@ -26020,7 +25937,7 @@ async def get_student_admit_card(
                    ["Student Signature", "Parent Signature", "Principal Signature"]]
         sig_table = Table(sig_data, colWidths=[2*inch, 2*inch, 2*inch])
         sig_table.setStyle(TableStyle([
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('FONTSIZE', (0, 0), (-1, -1), 9),
             ('TOPPADDING', (0, 1), (-1, 1), 40),
         ]))
@@ -27406,56 +27323,34 @@ async def get_school_branding(
 async def get_public_school_branding(tenant_code: str):
     """Get public school branding for login page (no auth required)"""
     try:
-        # Normalize tenant code to lowercase for lookup
-        tenant_code_lower = tenant_code.lower()
-        
         branding_collection = db["school_branding"]
         
-        # Try both original and lowercase tenant codes
         branding = await branding_collection.find_one({"tenant_id": tenant_code})
+        
         if not branding:
-            branding = await branding_collection.find_one({"tenant_id": tenant_code_lower})
-        
-        if branding:
+            school = await db.schools.find_one({"tenant_id": tenant_code})
+            if school:
+                return {
+                    "school_name": school.get("name", "School ERP"),
+                    "tagline": school.get("tagline", "Smart School Management System"),
+                    "logo_url": school.get("logo_url"),
+                    "primary_color": "#10B981",
+                    "tenant_id": tenant_code
+                }
             return {
-                "school_name": branding.get("school_name", "School ERP"),
-                "tagline": branding.get("tagline", "Smart School Management System"),
-                "logo_url": branding.get("logo_url"),
-                "primary_color": branding.get("primary_color", "#10B981"),
-                "favicon_url": branding.get("favicon_url"),
-                "tenant_id": tenant_code
-            }
-        
-        # Check institutions collection as fallback
-        institution = await db.institutions.find_one({"tenant_id": tenant_code_lower})
-        if institution:
-            return {
-                "school_name": institution.get("school_name", institution.get("name", "School ERP")),
-                "tagline": institution.get("tagline", "Smart School Management System"),
-                "logo_url": institution.get("logo_url"),
-                "primary_color": institution.get("primary_color", "#10B981"),
-                "address": institution.get("address", ""),
-                "phone": institution.get("phone", ""),
-                "email": institution.get("email", ""),
-                "tenant_id": tenant_code
-            }
-        
-        # Check schools collection as final fallback
-        school = await db.schools.find_one({"tenant_id": tenant_code_lower})
-        if school:
-            return {
-                "school_name": school.get("name", "School ERP"),
-                "tagline": school.get("tagline", "Smart School Management System"),
-                "logo_url": school.get("logo_url"),
+                "school_name": "School ERP",
+                "tagline": "Smart School Management System",
+                "logo_url": None,
                 "primary_color": "#10B981",
                 "tenant_id": tenant_code
             }
         
         return {
-            "school_name": "School ERP",
-            "tagline": "Smart School Management System",
-            "logo_url": None,
-            "primary_color": "#10B981",
+            "school_name": branding.get("school_name", "School ERP"),
+            "tagline": branding.get("tagline", "Smart School Management System"),
+            "logo_url": branding.get("logo_url"),
+            "primary_color": branding.get("primary_color", "#10B981"),
+            "favicon_url": branding.get("favicon_url"),
             "tenant_id": tenant_code
         }
     except Exception as e:
