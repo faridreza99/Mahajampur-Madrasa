@@ -26752,7 +26752,7 @@ async def ai_generate_question_paper(
             'true_false': {'name': 'সত্য/মিথ্যা লেখ', 'marks': 1, 'desc': 'Statements to mark as true or false'},
             'mcq': {'name': 'বহুনির্বাচনী প্রশ্ন', 'marks': 1, 'desc': 'Questions with 4 options (ক, খ, গ, ঘ) to choose from'},
             'short_answer': {'name': 'সংক্ষেপে উত্তর দাও', 'marks': 2, 'desc': 'Short answer questions requiring 2-3 sentences'},
-            'matching': {'name': 'মিলকরণ', 'marks': 1, 'desc': 'Match items from left column with right column'},
+            'matching': {'name': 'মিলকরণ', 'marks': 1, 'desc': 'Matching pairs - put LEFT item in question_text and RIGHT item in correct_answer. Example: question_text="বাংলাদেশ", correct_answer="ঢাকা"'},
             'descriptive': {'name': 'রচনামূলক প্রশ্নের উত্তর দাও', 'marks': 5, 'desc': 'ESSAY/LONG ANSWER questions requiring detailed explanation in 10-15 sentences. Examples: "বর্ণনা কর", "ব্যাখ্যা কর", "আলোচনা কর"'},
             'application': {'name': 'প্রয়োগমূলক প্রশ্ন', 'marks': 5, 'desc': 'Application-based problems requiring practical knowledge application'}
         }

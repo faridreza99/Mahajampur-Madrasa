@@ -455,10 +455,39 @@ const QuestionPaperBuilder = () => {
       const label = bengaliLabels[sIndex] || '';
       
       let questionsHtml = '';
-      section.questions?.forEach((q, qIndex) => {
-        const questionLabel = String.fromCharCode(2453 + qIndex);
-        questionsHtml += `<div style="margin-left: 20px; margin-bottom: 8px;"><span>${questionLabel})</span> ${q.question_text || ''}</div>`;
-      });
+      const isMatchingSection = section.section_title_bn?.includes('মিলকরণ') || section.section_title_en?.toLowerCase().includes('matching');
+      
+      if (isMatchingSection && section.questions?.length > 0) {
+        // Render matching questions as two columns
+        const leftItems = [];
+        const rightItems = [];
+        section.questions?.forEach((q, qIndex) => {
+          const bengaliNum = getBengaliNum(qIndex + 1);
+          const leftText = q.question_text || q.left_item || q.item_a || `আইটেম ${bengaliNum}`;
+          const rightText = q.answer || q.right_item || q.item_b || q.correct_answer || '';
+          leftItems.push(`<div style="padding: 4px 0;">${bengaliNum}) ${leftText}</div>`);
+          // Shuffle right items for exam - use letters
+          const letterLabels = ['ক', 'খ', 'গ', 'ঘ', 'ঙ', 'চ', 'ছ', 'জ', 'ঝ', 'ঞ'];
+          rightItems.push(`<div style="padding: 4px 0;">${letterLabels[qIndex] || qIndex + 1}) ${rightText}</div>`);
+        });
+        questionsHtml = `
+          <div style="display: flex; gap: 40px; margin-left: 20px;">
+            <div style="flex: 1; border-right: 1px dashed #ccc; padding-right: 20px;">
+              <div style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #999;">বাম পাশ</div>
+              ${leftItems.join('')}
+            </div>
+            <div style="flex: 1;">
+              <div style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #999;">ডান পাশ</div>
+              ${rightItems.join('')}
+            </div>
+          </div>
+        `;
+      } else {
+        section.questions?.forEach((q, qIndex) => {
+          const questionLabel = String.fromCharCode(2453 + qIndex);
+          questionsHtml += `<div style="margin-left: 20px; margin-bottom: 8px;"><span>${questionLabel})</span> ${q.question_text || ''}</div>`;
+        });
+      }
       
       sectionsHtml += `
         <div style="border-top: 1px solid #ccc; padding-top: 15px; margin-top: 15px;">
