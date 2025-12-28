@@ -12432,7 +12432,8 @@ def create_professional_pdf_template(school_name: str = "School ERP System", sch
         'header': [
             ('BACKGROUND', (0, 0), (-1, 0), primary_color),
             ('TEXTCOLOR', (0, 0), (-1, 0), rl_colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, 0), 10),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
