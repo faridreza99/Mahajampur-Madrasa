@@ -12471,6 +12471,43 @@ def create_professional_pdf_template(school_name: str = "School ERP System", sch
     }
 
 
+
+def render_bengali_text_image(text, font_size=16, bg_color=(30, 58, 138), text_color=(255, 255, 255)):
+    """
+    Render Bengali text as an image using Pillow for proper complex script shaping.
+    Returns the path to the temporary image file.
+    """
+    from PIL import Image, ImageDraw, ImageFont
+    import tempfile
+    import os
+    
+    font_path = os.path.join(os.path.dirname(__file__), "fonts", "NotoSansBengali-Regular.ttf")
+    
+    try:
+        font = ImageFont.truetype(font_path, font_size)
+    except Exception:
+        return None
+    
+    # Create a temporary image to measure text size
+    temp_img = Image.new('RGBA', (1, 1), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(temp_img)
+    
+    # Get text bounding box
+    bbox = draw.textbbox((0, 0), text, font=font)
+    text_width = bbox[2] - bbox[0] + 10
+    text_height = bbox[3] - bbox[1] + 10
+    
+    # Create the actual image with transparent background
+    img = Image.new('RGBA', (text_width, text_height + 5), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    draw.text((5, 2), text, font=font, fill=text_color)
+    
+    # Save to temporary file
+    temp_file = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
+    img.save(temp_file.name, 'PNG')
+    return temp_file.name
+
+
 def add_pdf_header_footer(canvas, doc, school_name, report_title, generated_by, page_num_text=True, school_address=None, school_contact=None, logo_path=None):
     """
     Add professional header and footer to PDF pages with school branding, logo, and contact info
@@ -12544,15 +12581,45 @@ def add_pdf_header_footer(canvas, doc, school_name, report_title, generated_by, 
     # School information beside the logo
     info_x = logo_x + logo_width + 15
     
-    # School name
+    # School name - use Pillow image rendering for proper Bengali text shaping
     canvas.setFillColor(colors.whitesmoke)
-    canvas.setFont('NotoSansBengali', 16)
-    canvas.drawString(info_x, doc.pagesize[1] - 35, school_name)
+    name_img_path = None
+    try:
+        name_img_path = render_bengali_text_image(school_name, font_size=28, text_color=(245, 245, 245, 255))
+        if name_img_path:
+            canvas.drawImage(name_img_path, info_x, doc.pagesize[1] - 45, height=30, preserveAspectRatio=True, mask='auto')
+        else:
+            canvas.setFont('Helvetica-Bold', 14)
+            canvas.drawString(info_x, doc.pagesize[1] - 35, school_name)
+    except Exception:
+        canvas.setFont('Helvetica-Bold', 14)
+        canvas.drawString(info_x, doc.pagesize[1] - 35, school_name)
+    finally:
+        if name_img_path:
+            try:
+                os.remove(name_img_path)
+            except:
+                pass
     
-    # School address
+    # School address - use Pillow image rendering for proper Bengali text shaping
     if school_address:
-        canvas.setFont('NotoSansBengali', 9)
-        canvas.drawString(info_x, doc.pagesize[1] - 52, school_address)
+        addr_img_path = None
+        try:
+            addr_img_path = render_bengali_text_image(school_address, font_size=16, text_color=(220, 220, 220, 255))
+            if addr_img_path:
+                canvas.drawImage(addr_img_path, info_x, doc.pagesize[1] - 58, height=16, preserveAspectRatio=True, mask='auto')
+            else:
+                canvas.setFont('Helvetica', 9)
+                canvas.drawString(info_x, doc.pagesize[1] - 52, school_address)
+        except Exception:
+            canvas.setFont('Helvetica', 9)
+            canvas.drawString(info_x, doc.pagesize[1] - 52, school_address)
+        finally:
+            if addr_img_path:
+                try:
+                    os.remove(addr_img_path)
+                except:
+                    pass
     
     # School contact info
     if school_contact:
