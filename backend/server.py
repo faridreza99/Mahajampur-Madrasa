@@ -12485,7 +12485,8 @@ def render_bengali_text_image(text, font_size=16, bg_color=(30, 58, 138), text_c
     font_path = os.path.join(os.path.dirname(__file__), "fonts", "NotoSansBengali-Regular.ttf")
     
     try:
-        font = ImageFont.truetype(font_path, font_size)
+        # Use LAYOUT_RAQM for proper Bengali text shaping with HarfBuzz
+        font = ImageFont.truetype(font_path, font_size, layout_engine=ImageFont.Layout.RAQM)
     except Exception:
         return None
     
