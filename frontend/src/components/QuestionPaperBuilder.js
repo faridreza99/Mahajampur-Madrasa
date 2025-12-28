@@ -3,7 +3,8 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { 
   FileText, Plus, Trash2, Search, Printer, Save, Eye, 
-  ChevronDown, ChevronUp, GripVertical, X, BookOpen, Sparkles, Loader2
+  ChevronDown, ChevronUp, GripVertical, X, BookOpen, Sparkles, Loader2,
+  Pencil, Check
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -35,6 +36,9 @@ const QuestionPaperBuilder = () => {
   const [papers, setPapers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [userRole, setUserRole] = useState('');
+  const [newQuestionInputs, setNewQuestionInputs] = useState({});
+  const [editingQuestionId, setEditingQuestionId] = useState(null);
+  const [editingQuestionText, setEditingQuestionText] = useState('');
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isPrintPreviewOpen, setIsPrintPreviewOpen] = useState(false);
   const [editingPaper, setEditingPaper] = useState(null);
@@ -300,6 +304,86 @@ const QuestionPaperBuilder = () => {
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to change status');
     }
+  };
+
+  // Manual question handlers
+  const handleAddManualQuestion = (sectionIndex) => {
+    const input = newQuestionInputs[sectionIndex] || {};
+    const section = paperForm.sections[sectionIndex];
+    
+    if (!input.text || !input.text.trim()) {
+      toast.error('Please enter question text');
+      return;
+    }
+    
+    const newQuestion = {
+      id: `q_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      question_text: input.text.trim(),
+      question_type: section.section_type,
+      marks: section.marks_per_question || 1
+    };
+    
+    // Add MCQ options if applicable
+    if (section.section_type === 'mcq') {
+      const opts = input.options || ['', '', '', ''];
+      if (opts.some(o => !o.trim())) {
+        toast.error('Please fill all MCQ options');
+        return;
+      }
+      newQuestion.options = opts;
+      newQuestion.correct_answer = opts[parseInt(input.correctAnswer) || 0];
+    }
+    
+    // Add matching pair
+    if (section.section_type === 'matching') {
+      if (!input.rightSide || !input.rightSide.trim()) {
+        toast.error('Please enter right side for matching');
+        return;
+      }
+      newQuestion.correct_answer = input.rightSide.trim();
+    }
+    
+    const updatedSections = [...paperForm.sections];
+    updatedSections[sectionIndex] = {
+      ...section,
+      questions: [...(section.questions || []), newQuestion]
+    };
+    
+    setPaperForm({ ...paperForm, sections: updatedSections });
+    setNewQuestionInputs(prev => ({ ...prev, [sectionIndex]: {} }));
+    toast.success('Question added');
+  };
+  
+  const handleEditQuestion = (question) => {
+    setEditingQuestionId(question.id);
+    setEditingQuestionText(question.question_text);
+  };
+  
+  const handleSaveQuestionEdit = (sectionIndex, questionId) => {
+    if (!editingQuestionText.trim()) {
+      toast.error('Question text cannot be empty');
+      return;
+    }
+    
+    const updatedSections = [...paperForm.sections];
+    const qIndex = updatedSections[sectionIndex].questions.findIndex(q => q.id === questionId);
+    if (qIndex !== -1) {
+      updatedSections[sectionIndex].questions[qIndex].question_text = editingQuestionText.trim();
+    }
+    
+    setPaperForm({ ...paperForm, sections: updatedSections });
+    setEditingQuestionId(null);
+    setEditingQuestionText('');
+    toast.success('Question updated');
+  };
+  
+  const handleUpdateSectionMarks = (sectionIndex, marks) => {
+    const updatedSections = [...paperForm.sections];
+    updatedSections[sectionIndex] = {
+      ...updatedSections[sectionIndex],
+      marks_per_question: marks
+    };
+    setPaperForm({ ...paperForm, sections: updatedSections });
   };
 
   const toggleSectionSelection = (sectionId) => {
@@ -830,10 +914,21 @@ const QuestionPaperBuilder = () => {
                           </span>
                           <span className="ml-2 font-medium dark:text-white">{section.section_title_bn}</span>
                           <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">
-                            ({section.question_ids?.length || section.questions?.length || 0} questions × {section.marks_per_question || 0} marks)
+                            ({section.questions?.length || 0} questions × {section.marks_per_question || 0} marks = {(section.questions?.length || 0) * (section.marks_per_question || 0)} marks)
                           </span>
                         </div>
-                        <Button
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
+                            <Label className="text-xs dark:text-gray-400">Marks/Q:</Label>
+                            <Input
+                              type="number"
+                              min="1"
+                              value={section.marks_per_question || 1}
+                              onChange={(e) => handleUpdateSectionMarks(sIndex, parseInt(e.target.value) || 1)}
+                              className="w-16 h-8 text-sm dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                            />
+                          </div>
+                          <Button
                             variant="ghost"
                             size="sm"
                             className="text-red-600"
@@ -841,32 +936,187 @@ const QuestionPaperBuilder = () => {
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
+                        </div>
                       </div>
                     </CardHeader>
-                    {section.questions && section.questions.length > 0 && (
-                      <CardContent className="py-2">
+                    <CardContent className="py-2 space-y-3">
+                      {/* Existing questions */}
+                      {section.questions && section.questions.length > 0 && (
                         <div className="space-y-2">
                           {section.questions.map((q, qIndex) => (
-                            <div key={q.id} className="flex justify-between items-start p-2 bg-gray-50 dark:bg-gray-800 rounded">
+                            <div key={q.id || qIndex} className="flex justify-between items-start p-2 bg-gray-50 dark:bg-gray-800 rounded group">
                               <div className="flex-1">
                                 <span className="text-sm text-gray-500 dark:text-gray-400 mr-2">
                                   {getBengaliNumber(qIndex + 1)})
                                 </span>
-                                <span className="text-sm dark:text-gray-300">{q.question_text}</span>
+                                {editingQuestionId === q.id ? (
+                                  <div className="inline-flex items-center gap-2 flex-1">
+                                    <Input
+                                      value={editingQuestionText}
+                                      onChange={(e) => setEditingQuestionText(e.target.value)}
+                                      className="flex-1 h-8 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                      onKeyDown={(e) => e.key === 'Enter' && handleSaveQuestionEdit(sIndex, q.id)}
+                                    />
+                                    <Button size="sm" className="h-8 bg-green-600" onClick={() => handleSaveQuestionEdit(sIndex, q.id)}>
+                                      <Check className="h-3 w-3" />
+                                    </Button>
+                                    <Button size="sm" variant="ghost" className="h-8" onClick={() => setEditingQuestionId(null)}>
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <span className="text-sm dark:text-gray-300">{q.question_text}</span>
+                                )}
+                                {/* Show options for MCQ */}
+                                {q.options && q.options.length > 0 && (
+                                  <div className="ml-6 mt-1 grid grid-cols-2 gap-1 text-xs text-gray-500 dark:text-gray-400">
+                                    {q.options.map((opt, i) => (
+                                      <span key={i}>({String.fromCharCode(2453 + i)}) {opt}</span>
+                                    ))}
+                                  </div>
+                                )}
+                                {/* Show matching pairs */}
+                                {section.section_type === 'matching' && q.correct_answer && (
+                                  <div className="ml-6 mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    → {q.correct_answer}
+                                  </div>
+                                )}
                               </div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-red-500"
-                                onClick={() => handleRemoveQuestionFromSection(sIndex, q.id)}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
+                              {editingQuestionId !== q.id && (
+                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-blue-500 h-8"
+                                    onClick={() => handleEditQuestion(q)}
+                                  >
+                                    <Pencil className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-red-500 h-8"
+                                    onClick={() => handleRemoveQuestionFromSection(sIndex, q.id)}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
-                      </CardContent>
-                    )}
+                      )}
+                      
+                      {/* Add new question form */}
+                      <div className="flex gap-2 items-start pt-2 border-t dark:border-gray-700">
+                        {section.section_type === 'mcq' ? (
+                          <div className="flex-1 space-y-2">
+                            <Input
+                              placeholder="প্রশ্ন লিখুন / Type question..."
+                              value={newQuestionInputs[sIndex]?.text || ''}
+                              onChange={(e) => setNewQuestionInputs(prev => ({
+                                ...prev,
+                                [sIndex]: { ...prev[sIndex], text: e.target.value }
+                              }))}
+                              className="dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                            />
+                            <div className="grid grid-cols-2 gap-2">
+                              {['ক', 'খ', 'গ', 'ঘ'].map((label, i) => (
+                                <Input
+                                  key={i}
+                                  placeholder={`(${label}) Option ${i + 1}`}
+                                  value={newQuestionInputs[sIndex]?.options?.[i] || ''}
+                                  onChange={(e) => {
+                                    const opts = [...(newQuestionInputs[sIndex]?.options || ['', '', '', ''])];
+                                    opts[i] = e.target.value;
+                                    setNewQuestionInputs(prev => ({
+                                      ...prev,
+                                      [sIndex]: { ...prev[sIndex], options: opts }
+                                    }));
+                                  }}
+                                  className="text-sm dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                                />
+                              ))}
+                            </div>
+                            <div className="flex gap-2">
+                              <Select
+                                value={newQuestionInputs[sIndex]?.correctAnswer || ''}
+                                onValueChange={(v) => setNewQuestionInputs(prev => ({
+                                  ...prev,
+                                  [sIndex]: { ...prev[sIndex], correctAnswer: v }
+                                }))}
+                              >
+                                <SelectTrigger className="w-32 dark:bg-gray-800 dark:border-gray-600">
+                                  <SelectValue placeholder="সঠিক উত্তর" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {['ক', 'খ', 'গ', 'ঘ'].map((label, i) => (
+                                    <SelectItem key={i} value={String(i)}>{label}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Button 
+                                size="sm" 
+                                className="bg-blue-600 hover:bg-blue-700"
+                                onClick={() => handleAddManualQuestion(sIndex)}
+                              >
+                                <Plus className="h-4 w-4 mr-1" /> Add MCQ
+                              </Button>
+                            </div>
+                          </div>
+                        ) : section.section_type === 'matching' ? (
+                          <div className="flex-1 space-y-2">
+                            <div className="grid grid-cols-2 gap-2">
+                              <Input
+                                placeholder="বাম পাশ / Left side"
+                                value={newQuestionInputs[sIndex]?.text || ''}
+                                onChange={(e) => setNewQuestionInputs(prev => ({
+                                  ...prev,
+                                  [sIndex]: { ...prev[sIndex], text: e.target.value }
+                                }))}
+                                className="dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                              />
+                              <Input
+                                placeholder="ডান পাশ / Right side"
+                                value={newQuestionInputs[sIndex]?.rightSide || ''}
+                                onChange={(e) => setNewQuestionInputs(prev => ({
+                                  ...prev,
+                                  [sIndex]: { ...prev[sIndex], rightSide: e.target.value }
+                                }))}
+                                className="dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                              />
+                            </div>
+                            <Button 
+                              size="sm" 
+                              className="bg-blue-600 hover:bg-blue-700"
+                              onClick={() => handleAddManualQuestion(sIndex)}
+                            >
+                              <Plus className="h-4 w-4 mr-1" /> Add Pair
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <Input
+                              placeholder="প্রশ্ন লিখুন / Type question..."
+                              value={newQuestionInputs[sIndex]?.text || ''}
+                              onChange={(e) => setNewQuestionInputs(prev => ({
+                                ...prev,
+                                [sIndex]: { ...prev[sIndex], text: e.target.value }
+                              }))}
+                              className="flex-1 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                              onKeyDown={(e) => e.key === 'Enter' && handleAddManualQuestion(sIndex)}
+                            />
+                            <Button 
+                              size="sm" 
+                              className="bg-blue-600 hover:bg-blue-700"
+                              onClick={() => handleAddManualQuestion(sIndex)}
+                            >
+                              <Plus className="h-4 w-4 mr-1" /> Add
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </CardContent>
                   </Card>
                 ))}
               </div>
