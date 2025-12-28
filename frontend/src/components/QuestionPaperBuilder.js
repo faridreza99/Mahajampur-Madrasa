@@ -791,18 +791,75 @@ const QuestionPaperBuilder = () => {
             }
             .question-line {
               border-bottom: 1px dotted #ccc;
-              padding: 12px 0;
+              padding: 8px 0;
               display: flex;
               gap: 10px;
+              align-items: flex-start;
             }
             .q-num {
               font-weight: 600;
               min-width: 30px;
               color: ${branding.primary_color || '#1e40af'};
+              padding-top: 5px;
             }
-            .q-space {
+            .q-input {
               flex: 1;
+              border: none;
               border-bottom: 1px dotted #bbb;
+              padding: 5px 8px;
+              font-size: 14px;
+              font-family: inherit;
+              background: transparent;
+              min-height: 24px;
+              outline: none;
+            }
+            .q-input:focus {
+              border-bottom: 2px solid ${branding.primary_color || '#1e40af'};
+              background: #f8f9fa;
+            }
+            .q-input::placeholder {
+              color: #aaa;
+              font-style: italic;
+            }
+            .section-title-input {
+              background: transparent;
+              border: none;
+              color: white;
+              font-weight: 600;
+              font-size: inherit;
+              padding: 0;
+              flex: 1;
+            }
+            .section-title-input:focus {
+              outline: none;
+              background: rgba(255,255,255,0.1);
+            }
+            .marks-input {
+              background: transparent;
+              border: none;
+              border-bottom: 1px solid white;
+              color: white;
+              width: 40px;
+              text-align: center;
+              font-size: inherit;
+            }
+            .marks-input:focus {
+              outline: none;
+              background: rgba(255,255,255,0.1);
+            }
+            .add-question-btn {
+              background: #e8f5e9;
+              border: 1px dashed #4caf50;
+              color: #4caf50;
+              padding: 8px 15px;
+              border-radius: 5px;
+              cursor: pointer;
+              font-size: 13px;
+              margin-top: 10px;
+              width: 100%;
+            }
+            .add-question-btn:hover {
+              background: #c8e6c9;
             }
             
             .footer {
@@ -869,52 +926,106 @@ const QuestionPaperBuilder = () => {
             </div>
             
             <!-- Section: এক শব্দে উত্তর দাও -->
-            <div class="section-container">
+            <div class="section-container" id="section-1">
               <div class="section-header">
-                <span>ক বিভাগ: এক শব্দে উত্তর দাও</span>
-                <span>নম্বর: ____</span>
+                <input type="text" class="section-title-input" value="ক বিভাগ: এক শব্দে উত্তর দাও">
+                <span>নম্বর: <input type="text" class="marks-input" value="১০"></span>
               </div>
-              <div class="section-body">
+              <div class="section-body" id="section-1-body">
                 ${[1,2,3,4,5].map(n => `
                   <div class="question-line">
                     <span class="q-num">${getBengaliNumber(n)}।</span>
-                    <span class="q-space"></span>
+                    <input type="text" class="q-input" placeholder="এখানে প্রশ্ন লিখুন... / Type question here...">
                   </div>
                 `).join('')}
+                <button class="add-question-btn no-print" onclick="addQuestion('section-1-body', this)">+ আরো প্রশ্ন যোগ করুন / Add More Questions</button>
               </div>
             </div>
             
             <!-- Section: সংক্ষেপে উত্তর দাও -->
-            <div class="section-container">
+            <div class="section-container" id="section-2">
               <div class="section-header">
-                <span>খ বিভাগ: সংক্ষেপে উত্তর দাও</span>
-                <span>নম্বর: ____</span>
+                <input type="text" class="section-title-input" value="খ বিভাগ: সংক্ষেপে উত্তর দাও">
+                <span>নম্বর: <input type="text" class="marks-input" value="২০"></span>
               </div>
-              <div class="section-body">
+              <div class="section-body" id="section-2-body">
                 ${[1,2,3,4,5].map(n => `
                   <div class="question-line">
                     <span class="q-num">${getBengaliNumber(n)}।</span>
-                    <span class="q-space"></span>
+                    <input type="text" class="q-input" placeholder="এখানে প্রশ্ন লিখুন... / Type question here...">
                   </div>
                 `).join('')}
+                <button class="add-question-btn no-print" onclick="addQuestion('section-2-body', this)">+ আরো প্রশ্ন যোগ করুন / Add More Questions</button>
               </div>
             </div>
             
             <!-- Section: বিস্তারিত উত্তর দাও -->
-            <div class="section-container">
+            <div class="section-container" id="section-3">
               <div class="section-header">
-                <span>গ বিভাগ: বিস্তারিত উত্তর দাও / রচনামূলক</span>
-                <span>নম্বর: ____</span>
+                <input type="text" class="section-title-input" value="গ বিভাগ: বিস্তারিত উত্তর দাও / রচনামূলক">
+                <span>নম্বর: <input type="text" class="marks-input" value="৭০"></span>
               </div>
-              <div class="section-body" style="min-height: 300px;">
+              <div class="section-body" id="section-3-body" style="min-height: 300px;">
                 ${[1,2,3,4,5].map(n => `
                   <div class="question-line">
                     <span class="q-num">${getBengaliNumber(n)}।</span>
-                    <span class="q-space"></span>
+                    <input type="text" class="q-input" placeholder="এখানে প্রশ্ন লিখুন... / Type question here...">
                   </div>
                 `).join('')}
+                <button class="add-question-btn no-print" onclick="addQuestion('section-3-body', this)">+ আরো প্রশ্ন যোগ করুন / Add More Questions</button>
               </div>
             </div>
+            
+            <!-- Add New Section Button -->
+            <div class="no-print" style="margin-top: 20px; text-align: center;">
+              <button onclick="addSection()" style="background: ${branding.primary_color || '#1e40af'}; color: white; padding: 12px 25px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
+                + নতুন বিভাগ যোগ করুন / Add New Section
+              </button>
+            </div>
+            
+            <script>
+              let sectionCount = 3;
+              let questionCounts = {1: 5, 2: 5, 3: 5};
+              const bengaliDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+              const bengaliLabels = ['ক', 'খ', 'গ', 'ঘ', 'ঙ', 'চ', 'ছ', 'জ', 'ঝ', 'ঞ'];
+              
+              function getBengaliNum(n) {
+                return String(n).split('').map(d => bengaliDigits[parseInt(d)] || d).join('');
+              }
+              
+              function addQuestion(sectionBodyId, btn) {
+                const sectionNum = sectionBodyId.split('-')[1];
+                questionCounts[sectionNum] = (questionCounts[sectionNum] || 0) + 1;
+                const qNum = questionCounts[sectionNum];
+                const div = document.createElement('div');
+                div.className = 'question-line';
+                div.innerHTML = '<span class="q-num">' + getBengaliNum(qNum) + '।</span><input type="text" class="q-input" placeholder="এখানে প্রশ্ন লিখুন... / Type question here...">';
+                btn.parentNode.insertBefore(div, btn);
+              }
+              
+              function addSection() {
+                sectionCount++;
+                const label = bengaliLabels[sectionCount - 1] || sectionCount;
+                const sectionHtml = \`
+                  <div class="section-container" id="section-\${sectionCount}">
+                    <div class="section-header">
+                      <input type="text" class="section-title-input" value="\${label} বিভাগ: বিভাগের নাম লিখুন">
+                      <span>নম্বর: <input type="text" class="marks-input" value=""></span>
+                    </div>
+                    <div class="section-body" id="section-\${sectionCount}-body">
+                      <div class="question-line">
+                        <span class="q-num">১।</span>
+                        <input type="text" class="q-input" placeholder="এখানে প্রশ্ন লিখুন... / Type question here...">
+                      </div>
+                      <button class="add-question-btn no-print" onclick="addQuestion('section-\${sectionCount}-body', this)">+ আরো প্রশ্ন যোগ করুন / Add More Questions</button>
+                    </div>
+                  </div>
+                \`;
+                questionCounts[sectionCount] = 1;
+                const addBtn = document.querySelector('.no-print[style*="margin-top: 20px"]');
+                addBtn.insertAdjacentHTML('beforebegin', sectionHtml);
+              }
+            </script>
             
             <div class="footer">
               ${branding.school_name || ''} ${branding.phone ? `| ${branding.phone}` : ''} ${branding.email ? `| ${branding.email}` : ''} ${branding.website ? `| ${branding.website}` : ''}
