@@ -56,6 +56,7 @@ const QuestionPaperBuilder = () => {
 
   const [isAIDialogOpen, setIsAIDialogOpen] = useState(false);
   const [aiGenerating, setAiGenerating] = useState(false);
+  const [classRules, setClassRules] = useState(null);
   
   const sectionOptions = [
     { id: 'one_word', name_bn: 'একশব্দে উত্তর', name_en: 'One Word Answer', default_marks: 1 },
@@ -142,6 +143,23 @@ const QuestionPaperBuilder = () => {
     }
   }, [API_BASE_URL]);
 
+
+  const fetchClassRules = useCallback(async (className) => {
+    if (!className) {
+      setClassRules(null);
+      return;
+    }
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_BASE_URL}/question-papers/class-rules?class_name=${encodeURIComponent(className)}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const rules = response.data.rules;
+      setClassRules(rules);
+    } catch (error) {
+      console.error('Error fetching class rules:', error);
+    }
+  }, [API_BASE_URL]);
   useEffect(() => {
     fetchPapers();
     fetchClasses();
@@ -803,7 +821,7 @@ const QuestionPaperBuilder = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="dark:text-gray-300">Class / শ্রেণী</Label>
-                <Select value={aiForm.class_name} onValueChange={(value) => setAiForm({ ...aiForm, class_name: value })}>
+                <Select value={aiForm.class_name} onValueChange={(value) => { setAiForm({ ...aiForm, class_name: value }); fetchClassRules(value); }}>
                   <SelectTrigger className="dark:bg-gray-900 dark:border-gray-600 dark:text-white">
                     <SelectValue placeholder="Select class" />
                   </SelectTrigger>
@@ -884,9 +902,19 @@ const QuestionPaperBuilder = () => {
 
             <div className="space-y-2">
               <Label className="dark:text-gray-300">Select Sections & Question Count / বিভাগ ও প্রশ্ন সংখ্যা নির্বাচন</Label>
+              {classRules && (
+                <div className="text-xs p-2 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-700">
+                  <span className="font-medium text-blue-700 dark:text-blue-300">📚 {classRules.description}</span>
+                  {!classRules.mcq_allowed && (
+                    <span className="ml-2 text-orange-600 dark:text-orange-400">(MCQ অনুমোদিত নয়)</span>
+                  )}
+                </div>
+              )}
               <div className="space-y-2 p-3 border rounded-lg dark:border-gray-600 max-h-64 overflow-y-auto">
                 {sectionOptions.map(section => {
                   const config = aiForm.section_config[section.id] || { enabled: false, question_count: 5 };
+                  const isAllowed = !classRules || classRules.allowed_question_types?.includes(section.id);
+                  if (!isAllowed) return null;
                   return (
                     <div 
                       key={section.id} 
