@@ -12564,10 +12564,11 @@ def add_pdf_header_footer(canvas, doc, school_name, report_title, generated_by, 
             canvas.setFont("NotoSansBengali", 9)
             canvas.drawString(info_x, doc.pagesize[1] - 52, school_address)
     
-    # School contact info
+    # School contact info (Phone & Email)
     if school_contact:
-        canvas.setFont('Helvetica', 9)
-        canvas.drawString(info_x, doc.pagesize[1] - 67, school_contact)
+        canvas.setFillColor(colors.whitesmoke)
+        canvas.setFont("Helvetica", 9)
+        canvas.drawString(info_x, doc.pagesize[1] - 72, school_contact)
     
     # Report title below the header (on white background)
     canvas.setFillColor(colors.Color(0.11, 0.23, 0.54))  # Deep blue text
