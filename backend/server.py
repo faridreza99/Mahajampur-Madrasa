@@ -26672,10 +26672,13 @@ async def update_paper_status(
         update_data["locked_at"] = datetime.utcnow()
         update_data["locked_by"] = current_user.id
     
-    await db.question_papers.update_one(
-        {"id": paper_id},
+    result = await db.question_papers.update_one(
+        {"id": paper_id, "tenant_id": current_user.tenant_id},
         {"$set": update_data}
     )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Question paper not found or you don't have permission")
     
     # Audit log
     await log_paper_audit(

@@ -34,6 +34,7 @@ import {
 const QuestionPaperBuilder = () => {
   const [papers, setPapers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [userRole, setUserRole] = useState('');
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isPrintPreviewOpen, setIsPrintPreviewOpen] = useState(false);
   const [editingPaper, setEditingPaper] = useState(null);
@@ -181,6 +182,11 @@ const QuestionPaperBuilder = () => {
       console.error('Error fetching class rules:', error);
     }
   }, [API_BASE_URL, sectionOptions]);
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    setUserRole(user.role || '');
+  }, []);
+  
   useEffect(() => {
     fetchPapers();
     fetchClasses();
@@ -675,6 +681,27 @@ const QuestionPaperBuilder = () => {
                   {paper.status === 'draft' && (
                     <Button variant="outline" size="sm" className="text-blue-600" onClick={() => handleStatusChange(paper.id, 'submitted')}>
                       📤 Submit
+                    </Button>
+                  )}
+                  {/* Admin controls */}
+                  {(userRole === 'admin' || userRole === 'super_admin') && paper.status === 'submitted' && (
+                    <>
+                      <Button variant="outline" size="sm" className="text-green-600" onClick={() => handleStatusChange(paper.id, 'approved')}>
+                        ✓ Approve
+                      </Button>
+                      <Button variant="outline" size="sm" className="text-orange-600" onClick={() => handleStatusChange(paper.id, 'rejected')}>
+                        ✗ Reject
+                      </Button>
+                    </>
+                  )}
+                  {(userRole === 'admin' || userRole === 'super_admin') && paper.status === 'approved' && (
+                    <Button variant="outline" size="sm" className="text-red-600" onClick={() => handleStatusChange(paper.id, 'locked')}>
+                      🔒 Lock
+                    </Button>
+                  )}
+                  {(userRole === 'admin' || userRole === 'super_admin') && paper.status === 'locked' && (
+                    <Button variant="outline" size="sm" className="text-blue-600" onClick={() => handleStatusChange(paper.id, 'draft')}>
+                      🔓 Unlock
                     </Button>
                   )}
                   {paper.status !== 'locked' && (
