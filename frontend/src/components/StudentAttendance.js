@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Check, X, Users, UserCheck, UserX, Calendar, Download, FileSpreadsheet } from 'lucide-react';
+import { Badge } from './ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
+import { Check, X, Users, UserCheck, UserX, Calendar, Download, FileSpreadsheet, Clock, AlertTriangle, Brain, Settings, Edit, History } from 'lucide-react';
 
 const API = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
@@ -153,6 +156,8 @@ const MarkStudentAttendance = () => {
 
   const presentCount = Object.values(attendance).filter(s => s === 'present').length;
   const absentCount = Object.values(attendance).filter(s => s === 'absent').length;
+  const lateCount = Object.values(attendance).filter(s => s === 'late').length;
+  const halfDayCount = Object.values(attendance).filter(s => s === 'half_day').length;
 
   return (
     <div className="space-y-6">
@@ -211,10 +216,10 @@ const MarkStudentAttendance = () => {
       {selectedClass && selectedSection && (
         <>
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+                <CardTitle className="text-sm font-medium">মোট / Total</CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -223,7 +228,7 @@ const MarkStudentAttendance = () => {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Present</CardTitle>
+                <CardTitle className="text-sm font-medium">উপস্থিত / Present</CardTitle>
                 <UserCheck className="h-4 w-4 text-green-600" />
               </CardHeader>
               <CardContent>
@@ -232,11 +237,29 @@ const MarkStudentAttendance = () => {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Absent</CardTitle>
+                <CardTitle className="text-sm font-medium">অনুপস্থিত / Absent</CardTitle>
                 <UserX className="h-4 w-4 text-red-600" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-red-600">{absentCount}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">দেরি / Late</CardTitle>
+                <Clock className="h-4 w-4 text-yellow-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-yellow-600">{lateCount}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">অর্ধদিবস / Half Day</CardTitle>
+                <AlertTriangle className="h-4 w-4 text-orange-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-orange-600">{halfDayCount}</div>
               </CardContent>
             </Card>
           </div>
@@ -276,7 +299,7 @@ const MarkStudentAttendance = () => {
                           <p className="text-sm text-gray-500">Roll: {student.roll_number || student.id}</p>
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
                         <Button
                           onClick={() => markAttendance(student.id, 'present')}
                           variant={attendance[student.id] === 'present' ? 'default' : 'outline'}
@@ -284,7 +307,7 @@ const MarkStudentAttendance = () => {
                           className={attendance[student.id] === 'present' ? 'bg-green-600 hover:bg-green-700' : ''}
                         >
                           <Check className="h-4 w-4 mr-1" />
-                          Present
+                          উপস্থিত
                         </Button>
                         <Button
                           onClick={() => markAttendance(student.id, 'absent')}
@@ -293,7 +316,25 @@ const MarkStudentAttendance = () => {
                           className={attendance[student.id] === 'absent' ? 'bg-red-600 hover:bg-red-700' : ''}
                         >
                           <X className="h-4 w-4 mr-1" />
-                          Absent
+                          অনুপস্থিত
+                        </Button>
+                        <Button
+                          onClick={() => markAttendance(student.id, 'late')}
+                          variant={attendance[student.id] === 'late' ? 'default' : 'outline'}
+                          size="sm"
+                          className={attendance[student.id] === 'late' ? 'bg-yellow-600 hover:bg-yellow-700' : ''}
+                        >
+                          <Clock className="h-4 w-4 mr-1" />
+                          দেরি
+                        </Button>
+                        <Button
+                          onClick={() => markAttendance(student.id, 'half_day')}
+                          variant={attendance[student.id] === 'half_day' ? 'default' : 'outline'}
+                          size="sm"
+                          className={attendance[student.id] === 'half_day' ? 'bg-orange-600 hover:bg-orange-700' : ''}
+                        >
+                          <AlertTriangle className="h-4 w-4 mr-1" />
+                          অর্ধদিবস
                         </Button>
                       </div>
                     </div>

@@ -36,6 +36,7 @@ import cloudinary
 import cloudinary.uploader
 from notification_service import get_notification_service, NotificationEventType
 
+from attendance_management import setup_attendance_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -27308,6 +27309,9 @@ async def upload_school_logo(
     except Exception as e:
         logger.error(f"Logo upload failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+# Setup Enterprise Attendance Management System routes
+setup_attendance_routes(api_router, db, get_current_user, User)
+
 
 
 # Include router at the end after all routes are defined
