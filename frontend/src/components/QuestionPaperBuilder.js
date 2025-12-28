@@ -683,6 +683,258 @@ const QuestionPaperBuilder = () => {
     };
   };
 
+  // Generate Blank Template with School Branding
+  const handleBlankTemplate = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      
+      // Fetch school branding
+      const brandingResponse = await axios.get(`${API_BASE_URL}/school-branding`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const branding = brandingResponse.data;
+      
+      const printWindow = window.open('', '_blank', 'width=800,height=600');
+      if (!printWindow) {
+        toast.error('Pop-up blocked. Please allow pop-ups.');
+        return;
+      }
+
+      const blankTemplateHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <title>ফাঁকা প্রশ্নপত্র টেমপ্লেট - Blank Question Paper Template</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap');
+            * { box-sizing: border-box; }
+            body { 
+              font-family: 'Noto Sans Bengali', 'SolaimanLipi', Arial, sans-serif; 
+              margin: 0; 
+              padding: 30px; 
+              color: black;
+              background: white;
+            }
+            .page { 
+              max-width: 210mm; 
+              margin: 0 auto;
+              min-height: 297mm;
+            }
+            .header { 
+              text-align: center; 
+              border-bottom: 3px double ${branding.primary_color || '#1e40af'}; 
+              padding-bottom: 15px; 
+              margin-bottom: 20px; 
+            }
+            .logo { height: 70px; margin-bottom: 8px; }
+            .school-name { 
+              font-size: 26px; 
+              font-weight: 700; 
+              color: ${branding.primary_color || '#1e40af'}; 
+              margin: 5px 0; 
+            }
+            .school-name-en { font-size: 16px; color: #555; margin: 3px 0; }
+            .address { font-size: 12px; color: #777; }
+            
+            .exam-info {
+              background: #f8f9fa;
+              border: 1px solid #ddd;
+              border-radius: 8px;
+              padding: 15px;
+              margin: 20px 0;
+            }
+            .exam-info-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 15px;
+            }
+            .info-row {
+              display: flex;
+              align-items: center;
+              gap: 10px;
+            }
+            .info-label { 
+              font-weight: 600; 
+              color: #333;
+              min-width: 100px;
+            }
+            .info-input {
+              flex: 1;
+              border: none;
+              border-bottom: 2px dotted #999;
+              padding: 5px 10px;
+              font-size: 14px;
+              background: transparent;
+              min-width: 150px;
+            }
+            
+            .section-container {
+              margin-top: 25px;
+            }
+            .section-header {
+              background: ${branding.primary_color || '#1e40af'};
+              color: white;
+              padding: 8px 15px;
+              border-radius: 5px 5px 0 0;
+              font-weight: 600;
+              display: flex;
+              justify-content: space-between;
+            }
+            .section-body {
+              border: 1px solid #ddd;
+              border-top: none;
+              border-radius: 0 0 5px 5px;
+              padding: 15px;
+              min-height: 200px;
+            }
+            .question-line {
+              border-bottom: 1px dotted #ccc;
+              padding: 12px 0;
+              display: flex;
+              gap: 10px;
+            }
+            .q-num {
+              font-weight: 600;
+              min-width: 30px;
+              color: ${branding.primary_color || '#1e40af'};
+            }
+            .q-space {
+              flex: 1;
+              border-bottom: 1px dotted #bbb;
+            }
+            
+            .footer {
+              margin-top: 30px;
+              text-align: center;
+              border-top: 2px solid ${branding.primary_color || '#1e40af'};
+              padding-top: 15px;
+              color: #666;
+              font-size: 12px;
+            }
+            
+            @media print {
+              body { padding: 15px; }
+              .no-print { display: none !important; }
+              .page { min-height: auto; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="no-print" style="background: #f0f9ff; padding: 15px; margin-bottom: 20px; border-radius: 8px; text-align: center;">
+            <strong>📋 ফাঁকা প্রশ্নপত্র টেমপ্লেট / Blank Question Paper Template</strong><br>
+            <small>এই পৃষ্ঠাটি প্রিন্ট করে হাতে প্রশ্ন লিখুন / Print this page and write questions by hand</small><br>
+            <button onclick="window.print()" style="margin-top: 10px; padding: 10px 25px; background: ${branding.primary_color || '#1e40af'}; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+              🖨️ প্রিন্ট করুন / Print
+            </button>
+          </div>
+          
+          <div class="page">
+            <div class="header">
+              ${branding.logo_url ? `<img src="${branding.logo_url}" class="logo" alt="School Logo">` : ''}
+              <div class="school-name">${branding.school_name_bn || 'বিদ্যালয়ের নাম'}</div>
+              <div class="school-name-en">${branding.school_name_en || 'School Name'}</div>
+              ${branding.address ? `<div class="address">${branding.address}</div>` : ''}
+            </div>
+            
+            <div class="exam-info">
+              <div class="exam-info-grid">
+                <div class="info-row">
+                  <span class="info-label">পরীক্ষার নাম:</span>
+                  <input class="info-input" placeholder="বার্ষিক পরীক্ষা / অর্ধ-বার্ষিক...">
+                </div>
+                <div class="info-row">
+                  <span class="info-label">শ্রেণী:</span>
+                  <input class="info-input" placeholder="প্রথম / দ্বিতীয়...">
+                </div>
+                <div class="info-row">
+                  <span class="info-label">বিষয়:</span>
+                  <input class="info-input" placeholder="বাংলা / গণিত...">
+                </div>
+                <div class="info-row">
+                  <span class="info-label">সাল:</span>
+                  <input class="info-input" value="${new Date().getFullYear()}">
+                </div>
+                <div class="info-row">
+                  <span class="info-label">সময়:</span>
+                  <input class="info-input" placeholder="২ ঘণ্টা">
+                </div>
+                <div class="info-row">
+                  <span class="info-label">পূর্ণমান:</span>
+                  <input class="info-input" value="১০০">
+                </div>
+              </div>
+            </div>
+            
+            <!-- Section: এক শব্দে উত্তর দাও -->
+            <div class="section-container">
+              <div class="section-header">
+                <span>ক বিভাগ: এক শব্দে উত্তর দাও</span>
+                <span>নম্বর: ____</span>
+              </div>
+              <div class="section-body">
+                ${[1,2,3,4,5].map(n => `
+                  <div class="question-line">
+                    <span class="q-num">${getBengaliNumber(n)}।</span>
+                    <span class="q-space"></span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+            
+            <!-- Section: সংক্ষেপে উত্তর দাও -->
+            <div class="section-container">
+              <div class="section-header">
+                <span>খ বিভাগ: সংক্ষেপে উত্তর দাও</span>
+                <span>নম্বর: ____</span>
+              </div>
+              <div class="section-body">
+                ${[1,2,3,4,5].map(n => `
+                  <div class="question-line">
+                    <span class="q-num">${getBengaliNumber(n)}।</span>
+                    <span class="q-space"></span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+            
+            <!-- Section: বিস্তারিত উত্তর দাও -->
+            <div class="section-container">
+              <div class="section-header">
+                <span>গ বিভাগ: বিস্তারিত উত্তর দাও / রচনামূলক</span>
+                <span>নম্বর: ____</span>
+              </div>
+              <div class="section-body" style="min-height: 300px;">
+                ${[1,2,3,4,5].map(n => `
+                  <div class="question-line">
+                    <span class="q-num">${getBengaliNumber(n)}।</span>
+                    <span class="q-space"></span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+            
+            <div class="footer">
+              ${branding.school_name_bn || ''} | ${branding.contact_phone || ''} | ${branding.contact_email || ''}
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      printWindow.document.write(blankTemplateHtml);
+      printWindow.document.close();
+      toast.success('Blank template opened - print it and write questions by hand!');
+      
+    } catch (error) {
+      console.error('Error generating blank template:', error);
+      toast.error('Failed to generate blank template');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const calculateTotalMarks = () => {
     if (!paperForm.sections || !Array.isArray(paperForm.sections)) {
       return 0;
@@ -708,7 +960,7 @@ const QuestionPaperBuilder = () => {
           </h1>
           <p className="text-gray-600 dark:text-gray-400">Create and print exam papers with school branding</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button onClick={handleCreatePaper} className="bg-blue-600 hover:bg-blue-700">
             <Plus className="h-4 w-4 mr-2" />
             নতুন প্রশ্নপত্র / New Paper
@@ -716,6 +968,10 @@ const QuestionPaperBuilder = () => {
           <Button onClick={() => setIsAIDialogOpen(true)} className="bg-purple-600 hover:bg-purple-700">
             <Sparkles className="h-4 w-4 mr-2" />
             AI প্রশ্নপত্র / AI Generate
+          </Button>
+          <Button onClick={handleBlankTemplate} variant="outline" className="border-green-600 text-green-600 hover:bg-green-50 dark:border-green-400 dark:text-green-400 dark:hover:bg-green-900/20">
+            <Printer className="h-4 w-4 mr-2" />
+            ফাঁকা টেমপ্লেট / Blank Template
           </Button>
         </div>
       </div>
