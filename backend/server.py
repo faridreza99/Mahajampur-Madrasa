@@ -12580,32 +12580,28 @@ def add_pdf_header_footer(canvas, doc, school_name, report_title, generated_by, 
         canvas.setFillColor(colors.whitesmoke)
         canvas.drawCentredString(logo_x + logo_width/2, logo_y + logo_height/2 - 3, "LOGO")
     
-    # School information - professionally centered layout with logo on left
+    # School information - CENTERED ON FULL PAGE
     page_width = doc.pagesize[0]
-    
-    # Calculate center area (excluding logo space on left)
-    text_area_start = logo_x + logo_width + 20
-    text_area_width = page_width - text_area_start - 40
-    text_center_x = text_area_start + (text_area_width / 2)
+    page_center_x = page_width / 2
     
     # School name - use Pillow image rendering for proper Bengali text shaping
     canvas.setFillColor(colors.whitesmoke)
     name_img_path = None
     try:
-        name_img_path = render_bengali_text_image(school_name, font_size=28, text_color=(255, 255, 255, 255))
+        name_img_path = render_bengali_text_image(school_name, font_size=32, text_color=(255, 255, 255, 255))
         if name_img_path:
             from PIL import Image as PILImage
             with PILImage.open(name_img_path) as img:
-                scaled_height = 28
+                scaled_height = 30
                 img_width = img.width * (scaled_height / img.height)
-            name_x = text_center_x - (img_width / 2)
-            canvas.drawImage(name_img_path, name_x, doc.pagesize[1] - 38, height=scaled_height, preserveAspectRatio=True, mask='auto')
+            name_x = page_center_x - (img_width / 2)
+            canvas.drawImage(name_img_path, name_x, doc.pagesize[1] - 35, height=scaled_height, preserveAspectRatio=True, mask='auto')
         else:
-            canvas.setFont('Helvetica-Bold', 14)
-            canvas.drawCentredString(text_center_x, doc.pagesize[1] - 32, school_name)
+            canvas.setFont('Helvetica-Bold', 16)
+            canvas.drawCentredString(page_center_x, doc.pagesize[1] - 30, school_name)
     except Exception:
-        canvas.setFont('Helvetica-Bold', 14)
-        canvas.drawCentredString(text_center_x, doc.pagesize[1] - 32, school_name)
+        canvas.setFont('Helvetica-Bold', 16)
+        canvas.drawCentredString(page_center_x, doc.pagesize[1] - 30, school_name)
     finally:
         if name_img_path:
             try:
@@ -12617,20 +12613,20 @@ def add_pdf_header_footer(canvas, doc, school_name, report_title, generated_by, 
     if school_address:
         addr_img_path = None
         try:
-            addr_img_path = render_bengali_text_image(school_address, font_size=12, text_color=(220, 220, 220, 255))
+            addr_img_path = render_bengali_text_image(school_address, font_size=14, text_color=(230, 230, 230, 255))
             if addr_img_path:
                 from PIL import Image as PILImage
                 with PILImage.open(addr_img_path) as img:
-                    scaled_height = 12
+                    scaled_height = 14
                     img_width = img.width * (scaled_height / img.height)
-                addr_x = text_center_x - (img_width / 2)
+                addr_x = page_center_x - (img_width / 2)
                 canvas.drawImage(addr_img_path, addr_x, doc.pagesize[1] - 52, height=scaled_height, preserveAspectRatio=True, mask='auto')
             else:
-                canvas.setFont('Helvetica', 9)
-                canvas.drawCentredString(text_center_x, doc.pagesize[1] - 50, school_address)
+                canvas.setFont('Helvetica', 10)
+                canvas.drawCentredString(page_center_x, doc.pagesize[1] - 50, school_address)
         except Exception:
-            canvas.setFont('Helvetica', 9)
-            canvas.drawCentredString(text_center_x, doc.pagesize[1] - 50, school_address)
+            canvas.setFont('Helvetica', 10)
+            canvas.drawCentredString(page_center_x, doc.pagesize[1] - 50, school_address)
         finally:
             if addr_img_path:
                 try:
@@ -12638,11 +12634,11 @@ def add_pdf_header_footer(canvas, doc, school_name, report_title, generated_by, 
                 except:
                     pass
     
-    # School contact info - centered in text area
+    # School contact info - centered on full page
     if school_contact:
-        canvas.setFont('Helvetica', 9)
+        canvas.setFont('Helvetica', 10)
         canvas.setFillColor(colors.whitesmoke)
-        canvas.drawCentredString(text_center_x, doc.pagesize[1] - 66, school_contact)
+        canvas.drawCentredString(page_center_x, doc.pagesize[1] - 68, school_contact)
     
     # Report title below the header (on white background)
     canvas.setFillColor(colors.Color(0.11, 0.23, 0.54))  # Deep blue text
