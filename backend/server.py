@@ -27414,34 +27414,56 @@ async def get_school_branding(
 async def get_public_school_branding(tenant_code: str):
     """Get public school branding for login page (no auth required)"""
     try:
+        # Normalize tenant code to lowercase for lookup
+        tenant_code_lower = tenant_code.lower()
+        
         branding_collection = db["school_branding"]
         
+        # Try both original and lowercase tenant codes
         branding = await branding_collection.find_one({"tenant_id": tenant_code})
-        
         if not branding:
-            school = await db.schools.find_one({"tenant_id": tenant_code})
-            if school:
-                return {
-                    "school_name": school.get("name", "School ERP"),
-                    "tagline": school.get("tagline", "Smart School Management System"),
-                    "logo_url": school.get("logo_url"),
-                    "primary_color": "#10B981",
-                    "tenant_id": tenant_code
-                }
+            branding = await branding_collection.find_one({"tenant_id": tenant_code_lower})
+        
+        if branding:
             return {
-                "school_name": "School ERP",
-                "tagline": "Smart School Management System",
-                "logo_url": None,
+                "school_name": branding.get("school_name", "School ERP"),
+                "tagline": branding.get("tagline", "Smart School Management System"),
+                "logo_url": branding.get("logo_url"),
+                "primary_color": branding.get("primary_color", "#10B981"),
+                "favicon_url": branding.get("favicon_url"),
+                "tenant_id": tenant_code
+            }
+        
+        # Check institutions collection as fallback
+        institution = await db.institutions.find_one({"tenant_id": tenant_code_lower})
+        if institution:
+            return {
+                "school_name": institution.get("school_name", institution.get("name", "School ERP")),
+                "tagline": institution.get("tagline", "Smart School Management System"),
+                "logo_url": institution.get("logo_url"),
+                "primary_color": institution.get("primary_color", "#10B981"),
+                "address": institution.get("address", ""),
+                "phone": institution.get("phone", ""),
+                "email": institution.get("email", ""),
+                "tenant_id": tenant_code
+            }
+        
+        # Check schools collection as final fallback
+        school = await db.schools.find_one({"tenant_id": tenant_code_lower})
+        if school:
+            return {
+                "school_name": school.get("name", "School ERP"),
+                "tagline": school.get("tagline", "Smart School Management System"),
+                "logo_url": school.get("logo_url"),
                 "primary_color": "#10B981",
                 "tenant_id": tenant_code
             }
         
         return {
-            "school_name": branding.get("school_name", "School ERP"),
-            "tagline": branding.get("tagline", "Smart School Management System"),
-            "logo_url": branding.get("logo_url"),
-            "primary_color": branding.get("primary_color", "#10B981"),
-            "favicon_url": branding.get("favicon_url"),
+            "school_name": "School ERP",
+            "tagline": "Smart School Management System",
+            "logo_url": None,
+            "primary_color": "#10B981",
             "tenant_id": tenant_code
         }
     except Exception as e:
