@@ -861,6 +861,18 @@ const QuestionPaperBuilder = () => {
             .add-question-btn:hover {
               background: #c8e6c9;
             }
+            .delete-section-btn {
+              background: transparent;
+              border: none;
+              color: rgba(255,255,255,0.7);
+              cursor: pointer;
+              padding: 2px 8px;
+              font-size: 16px;
+              margin-left: 10px;
+            }
+            .delete-section-btn:hover {
+              color: #ff6b6b;
+            }
             
             .footer {
               margin-top: 30px;
@@ -930,6 +942,7 @@ const QuestionPaperBuilder = () => {
               <div class="section-header">
                 <input type="text" class="section-title-input" value="ক বিভাগ: এক শব্দে উত্তর দাও">
                 <span>নম্বর: <input type="text" class="marks-input" value="১০"></span>
+                <button class="delete-section-btn no-print" onclick="deleteSection('section-1')" title="Delete Section">✕</button>
               </div>
               <div class="section-body" id="section-1-body">
                 ${[1,2,3,4,5].map(n => `
@@ -947,6 +960,7 @@ const QuestionPaperBuilder = () => {
               <div class="section-header">
                 <input type="text" class="section-title-input" value="খ বিভাগ: সংক্ষেপে উত্তর দাও">
                 <span>নম্বর: <input type="text" class="marks-input" value="২০"></span>
+                <button class="delete-section-btn no-print" onclick="deleteSection('section-2')" title="Delete Section">✕</button>
               </div>
               <div class="section-body" id="section-2-body">
                 ${[1,2,3,4,5].map(n => `
@@ -964,6 +978,7 @@ const QuestionPaperBuilder = () => {
               <div class="section-header">
                 <input type="text" class="section-title-input" value="গ বিভাগ: বিস্তারিত উত্তর দাও / রচনামূলক">
                 <span>নম্বর: <input type="text" class="marks-input" value="৭০"></span>
+                <button class="delete-section-btn no-print" onclick="deleteSection('section-3')" title="Delete Section">✕</button>
               </div>
               <div class="section-body" id="section-3-body" style="min-height: 300px;">
                 ${[1,2,3,4,5].map(n => `
@@ -1003,6 +1018,13 @@ const QuestionPaperBuilder = () => {
                 btn.parentNode.insertBefore(div, btn);
               }
               
+              function deleteSection(sectionId) {
+                if (confirm('এই বিভাগটি মুছে ফেলতে চান? / Delete this section?')) {
+                  const section = document.getElementById(sectionId);
+                  if (section) section.remove();
+                }
+              }
+              
               function addSection() {
                 sectionCount++;
                 const label = bengaliLabels[sectionCount - 1] || sectionCount;
@@ -1011,6 +1033,7 @@ const QuestionPaperBuilder = () => {
                     <div class="section-header">
                       <input type="text" class="section-title-input" value="\${label} বিভাগ: বিভাগের নাম লিখুন">
                       <span>নম্বর: <input type="text" class="marks-input" value=""></span>
+                      <button class="delete-section-btn no-print" onclick="deleteSection('section-\${sectionCount}')" title="Delete Section">✕</button>
                     </div>
                     <div class="section-body" id="section-\${sectionCount}-body">
                       <div class="question-line">
