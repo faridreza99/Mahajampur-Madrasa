@@ -241,6 +241,20 @@ const QuestionPaperBuilder = () => {
       toast.error('Please select class and subject');
       return;
     }
+    
+    // Validate total marks
+    const currentMarks = calculateTotalMarks();
+    if (currentMarks !== 100) {
+      toast.error(`মোট নম্বর ১০০ হতে হবে। বর্তমান: ${currentMarks} / Total marks must equal 100. Current: ${currentMarks}`);
+      return;
+    }
+    
+    // Check if any section has questions
+    const hasQuestions = paperForm.sections.some(s => s.questions?.length > 0);
+    if (!hasQuestions) {
+      toast.error('Please add at least one question to a section');
+      return;
+    }
 
     try {
       setLoading(true);
@@ -506,10 +520,11 @@ const QuestionPaperBuilder = () => {
   const handleAddSection = (template) => {
     const newSection = {
       section_number: paperForm.sections.length + 1,
+      section_type: template.id || template.type || 'short_answer',  // Use template id as section type
       section_title_bn: template.title_bn,
       section_title_en: template.title_en,
       instructions_bn: template.instructions_bn,
-      marks_per_question: template.default_marks,
+      marks_per_question: template.default_marks || 1,
       question_ids: [],
       questions: []
     };
@@ -880,8 +895,13 @@ const QuestionPaperBuilder = () => {
             <div className="border-t dark:border-gray-700 pt-4">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-medium dark:text-white">প্রশ্ন বিভাগ / Sections</h3>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  Total Marks: <strong>{calculateTotalMarks()}</strong>
+                <div className={`text-sm font-medium px-3 py-1 rounded-full ${
+                  calculateTotalMarks() === 100 
+                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                    : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                }`}>
+                  মোট নম্বর / Total: <strong>{calculateTotalMarks()}</strong> / 100
+                  {calculateTotalMarks() === 100 ? ' ✓' : ' ✗'}
                 </div>
               </div>
 
