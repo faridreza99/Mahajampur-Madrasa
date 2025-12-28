@@ -291,14 +291,43 @@ const QuestionPaperBuilder = () => {
 
   const handleAIGenerate = async () => {
     if (!aiForm.class_name || !aiForm.subject) {
-      toast.error('Please select class and subject');
+      toast.error('শ্রেণী এবং বিষয় নির্বাচন করুন');
       return;
     }
     
     const enabledSections = getEnabledSections();
     if (enabledSections.length === 0) {
-      toast.error('Please select at least one section type');
+      toast.error('কমপক্ষে একটি প্রশ্নের ধরন নির্বাচন করুন');
       return;
+    }
+
+    // Calculate total marks
+    const calculatedMarks = Object.entries(aiForm.section_config).reduce((sum, [id, cfg]) => {
+      if (!cfg.enabled) return sum;
+      const sec = sectionOptions.find(s => s.id === id);
+      return sum + (cfg.question_count * (sec?.default_marks || 1));
+    }, 0);
+
+    // Validate marks = 100
+    if (calculatedMarks !== aiForm.total_marks) {
+      toast.error(`মোট নম্বর ${aiForm.total_marks} হতে হবে (বর্তমান: ${calculatedMarks})`);
+      return;
+    }
+
+    // Validate MCQ restrictions for class
+    if (classRules) {
+      const mcqConfig = aiForm.section_config.mcq;
+      if (mcqConfig?.enabled) {
+        if (!classRules.mcq_allowed) {
+          toast.error('এই শ্রেণীতে MCQ অনুমোদিত নয়');
+          return;
+        }
+        const mcqMarks = mcqConfig.question_count * 1;
+        if (classRules.max_mcq_marks && mcqMarks > classRules.max_mcq_marks) {
+          toast.error(`MCQ সর্বোচ্চ ${classRules.max_mcq_marks} নম্বর (বর্তমান: ${mcqMarks})`);
+          return;
+        }
+      }
     }
 
     try {

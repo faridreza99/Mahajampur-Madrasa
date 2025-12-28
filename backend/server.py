@@ -26447,6 +26447,19 @@ async def get_question_papers(
         "pages": (total + limit - 1) // limit
     }
 
+
+@api_router.get("/question-papers/class-rules")
+async def get_class_rules_endpoint(
+    class_name: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get class-wise rules for question paper generation (NCTB/Madrasa Board compliant)"""
+    if class_name:
+        rules = get_class_rules(class_name)
+        return {"rules": rules, "class_name": class_name}
+    return {"all_rules": CLASS_RULES}
+
+
 @api_router.get("/question-papers/{paper_id}")
 async def get_question_paper(
     paper_id: str,
@@ -26703,18 +26716,6 @@ def get_class_rules(class_name: str) -> dict:
     return {**CLASS_RULES["class_6_8"], "rule_key": "class_6_8"}
 
 
-@api_router.get("/question-papers/class-rules")
-async def get_class_rules_endpoint(
-    class_name: str = None,
-    current_user: User = Depends(get_current_user)
-):
-    """Get class-wise rules for question paper generation (NCTB/Madrasa Board compliant)"""
-    if class_name:
-        rules = get_class_rules(class_name)
-        return {"rules": rules, "class_name": class_name}
-    return {"all_rules": CLASS_RULES}
-
-
 @api_router.post("/question-papers/ai-generate")
 async def ai_generate_question_paper(
     request: Request,
@@ -26798,8 +26799,44 @@ async def ai_generate_question_paper(
             ]
             total_questions = 25
         
+        # Validate class and subject
         if not class_name or not subject:
-            raise HTTPException(status_code=400, detail="Class and subject are required")
+            raise HTTPException(status_code=400, detail="শ্রেণী এবং বিষয় প্রয়োজন / Class and subject are required")
+        
+        # Validate section types against class rules (NCTB/Madrasa Board enforcement)
+        validation_errors = []
+        total_calculated_marks = 0
+        mcq_marks = 0
+        
+        for section_id, config in section_config.items():
+            if config.get("enabled", False):
+                # Check if section type is allowed for this class
+                if allowed_types and section_id not in allowed_types:
+                    section_name = section_info.get(section_id, {}).get('name', section_id)
+                    validation_errors.append(f"{section_name} এই শ্রেণীর জন্য অনুমোদিত নয়")
+                
+                # Calculate marks
+                question_count = config.get("question_count", 5)
+                section_marks = section_info.get(section_id, {}).get('marks', 1)
+                section_total = question_count * section_marks
+                total_calculated_marks += section_total
+                
+                # Track MCQ marks
+                if section_id == "mcq":
+                    mcq_marks = section_total
+        
+        # Validate MCQ marks against class limit
+        if mcq_marks > 0 and not mcq_allowed:
+            validation_errors.append(f"MCQ এই শ্রেণীর জন্য অনুমোদিত নয়")
+        elif mcq_marks > 0 and max_mcq_marks is not None and mcq_marks > max_mcq_marks:
+            validation_errors.append(f"MCQ সর্বোচ্চ {max_mcq_marks} নম্বর (বর্তমান: {mcq_marks})")
+        
+        # Validate total marks equals target
+        if total_calculated_marks != total_marks:
+            validation_errors.append(f"মোট নম্বর {total_marks} হতে হবে (বর্তমান: {total_calculated_marks})")
+        
+        if validation_errors:
+            raise HTTPException(status_code=400, detail=" | ".join(validation_errors))
         
         # Initialize OpenAI client
         openai_client = AsyncOpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
