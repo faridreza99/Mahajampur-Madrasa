@@ -26826,24 +26826,44 @@ async def ai_generate_question_paper(
             desc = section_info.get(sec['id'], {}).get('desc', '')
             section_instructions += f"- {label} বিভাগ: {sec['name']} - {sec['count']} questions x {sec['marks']} marks each\n  Type: {desc}\n"
         
-        prompt = f"""You are an expert Bengali school exam paper creator. Generate a complete question paper for:
+        # Enhanced system prompt for Bengali academic question generation
+        system_prompt = f"""আপনি একজন অভিজ্ঞ বাংলাদেশী স্কুল ও মাদ্রাসা পরীক্ষার প্রশ্নপত্র প্রণয়নকারী।
 
-Class: {class_name}
-Subject: {subject}
-Total Marks: {total_marks}
-Duration: {duration_minutes} minutes
-Exam Type: {exam_type}
-Difficulty Mix: {difficulty_mix}
-Total Questions: {total_questions}
+আপনার কাজ:
+- শুধুমাত্র প্রমিত বাংলা ভাষায় প্রশ্ন লিখুন
+- NCTB ও মাদ্রাসা বোর্ডের মান অনুসরণ করুন
+- পরীক্ষার প্রশ্নের জন্য আনুষ্ঠানিক একাডেমিক ভাষা ব্যবহার করুন
+- শ্রেণী অনুযায়ী শব্দভাণ্ডার ও বাক্যের দৈর্ঘ্য সমন্বয় করুন
+- কখনো ইংরেজি শব্দ বা মিশ্র ভাষা ব্যবহার করবেন না
 
-IMPORTANT: Generate EXACTLY the following sections with the specified question counts:
+ভাষার স্তর: {language_level}
+নির্দেশনা: {language_instruction}
+
+আপনি অবশ্যই valid JSON ফরম্যাটে উত্তর দেবেন।"""
+
+        prompt = f"""বাংলাদেশী স্কুল পরীক্ষার প্রশ্নপত্র তৈরি করুন:
+
+শ্রেণী: {class_name}
+বিষয়: {subject}
+পূর্ণমান: {total_marks}
+সময়: {duration_minutes} মিনিট
+পরীক্ষার ধরন: {exam_type}
+কাঠিন্য: {difficulty_mix}
+মোট প্রশ্ন: {total_questions}
+
+বাধ্যতামূলক নিয়ম:
+১। সমস্ত প্রশ্ন শুধুমাত্র বাংলায় লিখতে হবে
+২। কোনো ইংরেজি শব্দ বা মিশ্র ভাষা ব্যবহার করা যাবে না
+৩। প্রমিত একাডেমিক বাংলা ভাষা ব্যবহার করুন
+৪। প্রশ্নের ধরন অনুযায়ী সঠিক প্রশ্ন তৈরি করুন
+৫। বাংলা সংখ্যা ব্যবহার করুন (১, ২, ৩, ৪...)
+
+বিভাগসমূহ (নির্দিষ্ট প্রশ্ন সংখ্যা অনুসরণ করুন):
 {section_instructions}
 
 {existing_questions_text}
 
-Create a well-structured question paper with the following sections. For each section, provide appropriate questions in Bengali following Bangladeshi school examination format.
-
-Return ONLY a valid JSON object with this exact structure:
+JSON ফরম্যাটে উত্তর দিন:
 {{
     "title_bn": "{exam_type}",
     "title_en": "Examination",
@@ -26852,10 +26872,11 @@ Return ONLY a valid JSON object with this exact structure:
             "section_title_bn": "ক বিভাগ: একশব্দে উত্তর দাও",
             "section_type": "one_word",
             "marks_per_question": 1,
+            "instructions_bn": "যে কোনো ৫টি প্রশ্নের উত্তর দাও",
             "questions": [
                 {{
                     "question_text": "প্রশ্নের টেক্সট বাংলায়",
-                    "question_type": "short_answer",
+                    "question_type": "one_word",
                     "correct_answer": "উত্তর",
                     "difficulty": "easy"
                 }}
@@ -26864,17 +26885,16 @@ Return ONLY a valid JSON object with this exact structure:
     ]
 }}
 
-Important:
-- All question texts MUST be in Bengali (বাংলা)
-- Distribute marks evenly to reach total marks of {total_marks}
-- Include a good mix of easy, medium, and hard questions
-- Use Bengali section labels (ক বিভাগ, খ বিভাগ, etc.)
-- Return ONLY the JSON, no markdown or explanation"""
+গুরুত্বপূর্ণ:
+- প্রতিটি বিভাগে নির্দিষ্ট সংখ্যক প্রশ্ন থাকতে হবে
+- বাংলা বিভাগ লেবেল ব্যবহার করুন (ক বিভাগ, খ বিভাগ...)
+- মোট নম্বর {total_marks} হতে হবে
+- শুধুমাত্র JSON ফেরত দিন, কোনো ব্যাখ্যা নয়"""
 
         response = await openai_client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are a helpful assistant that creates Bengali school examination papers. Always respond with valid JSON only."},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,
