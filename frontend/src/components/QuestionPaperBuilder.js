@@ -833,9 +833,10 @@ const QuestionPaperBuilder = () => {
           <div class="page">
             <div class="header">
               ${branding.logo_url ? `<img src="${branding.logo_url}" class="logo" alt="School Logo">` : ''}
-              <div class="school-name">${branding.school_name_bn || 'বিদ্যালয়ের নাম'}</div>
-              <div class="school-name-en">${branding.school_name_en || 'School Name'}</div>
+              <div class="school-name">${branding.school_name || 'বিদ্যালয়ের নাম / School Name'}</div>
+              ${branding.tagline ? `<div class="school-name-en">${branding.tagline}</div>` : ''}
               ${branding.address ? `<div class="address">${branding.address}</div>` : ''}
+              ${branding.eiin_number ? `<div class="address">EIIN: ${branding.eiin_number}</div>` : ''}
             </div>
             
             <div class="exam-info">
@@ -916,7 +917,7 @@ const QuestionPaperBuilder = () => {
             </div>
             
             <div class="footer">
-              ${branding.school_name_bn || ''} | ${branding.contact_phone || ''} | ${branding.contact_email || ''}
+              ${branding.school_name || ''} ${branding.phone ? `| ${branding.phone}` : ''} ${branding.email ? `| ${branding.email}` : ''} ${branding.website ? `| ${branding.website}` : ''}
             </div>
           </div>
         </body>
