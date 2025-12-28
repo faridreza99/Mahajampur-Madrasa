@@ -38,6 +38,7 @@ const Reports = () => {
   
   // Map report slugs to tabs
   const slugToTabMap = {
+    'transport': 'transport',
     'admission': 'administrative',
     'login': 'administrative',
     'students': 'administrative',
@@ -51,9 +52,22 @@ const Reports = () => {
   // Determine current tab from URL slug, default to 'academic'
   const currentTab = slugToTabMap[reportSlug] || 'academic';
   
-  // Tab change handler - same pattern as Fees
+  // Map tab values to URL slugs
+  const tabToSlugMap = {
+    'academic': '',
+    'attendance': 'attendance',
+    'administrative': 'admission',
+    'transport': 'transport'
+  };
+
+  // Tab change handler - update URL with the tab value
   const handleTabChange = (newTab) => {
-    navigate(`/reports`); // Navigate to base reports page
+    const slug = tabToSlugMap[newTab] || '';
+    if (slug) {
+      navigate(`/reports/${slug}`);
+    } else {
+      navigate('/reports');
+    }
   };
   
   const [activeReports, setActiveReports] = useState(8);
