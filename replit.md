@@ -15,6 +15,7 @@ Preferred communication style: Simple, everyday language.
 - **Responsiveness**: Fully responsive design across all devices using Tailwind CSS breakpoints and adaptive layouts.
 
 ## Recent Changes (December 2025)
+- **School Branding in All Reports**: All PDF and Excel reports across the website now use the school branding (logo, name, address, colors) set by the school admin. Added `get_school_branding_for_reports()` helper function to fetch branding consistently.
 - **Enterprise Attendance Management System**: Complete attendance management with rule-based status calculation (on-time, late, absent, half-day), biometric device integration (ZKTeco), offline sync with conflict resolution, parent notifications (SMS/App), AI-assisted insights for at-risk students, and comprehensive audit logging.
 - **Enhanced Student Attendance UI**: Added Late (দেরি) and Half-day (অর্ধদিবস) status options with Bengali translations, updated summary cards to show all 5 attendance statuses.
 - **Blank Question Paper Template**: Added delete section functionality with Bengali/English confirmation dialog.

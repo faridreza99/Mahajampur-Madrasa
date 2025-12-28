@@ -4055,29 +4055,31 @@ async def export_students(
             
             output = io.BytesIO()
             
-            # Fetch institution data dynamically
+            # Fetch school branding (priority) for reports
+            branding = await get_school_branding_for_reports(current_user.tenant_id)
+            
+            # Fallback to institution if needed
             institution = await db.institutions.find_one({
                 "tenant_id": current_user.tenant_id,
                 "school_id": getattr(current_user, 'school_id', None),
                 "is_active": True
             })
             
-            # Get school information
-            if institution:
-                school_name = institution.get("school_name", "School ERP System")
-                school_address = institution.get("address", "")
-                phone = institution.get("phone", "")
-                email = institution.get("email", "")
-                school_contact = f"Phone: {phone} | Email: {email}" if phone or email else ""
-                logo_url = institution.get("logo_url", None)
-            else:
-                # Fallback to defaults if no institution found
-                school_name = "School ERP System"
-                school_address = "123 Education Street, Academic City, State - 123456"
-                school_contact = "Phone: +91-1234567890 | Email: info@schoolerp.com"
-                logo_url = None
+            # Get school information from branding (priority) or institution
+            school_name = branding.get("school_name") or (institution.get("school_name") if institution else "School ERP System")
+            school_address = branding.get("address") or (institution.get("address") if institution else "")
+            phone = branding.get("phone") or (institution.get("phone") if institution else "")
+            email = branding.get("email") or (institution.get("email") if institution else "")
+            school_contact = f"Phone: {phone} | Email: {email}" if phone or email else ""
+            logo_path = branding.get("logo_path")
             
-            template = create_professional_pdf_template(school_name)
+            # Get colors from branding
+            school_colors = {
+                'primary': branding.get("primary_color", "#1e3a8a"),
+                'secondary': branding.get("secondary_color", "#059669")
+            }
+            
+            template = create_professional_pdf_template(school_name, school_colors)
             
             # Create PDF document with professional margins (increased topMargin for larger header)
             doc = SimpleDocTemplate(
@@ -4160,7 +4162,7 @@ async def export_students(
                     page_num_text=True,
                     school_address=school_address,
                     school_contact=school_contact,
-                    logo_path=logo_url
+                    logo_path=logo_path
                 )
             
             doc.build(elements, onFirstPage=add_page_decorations, onLaterPages=add_page_decorations)
@@ -4751,29 +4753,31 @@ async def export_staff(
             
             output = io.BytesIO()
             
-            # Fetch institution data dynamically
+            # Fetch school branding (priority) for reports
+            branding = await get_school_branding_for_reports(current_user.tenant_id)
+            
+            # Fallback to institution if needed
             institution = await db.institutions.find_one({
                 "tenant_id": current_user.tenant_id,
                 "school_id": getattr(current_user, 'school_id', None),
                 "is_active": True
             })
             
-            # Get school information
-            if institution:
-                school_name = institution.get("school_name", "School ERP System")
-                school_address = institution.get("address", "")
-                phone = institution.get("phone", "")
-                email = institution.get("email", "")
-                school_contact = f"Phone: {phone} | Email: {email}" if phone or email else ""
-                logo_url = institution.get("logo_url", None)
-            else:
-                # Fallback to defaults if no institution found
-                school_name = "School ERP System"
-                school_address = "123 Education Street, Academic City, State - 123456"
-                school_contact = "Phone: +91-1234567890 | Email: info@schoolerp.com"
-                logo_url = None
+            # Get school information from branding (priority) or institution
+            school_name = branding.get("school_name") or (institution.get("school_name") if institution else "School ERP System")
+            school_address = branding.get("address") or (institution.get("address") if institution else "")
+            phone = branding.get("phone") or (institution.get("phone") if institution else "")
+            email = branding.get("email") or (institution.get("email") if institution else "")
+            school_contact = f"Phone: {phone} | Email: {email}" if phone or email else ""
+            logo_path = branding.get("logo_path")
             
-            template = create_professional_pdf_template(school_name)
+            # Get colors from branding
+            school_colors = {
+                'primary': branding.get("primary_color", "#1e3a8a"),
+                'secondary': branding.get("secondary_color", "#059669")
+            }
+            
+            template = create_professional_pdf_template(school_name, school_colors)
             
             # Create PDF document with professional margins
             doc = SimpleDocTemplate(
@@ -4844,7 +4848,7 @@ async def export_staff(
                     page_num_text=True,
                     school_address=school_address,
                     school_contact=school_contact,
-                    logo_path=logo_url
+                    logo_path=logo_path
                 )
             
             doc.build(elements, onFirstPage=add_page_decorations, onLaterPages=add_page_decorations)
@@ -12229,6 +12233,83 @@ async def generate_custom_transport_report(
 
 # ==================== PROFESSIONAL REPORT TEMPLATE SYSTEM ====================
 
+async def get_school_branding_for_reports(tenant_id: str) -> dict:
+    """
+    Fetch school branding settings for report generation.
+    Returns complete branding with logo path, colors, and contact info.
+    """
+    try:
+        branding_collection = db["school_branding"]
+        branding = await branding_collection.find_one({"tenant_id": tenant_id})
+        
+        if not branding:
+            return {
+                "school_name": "School ERP",
+                "tagline": "Smart School Management System",
+                "logo_url": None,
+                "logo_path": None,
+                "primary_color": "#10B981",
+                "secondary_color": "#3B82F6",
+                "accent_color": "#8B5CF6",
+                "address": "",
+                "phone": "",
+                "email": "",
+                "website": "",
+                "eiin_number": "",
+                "established_year": "",
+                "principal_name": "",
+                "principal_signature_url": None
+            }
+        
+        logo_path = None
+        logo_url = branding.get("logo_url")
+        if logo_url:
+            if logo_url.startswith("data:image"):
+                import tempfile
+                import base64
+                try:
+                    header, encoded = logo_url.split(",", 1)
+                    ext = "png" if "png" in header else "jpg"
+                    logo_data = base64.b64decode(encoded)
+                    temp_logo = tempfile.NamedTemporaryFile(delete=False, suffix=f".{ext}")
+                    temp_logo.write(logo_data)
+                    temp_logo.close()
+                    logo_path = temp_logo.name
+                except:
+                    logo_path = None
+            elif logo_url.startswith("/") or logo_url.startswith("http"):
+                logo_path = logo_url if os.path.exists(logo_url) else None
+        
+        return {
+            "school_name": branding.get("school_name", "School ERP"),
+            "tagline": branding.get("tagline", ""),
+            "logo_url": logo_url,
+            "logo_path": logo_path,
+            "primary_color": branding.get("primary_color", "#10B981"),
+            "secondary_color": branding.get("secondary_color", "#3B82F6"),
+            "accent_color": branding.get("accent_color", "#8B5CF6"),
+            "address": branding.get("address", ""),
+            "phone": branding.get("phone", ""),
+            "email": branding.get("email", ""),
+            "website": branding.get("website", ""),
+            "eiin_number": branding.get("eiin_number", ""),
+            "established_year": branding.get("established_year", ""),
+            "principal_name": branding.get("principal_name", ""),
+            "principal_signature_url": branding.get("principal_signature_url")
+        }
+    except Exception as e:
+        logging.error(f"Error fetching school branding: {e}")
+        return {
+            "school_name": "School ERP",
+            "logo_path": None,
+            "primary_color": "#10B981",
+            "secondary_color": "#3B82F6",
+            "address": "",
+            "phone": "",
+            "email": ""
+        }
+
+
 def create_professional_pdf_template(school_name: str = "School ERP System", school_colors: dict = None):
     """
     Create professional PDF styling templates with school branding
@@ -12597,7 +12678,7 @@ def create_data_table(headers, data_rows, template, col_widths=None, repeat_head
     return data_table
 
 
-def create_professional_excel_header(worksheet, school_name, report_title, filters_dict=None):
+def create_professional_excel_header(worksheet, school_name, report_title, filters_dict=None, school_colors=None):
     """
     Create professional Excel report header with school branding
     
@@ -12613,8 +12694,8 @@ def create_professional_excel_header(worksheet, school_name, report_title, filte
     from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
     
     # School colors
-    primary_color = "1e3a8a"      # Deep blue
-    secondary_color = "059669"     # Emerald green
+    primary_color = school_colors.get("primary", "#1e3a8a").lstrip("#") if school_colors else "1e3a8a"
+    secondary_color = school_colors.get("secondary", "#059669").lstrip("#") if school_colors else "059669"
     light_bg = "f0f9ff"            # Light blue background
     
     row = 1
@@ -12903,29 +12984,31 @@ async def generate_academic_pdf_report(report_type: str, report_data: dict, curr
         temp_dir = tempfile.gettempdir()
         file_path = os.path.join(temp_dir, f"{filename}.pdf")
         
-        # Fetch institution data dynamically
+        # Fetch school branding (priority) for reports
+        branding = await get_school_branding_for_reports(current_user.tenant_id)
+        
+        # Fallback to institution if needed
         institution = await db.institutions.find_one({
             "tenant_id": current_user.tenant_id,
             "school_id": getattr(current_user, 'school_id', None),
             "is_active": True
         })
         
-        # Get school information
-        if institution:
-            school_name = institution.get("school_name", "School ERP System")
-            school_address = institution.get("address", "")
-            phone = institution.get("phone", "")
-            email = institution.get("email", "")
-            school_contact = f"Phone: {phone} | Email: {email}" if phone or email else ""
-            logo_url = institution.get("logo_url", None)
-        else:
-            # Fallback to defaults if no institution found
-            school_name = "School ERP System"
-            school_address = "123 Education Street, Academic City, State - 123456"
-            school_contact = "Phone: +91-1234567890 | Email: info@schoolerp.com"
-            logo_url = None
+        # Get school information from branding (priority) or institution
+        school_name = branding.get("school_name") or (institution.get("school_name") if institution else "School ERP System")
+        school_address = branding.get("address") or (institution.get("address") if institution else "")
+        phone = branding.get("phone") or (institution.get("phone") if institution else "")
+        email = branding.get("email") or (institution.get("email") if institution else "")
+        school_contact = f"Phone: {phone} | Email: {email}" if phone or email else ""
+        logo_path = branding.get("logo_path")
         
-        template = create_professional_pdf_template(school_name)
+        # Get colors from branding
+        school_colors = {
+            'primary': branding.get("primary_color", "#1e3a8a"),
+            'secondary': branding.get("secondary_color", "#059669")
+        }
+        
+        template = create_professional_pdf_template(school_name, school_colors)
         
         # Create PDF document with professional margins
         doc = SimpleDocTemplate(
@@ -13015,7 +13098,7 @@ async def generate_academic_pdf_report(report_type: str, report_data: dict, curr
                 page_num_text=True,
                 school_address=school_address,
                 school_contact=school_contact,
-                logo_path=logo_url
+                logo_path=logo_path
             )
         
         doc.build(story, onFirstPage=add_page_decorations, onLaterPages=add_page_decorations)
@@ -13448,7 +13531,7 @@ async def generate_attendance_pdf_report(report_type: str, report_data: dict, cu
                 page_num_text=True,
                 school_address=school_address,
                 school_contact=school_contact,
-                logo_path=logo_url
+                logo_path=logo_path
             )
         
         doc.build(story, onFirstPage=add_page_decorations, onLaterPages=add_page_decorations)
@@ -13684,7 +13767,7 @@ async def generate_transport_pdf_report(report_type: str, report_data: dict, cur
                 page_num_text=True,
                 school_address=school_address,
                 school_contact=school_contact,
-                logo_path=logo_url
+                logo_path=logo_path
             )
         
         doc.build(story, onFirstPage=add_page_decorations, onLaterPages=add_page_decorations)
@@ -16504,7 +16587,7 @@ async def generate_pdf_report(report_type: str, current_user: User, filename: st
                 page_num_text=True,
                 school_address=school_address,
                 school_contact=school_contact,
-                logo_path=logo_url
+                logo_path=logo_path
             )
         
         doc.build(story, onFirstPage=add_page_decorations, onLaterPages=add_page_decorations)
@@ -17609,29 +17692,31 @@ async def generate_administrative_pdf_report(report_type: str, report_data: dict
         temp_dir = tempfile.gettempdir()
         file_path = os.path.join(temp_dir, f"{filename}.pdf")
         
-        # Fetch institution data dynamically
+        # Fetch school branding (priority) for reports
+        branding = await get_school_branding_for_reports(current_user.tenant_id)
+        
+        # Fallback to institution if needed
         institution = await db.institutions.find_one({
             "tenant_id": current_user.tenant_id,
             "school_id": getattr(current_user, 'school_id', None),
             "is_active": True
         })
         
-        # Get school information
-        if institution:
-            school_name = institution.get("school_name", "School ERP System")
-            school_address = institution.get("address", "")
-            phone = institution.get("phone", "")
-            email = institution.get("email", "")
-            school_contact = f"Phone: {phone} | Email: {email}" if phone or email else ""
-            logo_url = institution.get("logo_url", None)
-        else:
-            # Fallback to defaults if no institution found
-            school_name = "School ERP System"
-            school_address = "123 Education Street, Academic City, State - 123456"
-            school_contact = "Phone: +91-1234567890 | Email: info@schoolerp.com"
-            logo_url = None
+        # Get school information from branding (priority) or institution
+        school_name = branding.get("school_name") or (institution.get("school_name") if institution else "School ERP System")
+        school_address = branding.get("address") or (institution.get("address") if institution else "")
+        phone = branding.get("phone") or (institution.get("phone") if institution else "")
+        email = branding.get("email") or (institution.get("email") if institution else "")
+        school_contact = f"Phone: {phone} | Email: {email}" if phone or email else ""
+        logo_path = branding.get("logo_path")
         
-        template = create_professional_pdf_template(school_name)
+        # Get colors from branding
+        school_colors = {
+            'primary': branding.get("primary_color", "#1e3a8a"),
+            'secondary': branding.get("secondary_color", "#059669")
+        }
+        
+        template = create_professional_pdf_template(school_name, school_colors)
         
         # Create PDF document with professional margins
         doc = SimpleDocTemplate(
@@ -17715,7 +17800,7 @@ async def generate_administrative_pdf_report(report_type: str, report_data: dict
                 page_num_text=True,
                 school_address=school_address,
                 school_contact=school_contact,
-                logo_path=logo_url
+                logo_path=logo_path
             )
         
         doc.build(story, onFirstPage=add_page_decorations, onLaterPages=add_page_decorations)
@@ -17994,7 +18079,7 @@ async def generate_transport_pdf_report_v2(report_type: str, report_data: dict, 
                 page_num_text=True,
                 school_address=school_address,
                 school_contact=school_contact,
-                logo_path=logo_url
+                logo_path=logo_path
             )
         
         doc.build(story, onFirstPage=add_page_decorations, onLaterPages=add_page_decorations)
@@ -18273,7 +18358,7 @@ async def generate_biometric_pdf_report(report_type: str, report_data: dict, cur
                 page_num_text=True,
                 school_address=school_address,
                 school_contact=school_contact,
-                logo_path=logo_url
+                logo_path=logo_path
             )
         
         doc.build(story, onFirstPage=add_page_decorations, onLaterPages=add_page_decorations)
