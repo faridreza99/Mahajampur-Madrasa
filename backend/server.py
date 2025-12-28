@@ -12324,6 +12324,17 @@ def create_professional_pdf_template(school_name: str = "School ERP System", sch
     from reportlab.lib import colors as rl_colors
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import inch
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    import os
+    
+    # Register Bengali font for proper Unicode support
+    bengali_font_path = os.path.join(os.path.dirname(__file__), "fonts", "NotoSansBengali-Regular.ttf")
+    if os.path.exists(bengali_font_path):
+        try:
+            pdfmetrics.registerFont(TTFont("NotoSansBengali", bengali_font_path))
+        except Exception:
+            pass  # Font may already be registered
     
     # Default school colors (professional blue-green theme)
     if not school_colors:
@@ -12355,7 +12366,7 @@ def create_professional_pdf_template(school_name: str = "School ERP System", sch
             parent=styles['Title'],
             fontSize=22,
             textColor=primary_color,
-            fontName='Helvetica-Bold',
+            fontName='NotoSansBengali',
             alignment=1,  # Center
             spaceAfter=10,
             leading=26
@@ -12476,6 +12487,16 @@ def add_pdf_header_footer(canvas, doc, school_name, report_title, generated_by, 
     from reportlab.pdfgen import canvas as pdf_canvas
     import os
     
+    
+    # Register Bengali font for proper Unicode support
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    bengali_font_path = os.path.join(os.path.dirname(__file__), "fonts", "NotoSansBengali-Regular.ttf")
+    if os.path.exists(bengali_font_path):
+        try:
+            pdfmetrics.registerFont(TTFont("NotoSansBengali", bengali_font_path))
+        except Exception:
+            pass
     canvas.saveState()
     
     # Header with school branding - increased height for logo and info
@@ -12513,12 +12534,12 @@ def add_pdf_header_footer(canvas, doc, school_name, report_title, generated_by, 
     
     # School name
     canvas.setFillColor(colors.whitesmoke)
-    canvas.setFont('Helvetica-Bold', 16)
+    canvas.setFont('NotoSansBengali', 16)
     canvas.drawString(info_x, doc.pagesize[1] - 35, school_name)
     
     # School address
     if school_address:
-        canvas.setFont('Helvetica', 9)
+        canvas.setFont('NotoSansBengali', 9)
         canvas.drawString(info_x, doc.pagesize[1] - 52, school_address)
     
     # School contact info
