@@ -272,6 +272,30 @@ const QuestionPaperBuilder = () => {
     }
   };
 
+  const handleStatusChange = async (paperId, newStatus) => {
+    const statusMessages = {
+      submitted: 'Submit this paper for approval?',
+      approved: 'Approve this paper?',
+      rejected: 'Reject this paper?',
+      locked: 'Lock this paper? It cannot be edited after locking.',
+      draft: 'Move this paper back to draft?'
+    };
+    
+    if (!window.confirm(statusMessages[newStatus] || 'Change paper status?')) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`${API_BASE_URL}/question-papers/${paperId}/status`, 
+        { status: newStatus },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success(`Paper status changed to ${newStatus}`);
+      fetchPapers();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to change status');
+    }
+  };
+
   const toggleSectionSelection = (sectionId) => {
     setAiForm(prev => {
       const currentConfig = prev.section_config[sectionId] || { enabled: false, question_count: 5 };
@@ -612,7 +636,22 @@ const QuestionPaperBuilder = () => {
           {papers.map(paper => (
             <Card key={paper.id} className="dark:bg-gray-800 dark:border-gray-700 hover:shadow-lg transition-shadow">
               <CardHeader>
-                <CardTitle className="text-lg dark:text-white">{paper.title_bn}</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg dark:text-white">{paper.title_bn}</CardTitle>
+                  <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                    paper.status === 'locked' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                    paper.status === 'approved' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                    paper.status === 'submitted' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                    paper.status === 'rejected' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                    'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                  }`}>
+                    {paper.status === 'locked' ? '🔒 Locked' :
+                     paper.status === 'approved' ? '✓ Approved' :
+                     paper.status === 'submitted' ? '📤 Submitted' :
+                     paper.status === 'rejected' ? '✗ Rejected' :
+                     '📝 Draft'}
+                  </span>
+                </div>
                 <CardDescription className="dark:text-gray-400">
                   {paper.class_name} | {paper.subject} | {paper.exam_year}
                 </CardDescription>
@@ -622,18 +661,27 @@ const QuestionPaperBuilder = () => {
                   <span>Sections: {paper.sections?.length || 0}</span>
                   <span>Marks: {paper.total_marks}</span>
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => handleEditPaper(paper)}>
-                    <BookOpen className="h-4 w-4 mr-1" />
-                    Edit
-                  </Button>
+                <div className="flex gap-2 flex-wrap">
+                  {paper.status !== 'locked' && (
+                    <Button variant="outline" size="sm" onClick={() => handleEditPaper(paper)}>
+                      <BookOpen className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
+                  )}
                   <Button variant="outline" size="sm" onClick={() => handlePrintPreview(paper)}>
                     <Printer className="h-4 w-4 mr-1" />
                     Print
                   </Button>
-                  <Button variant="ghost" size="sm" className="text-red-600" onClick={() => handleDeletePaper(paper.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {paper.status === 'draft' && (
+                    <Button variant="outline" size="sm" className="text-blue-600" onClick={() => handleStatusChange(paper.id, 'submitted')}>
+                      📤 Submit
+                    </Button>
+                  )}
+                  {paper.status !== 'locked' && (
+                    <Button variant="ghost" size="sm" className="text-red-600" onClick={() => handleDeletePaper(paper.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>

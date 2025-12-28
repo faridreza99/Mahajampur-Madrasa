@@ -26580,7 +26580,134 @@ async def delete_question_paper(
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Question paper not found")
     
+    # Audit log
+    await log_paper_audit(current_user.tenant_id, paper_id, "deleted", current_user.id, current_user.email)
+    
     return {"message": "Question paper deleted successfully"}
+
+
+async def log_paper_audit(tenant_id: str, paper_id: str, action: str, user_id: str, user_email: str, details: dict = None):
+    """Log question paper audit events"""
+    audit_entry = {
+        "id": str(uuid.uuid4()),
+        "tenant_id": tenant_id,
+        "paper_id": paper_id,
+        "action": action,  # created, updated, submitted, approved, rejected, locked, unlocked, deleted
+        "user_id": user_id,
+        "user_email": user_email,
+        "details": details or {},
+        "timestamp": datetime.utcnow()
+    }
+    await db.question_paper_audit.insert_one(audit_entry)
+    logger.info(f"Paper audit: {action} on {paper_id} by {user_email}")
+
+
+@api_router.post("/question-papers/{paper_id}/status")
+async def update_paper_status(
+    paper_id: str,
+    request: Request,
+    current_user: User = Depends(get_current_user)
+):
+    """Update question paper status (submit, approve, reject, lock, unlock)"""
+    data = await request.json()
+    new_status = data.get("status")
+    notes = data.get("notes", "")
+    
+    valid_statuses = ["draft", "submitted", "approved", "rejected", "locked"]
+    if new_status not in valid_statuses:
+        raise HTTPException(status_code=400, detail=f"Invalid status. Valid: {valid_statuses}")
+    
+    paper = await db.question_papers.find_one({
+        "id": paper_id,
+        "tenant_id": current_user.tenant_id
+    })
+    
+    if not paper:
+        raise HTTPException(status_code=404, detail="Question paper not found")
+    
+    current_status = paper.get("status", "draft")
+    
+    # Status transition rules
+    allowed_transitions = {
+        "draft": ["submitted"],
+        "submitted": ["approved", "rejected", "draft"],
+        "approved": ["locked", "draft"],
+        "rejected": ["draft"],
+        "locked": ["draft"]  # Only admin can unlock
+    }
+    
+    # Check if transition is allowed
+    if new_status not in allowed_transitions.get(current_status, []):
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Cannot change from '{current_status}' to '{new_status}'"
+        )
+    
+    # Permission checks
+    if new_status in ["approved", "rejected", "locked"]:
+        if current_user.role not in ["super_admin", "admin"]:
+            raise HTTPException(status_code=403, detail="Only admin can approve/reject/lock papers")
+    
+    if current_status == "locked" and new_status == "draft":
+        if current_user.role not in ["super_admin", "admin"]:
+            raise HTTPException(status_code=403, detail="Only admin can unlock papers")
+    
+    # Update status
+    update_data = {
+        "status": new_status,
+        "updated_at": datetime.utcnow()
+    }
+    
+    if new_status == "submitted":
+        update_data["submitted_at"] = datetime.utcnow()
+        update_data["submitted_by"] = current_user.id
+    elif new_status == "approved":
+        update_data["approved_at"] = datetime.utcnow()
+        update_data["approved_by"] = current_user.id
+    elif new_status == "rejected":
+        update_data["rejected_at"] = datetime.utcnow()
+        update_data["rejected_by"] = current_user.id
+        update_data["rejection_notes"] = notes
+    elif new_status == "locked":
+        update_data["locked_at"] = datetime.utcnow()
+        update_data["locked_by"] = current_user.id
+    
+    await db.question_papers.update_one(
+        {"id": paper_id},
+        {"$set": update_data}
+    )
+    
+    # Audit log
+    await log_paper_audit(
+        current_user.tenant_id, 
+        paper_id, 
+        new_status, 
+        current_user.id, 
+        current_user.email,
+        {"from_status": current_status, "notes": notes}
+    )
+    
+    return {"message": f"Paper status changed to {new_status}", "status": new_status}
+
+
+@api_router.get("/question-papers/{paper_id}/audit")
+async def get_paper_audit_log(
+    paper_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get audit log for a question paper"""
+    if current_user.role not in ["super_admin", "admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    audit_logs = await db.question_paper_audit.find({
+        "paper_id": paper_id,
+        "tenant_id": current_user.tenant_id
+    }).sort("timestamp", -1).to_list(100)
+    
+    for log in audit_logs:
+        log["_id"] = str(log.get("_id", ""))
+    
+    return {"audit_logs": audit_logs}
 
 @api_router.get("/question-papers/{paper_id}/print")
 async def get_printable_paper(
@@ -26652,55 +26779,65 @@ async def get_printable_paper(
 # NCTB and Madrasa Board compliant rules per class level
 
 CLASS_RULES = {
-    "class_1_3": {
-        "class_range": ["১ম", "২য়", "৩য়", "Class 1", "Class 2", "Class 3", "1", "2", "3", "One", "Two", "Three"],
+    "class_1_2": {
+        "class_range": ["১ম", "২য়", "Class 1", "Class 2", "1", "2", "One", "Two", "প্রথম", "দ্বিতীয়"],
         "mcq_allowed": False,
         "max_mcq_marks": 0,
         "allowed_question_types": ["one_word", "fill_blanks", "matching", "short_answer"],
+        "disallowed_question_types": ["mcq", "true_false", "descriptive", "application"],
         "language_level": "very_simple",
-        "language_instruction": "খুব সহজ ও ছোট বাক্য ব্যবহার করুন। প্রতিটি বাক্য ৫-৭ শব্দের মধ্যে রাখুন।",
+        "language_instruction": "খুব সহজ ও ছোট বাক্য ব্যবহার করুন। প্রতিটি বাক্য ৫-৭ শব্দের মধ্যে রাখুন। ছবি সহ প্রশ্ন দিন।",
         "total_marks": 100,
-        "description": "প্রাথমিক স্তর (১ম-৩য় শ্রেণী)"
+        "description": "প্রাথমিক স্তর (১ম-২য় শ্রেণী)",
+        "ui_message": "এই শ্রেণীতে MCQ, সত্য/মিথ্যা, রচনামূলক প্রশ্ন অনুমোদিত নয়"
     },
-    "class_4_5": {
-        "class_range": ["৪র্থ", "৫ম", "Class 4", "Class 5", "4", "5", "Four", "Five"],
+    "class_3_5": {
+        "class_range": ["৩য়", "৪র্থ", "৫ম", "Class 3", "Class 4", "Class 5", "3", "4", "5", "Three", "Four", "Five", "তৃতীয়", "চতুর্থ", "পঞ্চম"],
         "mcq_allowed": True,
         "max_mcq_marks": 10,
         "allowed_question_types": ["one_word", "fill_blanks", "true_false", "mcq", "short_answer", "matching"],
+        "disallowed_question_types": ["descriptive", "application"],
         "language_level": "simple_academic",
         "language_instruction": "সহজ একাডেমিক ভাষা ব্যবহার করুন। বাক্য স্পষ্ট ও বোধগম্য হতে হবে।",
         "total_marks": 100,
-        "description": "প্রাথমিক সমাপনী (৪র্থ-৫ম শ্রেণী)"
+        "description": "প্রাথমিক সমাপনী (৩য়-৫ম শ্রেণী)",
+        "ui_message": "MCQ সর্বোচ্চ ১০ নম্বর। রচনামূলক প্রশ্ন অনুমোদিত নয়"
     },
     "class_6_8": {
-        "class_range": ["৬ষ্ঠ", "৭ম", "৮ম", "Class 6", "Class 7", "Class 8", "6", "7", "8", "Six", "Seven", "Eight"],
+        "class_range": ["৬ষ্ঠ", "৭ম", "৮ম", "Class 6", "Class 7", "Class 8", "6", "7", "8", "Six", "Seven", "Eight", "ষষ্ঠ", "সপ্তম", "অষ্টম"],
         "mcq_allowed": True,
         "max_mcq_marks": 20,
         "allowed_question_types": ["one_word", "fill_blanks", "true_false", "mcq", "short_answer", "matching", "descriptive", "application"],
+        "disallowed_question_types": [],
         "language_level": "standard_academic",
         "language_instruction": "প্রমিত একাডেমিক ভাষা ব্যবহার করুন। জটিল ধারণা স্পষ্টভাবে ব্যাখ্যা করুন।",
         "total_marks": 100,
-        "description": "মাধ্যমিক স্তর (৬ষ্ঠ-৮ম শ্রেণী)"
+        "description": "মাধ্যমিক স্তর (৬ষ্ঠ-৮ম শ্রেণী)",
+        "ui_message": "MCQ সর্বোচ্চ ২০ নম্বর। সকল প্রশ্নের ধরন অনুমোদিত"
     },
     "class_9_10": {
-        "class_range": ["৯ম", "১০ম", "Class 9", "Class 10", "9", "10", "Nine", "Ten", "SSC"],
+        "class_range": ["৯ম", "১০ম", "Class 9", "Class 10", "9", "10", "Nine", "Ten", "SSC", "নবম", "দশম"],
         "mcq_allowed": True,
         "max_mcq_marks": 30,
         "allowed_question_types": ["one_word", "fill_blanks", "true_false", "mcq", "short_answer", "matching", "descriptive", "application"],
+        "disallowed_question_types": [],
         "language_level": "board_level",
         "language_instruction": "বোর্ড পরীক্ষার মানের ভাষা ব্যবহার করুন। প্রশ্ন চিন্তাশীল ও বিশ্লেষণমূলক হতে হবে।",
         "total_marks": 100,
-        "description": "মাধ্যমিক সমাপনী (৯ম-১০ম শ্রেণী/SSC)"
+        "description": "মাধ্যমিক সমাপনী (৯ম-১০ম শ্রেণী/SSC)",
+        "ui_message": "MCQ সর্বোচ্চ ৩০ নম্বর। বোর্ড পরীক্ষার মান অনুসরণ করুন"
     },
     "class_11_12": {
-        "class_range": ["১১শ", "১২শ", "Class 11", "Class 12", "11", "12", "Eleven", "Twelve", "HSC"],
+        "class_range": ["১১শ", "১২শ", "Class 11", "Class 12", "11", "12", "Eleven", "Twelve", "HSC", "একাদশ", "দ্বাদশ"],
         "mcq_allowed": True,
         "max_mcq_marks": 30,
         "allowed_question_types": ["one_word", "fill_blanks", "true_false", "mcq", "short_answer", "matching", "descriptive", "application"],
+        "disallowed_question_types": [],
         "language_level": "advanced_academic",
         "language_instruction": "উচ্চ মাধ্যমিক পর্যায়ের একাডেমিক ভাষা ব্যবহার করুন। প্রশ্ন গভীর বিশ্লেষণমূলক হতে হবে।",
         "total_marks": 100,
-        "description": "উচ্চ মাধ্যমিক (১১শ-১২শ শ্রেণী/HSC)"
+        "description": "উচ্চ মাধ্যমিক (১১শ-১২শ শ্রেণী/HSC)",
+        "ui_message": "সকল প্রশ্নের ধরন অনুমোদিত। HSC মান অনুসরণ করুন"
     }
 }
 
