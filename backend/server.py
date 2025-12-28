@@ -18256,6 +18256,33 @@ async def generate_biometric_pdf_report(report_type: str, report_data: dict, cur
             school_contact = "Phone: +91-1234567890 | Email: info@schoolerp.com"
             logo_url = None
         
+        
+        logo_path = None
+        if logo_url:
+            if logo_url.startswith("data:image"):
+                import base64
+                header, b64_data = logo_url.split(",", 1)
+                ext = "png" if "png" in header else "jpg"
+                logo_bytes = base64.b64decode(b64_data)
+                logo_temp = tempfile.NamedTemporaryFile(delete=False, suffix=f".{ext}")
+                logo_temp.write(logo_bytes)
+                logo_temp.close()
+                logo_path = logo_temp.name
+            elif logo_url.startswith("/") or logo_url.startswith("./"):
+                if os.path.exists(logo_url):
+                    logo_path = logo_url
+            elif logo_url.startswith("http"):
+                try:
+                    import requests
+                    response = requests.get(logo_url, timeout=5)
+                    if response.status_code == 200:
+                        ext = "png" if "png" in logo_url.lower() else "jpg"
+                        logo_temp = tempfile.NamedTemporaryFile(delete=False, suffix=f".{ext}")
+                        logo_temp.write(response.content)
+                        logo_temp.close()
+                        logo_path = logo_temp.name
+                except:
+                    pass
         template = create_professional_pdf_template(school_name)
         
         # Create PDF document with professional margins
