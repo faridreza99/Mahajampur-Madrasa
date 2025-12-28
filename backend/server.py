@@ -12578,39 +12578,53 @@ def add_pdf_header_footer(canvas, doc, school_name, report_title, generated_by, 
         canvas.setFillColor(colors.whitesmoke)
         canvas.drawCentredString(logo_x + logo_width/2, logo_y + logo_height/2 - 3, "LOGO")
     
-    # School information - all inline next to logo
+    # School information beside the logo
     info_x = logo_x + logo_width + 15
     
-    # Combine school name, address, and contact into a single inline text
-    combined_bengali = school_name
-    if school_address:
-        combined_bengali += " | " + school_address
-    
-    # Render combined Bengali text (name + address) as single image
+    # School name - use Pillow image rendering for proper Bengali text shaping
     canvas.setFillColor(colors.whitesmoke)
-    combined_img_path = None
+    name_img_path = None
     try:
-        combined_img_path = render_bengali_text_image(combined_bengali, font_size=22, text_color=(245, 245, 245, 255))
-        if combined_img_path:
-            canvas.drawImage(combined_img_path, info_x, doc.pagesize[1] - 42, height=26, preserveAspectRatio=True, mask='auto')
+        name_img_path = render_bengali_text_image(school_name, font_size=28, text_color=(245, 245, 245, 255))
+        if name_img_path:
+            canvas.drawImage(name_img_path, info_x, doc.pagesize[1] - 45, height=30, preserveAspectRatio=True, mask='auto')
         else:
-            canvas.setFont('Helvetica-Bold', 12)
-            canvas.drawString(info_x, doc.pagesize[1] - 35, combined_bengali)
+            canvas.setFont('Helvetica-Bold', 14)
+            canvas.drawString(info_x, doc.pagesize[1] - 35, school_name)
     except Exception:
-        canvas.setFont('Helvetica-Bold', 12)
-        canvas.drawString(info_x, doc.pagesize[1] - 35, combined_bengali)
+        canvas.setFont('Helvetica-Bold', 14)
+        canvas.drawString(info_x, doc.pagesize[1] - 35, school_name)
     finally:
-        if combined_img_path:
+        if name_img_path:
             try:
-                os.remove(combined_img_path)
+                os.remove(name_img_path)
             except:
                 pass
     
-    # Contact info on second line (phone/email in English)
+    # School address - use Pillow image rendering for proper Bengali text shaping
+    if school_address:
+        addr_img_path = None
+        try:
+            addr_img_path = render_bengali_text_image(school_address, font_size=16, text_color=(220, 220, 220, 255))
+            if addr_img_path:
+                canvas.drawImage(addr_img_path, info_x, doc.pagesize[1] - 58, height=16, preserveAspectRatio=True, mask='auto')
+            else:
+                canvas.setFont('Helvetica', 9)
+                canvas.drawString(info_x, doc.pagesize[1] - 52, school_address)
+        except Exception:
+            canvas.setFont('Helvetica', 9)
+            canvas.drawString(info_x, doc.pagesize[1] - 52, school_address)
+        finally:
+            if addr_img_path:
+                try:
+                    os.remove(addr_img_path)
+                except:
+                    pass
+    
+    # School contact info
     if school_contact:
-        canvas.setFillColor(colors.Color(0.9, 0.9, 0.9))
         canvas.setFont('Helvetica', 9)
-        canvas.drawString(info_x, doc.pagesize[1] - 58, school_contact)
+        canvas.drawString(info_x, doc.pagesize[1] - 67, school_contact)
     
     # Report title below the header (on white background)
     canvas.setFillColor(colors.Color(0.11, 0.23, 0.54))  # Deep blue text
