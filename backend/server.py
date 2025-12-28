@@ -12328,13 +12328,17 @@ def create_professional_pdf_template(school_name: str = "School ERP System", sch
     from reportlab.pdfbase.ttfonts import TTFont
     import os
     
-    # Register Bengali font for proper Unicode support
+    # Register Bengali font with HarfBuzz layout engine for proper complex script shaping
     bengali_font_path = os.path.join(os.path.dirname(__file__), "fonts", "NotoSansBengali-Regular.ttf")
     if os.path.exists(bengali_font_path):
         try:
-            pdfmetrics.registerFont(TTFont("NotoSansBengali", bengali_font_path))
+            # Use HarfBuzz for proper Bengali vowel-consonant conjuncts
+            pdfmetrics.registerFont(TTFont("NotoSansBengali", bengali_font_path, layoutEngine=TTFont.HARFBUZZ_LAYOUT_ENGINE))
         except Exception:
-            pass  # Font may already be registered
+            try:
+                pdfmetrics.registerFont(TTFont("NotoSansBengali", bengali_font_path))
+            except Exception:
+                pass  # Font may already be registered
     
     # Default school colors (professional blue-green theme)
     if not school_colors:
@@ -12488,15 +12492,23 @@ def add_pdf_header_footer(canvas, doc, school_name, report_title, generated_by, 
     import os
     
     
-    # Register Bengali font for proper Unicode support
+    # Register Bengali font with HarfBuzz layout engine for proper complex script shaping
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
     bengali_font_path = os.path.join(os.path.dirname(__file__), "fonts", "NotoSansBengali-Regular.ttf")
+    bengali_font_registered = False
     if os.path.exists(bengali_font_path):
         try:
-            pdfmetrics.registerFont(TTFont("NotoSansBengali", bengali_font_path))
-        except Exception:
-            pass
+            # Use HarfBuzz layout engine for proper Bengali text shaping (vowel-consonant conjuncts)
+            pdfmetrics.registerFont(TTFont("NotoSansBengali", bengali_font_path, layoutEngine=TTFont.HARFBUZZ_LAYOUT_ENGINE))
+            bengali_font_registered = True
+        except Exception as e:
+            # Fallback to default layout if HarfBuzz fails
+            try:
+                pdfmetrics.registerFont(TTFont("NotoSansBengali", bengali_font_path))
+                bengali_font_registered = True
+            except Exception:
+                pass
     canvas.saveState()
     
     # Header with school branding - increased height for logo and info
