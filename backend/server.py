@@ -13342,21 +13342,15 @@ async def generate_attendance_pdf_report(report_type: str, report_data: dict, cu
         temp_dir = tempfile.gettempdir()
         file_path = os.path.join(temp_dir, f"{filename}.pdf")
         
-        # Fetch school information for branding
-        school_data = await db.institutions.find_one({"tenant_id": current_user.tenant_id})
+        # Fetch school branding data
+        branding = await get_school_branding_for_reports(current_user.tenant_id)
         
-        if school_data:
-            school_name = school_data.get("name", "School ERP System")
-            school_address = school_data.get("address", "123 Education Street, Academic City, State - 123456")
-            school_phone = school_data.get("phone", "+91-1234567890")
-            school_email = school_data.get("email", "info@schoolerp.com")
-            school_contact = f"Phone: {school_phone} | Email: {school_email}"
-            logo_url = school_data.get("logo_url")
-        else:
-            school_name = "School ERP System"
-            school_address = "123 Education Street, Academic City, State - 123456"
-            school_contact = "Phone: +91-1234567890 | Email: info@schoolerp.com"
-            logo_url = None
+        school_name = branding.get("school_name", "School ERP System")
+        school_address = branding.get("school_address", "")
+        school_phone = branding.get("phone", "")
+        school_email = branding.get("email", "")
+        school_contact = f"Phone: {school_phone} | Email: {school_email}" if school_phone or school_email else ""
+        logo_url = branding.get("logo_url")
         
         template = create_professional_pdf_template(school_name)
         
@@ -18240,21 +18234,15 @@ async def generate_biometric_pdf_report(report_type: str, report_data: dict, cur
         temp_dir = tempfile.gettempdir()
         file_path = os.path.join(temp_dir, f"{filename}.pdf")
         
-        # Fetch school information for branding
-        school_data = await db.institutions.find_one({"tenant_id": current_user.tenant_id})
+        # Fetch school branding data
+        branding = await get_school_branding_for_reports(current_user.tenant_id)
         
-        if school_data:
-            school_name = school_data.get("name", "School ERP System")
-            school_address = school_data.get("address", "123 Education Street, Academic City, State - 123456")
-            school_phone = school_data.get("phone", "+91-1234567890")
-            school_email = school_data.get("email", "info@schoolerp.com")
-            school_contact = f"Phone: {school_phone} | Email: {school_email}"
-            logo_url = school_data.get("logo_url")
-        else:
-            school_name = "School ERP System"
-            school_address = "123 Education Street, Academic City, State - 123456"
-            school_contact = "Phone: +91-1234567890 | Email: info@schoolerp.com"
-            logo_url = None
+        school_name = branding.get("school_name", "School ERP System")
+        school_address = branding.get("school_address", "")
+        school_phone = branding.get("phone", "")
+        school_email = branding.get("email", "")
+        school_contact = f"Phone: {school_phone} | Email: {school_email}" if school_phone or school_email else ""
+        logo_url = branding.get("logo_url")
         
         
         logo_path = None
