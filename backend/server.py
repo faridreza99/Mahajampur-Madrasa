@@ -26635,12 +26635,92 @@ async def get_printable_paper(
     }
 
 
+# ==================== CLASS-WISE RULE ENGINE ====================
+# NCTB and Madrasa Board compliant rules per class level
+
+CLASS_RULES = {
+    "class_1_3": {
+        "class_range": ["১ম", "২য়", "৩য়", "Class 1", "Class 2", "Class 3", "1", "2", "3", "One", "Two", "Three"],
+        "mcq_allowed": False,
+        "max_mcq_marks": 0,
+        "allowed_question_types": ["one_word", "fill_blanks", "matching", "short_answer"],
+        "language_level": "very_simple",
+        "language_instruction": "খুব সহজ ও ছোট বাক্য ব্যবহার করুন। প্রতিটি বাক্য ৫-৭ শব্দের মধ্যে রাখুন।",
+        "total_marks": 100,
+        "description": "প্রাথমিক স্তর (১ম-৩য় শ্রেণী)"
+    },
+    "class_4_5": {
+        "class_range": ["৪র্থ", "৫ম", "Class 4", "Class 5", "4", "5", "Four", "Five"],
+        "mcq_allowed": True,
+        "max_mcq_marks": 10,
+        "allowed_question_types": ["one_word", "fill_blanks", "true_false", "mcq", "short_answer", "matching"],
+        "language_level": "simple_academic",
+        "language_instruction": "সহজ একাডেমিক ভাষা ব্যবহার করুন। বাক্য স্পষ্ট ও বোধগম্য হতে হবে।",
+        "total_marks": 100,
+        "description": "প্রাথমিক সমাপনী (৪র্থ-৫ম শ্রেণী)"
+    },
+    "class_6_8": {
+        "class_range": ["৬ষ্ঠ", "৭ম", "৮ম", "Class 6", "Class 7", "Class 8", "6", "7", "8", "Six", "Seven", "Eight"],
+        "mcq_allowed": True,
+        "max_mcq_marks": 20,
+        "allowed_question_types": ["one_word", "fill_blanks", "true_false", "mcq", "short_answer", "matching", "descriptive", "application"],
+        "language_level": "standard_academic",
+        "language_instruction": "প্রমিত একাডেমিক ভাষা ব্যবহার করুন। জটিল ধারণা স্পষ্টভাবে ব্যাখ্যা করুন।",
+        "total_marks": 100,
+        "description": "মাধ্যমিক স্তর (৬ষ্ঠ-৮ম শ্রেণী)"
+    },
+    "class_9_10": {
+        "class_range": ["৯ম", "১০ম", "Class 9", "Class 10", "9", "10", "Nine", "Ten", "SSC"],
+        "mcq_allowed": True,
+        "max_mcq_marks": 30,
+        "allowed_question_types": ["one_word", "fill_blanks", "true_false", "mcq", "short_answer", "matching", "descriptive", "application"],
+        "language_level": "board_level",
+        "language_instruction": "বোর্ড পরীক্ষার মানের ভাষা ব্যবহার করুন। প্রশ্ন চিন্তাশীল ও বিশ্লেষণমূলক হতে হবে।",
+        "total_marks": 100,
+        "description": "মাধ্যমিক সমাপনী (৯ম-১০ম শ্রেণী/SSC)"
+    },
+    "class_11_12": {
+        "class_range": ["১১শ", "১২শ", "Class 11", "Class 12", "11", "12", "Eleven", "Twelve", "HSC"],
+        "mcq_allowed": True,
+        "max_mcq_marks": 30,
+        "allowed_question_types": ["one_word", "fill_blanks", "true_false", "mcq", "short_answer", "matching", "descriptive", "application"],
+        "language_level": "advanced_academic",
+        "language_instruction": "উচ্চ মাধ্যমিক পর্যায়ের একাডেমিক ভাষা ব্যবহার করুন। প্রশ্ন গভীর বিশ্লেষণমূলক হতে হবে।",
+        "total_marks": 100,
+        "description": "উচ্চ মাধ্যমিক (১১শ-১২শ শ্রেণী/HSC)"
+    }
+}
+
+def get_class_rules(class_name: str) -> dict:
+    """Get rules for a specific class based on class name"""
+    if not class_name:
+        return {**CLASS_RULES["class_6_8"], "rule_key": "class_6_8"}
+    class_name_lower = class_name.lower().strip()
+    for rule_key, rules in CLASS_RULES.items():
+        for class_match in rules["class_range"]:
+            if class_match.lower() in class_name_lower or class_name_lower in class_match.lower():
+                return {**rules, "rule_key": rule_key}
+    return {**CLASS_RULES["class_6_8"], "rule_key": "class_6_8"}
+
+
+@api_router.get("/question-papers/class-rules")
+async def get_class_rules_endpoint(
+    class_name: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get class-wise rules for question paper generation (NCTB/Madrasa Board compliant)"""
+    if class_name:
+        rules = get_class_rules(class_name)
+        return {"rules": rules, "class_name": class_name}
+    return {"all_rules": CLASS_RULES}
+
+
 @api_router.post("/question-papers/ai-generate")
 async def ai_generate_question_paper(
     request: Request,
     current_user: User = Depends(get_current_user)
 ):
-    """AI-powered question paper generation"""
+    """AI-powered question paper generation with class-wise rules (NCTB/Madrasa Board compliant)"""
     if current_user.role not in ["super_admin", "admin", "teacher"]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
@@ -26655,6 +26735,15 @@ async def ai_generate_question_paper(
         duration_minutes = data.get("duration_minutes", 120)
         exam_type = data.get("exam_type", "বার্ষিক পরীক্ষা")
         difficulty_mix = data.get("difficulty_mix", "balanced")
+        
+        # Get class-wise rules (NCTB/Madrasa Board compliant)
+        class_rules = get_class_rules(class_name)
+        language_level = class_rules.get("language_level", "standard_academic")
+        language_instruction = class_rules.get("language_instruction", "")
+        allowed_types = class_rules.get("allowed_question_types", [])
+        mcq_allowed = class_rules.get("mcq_allowed", True)
+        max_mcq_marks = class_rules.get("max_mcq_marks", 30)
+        
         # Map section IDs to Bengali names with marks and description
         section_info = {
             'one_word': {'name': 'একশব্দে উত্তর দাও', 'marks': 1, 'desc': 'Simple factual questions with one-word answers (names, numbers, dates)'},
