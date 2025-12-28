@@ -12340,10 +12340,10 @@ def create_professional_pdf_template(school_name: str = "School ERP System", sch
         hex_color = hex_color.lstrip('#')
         return tuple(int(hex_color[i:i+2], 16)/255.0 for i in (0, 2, 4))
     
-    primary_color = rl_colors.Color(*hex_to_rgb(school_colors['primary']))
-    secondary_color = rl_colors.Color(*hex_to_rgb(school_colors['secondary']))
-    accent_color = rl_colors.Color(*hex_to_rgb(school_colors['accent']))
-    light_bg = rl_colors.Color(*hex_to_rgb(school_colors['light']))
+    primary_color = rl_colors.Color(*hex_to_rgb(school_colors.get('primary', '#1e3a8a')))
+    secondary_color = rl_colors.Color(*hex_to_rgb(school_colors.get('secondary', '#059669')))
+    accent_color = rl_colors.Color(*hex_to_rgb(school_colors.get('accent', '#f59e0b')))
+    light_bg = rl_colors.Color(*hex_to_rgb(school_colors.get('light', '#f8fafc')))
     
     # Get base styles
     styles = getSampleStyleSheet()
