@@ -13346,7 +13346,7 @@ async def generate_attendance_pdf_report(report_type: str, report_data: dict, cu
         branding = await get_school_branding_for_reports(current_user.tenant_id)
         
         school_name = branding.get("school_name", "School ERP System")
-        school_address = branding.get("school_address", "")
+        school_address = branding.get("address", "")
         school_phone = branding.get("phone", "")
         school_email = branding.get("email", "")
         school_contact = f"Phone: {school_phone} | Email: {school_email}" if school_phone or school_email else ""
@@ -18238,7 +18238,7 @@ async def generate_biometric_pdf_report(report_type: str, report_data: dict, cur
         branding = await get_school_branding_for_reports(current_user.tenant_id)
         
         school_name = branding.get("school_name", "School ERP System")
-        school_address = branding.get("school_address", "")
+        school_address = branding.get("address", "")
         school_phone = branding.get("phone", "")
         school_email = branding.get("email", "")
         school_contact = f"Phone: {school_phone} | Email: {school_email}" if school_phone or school_email else ""
