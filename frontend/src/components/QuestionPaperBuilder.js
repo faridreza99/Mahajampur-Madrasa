@@ -156,10 +156,31 @@ const QuestionPaperBuilder = () => {
       });
       const rules = response.data.rules;
       setClassRules(rules);
+      
+      // Dynamically update section_config based on allowed question types
+      if (rules?.allowed_question_types) {
+        setAiForm(prev => {
+          const newSectionConfig = { ...prev.section_config };
+          // Reset all sections, only enable allowed ones
+          sectionOptions.forEach(section => {
+            const isAllowed = rules.allowed_question_types.includes(section.id);
+            if (newSectionConfig[section.id]) {
+              newSectionConfig[section.id] = {
+                ...newSectionConfig[section.id],
+                enabled: isAllowed && newSectionConfig[section.id].enabled
+              };
+            } else if (isAllowed) {
+              // Enable default sections for this class
+              newSectionConfig[section.id] = { enabled: true, question_count: 5 };
+            }
+          });
+          return { ...prev, section_config: newSectionConfig };
+        });
+      }
     } catch (error) {
       console.error('Error fetching class rules:', error);
     }
-  }, [API_BASE_URL]);
+  }, [API_BASE_URL, sectionOptions]);
   useEffect(() => {
     fetchPapers();
     fetchClasses();
