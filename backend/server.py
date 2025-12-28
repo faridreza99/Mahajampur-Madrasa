@@ -12532,15 +12532,37 @@ def add_pdf_header_footer(canvas, doc, school_name, report_title, generated_by, 
     # School information beside the logo
     info_x = logo_x + logo_width + 15
     
-    # School name
-    canvas.setFillColor(colors.whitesmoke)
-    canvas.setFont('NotoSansBengali', 16)
-    canvas.drawString(info_x, doc.pagesize[1] - 35, school_name)
+    # School name - use PIL for proper Bengali text shaping
+    try:
+        from bengali_text_helper import render_bengali_text_to_image
+        from reportlab.lib.utils import ImageReader
+        import tempfile
+        
+        # Render school name with PIL
+        name_img = render_bengali_text_to_image(school_name, font_size=22, color=(245, 245, 245))
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+            name_img.save(tmp, "PNG")
+            tmp_name_path = tmp.name
+        canvas.drawImage(tmp_name_path, info_x, doc.pagesize[1] - 45, width=name_img.width * 0.75, height=name_img.height * 0.75, mask="auto")
+        os.unlink(tmp_name_path)
+    except Exception as e:
+        # Fallback to direct text if PIL fails
+        canvas.setFillColor(colors.whitesmoke)
+        canvas.setFont("NotoSansBengali", 16)
+        canvas.drawString(info_x, doc.pagesize[1] - 35, school_name)
     
-    # School address
+    # School address - use PIL for proper Bengali text shaping
     if school_address:
-        canvas.setFont('NotoSansBengali', 9)
-        canvas.drawString(info_x, doc.pagesize[1] - 52, school_address)
+        try:
+            addr_img = render_bengali_text_to_image(school_address, font_size=12, color=(245, 245, 245))
+            with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+                addr_img.save(tmp, "PNG")
+                tmp_addr_path = tmp.name
+            canvas.drawImage(tmp_addr_path, info_x, doc.pagesize[1] - 58, width=addr_img.width * 0.75, height=addr_img.height * 0.75, mask="auto")
+            os.unlink(tmp_addr_path)
+        except Exception:
+            canvas.setFont("NotoSansBengali", 9)
+            canvas.drawString(info_x, doc.pagesize[1] - 52, school_address)
     
     # School contact info
     if school_contact:
