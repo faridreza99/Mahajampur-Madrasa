@@ -958,6 +958,43 @@ const QuestionPaperBuilder = () => {
             </div>
           </div>
 
+          {/* Marks Distribution Display */}
+          <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border dark:border-gray-700">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-medium dark:text-gray-300">নম্বর বন্টন / Marks Distribution:</span>
+              <span className={`font-bold ${
+                Object.entries(aiForm.section_config).reduce((sum, [id, cfg]) => {
+                  if (!cfg.enabled) return sum;
+                  const sec = sectionOptions.find(s => s.id === id);
+                  return sum + (cfg.question_count * (sec?.default_marks || 1));
+                }, 0) === aiForm.total_marks 
+                  ? 'text-green-600 dark:text-green-400' 
+                  : 'text-orange-600 dark:text-orange-400'
+              }`}>
+                {Object.entries(aiForm.section_config).reduce((sum, [id, cfg]) => {
+                  if (!cfg.enabled) return sum;
+                  const sec = sectionOptions.find(s => s.id === id);
+                  return sum + (cfg.question_count * (sec?.default_marks || 1));
+                }, 0)} / {aiForm.total_marks}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+              {Object.entries(aiForm.section_config)
+                .filter(([_, cfg]) => cfg.enabled)
+                .map(([id, cfg]) => {
+                  const sec = sectionOptions.find(s => s.id === id);
+                  const marks = cfg.question_count * (sec?.default_marks || 1);
+                  return (
+                    <div key={id} className="p-1 bg-white dark:bg-gray-700 rounded text-center">
+                      <div className="text-gray-600 dark:text-gray-400">{sec?.name_bn}</div>
+                      <div className="font-medium dark:text-white">{cfg.question_count} × {sec?.default_marks || 1} = {marks}</div>
+                    </div>
+                  );
+                })
+              }
+            </div>
+          </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAIDialogOpen(false)} disabled={aiGenerating}>
               Cancel
