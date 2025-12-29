@@ -186,6 +186,16 @@ const Certificates = () => {
   const [availableStaff, setAvailableStaff] = useState([]);
   const [showCardPreviewModal, setShowCardPreviewModal] = useState(false);
   const [selectedCardForPreview, setSelectedCardForPreview] = useState(null);
+  
+  // School branding and classes for ID cards
+  const [schoolBranding, setSchoolBranding] = useState({
+    name: 'School ERP System',
+    logo: null,
+    address: '',
+    phone: '',
+    email: ''
+  });
+  const [classes, setClasses] = useState([]);
 
   // Load generated ID cards from localStorage on component mount
   useEffect(() => {
@@ -219,7 +229,56 @@ const Certificates = () => {
     fetchAERecords();
     fetchStudents();
     fetchStaff();
+    fetchSchoolBranding();
+    fetchClasses();
   }, []);
+  
+  const fetchSchoolBranding = async () => {
+    try {
+      const API = process.env.REACT_APP_API_URL;
+      const response = await fetch(`${API}/institution`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setSchoolBranding({
+          name: data.name || data.institution_name || 'School ERP System',
+          logo: data.logo_url || data.logo || null,
+          address: data.address || '',
+          phone: data.phone || data.contact_phone || '',
+          email: data.email || data.contact_email || ''
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching school branding:', error);
+    }
+  };
+  
+  const fetchClasses = async () => {
+    try {
+      const API = process.env.REACT_APP_API_URL;
+      const response = await fetch(`${API}/classes`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setClasses(Array.isArray(data) ? data : (data.classes || []));
+      }
+    } catch (error) {
+      console.error('Error fetching classes:', error);
+    }
+  };
+  
+  const getClassName = (classId) => {
+    const classObj = classes.find(c => c.id === classId);
+    return classObj ? classObj.name : classId;
+  };
 
   const fetchCertificatesData = async () => {
     try {
@@ -1479,14 +1538,15 @@ const Certificates = () => {
         studentData: {
           name: student.name,
           admission_no: student.admission_no,
-          class_name: student.class_name || student.class_id || 'N/A',
+          class_name: student.class_name || getClassName(student.class_id) || 'N/A',
           section: student.section || 'A',
           roll_number: student.roll_number || student.admission_no,
-          photo: student.photo || null,
+          photo: student.photo_url || student.photo || null,
           emergency_contact: student.emergency_contact || 'N/A',
           blood_group: student.blood_group || 'N/A',
           student_id: student.id
         },
+        schoolBranding: schoolBranding,
         generatedDate: new Date().toISOString(),
         generatedBy: 'System Admin',
         status: 'generated',
@@ -1516,10 +1576,11 @@ const Certificates = () => {
           designation: staff.designation || 'Staff',
           phone: staff.phone || 'N/A',
           email: staff.email || 'N/A',
-          photo: staff.photo || null,
-          join_date: staff.join_date || 'N/A',
+          photo: staff.photo_url || staff.photo || null,
+          join_date: staff.date_of_joining || staff.join_date || 'N/A',
           staff_id: staff.id
         },
+        schoolBranding: schoolBranding,
         generatedDate: new Date().toISOString(),
         generatedBy: 'System Admin',
         status: 'generated',
@@ -1591,18 +1652,25 @@ const Certificates = () => {
     return cards.map(card => {
       const isStudent = card.type === 'student';
       const data = isStudent ? card.studentData : card.staffData;
+      const branding = card.schoolBranding || schoolBranding;
+      const photoUrl = data?.photo;
       
       return `
         <div class="id-card">
           <div class="card-header">
-            <h3>School ERP System</h3>
+            ${branding.logo ? `<img src="${branding.logo}" alt="School Logo" class="school-logo" />` : ''}
+            <h3>${branding.name || 'School ERP System'}</h3>
             <p>${isStudent ? 'Student ID Card' : 'Staff ID Card'}</p>
           </div>
           <div class="card-body">
             <div class="photo-section">
-              <div class="photo-placeholder">
-                <span>PHOTO</span>
-              </div>
+              ${photoUrl ? `
+                <img src="${photoUrl}" alt="Photo" class="person-photo" />
+              ` : `
+                <div class="photo-placeholder">
+                  <span>PHOTO</span>
+                </div>
+              `}
             </div>
             <div class="info-section">
               <h4>${data?.name}</h4>
@@ -1643,6 +1711,7 @@ const Certificates = () => {
           background: linear-gradient(135deg, #059669, #10b981); color: white; 
           padding: 8px; text-align: center; flex-shrink: 0;
         }
+        .card-header .school-logo { width: 20px; height: 20px; object-fit: contain; margin-bottom: 2px; }
         .card-header h3 { margin: 0; font-size: 14px; font-weight: bold; }
         .card-header p { margin: 2px 0 0 0; font-size: 10px; }
         .card-body { 
@@ -1654,6 +1723,7 @@ const Certificates = () => {
           display: flex; align-items: center; justify-content: center; 
           font-size: 8px; color: #666; background: #f9f9f9;
         }
+        .person-photo { width: 40px; height: 50px; object-fit: cover; border: 1px solid #ccc; }
         .info-section { flex: 1; }
         .info-section h4 { margin: 0 0 8px 0; font-size: 12px; color: #059669; }
         .details p { margin: 2px 0; font-size: 9px; line-height: 1.2; }
@@ -1670,6 +1740,7 @@ const Certificates = () => {
           background: linear-gradient(135deg, #059669, #10b981); color: white; 
           padding: 12px; text-align: center; flex-shrink: 0;
         }
+        .card-header .school-logo { width: 28px; height: 28px; object-fit: contain; margin-bottom: 4px; }
         .card-header h3 { margin: 0; font-size: 16px; font-weight: bold; }
         .card-header p { margin: 4px 0 0 0; font-size: 12px; }
         .card-body { 
@@ -1681,6 +1752,7 @@ const Certificates = () => {
           display: flex; align-items: center; justify-content: center; 
           font-size: 10px; color: #666; background: #f9f9f9;
         }
+        .person-photo { width: 60px; height: 75px; object-fit: cover; border: 1px solid #ccc; border-radius: 4px; }
         .info-section { flex: 1; }
         .info-section h4 { margin: 0 0 8px 0; font-size: 14px; color: #059669; }
         .details p { margin: 3px 0; font-size: 11px; line-height: 1.3; }
