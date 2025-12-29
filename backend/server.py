@@ -9746,11 +9746,17 @@ async def generate_admission_summary_report(
         students_raw = await db.students.find(query).to_list(1000)
         
         # Convert ObjectIds to strings for JSON serialization
+        from bson import ObjectId
         students = []
         for student in students_raw:
-            student_dict = {k: str(v) if isinstance(v, ObjectId) else v for k, v in student.items()}
-            if '_id' in student_dict:
-                student_dict['_id'] = str(student_dict['_id'])
+            student_dict = {}
+            for k, v in student.items():
+                if isinstance(v, ObjectId):
+                    student_dict[k] = str(v)
+                elif hasattr(v, 'isoformat'):
+                    student_dict[k] = v.isoformat()
+                else:
+                    student_dict[k] = v
             students.append(student_dict)
         
         # Get institution currency for reports
