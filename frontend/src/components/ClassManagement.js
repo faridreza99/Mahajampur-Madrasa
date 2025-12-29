@@ -44,8 +44,15 @@ import {
   FolderOpen,
   Folder,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  ToggleLeft,
+  ToggleRight,
+  GripVertical,
+  AlertTriangle,
+  Building2,
+  Moon
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
@@ -54,6 +61,7 @@ const BACKEND_URL = process.env.REACT_APP_API_URL;
 const API = BACKEND_URL;
 
 const ClassManagement = () => {
+  const { t } = useTranslation();
   const [classes, setClasses] = useState([]);
   const [sections, setSections] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -66,12 +74,19 @@ const ClassManagement = () => {
   const [editingSection, setEditingSection] = useState(null);
   const [editingSubject, setEditingSubject] = useState(null);
   const [selectedClassFilter, setSelectedClassFilter] = useState('all');
+  const [institutionType, setInstitutionType] = useState('school');
+  const [classDefaults, setClassDefaults] = useState(null);
+  const [showInactiveClasses, setShowInactiveClasses] = useState(false);
 
   const [classFormData, setClassFormData] = useState({
     name: '',
     standard: 'select_standard',
+    display_name: '',
+    internal_standard: 0,
     class_teacher_id: 'no_teacher',
-    max_students: 60
+    max_students: 60,
+    order_index: 0,
+    institution_type: 'school'
   });
 
   const [sectionFormData, setSectionFormData] = useState({
@@ -102,18 +117,63 @@ const ClassManagement = () => {
     });
   };
 
-  // Fallback standards for class creation (if no classes exist yet)
-  const defaultStandards = [
-    'Nursery', 'LKG', 'UKG', 
-    'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12'
+  // Fallback standards for class creation based on institution type
+  const schoolStandards = [
+    { standard: 'Nursery', display_name: 'Nursery', internal_standard: 0 },
+    { standard: 'LKG', display_name: 'LKG', internal_standard: 0 },
+    { standard: 'UKG', display_name: 'UKG', internal_standard: 0 },
+    { standard: 'Class 1', display_name: 'Class 1', internal_standard: 1 },
+    { standard: 'Class 2', display_name: 'Class 2', internal_standard: 2 },
+    { standard: 'Class 3', display_name: 'Class 3', internal_standard: 3 },
+    { standard: 'Class 4', display_name: 'Class 4', internal_standard: 4 },
+    { standard: 'Class 5', display_name: 'Class 5', internal_standard: 5 },
+    { standard: 'Class 6', display_name: 'Class 6', internal_standard: 6 },
+    { standard: 'Class 7', display_name: 'Class 7', internal_standard: 7 },
+    { standard: 'Class 8', display_name: 'Class 8', internal_standard: 8 },
+    { standard: 'Class 9', display_name: 'Class 9', internal_standard: 9 },
+    { standard: 'Class 10', display_name: 'Class 10', internal_standard: 10 },
+    { standard: 'Class 11', display_name: 'Class 11 (HSC 1st Year)', internal_standard: 11 },
+    { standard: 'Class 12', display_name: 'Class 12 (HSC 2nd Year)', internal_standard: 12 },
   ];
+
+  const madrasahStandards = [
+    { standard: 'Class 1', display_name: 'ইবতেদায়ী ১ম বর্ষ', internal_standard: 1, category: 'Ebtedayee' },
+    { standard: 'Class 2', display_name: 'ইবতেদায়ী ২য় বর্ষ', internal_standard: 2, category: 'Ebtedayee' },
+    { standard: 'Class 3', display_name: 'ইবতেদায়ী ৩য় বর্ষ', internal_standard: 3, category: 'Ebtedayee' },
+    { standard: 'Class 4', display_name: 'ইবতেদায়ী ৪র্থ বর্ষ', internal_standard: 4, category: 'Ebtedayee' },
+    { standard: 'Class 5', display_name: 'ইবতেদায়ী ৫ম বর্ষ', internal_standard: 5, category: 'Ebtedayee' },
+    { standard: 'Class 6', display_name: 'দাখিল ৬ষ্ঠ শ্রেণি', internal_standard: 6, category: 'Dakhil' },
+    { standard: 'Class 7', display_name: 'দাখিল ৭ম শ্রেণি', internal_standard: 7, category: 'Dakhil' },
+    { standard: 'Class 8', display_name: 'দাখিল ৮ম শ্রেণি', internal_standard: 8, category: 'Dakhil' },
+    { standard: 'Class 9', display_name: 'দাখিল ৯ম শ্রেণি', internal_standard: 9, category: 'Dakhil' },
+    { standard: 'Class 10', display_name: 'দাখিল ১০ম শ্রেণি', internal_standard: 10, category: 'Dakhil' },
+    { standard: 'Class 11', display_name: 'আলিম ১ম বর্ষ', internal_standard: 11, category: 'Alim' },
+    { standard: 'Class 12', display_name: 'আলিম ২য় বর্ষ', internal_standard: 12, category: 'Alim' },
+    { standard: 'Nazera', display_name: 'নাজেরা', internal_standard: 0, category: 'Special' },
+    { standard: 'Hifz', display_name: 'হিফজ', internal_standard: 0, category: 'Special' },
+    { standard: 'Kitab', display_name: 'কিতাব', internal_standard: 0, category: 'Special' },
+  ];
+
+  const defaultStandards = institutionType === 'madrasah' ? madrasahStandards : schoolStandards;
 
   // For subject dropdowns, use standards from existing classes
   const classStandards = getUniqueStandards();
 
   useEffect(() => {
     fetchData();
+    fetchInstitutionSettings();
   }, []);
+
+  const fetchInstitutionSettings = async () => {
+    try {
+      const response = await axios.get(\`\${API}/institution/settings\`);
+      if (response.data?.institution_type) {
+        setInstitutionType(response.data.institution_type);
+      }
+    } catch (error) {
+      console.log('Using default institution type: school');
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -169,7 +229,11 @@ const ClassManagement = () => {
       const submitData = {
         ...classFormData,
         max_students: parseInt(classFormData.max_students),
-        class_teacher_id: classFormData.class_teacher_id === 'no_teacher' ? null : classFormData.class_teacher_id
+        class_teacher_id: classFormData.class_teacher_id === 'no_teacher' ? null : classFormData.class_teacher_id,
+        display_name: classFormData.display_name || classFormData.name,
+        internal_standard: classFormData.internal_standard || 0,
+        order_index: classFormData.order_index || classes.length,
+        institution_type: institutionType
       };
 
       console.log('📤 Sending data to API:', submitData);
@@ -239,8 +303,12 @@ const ClassManagement = () => {
     setClassFormData({
       name: cls.name,
       standard: cls.standard,
+      display_name: cls.display_name || cls.name || cls.standard,
+      internal_standard: cls.internal_standard || 0,
       class_teacher_id: cls.class_teacher_id || 'no_teacher',
-      max_students: cls.max_students
+      max_students: cls.max_students,
+      order_index: cls.order_index || 0,
+      institution_type: cls.institution_type || institutionType
     });
     setEditingClass(cls);
     setIsClassModalOpen(true);
@@ -331,8 +399,12 @@ const ClassManagement = () => {
     setClassFormData({
       name: '',
       standard: 'select_standard',
+      display_name: '',
+      internal_standard: 0,
       class_teacher_id: 'no_teacher',
-      max_students: 60
+      max_students: 60,
+      order_index: 0,
+      institution_type: institutionType
     });
   };
 
@@ -547,6 +619,135 @@ const ClassManagement = () => {
     return teacher ? teacher.name : 'Unknown';
   };
 
+  const getDisplayName = (cls) => {
+    return cls.display_name || cls.name || cls.standard;
+  };
+
+  const handleToggleClassStatus = async (cls) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(\`\${API}/classes/\${cls.id}/toggle-status\`, {}, {
+        headers: { Authorization: \`Bearer \${token}\` }
+      });
+      toast.success(\`Class "\${getDisplayName(cls)}" \${cls.is_active ? 'disabled' : 'enabled'} successfully\`);
+      fetchData();
+    } catch (error) {
+      console.error('Failed to toggle class status:', error);
+      toast.error(error.response?.data?.detail || 'Failed to toggle class status');
+    }
+  };
+
+  const handleSafeDeleteClass = async (cls) => {
+    try {
+      const token = localStorage.getItem('token');
+      const usageRes = await axios.get(\`\${API}/classes/\${cls.id}/usage-check\`, {
+        headers: { Authorization: \`Bearer \${token}\` }
+      });
+      
+      const usage = usageRes.data;
+      
+      if (usage.has_data) {
+        Swal.fire({
+          title: t('classManagement.cannotDelete') || 'Cannot Delete Class',
+          html: \`
+            <div class="text-left">
+              <p>\${t('classManagement.classHasData') || 'This class has associated data:'}</p>
+              <ul class="list-disc ml-4 mt-2">
+                <li>\${t('classManagement.students') || 'Students'}: \${usage.usage.students}</li>
+                <li>\${t('classManagement.attendance') || 'Attendance Records'}: \${usage.usage.attendance}</li>
+                <li>\${t('classManagement.exams') || 'Exams'}: \${usage.usage.exams}</li>
+                <li>\${t('classManagement.results') || 'Results'}: \${usage.usage.results}</li>
+              </ul>
+              <p class="mt-3">\${t('classManagement.disableInstead') || 'Consider disabling the class instead.'}</p>
+            </div>
+          \`,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: t('classManagement.disableClass') || 'Disable Class',
+          cancelButtonText: t('common.cancel') || 'Cancel',
+          confirmButtonColor: '#f59e0b'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            handleToggleClassStatus(cls);
+          }
+        });
+      } else {
+        Swal.fire({
+          title: t('classManagement.deleteClass') || 'Delete Class',
+          text: \`\${t('classManagement.confirmDelete') || 'Are you sure you want to permanently delete'} "\${getDisplayName(cls)}"?\`,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: t('common.delete') || 'Delete',
+          cancelButtonText: t('common.cancel') || 'Cancel',
+          confirmButtonColor: '#ef4444'
+        }).then(async (result) => {
+          if (result.isConfirmed) {
+            await axios.delete(\`\${API}/classes/\${cls.id}/permanent\`, {
+              headers: { Authorization: \`Bearer \${token}\` }
+            });
+            toast.success(\`Class "\${getDisplayName(cls)}" deleted successfully\`);
+            fetchData();
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Failed to check class usage:', error);
+      toast.error(error.response?.data?.detail || 'Failed to check class usage');
+    }
+  };
+
+  const handleInitializeDefaults = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      Swal.fire({
+        title: t('classManagement.initializeClasses') || 'Initialize Classes',
+        text: \`\${t('classManagement.initializeConfirm') || 'This will add default classes for'} \${institutionType === 'madrasah' ? 'Madrasah' : 'School'}. \${t('classManagement.existingClassesKept') || 'Existing classes will be kept.'}\`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: t('common.confirm') || 'Confirm',
+        cancelButtonText: t('common.cancel') || 'Cancel'
+      }).then(async (result) => {
+        if (result.isConfirmed) {
+          await axios.post(\`\${API}/classes/initialize-defaults\`, {
+            institution_type: institutionType,
+            include_special_classes: institutionType === 'madrasah'
+          }, {
+            headers: { Authorization: \`Bearer \${token}\` }
+          });
+          toast.success(t('classManagement.classesInitialized') || 'Classes initialized successfully!');
+          fetchData();
+        }
+      });
+    } catch (error) {
+      console.error('Failed to initialize classes:', error);
+      toast.error(error.response?.data?.detail || 'Failed to initialize classes');
+    }
+  };
+
+  const handleInstitutionTypeChange = async (newType) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(\`\${API}/institution/settings\`, {
+        institution_type: newType
+      }, {
+        headers: { Authorization: \`Bearer \${token}\` }
+      });
+      setInstitutionType(newType);
+      toast.success(\`Institution type changed to \${newType === 'madrasah' ? 'Madrasah' : 'School'}\`);
+    } catch (error) {
+      console.error('Failed to update institution type:', error);
+      setInstitutionType(newType);
+    }
+  };
+
+  const getFilteredClasses = () => {
+    let filtered = classes;
+    if (!showInactiveClasses) {
+      filtered = filtered.filter(cls => cls.is_active !== false);
+    }
+    return filtered.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+  };
+
   const getClassName = (classId) => {
     const cls = classes.find(c => c.id === classId);
     return cls ? `${cls.name} (${cls.standard})` : 'Unknown';
@@ -572,8 +773,12 @@ const ClassManagement = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Class Management</h1>
-          <p className="text-gray-600 mt-1">Manage classes, sections, and teacher assignments</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            {t('classManagement.title') || 'Class Management'}
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            {t('classManagement.subtitle') || 'Manage classes, sections, and teacher assignments'}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {staff.length === 0 && (
@@ -628,6 +833,81 @@ const ClassManagement = () => {
             Export Classes
           </Button>
         </div>
+      </div>
+
+      {/* Institution Type Toggle */}
+      <Card className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border-emerald-200 dark:border-emerald-800">
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              {institutionType === 'madrasah' ? (
+                <Moon className="h-6 w-6 text-emerald-600" />
+              ) : (
+                <Building2 className="h-6 w-6 text-emerald-600" />
+              )}
+              <div>
+                <h3 className="font-semibold text-gray-900 dark:text-white">
+                  {t('classManagement.institutionType') || 'Institution Type'}
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {institutionType === 'madrasah' 
+                    ? (t('classManagement.madrasahDesc') || 'Madrasah class structure (Ebtedayee, Dakhil, Alim)')
+                    : (t('classManagement.schoolDesc') || 'Standard school class structure (Class 1-12)')}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center bg-white dark:bg-gray-800 rounded-lg p-1 shadow-sm">
+                <button
+                  onClick={() => handleInstitutionTypeChange('school')}
+                  className={\`px-4 py-2 rounded-md text-sm font-medium transition-all \${
+                    institutionType === 'school'
+                      ? 'bg-emerald-500 text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }\`}
+                >
+                  <Building2 className="h-4 w-4 inline mr-1" />
+                  {t('classManagement.school') || 'School'}
+                </button>
+                <button
+                  onClick={() => handleInstitutionTypeChange('madrasah')}
+                  className={\`px-4 py-2 rounded-md text-sm font-medium transition-all \${
+                    institutionType === 'madrasah'
+                      ? 'bg-emerald-500 text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }\`}
+                >
+                  <Moon className="h-4 w-4 inline mr-1" />
+                  {t('classManagement.madrasah') || 'Madrasah'}
+                </button>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleInitializeDefaults}
+                className="bg-white dark:bg-gray-800"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                {t('classManagement.initializeDefaults') || 'Initialize Defaults'}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Show Inactive Classes Toggle */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setShowInactiveClasses(!showInactiveClasses)}
+          className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+        >
+          {showInactiveClasses ? (
+            <ToggleRight className="h-5 w-5 text-emerald-500" />
+          ) : (
+            <ToggleLeft className="h-5 w-5" />
+          )}
+          {t('classManagement.showInactive') || 'Show inactive classes'}
+        </button>
       </div>
 
       {/* Stats Cards */}
@@ -707,44 +987,64 @@ const ClassManagement = () => {
                   Add Class
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="dark:bg-gray-900">
                 <DialogHeader>
-                  <DialogTitle>
-                    {editingClass ? 'Edit Class' : 'Add New Class'}
+                  <DialogTitle className="dark:text-white">
+                    {editingClass ? (t('classManagement.editClass') || 'Edit Class') : (t('classManagement.addNewClass') || 'Add New Class')}
                   </DialogTitle>
-                  <DialogDescription>
-                    Create or modify class information.
+                  <DialogDescription className="dark:text-gray-400">
+                    {t('classManagement.classFormDesc') || 'Create or modify class information.'}
                   </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleClassSubmit} className="space-y-4">
                   <div>
-                    <Label htmlFor="class_name">Class Name *</Label>
-                    <Input
-                      id="class_name"
-                      value={classFormData.name}
-                      onChange={(e) => setClassFormData({...classFormData, name: e.target.value})}
-                      placeholder="e.g., Mathematics, Science"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="standard">Standard *</Label>
+                    <Label htmlFor="standard" className="dark:text-gray-300">{t('classManagement.standard') || 'Standard'} *</Label>
                     <Select 
                       value={classFormData.standard} 
-                      onValueChange={(value) => setClassFormData({...classFormData, standard: value})}
+                      onValueChange={(value) => {
+                        const selectedStd = defaultStandards.find(s => s.standard === value);
+                        setClassFormData({
+                          ...classFormData, 
+                          standard: value,
+                          display_name: selectedStd?.display_name || value,
+                          internal_standard: selectedStd?.internal_standard || 0,
+                          name: selectedStd?.display_name || value
+                        });
+                      }}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select standard" />
+                      <SelectTrigger className="dark:bg-gray-800 dark:border-gray-700">
+                        <SelectValue placeholder={t('classManagement.selectStandard') || 'Select standard'} />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="select_standard" disabled>Select Standard</SelectItem>
+                      <SelectContent className="dark:bg-gray-800">
+                        <SelectItem value="select_standard" disabled>{t('classManagement.selectStandard') || 'Select Standard'}</SelectItem>
                         {defaultStandards.map((std) => (
-                          <SelectItem key={std} value={std}>
-                            {std}
+                          <SelectItem key={std.standard} value={std.standard}>
+                            <span className="flex items-center gap-2">
+                              <span>{std.display_name}</span>
+                              {std.display_name !== std.standard && (
+                                <span className="text-xs text-gray-500">({std.standard})</span>
+                              )}
+                            </span>
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="display_name" className="dark:text-gray-300">
+                      {t('classManagement.displayName') || 'Display Name (Bengali/Custom)'} *
+                    </Label>
+                    <Input
+                      id="display_name"
+                      value={classFormData.display_name}
+                      onChange={(e) => setClassFormData({...classFormData, display_name: e.target.value, name: e.target.value})}
+                      placeholder={institutionType === 'madrasah' ? 'e.g., ইবতেদায়ী ১ম বর্ষ' : 'e.g., Class 1'}
+                      className="dark:bg-gray-800 dark:border-gray-700"
+                      required
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {t('classManagement.displayNameHint') || 'This name will be shown in the UI. You can use Bengali or any custom name.'}
+                    </p>
                   </div>
                   <div>
                     <Label htmlFor="class_teacher">Class Teacher</Label>
@@ -799,72 +1099,113 @@ const ClassManagement = () => {
 
           <Card>
             <CardContent>
-              <div className="rounded-md border">
+              <div className="rounded-md border dark:border-gray-700">
                 <Table>
                   <TableHeader>
-                    <TableRow>
+                    <TableRow className="bg-gray-50 dark:bg-gray-800">
                       <TableHead className="w-12">#</TableHead>
-                      <TableHead>Class Name</TableHead>
-                      <TableHead>Standard</TableHead>
-                      <TableHead>Class Teacher</TableHead>
-                      <TableHead>Sections</TableHead>
-                      <TableHead>Max Students</TableHead>
-                      <TableHead>Actions</TableHead>
+                      <TableHead>{t('classManagement.displayName') || 'Display Name'}</TableHead>
+                      <TableHead>{t('classManagement.standard') || 'Standard'}</TableHead>
+                      <TableHead>{t('classManagement.classTeacher') || 'Class Teacher'}</TableHead>
+                      <TableHead>{t('classManagement.sections') || 'Sections'}</TableHead>
+                      <TableHead>{t('classManagement.maxStudents') || 'Max Students'}</TableHead>
+                      <TableHead>{t('classManagement.status') || 'Status'}</TableHead>
+                      <TableHead>{t('classManagement.actions') || 'Actions'}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {classes.length === 0 ? (
+                    {getFilteredClasses().length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                          No classes added yet
+                        <TableCell colSpan={8} className="text-center py-8 text-gray-500 dark:text-gray-400">
+                          {t('classManagement.noClasses') || 'No classes added yet'}
                         </TableCell>
                       </TableRow>
                     ) : (
-                      classes.map((cls, index) => (
-                        <TableRow key={cls.id}>
+                      getFilteredClasses().map((cls, index) => (
+                        <TableRow 
+                          key={cls.id} 
+                          className={\`\${cls.is_active === false ? 'opacity-50 bg-gray-50 dark:bg-gray-800/50' : ''}\`}
+                        >
                           <TableCell className="font-medium">{index + 1}</TableCell>
                           <TableCell>
-                            <div className="font-medium">{cls.name}</div>
+                            <div className="flex flex-col">
+                              <span className="font-medium text-gray-900 dark:text-white">
+                                {getDisplayName(cls)}
+                              </span>
+                              {cls.display_name && cls.display_name !== cls.standard && (
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                  {cls.standard}
+                                </span>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="secondary">{cls.standard}</Badge>
+                            <Badge variant="secondary" className="dark:bg-gray-700 dark:text-gray-200">
+                              {cls.internal_standard ? \`Level \${cls.internal_standard}\` : cls.standard}
+                            </Badge>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center space-x-2">
                               {cls.class_teacher_id ? (
                                 <>
                                   <Avatar className="h-6 w-6">
-                                    <AvatarFallback className="text-xs bg-emerald-100 text-emerald-700">
+                                    <AvatarFallback className="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
                                       {getTeacherName(cls.class_teacher_id).split(' ').map(n => n[0]).join('')}
                                     </AvatarFallback>
                                   </Avatar>
-                                  <span className="text-sm">{getTeacherName(cls.class_teacher_id)}</span>
+                                  <span className="text-sm dark:text-gray-300">{getTeacherName(cls.class_teacher_id)}</span>
                                 </>
                               ) : (
-                                <span className="text-gray-500 text-sm">Not assigned</span>
+                                <span className="text-gray-500 dark:text-gray-400 text-sm">
+                                  {t('classManagement.notAssigned') || 'Not assigned'}
+                                </span>
                               )}
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline">
-                              {getSectionsForClass(cls.id).length} sections
+                            <Badge variant="outline" className="dark:border-gray-600 dark:text-gray-300">
+                              {getSectionsForClass(cls.id).length} {t('classManagement.sections') || 'sections'}
                             </Badge>
                           </TableCell>
-                          <TableCell>{cls.max_students}</TableCell>
+                          <TableCell className="dark:text-gray-300">{cls.max_students}</TableCell>
                           <TableCell>
-                            <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => handleToggleClassStatus(cls)}
+                              className={\`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors \${
+                                cls.is_active !== false
+                                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                  : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+                              }\`}
+                            >
+                              {cls.is_active !== false ? (
+                                <>
+                                  <ToggleRight className="h-3 w-3" />
+                                  {t('classManagement.active') || 'Active'}
+                                </>
+                              ) : (
+                                <>
+                                  <ToggleLeft className="h-3 w-3" />
+                                  {t('classManagement.inactive') || 'Inactive'}
+                                </>
+                              )}
+                            </button>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-1">
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleEditClass(cls)}
+                                title={t('common.edit') || 'Edit'}
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
                               <Button 
                                 variant="ghost" 
                                 size="sm" 
-                                className="text-red-600 hover:text-red-700"
-                                onClick={() => handleDeleteClass(cls)}
+                                className="text-red-600 hover:text-red-700 dark:text-red-400"
+                                onClick={() => handleSafeDeleteClass(cls)}
+                                title={t('common.delete') || 'Delete'}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>

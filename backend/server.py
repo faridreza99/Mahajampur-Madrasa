@@ -340,6 +340,7 @@ class Institution(BaseModel):
     school_name: str
     school_code: Optional[str] = None
     school_type: Optional[str] = None
+    institution_type: Optional[str] = "school"  # school or madrasah
     established_year: Optional[int] = None
     address: Optional[str] = None
     phone: Optional[str] = None
@@ -360,6 +361,7 @@ class InstitutionUpdate(BaseModel):
     school_name: Optional[str] = None
     school_code: Optional[str] = None
     school_type: Optional[str] = None
+    institution_type: Optional[str] = None  # school or madrasah
     established_year: Optional[int] = None
     address: Optional[str] = None
     phone: Optional[str] = None
@@ -657,30 +659,42 @@ class Class(BaseModel):
     tenant_id: str
     school_id: Optional[str] = None
     name: Optional[str] = "Unknown"
-    standard: str
+    standard: str  # Internal standard for analytics (Class 1, Class 2, etc.)
+    display_name: Optional[str] = None  # Bengali/custom display name (e.g., ইবতেদায়ী ১ম বর্ষ)
+    internal_standard: Optional[int] = None  # Numeric mapping (1-12) for reports
     sections: List[str] = Field(default_factory=lambda: ['A'])
     description: Optional[str] = None
     class_teacher_id: Optional[str] = None
     max_students: int = 60
     is_active: bool = True
+    order_index: int = 0  # For custom ordering
+    institution_type: Optional[str] = "school"  # school or madrasah
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 class ClassCreate(BaseModel):
     name: Optional[str] = "Unknown"
     standard: str
+    display_name: Optional[str] = None  # Bengali/custom display name
+    internal_standard: Optional[int] = None  # Numeric mapping (1-12)
     sections: List[str] = Field(default_factory=lambda: ['A'])
     description: Optional[str] = None
     class_teacher_id: Optional[str] = None
     max_students: int = 60
+    order_index: int = 0
+    institution_type: Optional[str] = "school"
 
 class ClassUpdate(BaseModel):
     name: Optional[str] = None
     standard: Optional[str] = None
+    display_name: Optional[str] = None  # Bengali/custom display name
+    internal_standard: Optional[int] = None  # Numeric mapping (1-12)
     sections: Optional[List[str]] = None
     description: Optional[str] = None
     class_teacher_id: Optional[str] = None
     max_students: Optional[int] = None
+    is_active: Optional[bool] = None  # Enable/disable class
+    order_index: Optional[int] = None  # Custom ordering
 
 class Section(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -7321,6 +7335,262 @@ async def delete_class(class_id: str, current_user: User = Depends(get_current_u
     
     logging.info(f"Class deleted: {existing_class.get('name', 'Unknown')} (ID: {class_id}) by {current_user.full_name}")
     return {"message": "Class deleted successfully", "class_id": class_id}
+
+
+# ==================== MADRASAH / INSTITUTION CLASS DEFAULTS ====================
+
+# Default class structures for different institution types
+SCHOOL_CLASS_DEFAULTS = [
+    {"standard": "Nursery", "display_name": "Nursery", "internal_standard": 0, "order_index": 0},
+    {"standard": "LKG", "display_name": "LKG", "internal_standard": 0, "order_index": 1},
+    {"standard": "UKG", "display_name": "UKG", "internal_standard": 0, "order_index": 2},
+    {"standard": "Class 1", "display_name": "Class 1", "internal_standard": 1, "order_index": 3},
+    {"standard": "Class 2", "display_name": "Class 2", "internal_standard": 2, "order_index": 4},
+    {"standard": "Class 3", "display_name": "Class 3", "internal_standard": 3, "order_index": 5},
+    {"standard": "Class 4", "display_name": "Class 4", "internal_standard": 4, "order_index": 6},
+    {"standard": "Class 5", "display_name": "Class 5", "internal_standard": 5, "order_index": 7},
+    {"standard": "Class 6", "display_name": "Class 6", "internal_standard": 6, "order_index": 8},
+    {"standard": "Class 7", "display_name": "Class 7", "internal_standard": 7, "order_index": 9},
+    {"standard": "Class 8", "display_name": "Class 8", "internal_standard": 8, "order_index": 10},
+    {"standard": "Class 9", "display_name": "Class 9", "internal_standard": 9, "order_index": 11},
+    {"standard": "Class 10", "display_name": "Class 10", "internal_standard": 10, "order_index": 12},
+    {"standard": "Class 11", "display_name": "Class 11 (HSC 1st Year)", "internal_standard": 11, "order_index": 13},
+    {"standard": "Class 12", "display_name": "Class 12 (HSC 2nd Year)", "internal_standard": 12, "order_index": 14},
+]
+
+MADRASAH_CLASS_DEFAULTS = [
+    # Ebtedayee (Primary) - equivalent to Class 1-5
+    {"standard": "Class 1", "display_name": "ইবতেদায়ী ১ম বর্ষ", "internal_standard": 1, "order_index": 0, "category": "Ebtedayee"},
+    {"standard": "Class 2", "display_name": "ইবতেদায়ী ২য় বর্ষ", "internal_standard": 2, "order_index": 1, "category": "Ebtedayee"},
+    {"standard": "Class 3", "display_name": "ইবতেদায়ী ৩য় বর্ষ", "internal_standard": 3, "order_index": 2, "category": "Ebtedayee"},
+    {"standard": "Class 4", "display_name": "ইবতেদায়ী ৪র্থ বর্ষ", "internal_standard": 4, "order_index": 3, "category": "Ebtedayee"},
+    {"standard": "Class 5", "display_name": "ইবতেদায়ী ৫ম বর্ষ", "internal_standard": 5, "order_index": 4, "category": "Ebtedayee"},
+    # Dakhil (Secondary) - equivalent to Class 6-10
+    {"standard": "Class 6", "display_name": "দাখিল ৬ষ্ঠ শ্রেণি", "internal_standard": 6, "order_index": 5, "category": "Dakhil"},
+    {"standard": "Class 7", "display_name": "দাখিল ৭ম শ্রেণি", "internal_standard": 7, "order_index": 6, "category": "Dakhil"},
+    {"standard": "Class 8", "display_name": "দাখিল ৮ম শ্রেণি", "internal_standard": 8, "order_index": 7, "category": "Dakhil"},
+    {"standard": "Class 9", "display_name": "দাখিল ৯ম শ্রেণি", "internal_standard": 9, "order_index": 8, "category": "Dakhil"},
+    {"standard": "Class 10", "display_name": "দাখিল ১০ম শ্রেণি", "internal_standard": 10, "order_index": 9, "category": "Dakhil"},
+    # Alim (Higher Secondary) - equivalent to Class 11-12
+    {"standard": "Class 11", "display_name": "আলিম ১ম বর্ষ", "internal_standard": 11, "order_index": 10, "category": "Alim"},
+    {"standard": "Class 12", "display_name": "আলিম ২য় বর্ষ", "internal_standard": 12, "order_index": 11, "category": "Alim"},
+]
+
+# Additional Madrasah custom classes (optional)
+MADRASAH_SPECIAL_CLASSES = [
+    {"standard": "Nazera", "display_name": "নাজেরা", "internal_standard": 0, "order_index": 100, "category": "Special"},
+    {"standard": "Hifz", "display_name": "হিফজ", "internal_standard": 0, "order_index": 101, "category": "Special"},
+    {"standard": "Kitab", "display_name": "কিতাব", "internal_standard": 0, "order_index": 102, "category": "Special"},
+]
+
+
+@api_router.get("/classes/defaults/{institution_type}")
+async def get_class_defaults(institution_type: str, current_user: User = Depends(get_current_user)):
+    """
+    Get default class structure for an institution type (school or madrasah)
+    """
+    if institution_type == "madrasah":
+        return {
+            "institution_type": "madrasah",
+            "classes": MADRASAH_CLASS_DEFAULTS,
+            "special_classes": MADRASAH_SPECIAL_CLASSES,
+            "categories": ["Ebtedayee", "Dakhil", "Alim", "Special"]
+        }
+    else:
+        return {
+            "institution_type": "school",
+            "classes": SCHOOL_CLASS_DEFAULTS,
+            "special_classes": [],
+            "categories": ["Primary", "Secondary", "Higher Secondary"]
+        }
+
+
+@api_router.post("/classes/initialize-defaults")
+async def initialize_class_defaults(
+    request: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Initialize default classes for an institution based on type
+    """
+    if current_user.role not in ["super_admin", "admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    institution_type = request.get("institution_type", "school")
+    include_special = request.get("include_special_classes", False)
+    
+    # Get defaults based on institution type
+    if institution_type == "madrasah":
+        defaults = MADRASAH_CLASS_DEFAULTS.copy()
+        if include_special:
+            defaults.extend(MADRASAH_SPECIAL_CLASSES)
+    else:
+        defaults = SCHOOL_CLASS_DEFAULTS.copy()
+    
+    created_classes = []
+    for class_def in defaults:
+        # Check if class already exists
+        existing = await db.classes.find_one({
+            "tenant_id": current_user.tenant_id,
+            "standard": class_def["standard"]
+        })
+        
+        if not existing:
+            new_class = {
+                "id": str(uuid.uuid4()),
+                "tenant_id": current_user.tenant_id,
+                "school_id": current_user.school_id,
+                "name": class_def["display_name"],
+                "standard": class_def["standard"],
+                "display_name": class_def["display_name"],
+                "internal_standard": class_def["internal_standard"],
+                "order_index": class_def["order_index"],
+                "institution_type": institution_type,
+                "sections": ["A"],
+                "max_students": 60,
+                "is_active": True,
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }
+            await db.classes.insert_one(new_class)
+            created_classes.append(new_class)
+    
+    return {
+        "message": f"Initialized {len(created_classes)} classes for {institution_type}",
+        "created_count": len(created_classes),
+        "institution_type": institution_type
+    }
+
+
+@api_router.get("/classes/{class_id}/usage-check")
+async def check_class_usage(class_id: str, current_user: User = Depends(get_current_user)):
+    """
+    Check if a class has any associated data (students, exams, results)
+    before allowing deletion
+    """
+    if current_user.role not in ["super_admin", "admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Check for existing data
+    student_count = await db.students.count_documents({
+        "tenant_id": current_user.tenant_id,
+        "class_id": class_id
+    })
+    
+    exam_count = await db.exams.count_documents({
+        "tenant_id": current_user.tenant_id,
+        "class_id": class_id
+    }) if await db.list_collection_names() and "exams" in await db.list_collection_names() else 0
+    
+    result_count = await db.results.count_documents({
+        "tenant_id": current_user.tenant_id,
+        "class_id": class_id
+    }) if "results" in await db.list_collection_names() else 0
+    
+    attendance_count = await db.attendance.count_documents({
+        "tenant_id": current_user.tenant_id,
+        "class_id": class_id
+    }) if "attendance" in await db.list_collection_names() else 0
+    
+    has_data = student_count > 0 or exam_count > 0 or result_count > 0 or attendance_count > 0
+    
+    return {
+        "class_id": class_id,
+        "has_data": has_data,
+        "can_delete": not has_data,
+        "usage": {
+            "students": student_count,
+            "exams": exam_count,
+            "results": result_count,
+            "attendance": attendance_count
+        },
+        "message": "Class has associated data and cannot be deleted. Consider disabling instead." if has_data else "Class can be safely deleted."
+    }
+
+
+@api_router.put("/classes/{class_id}/toggle-status")
+async def toggle_class_status(class_id: str, current_user: User = Depends(get_current_user)):
+    """
+    Enable or disable a class (soft toggle)
+    """
+    if current_user.role not in ["super_admin", "admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    existing = await db.classes.find_one({
+        "id": class_id,
+        "tenant_id": current_user.tenant_id
+    })
+    
+    if not existing:
+        raise HTTPException(status_code=404, detail="Class not found")
+    
+    new_status = not existing.get("is_active", True)
+    
+    await db.classes.update_one(
+        {"id": class_id, "tenant_id": current_user.tenant_id},
+        {"$set": {"is_active": new_status, "updated_at": datetime.utcnow()}}
+    )
+    
+    return {
+        "class_id": class_id,
+        "is_active": new_status,
+        "message": f"Class {'enabled' if new_status else 'disabled'} successfully"
+    }
+
+
+@api_router.put("/classes/reorder")
+async def reorder_classes(
+    request: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Reorder classes by updating their order_index values
+    """
+    if current_user.role not in ["super_admin", "admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    class_orders = request.get("class_orders", [])  # [{id: "xxx", order_index: 0}, ...]
+    
+    for item in class_orders:
+        await db.classes.update_one(
+            {"id": item["id"], "tenant_id": current_user.tenant_id},
+            {"$set": {"order_index": item["order_index"], "updated_at": datetime.utcnow()}}
+        )
+    
+    return {"message": f"Reordered {len(class_orders)} classes successfully"}
+
+
+@api_router.delete("/classes/{class_id}/permanent")
+async def permanent_delete_class(class_id: str, current_user: User = Depends(get_current_user)):
+    """
+    Permanently delete a class (only if no associated data exists)
+    """
+    if current_user.role not in ["super_admin", "admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # First check if class has any data
+    student_count = await db.students.count_documents({
+        "tenant_id": current_user.tenant_id,
+        "class_id": class_id
+    })
+    
+    if student_count > 0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot delete class: {student_count} students are assigned to this class. Disable the class instead."
+        )
+    
+    # Delete the class permanently
+    result = await db.classes.delete_one({
+        "id": class_id,
+        "tenant_id": current_user.tenant_id
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Class not found")
+    
+    return {"message": "Class permanently deleted", "class_id": class_id}
+
 
 # ==================== TIMETABLE MANAGEMENT ====================
 
