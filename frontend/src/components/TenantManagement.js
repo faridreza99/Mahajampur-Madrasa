@@ -88,6 +88,10 @@ const TenantManagement = () => {
   const [tenantUsers, setTenantUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [tenantToDelete, setTenantToDelete] = useState(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
   const [newTenantForm, setNewTenantForm] = useState({
     name: '',
     domain: '',
@@ -177,6 +181,34 @@ const TenantManagement = () => {
       fetchTenants();
     } catch (error) {
       toast.error('Failed to update modules');
+    }
+  };
+
+  const handleOpenDeleteDialog = (tenant) => {
+    setTenantToDelete(tenant);
+    setDeleteConfirmText('');
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteTenant = async () => {
+    if (!tenantToDelete || deleteConfirmText !== tenantToDelete.name) {
+      toast.error('Please type the school name correctly to confirm deletion');
+      return;
+    }
+    
+    try {
+      setDeleting(true);
+      await axios.delete(`/api/tenants/${tenantToDelete.id}`);
+      toast.success(`School "${tenantToDelete.name}" and all its data deleted successfully`);
+      setIsDeleteDialogOpen(false);
+      setTenantToDelete(null);
+      setDeleteConfirmText('');
+      fetchTenants();
+    } catch (error) {
+      console.error('Error deleting tenant:', error);
+      toast.error(error.response?.data?.detail || 'Failed to delete school');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -412,6 +444,17 @@ const TenantManagement = () => {
                     Users
                   </Button>
                 </div>
+                <div className="flex items-center justify-between pt-2 border-t mt-2">
+                  <span className="text-sm text-red-500">Delete this school</span>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleOpenDeleteDialog(tenant)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -608,6 +651,76 @@ const TenantManagement = () => {
             <Button variant="outline" onClick={() => setIsAddUserDialogOpen(false)}>Cancel</Button>
             <Button className="bg-emerald-500 hover:bg-emerald-600" onClick={handleAddUser}>
               Create User
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-red-600 flex items-center gap-2">
+              <Trash2 className="h-5 w-5" />
+              Delete School
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-sm text-red-800 font-medium">Warning: This action cannot be undone!</p>
+              <p className="text-sm text-red-700 mt-2">
+                Deleting this school will permanently remove:
+              </p>
+              <ul className="text-sm text-red-700 mt-2 list-disc list-inside space-y-1">
+                <li>All students and their records</li>
+                <li>All staff members</li>
+                <li>All attendance records</li>
+                <li>All fee payments and financial data</li>
+                <li>All certificates and results</li>
+                <li>All users associated with this school</li>
+                <li>All other data for this school</li>
+              </ul>
+            </div>
+            
+            <div className="space-y-2">
+              <Label className="text-gray-700">
+                To confirm, type the school name: <span className="font-bold">{tenantToDelete?.name}</span>
+              </Label>
+              <Input
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="Type school name to confirm"
+                className="border-red-300 focus:border-red-500"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsDeleteDialogOpen(false);
+                setTenantToDelete(null);
+                setDeleteConfirmText('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={handleDeleteTenant}
+              disabled={deleting || deleteConfirmText !== tenantToDelete?.name}
+            >
+              {deleting ? (
+                <>
+                  <span className="animate-spin mr-2">⏳</span>
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete School
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

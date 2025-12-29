@@ -2297,6 +2297,58 @@ async def update_tenant_modules(
     
     return {"message": "Tenant modules updated successfully", "allowed_modules": module_data.allowed_modules}
 
+
+@api_router.delete("/tenants/{tenant_id}")
+async def delete_tenant(tenant_id: str, current_user: User = Depends(get_current_user)):
+    """Delete a tenant and all associated data - super_admin only"""
+    if current_user.role != "super_admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Verify tenant exists
+    tenant = await db.tenants.find_one({"id": tenant_id})
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    
+    # Get associated school
+    school = await db.schools.find_one({"tenant_id": tenant_id})
+    school_id = school.get("id") if school else None
+    
+    # Delete all associated data
+    collections_to_clean = [
+        "users", "students", "staff", "classes", "sections", "subjects",
+        "attendance", "staff_attendance", "fees", "fee_payments",
+        "certificates", "results", "exam_terms", "timetables", "calendar_events",
+        "notifications", "academic_content", "questions", "ai_usage_logs",
+        "biometric_devices", "vehicles", "routes", "rating_surveys", "survey_responses"
+    ]
+    
+    deleted_counts = {}
+    for collection_name in collections_to_clean:
+        try:
+            collection = db[collection_name]
+            result = await collection.delete_many({
+                "$or": [
+                    {"tenant_id": tenant_id},
+                    {"school_id": school_id} if school_id else {"tenant_id": tenant_id}
+                ]
+            })
+            deleted_counts[collection_name] = result.deleted_count
+        except Exception as e:
+            logging.warning(f"Error cleaning collection {collection_name}: {e}")
+    
+    # Delete the school
+    if school_id:
+        await db.schools.delete_one({"id": school_id})
+    
+    # Delete the tenant
+    await db.tenants.delete_one({"id": tenant_id})
+    
+    logging.info(f"Tenant {tenant_id} deleted by super_admin {current_user.username}. Deleted counts: {deleted_counts}")
+    
+    return {
+        "message": f"Tenant deleted successfully",
+        "deleted_counts": deleted_counts
+    }
 @api_router.get("/tenants/{tenant_id}/users")
 async def get_tenant_users(tenant_id: str, current_user: User = Depends(get_current_user)):
     """Get all users for a specific tenant - super_admin only"""
