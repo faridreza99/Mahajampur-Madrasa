@@ -26093,6 +26093,10 @@ else:
         "http://localhost:5000",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5000",
+        # Replit frontend
+        "https://fdfd5d5a-063f-4062-8935-758612b55565-00-2lwoa0f8du864.worf.replit.dev",
+        # Production domains
+        "https://portal.mahajampurdarbarsharif.org",
     ]
 
 # Add Replit domains dynamically
