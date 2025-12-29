@@ -12,8 +12,18 @@ import {
   BookOpen,
   TrendingUp,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  Download,
+  Receipt
 } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from './ui/table';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
@@ -24,15 +34,24 @@ const StudentDashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState(null);
+  const [paymentHistory, setPaymentHistory] = useState([]);
+  const [paymentSummary, setPaymentSummary] = useState(null);
 
   const fetchDashboard = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get(`${API}/student/dashboard`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setDashboardData(response.data);
+      const [dashRes, paymentsRes] = await Promise.all([
+        axios.get(`${API}/student/dashboard`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get(`${API}/student/payments`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).catch(() => ({ data: { payments: [], summary: null } }))
+      ]);
+      setDashboardData(dashRes.data);
+      setPaymentHistory(paymentsRes.data.payments || []);
+      setPaymentSummary(paymentsRes.data.summary || null);
     } catch (error) {
       console.error('Failed to fetch dashboard:', error);
       toast.error('Failed to load dashboard data');
@@ -40,6 +59,31 @@ const StudentDashboard = () => {
       setLoading(false);
     }
   }, []);
+
+  const downloadReceipt = async (receiptNo) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API}/fees/receipt/${receiptNo}/pdf`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob'
+      });
+      
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Receipt-${receiptNo}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Receipt downloaded successfully');
+    } catch (error) {
+      console.error('Failed to download receipt:', error);
+      toast.error('Failed to download receipt');
+    }
+  };
 
   useEffect(() => {
     fetchDashboard();
@@ -275,6 +319,91 @@ const StudentDashboard = () => {
               <p className="text-sm text-gray-600 dark:text-gray-400">Admission No</p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Receipt className="h-5 w-5 text-emerald-600" />
+            Payment History
+          </CardTitle>
+          {paymentSummary && (
+            <div className="flex gap-4 text-sm">
+              <span className="text-green-600 font-medium">
+                Total Paid: ৳{paymentSummary.total_paid?.toLocaleString() || 0}
+              </span>
+              {paymentSummary.total_due > 0 && (
+                <span className="text-red-600 font-medium">
+                  Due: ৳{paymentSummary.total_due?.toLocaleString() || 0}
+                </span>
+              )}
+            </div>
+          )}
+        </CardHeader>
+        <CardContent>
+          {paymentHistory.length > 0 ? (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Receipt No</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Fee Type</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Payment Mode</TableHead>
+                    <TableHead>Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paymentHistory.slice(0, 10).map((payment) => (
+                    <TableRow key={payment.id || payment.receipt_no}>
+                      <TableCell className="font-medium">
+                        <Badge variant="outline">{payment.receipt_no}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {payment.payment_date ? new Date(payment.payment_date).toLocaleDateString() : 'N/A'}
+                      </TableCell>
+                      <TableCell>{payment.fee_type}</TableCell>
+                      <TableCell className="font-semibold text-green-600">
+                        ৳{payment.amount?.toLocaleString() || 0}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">{payment.payment_mode}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => downloadReceipt(payment.receipt_no)}
+                          className="text-emerald-600 hover:text-emerald-700"
+                        >
+                          <Download className="h-4 w-4 mr-1" />
+                          PDF
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {paymentHistory.length > 10 && (
+                <div className="text-center mt-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => navigate('/student/fees')}
+                  >
+                    View All Payments ({paymentHistory.length})
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <Receipt className="h-12 w-12 mx-auto mb-2 opacity-50" />
+              <p>No payment history found</p>
+              <p className="text-sm">Your payment records will appear here once payments are made</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -490,8 +490,19 @@ const Fees = () => {
   };
 
   const calculateBulkPaymentSummary = () => {
-    const totalAmount = selectedStudents.length * 15000; // Mock amount per student
-    const lateFees = selectedStudents.length * 600; // Mock late fee
+    // Calculate actual amounts from selected students' pending fees
+    let totalAmount = 0;
+    let lateFees = 0;
+    
+    selectedStudents.forEach(student => {
+      // Get student's actual pending amount from fee data
+      const studentFee = dueFees.find(f => f.student_id === student.id);
+      const pendingAmount = studentFee?.pending_amount || studentFee?.total_due || 0;
+      const overdueAmount = studentFee?.overdue_amount || 0;
+      totalAmount += pendingAmount;
+      lateFees += overdueAmount;
+    });
+    
     return {
       studentsCount: selectedStudents.length,
       totalAmount,
@@ -845,7 +856,7 @@ const Fees = () => {
     // Get proper student properties with fallbacks
     const studentName = student.name || 'Unknown Student';
     const admissionNo = student.admission_no || student.admission || 'N/A';
-    const pendingAmount = student.pending_amount || student.amount || 15000; // Fallback amount
+    const pendingAmount = student.pending_amount || student.amount || student.total_due || 0; // Use actual amount or 0
     
     toast.info(`💰 Collecting Payment`, {
       description: `Opening payment collection for ${studentName} (${admissionNo}) - ${formatCurrency(pendingAmount)}`,
@@ -1104,14 +1115,12 @@ const Fees = () => {
         phone: student.phone
       },
       summary: studentFeesSummary || {
-        totalFees: 50000,
-        paidAmount: 35000,
-        pendingFees: 15000,
+        totalFees: 0,
+        paidAmount: 0,
+        pendingFees: 0,
         overdueFees: 0
       },
       payments: studentPayments.length > 0 ? studentPayments : [
-        { receiptNo: 'RCP001', date: '2024-09-01', feeType: 'Tuition Fee', amount: 15000, paymentMode: 'Cash', status: 'Paid' },
-        { receiptNo: 'RCP002', date: '2024-09-15', feeType: 'Transport Fee', amount: 5000, paymentMode: 'UPI', status: 'Pending' }
       ],
       generatedAt: new Date().toLocaleString()
     };
@@ -2025,15 +2034,15 @@ const Fees = () => {
             </div>
           </div>
 
-          {/* Summary Cards */}
+          {/* Summary Cards - Dynamic Data from Backend */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Pending Fees</p>
-                    <p className="text-2xl font-bold text-orange-600">{getCurrencySymbol()}7.2L</p>
-                    <p className="text-xs text-orange-500">45 students</p>
+                    <p className="text-2xl font-bold text-orange-600">{formatCurrency(pending)}</p>
+                    <p className="text-xs text-orange-500">{dueFees.filter(f => f.status === 'pending').length} students</p>
                   </div>
                   <Clock className="h-8 w-8 text-orange-500" />
                 </div>
@@ -2044,8 +2053,8 @@ const Fees = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Overdue Fees</p>
-                    <p className="text-2xl font-bold text-red-600">{getCurrencySymbol()}2.8L</p>
-                    <p className="text-xs text-red-500">18 students</p>
+                    <p className="text-2xl font-bold text-red-600">{formatCurrency(overdue)}</p>
+                    <p className="text-xs text-red-500">{dueFees.filter(f => f.status === 'overdue').length} students</p>
                   </div>
                   <AlertTriangle className="h-8 w-8 text-red-500" />
                 </div>
@@ -2055,9 +2064,9 @@ const Fees = () => {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Due This Week</p>
-                    <p className="text-2xl font-bold text-yellow-600">{getCurrencySymbol()}1.5L</p>
-                    <p className="text-xs text-yellow-500">12 students</p>
+                    <p className="text-sm font-medium text-gray-600">Total Due Students</p>
+                    <p className="text-2xl font-bold text-yellow-600">{dueFees.length}</p>
+                    <p className="text-xs text-yellow-500">Total: {formatCurrency(pending + overdue)}</p>
                   </div>
                   <Calendar className="h-8 w-8 text-yellow-500" />
                 </div>
