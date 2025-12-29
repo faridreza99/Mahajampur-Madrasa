@@ -15,17 +15,18 @@ import {
   CheckCircle,
   AlertCircle,
   Calendar,
-  IndianRupee,
   Receipt,
   TrendingUp
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useCurrency } from '../context/CurrencyContext';
 
 const API = process.env.REACT_APP_API_URL || 'https://portal.mahajampurdarbarsharif.org/api';
 
 const StudentFees = () => {
   const [loading, setLoading] = useState(true);
   const [feeData, setFeeData] = useState(null);
+  const { formatCurrency, getCurrencySymbol } = useCurrency();
 
   const fetchFees = useCallback(async () => {
     try {
@@ -89,8 +90,7 @@ const StudentFees = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Fees</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
-                  <IndianRupee className="h-5 w-5" />
-                  {ledger.total_fees?.toLocaleString() || 0}
+                  {formatCurrency(ledger.total_fees || 0)}
                 </p>
               </div>
               <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-full">
@@ -106,8 +106,7 @@ const StudentFees = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Amount Paid</p>
                 <p className="text-2xl font-bold text-green-600 flex items-center">
-                  <IndianRupee className="h-5 w-5" />
-                  {ledger.paid_amount?.toLocaleString() || 0}
+                  {formatCurrency(ledger.paid_amount || 0)}
                 </p>
               </div>
               <div className="p-3 bg-green-100 dark:bg-green-900 rounded-full">
@@ -123,8 +122,7 @@ const StudentFees = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Balance Due</p>
                 <p className={`text-2xl font-bold flex items-center ${hasDues ? 'text-red-600' : 'text-green-600'}`}>
-                  <IndianRupee className="h-5 w-5" />
-                  {ledger.balance?.toLocaleString() || 0}
+                  {formatCurrency(ledger.balance || 0)}
                 </p>
               </div>
               <div className={`p-3 rounded-full ${hasDues ? 'bg-red-100 dark:bg-red-900' : 'bg-green-100 dark:bg-green-900'}`}>
@@ -187,10 +185,7 @@ const StudentFees = () => {
                       <TableCell className="font-semibold">{fee.fee_type || fee.name || 'Fee'}</TableCell>
                       <TableCell className="text-gray-600 dark:text-gray-400">{fee.description || '-'}</TableCell>
                       <TableCell className="font-semibold">
-                        <span className="flex items-center">
-                          <IndianRupee className="h-3 w-3" />
-                          {fee.amount?.toLocaleString() || 0}
-                        </span>
+                        {formatCurrency(fee.amount || 0)}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">{fee.frequency || 'Annual'}</Badge>
@@ -234,10 +229,7 @@ const StudentFees = () => {
                       <TableCell>{payment.receipt_no || '-'}</TableCell>
                       <TableCell>{payment.fee_type || 'Tuition Fee'}</TableCell>
                       <TableCell className="font-semibold">
-                        <span className="flex items-center">
-                          <IndianRupee className="h-3 w-3" />
-                          {payment.amount?.toLocaleString() || 0}
-                        </span>
+                        {formatCurrency(payment.amount || 0)}
                       </TableCell>
                       <TableCell>
                         <span className="flex items-center gap-1">
@@ -276,7 +268,7 @@ const StudentFees = () => {
               <div>
                 <h3 className="font-semibold text-red-800 dark:text-red-400">Payment Due</h3>
                 <p className="text-sm text-red-700 dark:text-red-300">
-                  You have an outstanding balance of ₹{ledger.balance?.toLocaleString()}. 
+                  You have an outstanding balance of {formatCurrency(ledger.balance)}. 
                   Please contact the school office for payment options.
                 </p>
               </div>
