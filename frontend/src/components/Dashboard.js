@@ -233,8 +233,100 @@ const Dashboard = () => {
     return tableRows.slice(0, 20);
   };
 
-  const handleExport = (format) => {
-    toast.info(`Exporting report as ${format}... (Feature coming soon)`);
+  const handleExport = async (format) => {
+    const stats = getSummaryStats();
+    const tableData = getTableData();
+    const classWiseData = getClassWiseData();
+    const subjectWiseData = getSubjectWiseData();
+    
+    if (format === "PDF") {
+      try {
+        toast.loading("Generating PDF report...", { id: "pdf-export" });
+        const token = localStorage.getItem("token");
+        const response = await axios.post(`${API}/gini/export/pdf`, {
+          period: timePeriod === 7 ? "7_days" : "30_days",
+          stats: stats,
+          tableData: tableData,
+          classWiseData: classWiseData,
+          subjectWiseData: subjectWiseData,
+          selectedClass: selectedClass,
+          selectedSubject: selectedSubject,
+          activeModule: activeModule
+        }, {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: 'blob'
+        });
+        
+        const blob = new Blob([response.data], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `GiNi_Analytics_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        toast.success("PDF report downloaded successfully!", { id: "pdf-export" });
+      } catch (error) {
+        console.error("PDF export error:", error);
+        toast.error("Failed to generate PDF report", { id: "pdf-export" });
+      }
+    } else if (format === "Excel") {
+      try {
+        toast.loading("Generating Excel report...", { id: "excel-export" });
+        const token = localStorage.getItem("token");
+        const response = await axios.post(`${API}/gini/export/excel`, {
+          period: timePeriod === 7 ? "7_days" : "30_days",
+          stats: stats,
+          tableData: tableData,
+          classWiseData: classWiseData,
+          subjectWiseData: subjectWiseData,
+          selectedClass: selectedClass,
+          selectedSubject: selectedSubject,
+          activeModule: activeModule
+        }, {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: 'blob'
+        });
+        
+        const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `GiNi_Analytics_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        toast.success("Excel report downloaded successfully!", { id: "excel-export" });
+      } catch (error) {
+        console.error("Excel export error:", error);
+        toast.error("Failed to generate Excel report", { id: "excel-export" });
+      }
+    } else if (format === "Share") {
+      try {
+        const shareData = {
+          title: 'GiNi School AI Analytics Report',
+          text: `AI Usage Report (${timePeriod} days)\n\nTotal Students: ${stats.totalStudents}\nTotal Interactions: ${stats.totalInteractions}\nActive Classes: ${stats.activeClasses}\nWeekly Growth: +${stats.weeklyGrowth}%`,
+          url: window.location.href
+        };
+        
+        if (navigator.share) {
+          await navigator.share(shareData);
+          toast.success("Report shared successfully!");
+        } else {
+          await navigator.clipboard.writeText(
+            `${shareData.title}\n${shareData.text}\n\nView: ${shareData.url}`
+          );
+          toast.success("Report summary copied to clipboard!");
+        }
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          console.error("Share error:", error);
+          toast.error("Failed to share report");
+        }
+      }
+    }
   };
 
   const stats = getSummaryStats();

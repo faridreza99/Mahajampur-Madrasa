@@ -22544,6 +22544,299 @@ async def get_gini_usage_analytics(
         logger.error(f"GiNi analytics error: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch GiNi usage analytics")
 
+
+@api_router.post("/gini/export/pdf")
+async def export_gini_analytics_pdf(
+    request: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Export GiNi analytics as PDF with school branding
+    """
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib import colors
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import inch
+        import io
+        
+        # Get school branding
+        branding = await get_school_branding_for_reports(current_user.tenant_id, current_user.school_id)
+        
+        # Extract data from request
+        stats = request.get("stats", {})
+        table_data = request.get("tableData", [])
+        class_wise_data = request.get("classWiseData", [])
+        subject_wise_data = request.get("subjectWiseData", [])
+        period = request.get("period", "7_days")
+        
+        # Create PDF buffer
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=0.5*inch, bottomMargin=0.5*inch)
+        
+        # Styles
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=18, textColor=colors.HexColor(branding.get("primary_color", "#2c5282")), alignment=1)
+        subtitle_style = ParagraphStyle('Subtitle', parent=styles['Normal'], fontSize=10, textColor=colors.gray, alignment=1)
+        section_style = ParagraphStyle('Section', parent=styles['Heading2'], fontSize=14, textColor=colors.HexColor(branding.get("primary_color", "#2c5282")))
+        
+        elements = []
+        
+        # Header with school branding
+        elements.append(Paragraph(branding.get("school_name", "School Name"), title_style))
+        elements.append(Paragraph(branding.get("address", ""), subtitle_style))
+        elements.append(Spacer(1, 0.2*inch))
+        elements.append(Paragraph("GiNi AI Analytics Report", section_style))
+        elements.append(Paragraph(f"Period: {period.replace('_', ' ').title()} | Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}", subtitle_style))
+        elements.append(Spacer(1, 0.3*inch))
+        
+        # Summary Statistics
+        elements.append(Paragraph("Summary Statistics", section_style))
+        summary_data = [
+            ["Metric", "Value"],
+            ["Total Students Using AI", str(stats.get("totalStudents", 0))],
+            ["Total AI Interactions", str(stats.get("totalInteractions", 0))],
+            ["Active Classes", str(stats.get("activeClasses", 0))],
+            ["Weekly Growth", f"+{stats.get('weeklyGrowth', 0)}%"]
+        ]
+        summary_table = Table(summary_data, colWidths=[3*inch, 2*inch])
+        summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor(branding.get("primary_color", "#2c5282"))),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),
+            ('GRID', (0, 0), (-1, -1), 1, colors.gray)
+        ]))
+        elements.append(summary_table)
+        elements.append(Spacer(1, 0.3*inch))
+        
+        # Class-wise Usage
+        if class_wise_data:
+            elements.append(Paragraph("Class-wise AI Usage", section_style))
+            class_table_data = [["Class", "Interactions"]]
+            for item in class_wise_data[:10]:
+                class_table_data.append([item.get("name", ""), str(item.get("value", 0))])
+            class_table = Table(class_table_data, colWidths=[3*inch, 2*inch])
+            class_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor(branding.get("secondary_color", "#4299e1"))),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('GRID', (0, 0), (-1, -1), 1, colors.gray)
+            ]))
+            elements.append(class_table)
+            elements.append(Spacer(1, 0.3*inch))
+        
+        # Subject-wise Usage
+        if subject_wise_data:
+            elements.append(Paragraph("Subject-wise AI Usage", section_style))
+            subject_table_data = [["Subject", "Interactions"]]
+            for item in subject_wise_data[:10]:
+                subject_table_data.append([item.get("name", ""), str(item.get("value", 0))])
+            subject_table = Table(subject_table_data, colWidths=[3*inch, 2*inch])
+            subject_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor(branding.get("secondary_color", "#4299e1"))),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('GRID', (0, 0), (-1, -1), 1, colors.gray)
+            ]))
+            elements.append(subject_table)
+            elements.append(Spacer(1, 0.3*inch))
+        
+        # Detailed Analytics Table
+        if table_data:
+            elements.append(Paragraph("Detailed Analytics", section_style))
+            detail_table_data = [["Class", "Subject", "Interactions", "Active Students"]]
+            for row in table_data[:20]:
+                detail_table_data.append([
+                    str(row.get("class", "")),
+                    str(row.get("subject", "")),
+                    str(row.get("totalInteractions", 0)),
+                    str(row.get("activeStudents", 0))
+                ])
+            detail_table = Table(detail_table_data, colWidths=[1.5*inch, 2*inch, 1.5*inch, 1.5*inch])
+            detail_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor(branding.get("primary_color", "#2c5282"))),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                ('GRID', (0, 0), (-1, -1), 1, colors.gray)
+            ]))
+            elements.append(detail_table)
+        
+        # Footer
+        elements.append(Spacer(1, 0.5*inch))
+        footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8, textColor=colors.gray, alignment=1)
+        elements.append(Paragraph(f"Generated by GiNi School ERP | {branding.get('phone', '')} | {branding.get('email', '')}", footer_style))
+        
+        doc.build(elements)
+        buffer.seek(0)
+        
+        return StreamingResponse(
+            buffer,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename=GiNi_Analytics_Report_{datetime.now().strftime('%Y%m%d')}.pdf"}
+        )
+        
+    except Exception as e:
+        logger.error(f"GiNi PDF export error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate PDF report")
+
+
+@api_router.post("/gini/export/excel")
+async def export_gini_analytics_excel(
+    request: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Export GiNi analytics as Excel with school branding
+    """
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, Fill, PatternFill, Alignment, Border, Side
+        from openpyxl.utils import get_column_letter
+        import io
+        
+        # Get school branding
+        branding = await get_school_branding_for_reports(current_user.tenant_id, current_user.school_id)
+        
+        # Extract data from request
+        stats = request.get("stats", {})
+        table_data = request.get("tableData", [])
+        class_wise_data = request.get("classWiseData", [])
+        subject_wise_data = request.get("subjectWiseData", [])
+        period = request.get("period", "7_days")
+        
+        # Create workbook
+        wb = Workbook()
+        
+        # Summary Sheet
+        ws_summary = wb.active
+        ws_summary.title = "Summary"
+        
+        # Header styling
+        header_fill = PatternFill(start_color="2c5282", end_color="2c5282", fill_type="solid")
+        header_font = Font(bold=True, color="FFFFFF")
+        thin_border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+        
+        # School header
+        ws_summary['A1'] = branding.get("school_name", "School Name")
+        ws_summary['A1'].font = Font(bold=True, size=16)
+        ws_summary.merge_cells('A1:D1')
+        
+        ws_summary['A2'] = f"GiNi AI Analytics Report - {period.replace('_', ' ').title()}"
+        ws_summary['A2'].font = Font(size=12)
+        ws_summary.merge_cells('A2:D2')
+        
+        ws_summary['A3'] = f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+        ws_summary['A3'].font = Font(size=10, italic=True)
+        ws_summary.merge_cells('A3:D3')
+        
+        # Summary statistics
+        ws_summary['A5'] = "Metric"
+        ws_summary['B5'] = "Value"
+        ws_summary['A5'].fill = header_fill
+        ws_summary['A5'].font = header_font
+        ws_summary['B5'].fill = header_fill
+        ws_summary['B5'].font = header_font
+        
+        summary_data = [
+            ("Total Students Using AI", stats.get("totalStudents", 0)),
+            ("Total AI Interactions", stats.get("totalInteractions", 0)),
+            ("Active Classes", stats.get("activeClasses", 0)),
+            ("Weekly Growth", f"+{stats.get('weeklyGrowth', 0)}%")
+        ]
+        
+        for i, (metric, value) in enumerate(summary_data, start=6):
+            ws_summary[f'A{i}'] = metric
+            ws_summary[f'B{i}'] = value
+            ws_summary[f'A{i}'].border = thin_border
+            ws_summary[f'B{i}'].border = thin_border
+        
+        # Adjust column widths
+        ws_summary.column_dimensions['A'].width = 30
+        ws_summary.column_dimensions['B'].width = 20
+        
+        # Class-wise Sheet
+        ws_class = wb.create_sheet("Class-wise Usage")
+        ws_class['A1'] = "Class"
+        ws_class['B1'] = "Interactions"
+        ws_class['A1'].fill = header_fill
+        ws_class['A1'].font = header_font
+        ws_class['B1'].fill = header_fill
+        ws_class['B1'].font = header_font
+        
+        for i, item in enumerate(class_wise_data, start=2):
+            ws_class[f'A{i}'] = item.get("name", "")
+            ws_class[f'B{i}'] = item.get("value", 0)
+        
+        ws_class.column_dimensions['A'].width = 25
+        ws_class.column_dimensions['B'].width = 15
+        
+        # Subject-wise Sheet
+        ws_subject = wb.create_sheet("Subject-wise Usage")
+        ws_subject['A1'] = "Subject"
+        ws_subject['B1'] = "Interactions"
+        ws_subject['A1'].fill = header_fill
+        ws_subject['A1'].font = header_font
+        ws_subject['B1'].fill = header_fill
+        ws_subject['B1'].font = header_font
+        
+        for i, item in enumerate(subject_wise_data, start=2):
+            ws_subject[f'A{i}'] = item.get("name", "")
+            ws_subject[f'B{i}'] = item.get("value", 0)
+        
+        ws_subject.column_dimensions['A'].width = 30
+        ws_subject.column_dimensions['B'].width = 15
+        
+        # Detailed Analytics Sheet
+        ws_detail = wb.create_sheet("Detailed Analytics")
+        headers = ["Class", "Subject", "Total Interactions", "Active Students"]
+        for col, header in enumerate(headers, start=1):
+            cell = ws_detail.cell(row=1, column=col, value=header)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.border = thin_border
+        
+        for row_num, row_data in enumerate(table_data, start=2):
+            ws_detail.cell(row=row_num, column=1, value=row_data.get("class", "")).border = thin_border
+            ws_detail.cell(row=row_num, column=2, value=row_data.get("subject", "")).border = thin_border
+            ws_detail.cell(row=row_num, column=3, value=row_data.get("totalInteractions", 0)).border = thin_border
+            ws_detail.cell(row=row_num, column=4, value=row_data.get("activeStudents", 0)).border = thin_border
+        
+        # Adjust column widths
+        ws_detail.column_dimensions['A'].width = 15
+        ws_detail.column_dimensions['B'].width = 25
+        ws_detail.column_dimensions['C'].width = 20
+        ws_detail.column_dimensions['D'].width = 18
+        
+        # Save to buffer
+        buffer = io.BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+        
+        return StreamingResponse(
+            buffer,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename=GiNi_Analytics_Report_{datetime.now().strftime('%Y%m%d')}.xlsx"}
+        )
+        
+    except Exception as e:
+        logger.error(f"GiNi Excel export error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate Excel report")
+
+
 # ============================================================================
 # END QUIZ TOOL & TEST GENERATOR MODULE
 # ============================================================================
