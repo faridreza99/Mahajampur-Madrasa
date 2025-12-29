@@ -1958,21 +1958,34 @@ async def create_user_by_admin(
     
     return {"message": "User created successfully", "user_id": user.id, "tenant_id": effective_tenant_id}
 
+
+
 @api_router.put("/admin/users/{user_id}")
 async def update_user(
     user_id: str,
     user_data: UserUpdate,
     request: Request,
+    target_tenant_id: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
     """Update user details (System Admin and Admin only)"""
     if current_user.role not in ["super_admin", "admin"]:
         raise HTTPException(status_code=403, detail="Only System Admins and Admins can update users")
     
+    # Determine which tenant to work with
+    # Super admin can specify a target tenant, others use their own tenant
+    if target_tenant_id and current_user.role == "super_admin":
+        target_tenant = await db.tenants.find_one({"id": target_tenant_id})
+        if not target_tenant:
+            raise HTTPException(status_code=404, detail="Target tenant not found")
+        effective_tenant_id = target_tenant_id
+    else:
+        effective_tenant_id = current_user.tenant_id
+    
     # Find the user
     existing_user = await db.users.find_one({
         "id": user_id,
-        "tenant_id": current_user.tenant_id
+        "tenant_id": effective_tenant_id
     })
     
     if not existing_user:
@@ -1988,13 +2001,13 @@ async def update_user(
     
     # Update user
     await db.users.update_one(
-        {"id": user_id, "tenant_id": current_user.tenant_id},
+        {"id": user_id, "tenant_id": effective_tenant_id},
         {"$set": update_data}
     )
     
     # Log admin action
     await log_admin_action(
-        tenant_id=current_user.tenant_id,
+        tenant_id=effective_tenant_id,
         admin_id=current_user.id,
         admin_name=current_user.full_name,
         action="user_updated",
@@ -2012,6 +2025,7 @@ async def change_user_status(
     user_id: str,
     status_data: Dict[str, bool],
     request: Request,
+    target_tenant_id: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
     """Suspend or activate a user (System Admin and Admin only)"""
@@ -2022,10 +2036,19 @@ async def change_user_status(
     if user_id == current_user.id:
         raise HTTPException(status_code=400, detail="You cannot change your own status")
     
+    # Determine which tenant to work with
+    if target_tenant_id and current_user.role == "super_admin":
+        target_tenant = await db.tenants.find_one({"id": target_tenant_id})
+        if not target_tenant:
+            raise HTTPException(status_code=404, detail="Target tenant not found")
+        effective_tenant_id = target_tenant_id
+    else:
+        effective_tenant_id = current_user.tenant_id
+    
     # Find the user
     existing_user = await db.users.find_one({
         "id": user_id,
-        "tenant_id": current_user.tenant_id
+        "tenant_id": effective_tenant_id
     })
     
     if not existing_user:
@@ -2037,14 +2060,14 @@ async def change_user_status(
     
     # Update user status
     await db.users.update_one(
-        {"id": user_id, "tenant_id": current_user.tenant_id},
+        {"id": user_id, "tenant_id": effective_tenant_id},
         {"$set": {"is_active": is_active, "updated_at": datetime.utcnow()}}
     )
     
     # Log admin action
     action = "user_activated" if is_active else "user_suspended"
     await log_admin_action(
-        tenant_id=current_user.tenant_id,
+        tenant_id=effective_tenant_id,
         admin_id=current_user.id,
         admin_name=current_user.full_name,
         action=action,
@@ -2116,16 +2139,26 @@ async def reset_user_password(
     user_id: str,
     password_data: Dict[str, str],
     request: Request,
+    target_tenant_id: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
     """Reset user password (System Admin and Admin only)"""
     if current_user.role not in ["super_admin", "admin"]:
         raise HTTPException(status_code=403, detail="Only System Admins and Admins can reset passwords")
     
+    # Determine which tenant to work with
+    if target_tenant_id and current_user.role == "super_admin":
+        target_tenant = await db.tenants.find_one({"id": target_tenant_id})
+        if not target_tenant:
+            raise HTTPException(status_code=404, detail="Target tenant not found")
+        effective_tenant_id = target_tenant_id
+    else:
+        effective_tenant_id = current_user.tenant_id
+    
     # Find the user
     existing_user = await db.users.find_one({
         "id": user_id,
-        "tenant_id": current_user.tenant_id
+        "tenant_id": effective_tenant_id
     })
     
     if not existing_user:
@@ -2140,13 +2173,13 @@ async def reset_user_password(
     
     # Update password
     await db.users.update_one(
-        {"id": user_id, "tenant_id": current_user.tenant_id},
+        {"id": user_id, "tenant_id": effective_tenant_id},
         {"$set": {"password_hash": hashed_password, "updated_at": datetime.utcnow()}}
     )
     
     # Log admin action
     await log_admin_action(
-        tenant_id=current_user.tenant_id,
+        tenant_id=effective_tenant_id,
         admin_id=current_user.id,
         admin_name=current_user.full_name,
         action="password_reset",
