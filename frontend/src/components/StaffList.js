@@ -56,6 +56,21 @@ const BACKEND_URL = process.env.REACT_APP_API_URL;
 const API = BACKEND_URL;
 const BASE_URL = API ? API.replace('/api', '') : '';
 
+const withTimeout = (promise, timeoutMs = 10000) => {
+  let timeoutId;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error('Request timeout')), timeoutMs);
+  });
+  
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
+};
+
+const safeBackgroundRefresh = (refreshFn) => {
+  Promise.resolve(refreshFn()).catch(err => console.error('Background refresh failed:', err));
+};
+
 // Staff List Component (shows all staff)
 const StaffListView = () => {
   const [staff, setStaff] = useState([]);
@@ -152,6 +167,12 @@ const StaffListView = () => {
     submittingRef.current = true;
     setIsSubmitting(true);
 
+    const unlockTimeout = setTimeout(() => {
+      submittingRef.current = false;
+      setIsSubmitting(false);
+      toast.warning('Operation is taking longer than expected. Please check the list.');
+    }, 15000);
+
     try {
       const token = localStorage.getItem('token');
       const submitData = {
@@ -162,19 +183,19 @@ const StaffListView = () => {
 
       let staffId;
       if (editingStaff) {
-        await axios.put(`${API}/staff/${editingStaff.id}`, submitData, {
+        await withTimeout(axios.put(`${API}/staff/${editingStaff.id}`, submitData, {
           headers: {
             Authorization: `Bearer ${token}`
           }
-        });
+        }), 10000);
         staffId = editingStaff.id;
         toast.success('Staff updated successfully');
       } else {
-        const response = await axios.post(`${API}/staff`, submitData, {
+        const response = await withTimeout(axios.post(`${API}/staff`, submitData, {
           headers: {
             Authorization: `Bearer ${token}`
           }
-        });
+        }), 10000);
         staffId = response.data.id;
         toast.success('Staff added successfully');
       }
@@ -183,27 +204,32 @@ const StaffListView = () => {
         const photoFormData = new FormData();
         photoFormData.append('file', photoFile);
         
-        try {
-          await axios.post(`${API}/staff/${staffId}/photo`, photoFormData, {
+        withTimeout(
+          axios.post(`${API}/staff/${staffId}/photo`, photoFormData, {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'multipart/form-data'
             }
-          });
-        } catch (photoError) {
+          }),
+          8000
+        ).catch(photoError => {
           console.error('Failed to upload photo:', photoError);
           toast.warning('Staff saved but photo upload failed');
-        }
+        });
       }
       
       setIsAddModalOpen(false);
       setEditingStaff(null);
       resetForm();
-      fetchStaff();
+      safeBackgroundRefresh(fetchStaff);
     } catch (error) {
       console.error('Failed to save staff:', error);
-      toast.error(error.response?.data?.detail || 'Failed to save staff');
+      const errorMessage = error.message === 'Request timeout' 
+        ? 'Request timed out. Please try again.'
+        : (error.response?.data?.detail || 'Failed to save staff');
+      toast.error(errorMessage);
     } finally {
+      clearTimeout(unlockTimeout);
       submittingRef.current = false;
       setIsSubmitting(false);
     }

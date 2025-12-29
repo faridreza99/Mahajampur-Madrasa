@@ -31,6 +31,10 @@ const Header = ({ onMenuClick }) => {
   const [attendanceSummary, setAttendanceSummary] = useState({ present: 0, absent: 0, late: 0 });
   const fetchingRef = useRef(false);
   const intervalRef = useRef(null);
+  const abortControllerRef = useRef(null);
+
+  const isMadrasahTenant = user?.tenant_id?.toLowerCase() === 'mham5678';
+  const pollingInterval = isMadrasahTenant ? 90000 : 60000;
 
   useEffect(() => {
     const handleLanguageChange = () => forceUpdate(n => n + 1);
@@ -46,20 +50,34 @@ const Header = ({ onMenuClick }) => {
     const token = localStorage.getItem('token');
     if (!token) return;
     
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    const signal = controller.signal;
+    
     fetchingRef.current = true;
+    let timeoutId;
     
     try {
-      const [notifRes, countRes, attendRes] = await Promise.all([
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error('Header fetch timeout')), 8000);
+      });
+      
+      const fetchPromise = Promise.all([
         axios.get(`${API_BASE_URL}/notifications?limit=5`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
+          signal
         }).catch(() => ({ data: [] })),
         axios.get(`${API_BASE_URL}/notifications/unread-count`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
+          signal
         }).catch(() => ({ data: { unread_count: 0 } })),
         axios.get(`${API_BASE_URL}/attendance/summary?type=student`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
+          signal
         }).catch(() => ({ data: { present: 0, absent: 0, late: 0 } }))
       ]);
+      
+      const [notifRes, countRes, attendRes] = await Promise.race([fetchPromise, timeoutPromise]);
       
       const notifData = notifRes.data;
       const notificationsArray = Array.isArray(notifData) ? notifData : (notifData.notifications || []);
@@ -71,8 +89,11 @@ const Header = ({ onMenuClick }) => {
         late: attendRes.data.late || 0
       });
     } catch (error) {
-      console.error('Error fetching header data:', error);
+      if (error.name !== 'AbortError' && error.message !== 'Header fetch timeout') {
+        console.error('Error fetching header data:', error);
+      }
     } finally {
+      if (timeoutId) clearTimeout(timeoutId);
       fetchingRef.current = false;
     }
   }, []);
@@ -89,14 +110,17 @@ const Header = ({ onMenuClick }) => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
-    intervalRef.current = setInterval(fetchHeaderData, 60000);
+    intervalRef.current = setInterval(fetchHeaderData, pollingInterval);
     
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
     };
-  }, []);
+  }, [pollingInterval]);
 
   const handleLogout = () => {
     logout();

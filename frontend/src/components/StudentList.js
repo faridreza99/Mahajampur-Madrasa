@@ -67,6 +67,21 @@ import { cn } from '../lib/utils';
 const API = process.env.REACT_APP_API_URL;
 const BASE_URL = API ? API.replace('/api', '') : '';
 
+const withTimeout = (promise, timeoutMs = 10000) => {
+  let timeoutId;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error('Request timeout')), timeoutMs);
+  });
+  
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
+};
+
+const safeBackgroundRefresh = (refreshFn) => {
+  Promise.resolve(refreshFn()).catch(err => console.error('Background refresh failed:', err));
+};
+
 const StudentList = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -323,17 +338,23 @@ const StudentList = () => {
     submittingRef.current = true;
     setIsSubmitting(true);
 
+    const unlockTimeout = setTimeout(() => {
+      submittingRef.current = false;
+      setIsSubmitting(false);
+      toast.warning('Operation is taking longer than expected. Please check the list.');
+    }, 15000);
+
     try {
       let studentId = null;
       let newCredentials = null;
       const wasEditing = !!editingStudent;
       
       if (editingStudent) {
-        await axios.put(`${API}/students/${editingStudent.id}`, formData);
+        await withTimeout(axios.put(`${API}/students/${editingStudent.id}`, formData), 10000);
         studentId = editingStudent.id;
         toast.success('Student updated successfully');
       } else {
-        const response = await axios.post(`${API}/students`, formData);
+        const response = await withTimeout(axios.post(`${API}/students`, formData), 10000);
         const responseData = response.data;
         studentId = responseData.id;
         
@@ -351,14 +372,15 @@ const StudentList = () => {
       if (photoFile && studentId) {
         const photoFormData = new FormData();
         photoFormData.append('file', photoFile);
-        try {
-          await axios.post(`${API}/students/${studentId}/photo`, photoFormData, {
+        withTimeout(
+          axios.post(`${API}/students/${studentId}/photo`, photoFormData, {
             headers: { 'Content-Type': 'multipart/form-data' }
-          });
-        } catch (photoError) {
+          }),
+          8000
+        ).catch(photoError => {
           console.error('Failed to upload photo:', photoError);
           toast.warning('Student saved but photo upload failed');
-        }
+        });
       }
       
       if (wasEditing) {
@@ -370,7 +392,7 @@ const StudentList = () => {
       setEditingStudent(null);
       resetForm();
       
-      fetchData();
+      safeBackgroundRefresh(fetchData);
       
       if (!wasEditing && newCredentials) {
         setTimeout(() => {
@@ -379,8 +401,12 @@ const StudentList = () => {
       }
     } catch (error) {
       console.error('Failed to save student:', error);
-      toast.error(error.response?.data?.detail || 'Failed to save student');
+      const errorMessage = error.message === 'Request timeout' 
+        ? 'Request timed out. Please try again.'
+        : (error.response?.data?.detail || 'Failed to save student');
+      toast.error(errorMessage);
     } finally {
+      clearTimeout(unlockTimeout);
       submittingRef.current = false;
       setIsSubmitting(false);
     }

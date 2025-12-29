@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -60,6 +60,21 @@ import 'sweetalert2/dist/sweetalert2.min.css';
 const BACKEND_URL = process.env.REACT_APP_API_URL;
 const API = BACKEND_URL;
 
+const withTimeout = (promise, timeoutMs = 10000) => {
+  let timeoutId;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error('Request timeout')), timeoutMs);
+  });
+  
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
+};
+
+const safeBackgroundRefresh = (refreshFn) => {
+  Promise.resolve(refreshFn()).catch(err => console.error('Background refresh failed:', err));
+};
+
 const ClassManagement = () => {
   const { t } = useTranslation();
   const [classes, setClasses] = useState([]);
@@ -77,6 +92,8 @@ const ClassManagement = () => {
   const [institutionType, setInstitutionType] = useState('school');
   const [classDefaults, setClassDefaults] = useState(null);
   const [showInactiveClasses, setShowInactiveClasses] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false);
 
   const [classFormData, setClassFormData] = useState({
     name: '',
@@ -215,14 +232,27 @@ const ClassManagement = () => {
 
   const handleClassSubmit = async (e) => {
     e.preventDefault();
+    
+    if (submittingRef.current) {
+      return;
+    }
+    
     console.log('🔄 Submitting class form:', classFormData);
-    setLoading(true);
+    submittingRef.current = true;
+    setIsSubmitting(true);
+
+    const unlockTimeout = setTimeout(() => {
+      submittingRef.current = false;
+      setIsSubmitting(false);
+      toast.warning('Operation is taking longer than expected. Please check the list.');
+    }, 15000);
 
     try {
-      // Validate required fields
       if (classFormData.standard === 'select_standard') {
         toast.error('Please select a standard');
-        setLoading(false);
+        clearTimeout(unlockTimeout);
+        submittingRef.current = false;
+        setIsSubmitting(false);
         return;
       }
 
@@ -239,35 +269,53 @@ const ClassManagement = () => {
       console.log('📤 Sending data to API:', submitData);
 
       if (editingClass) {
-        await axios.put(`${API}/classes/${editingClass.id}`, submitData);
+        await withTimeout(axios.put(`${API}/classes/${editingClass.id}`, submitData), 10000);
         toast.success('Class updated successfully');
       } else {
-        await axios.post(`${API}/classes`, submitData);
+        await withTimeout(axios.post(`${API}/classes`, submitData), 10000);
         toast.success('Class added successfully');
       }
       
       setIsClassModalOpen(false);
       setEditingClass(null);
       resetClassForm();
-      fetchData();
+      safeBackgroundRefresh(fetchData);
     } catch (error) {
       console.error('Failed to save class:', error);
-      toast.error(error.response?.data?.detail || 'Failed to save class');
+      const errorMessage = error.message === 'Request timeout' 
+        ? 'Request timed out. Please try again.'
+        : (error.response?.data?.detail || 'Failed to save class');
+      toast.error(errorMessage);
     } finally {
-      setLoading(false);
+      clearTimeout(unlockTimeout);
+      submittingRef.current = false;
+      setIsSubmitting(false);
     }
   };
 
   const handleSectionSubmit = async (e) => {
     e.preventDefault();
+    
+    if (submittingRef.current) {
+      return;
+    }
+    
     console.log('🔄 Submitting section form:', sectionFormData);
-    setLoading(true);
+    submittingRef.current = true;
+    setIsSubmitting(true);
+
+    const unlockTimeout = setTimeout(() => {
+      submittingRef.current = false;
+      setIsSubmitting(false);
+      toast.warning('Operation is taking longer than expected. Please check the list.');
+    }, 15000);
 
     try {
-      // Validate required fields
       if (sectionFormData.class_id === 'select_class') {
         toast.error('Please select a class');
-        setLoading(false);
+        clearTimeout(unlockTimeout);
+        submittingRef.current = false;
+        setIsSubmitting(false);
         return;
       }
 
@@ -280,22 +328,27 @@ const ClassManagement = () => {
       console.log('📤 Sending section data to API:', submitData);
 
       if (editingSection) {
-        await axios.put(`${API}/sections/${editingSection.id}`, submitData);
+        await withTimeout(axios.put(`${API}/sections/${editingSection.id}`, submitData), 10000);
         toast.success('Section updated successfully');
       } else {
-        await axios.post(`${API}/sections`, submitData);
+        await withTimeout(axios.post(`${API}/sections`, submitData), 10000);
         toast.success('Section added successfully');
       }
       
       setIsSectionModalOpen(false);
       setEditingSection(null);
       resetSectionForm();
-      fetchData();
+      safeBackgroundRefresh(fetchData);
     } catch (error) {
       console.error('Failed to save section:', error);
-      toast.error(error.response?.data?.detail || 'Failed to save section');
+      const errorMessage = error.message === 'Request timeout' 
+        ? 'Request timed out. Please try again.'
+        : (error.response?.data?.detail || 'Failed to save section');
+      toast.error(errorMessage);
     } finally {
-      setLoading(false);
+      clearTimeout(unlockTimeout);
+      submittingRef.current = false;
+      setIsSubmitting(false);
     }
   };
 
