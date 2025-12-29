@@ -9749,9 +9749,17 @@ async def generate_admission_summary_report(
         classes_raw = await db.classes.find({"tenant_id": current_user.tenant_id}).to_list(100)
         class_lookup = {}
         for cls in classes_raw:
-            class_lookup[str(cls.get("_id"))] = cls.get("name", cls.get("class_name", ""))
+            class_name = cls.get("name") or cls.get("class_name") or ""
+            # Store by various possible keys
+            class_lookup[str(cls.get("_id"))] = class_name
             if cls.get("class_id"):
-                class_lookup[str(cls.get("class_id"))] = cls.get("name", cls.get("class_name", ""))
+                class_lookup[str(cls.get("class_id"))] = class_name
+            if cls.get("id"):
+                class_lookup[str(cls.get("id"))] = class_name
+            # Also store the name itself as a key (for direct class name references)
+            if class_name:
+                class_lookup[class_name] = class_name
+                class_lookup[class_name.lower()] = class_name
         
         # Convert ObjectIds to strings for JSON serialization
         from bson import ObjectId
@@ -9766,9 +9774,12 @@ async def generate_admission_summary_report(
                 else:
                     student_dict[k] = v
             
-            # Add class_name lookup
+            # Add class_name lookup - try multiple fields
             class_id = student_dict.get("class_id", "")
-            student_dict["class_name"] = class_lookup.get(str(class_id), student_dict.get("class", "N/A"))
+            class_name = class_lookup.get(str(class_id)) if class_id else None
+            if not class_name:
+                class_name = student_dict.get("class_name") or student_dict.get("class") or class_id or "N/A"
+            student_dict["class_name"] = class_name
             
             # Format admission_date if exists
             if not student_dict.get("admission_date"):
