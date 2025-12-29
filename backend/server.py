@@ -27579,6 +27579,18 @@ setup_attendance_routes(api_router, db, get_current_user, User)
 
 
 
+
+# Helper to remove MongoDB _id from documents
+def remove_mongo_id(doc):
+    if doc and "_id" in doc:
+        doc.pop("_id", None)
+    return doc
+
+def remove_mongo_ids(docs):
+    for doc in docs:
+        remove_mongo_id(doc)
+    return docs
+
 # ==================== PAYROLL MANAGEMENT SYSTEM ====================
 # Complete payroll processing with attendance & leave integration
 
@@ -27864,6 +27876,7 @@ async def list_payrolls(
     # Return summary without full items
     result = []
     for p in payrolls:
+        p.pop("_id", None)
         result.append({
             "id": p["id"],
             "year": p["year"],
@@ -27893,6 +27906,8 @@ async def list_bonuses(
         query["effective_year"] = year
     
     bonuses = await db.payroll_bonuses.find(query).sort("created_at", -1).to_list(100)
+    for b in bonuses:
+        b.pop("_id", None)
     return bonuses
 
 @api_router.post("/payroll/bonuses")
@@ -27928,6 +27943,7 @@ async def list_advances(
         query["employee_id"] = employee_id
     
     advances = await db.employee_advances.find(query).sort("created_at", -1).to_list(100)
+    return remove_mongo_ids(advances)
 
 @api_router.post("/payroll/advances")
 async def create_advance(
@@ -27937,6 +27953,18 @@ async def create_advance(
     """Create advance/loan"""
     if current_user.role not in ["super_admin", "admin"]:
         raise HTTPException(status_code=403, detail="Not authorized")
+    
+    advance_dict = data.dict()
+    advance_dict["id"] = str(uuid.uuid4())
+    advance_dict["tenant_id"] = current_user.tenant_id
+    advance_dict["remaining_amount"] = data.amount
+    advance_dict["is_active"] = True
+    advance_dict["created_at"] = datetime.utcnow()
+    advance_dict["created_by"] = current_user.id
+    
+    await db.employee_advances.insert_one(advance_dict)
+    
+    return {"message": "Advance created successfully", "id": advance_dict["id"]}
 
 @api_router.get("/payroll/payments")
 async def list_payments(
@@ -28195,8 +28223,9 @@ async def get_payroll(
     if not payroll:
         raise HTTPException(status_code=404, detail="Payroll not found")
     
+    payroll.pop("_id", None)
     payroll["month_name"] = calendar.month_name[payroll["month"]]
-    return payroll
+    return remove_mongo_id(payroll)
 
 @api_router.put("/payroll/{payroll_id}/item/{item_id}")
 async def update_payroll_item(
