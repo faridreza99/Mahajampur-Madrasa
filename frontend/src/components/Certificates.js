@@ -1320,10 +1320,11 @@ const Certificates = () => {
       if (response.ok) {
         const data = await response.json();
         // Filter to ensure only valid staff objects with required properties
+        // Backend returns 'name' field, not 'full_name'
         const validStaff = Array.isArray(data) ? data.filter(staff => 
           staff && 
           typeof staff === 'object' &&
-          typeof staff.full_name === 'string' &&
+          (typeof staff.name === 'string' || typeof staff.full_name === 'string') &&
           typeof staff.employee_id === 'string' &&
           staff.id
         ) : [];
@@ -1509,7 +1510,7 @@ const Certificates = () => {
         id: `staff-${staff.id}-${Date.now()}`,
         type: 'staff',
         staffData: {
-          name: staff.full_name,
+          name: staff.name || staff.full_name,
           employee_id: staff.employee_id,
           department: staff.department || 'General',
           designation: staff.designation || 'Staff',
@@ -5534,7 +5535,7 @@ const Certificates = () => {
                     >
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-medium">{staff.full_name}</p>
+                          <p className="font-medium">{staff.name || staff.full_name}</p>
                           <p className="text-sm text-gray-600">ID: {staff.employee_id}</p>
                           <p className="text-xs text-gray-400">Dept: {staff.department || 'N/A'}</p>
                         </div>

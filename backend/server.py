@@ -25823,11 +25823,11 @@ async def get_student_dashboard(current_user: User = Depends(get_current_user)):
                 "has_dues": fee_ledger.get("balance", 0) > 0
             }
         
-        # Get latest result
+        # Get latest result - use status: "published" to match the my-results endpoint
         latest_result = await db.student_results.find_one({
             "student_id": student_id,
             "tenant_id": current_user.tenant_id,
-            "is_published": True
+            "status": "published"
         }, sort=[("created_at", -1)])
         
         result_summary = None
