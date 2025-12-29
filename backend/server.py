@@ -25029,10 +25029,12 @@ async def get_student_fees(current_user: User = Depends(get_current_user)):
         })
         
         # Get fee payments
-        payments = await db.fee_payments.find({
+        logger.info(f"📋 Student fees: Looking for payments for student_id={student['id']}, tenant={current_user.tenant_id}")
+        payments = await db.payments.find({
             "student_id": student["id"],
             "tenant_id": current_user.tenant_id
         }).sort("payment_date", -1).to_list(100)
+        logger.info(f"📋 Student fees: Found {len(payments)} payments")
         
         # Get applicable fee configurations for this student's class
         fee_configs = []
