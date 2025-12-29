@@ -3252,6 +3252,32 @@ async def get_institution(current_user: User = Depends(get_current_user)):
     await db.institutions.insert_one(default_institution.dict())
     return default_institution
 
+
+@api_router.get("/institution/settings")
+async def get_institution_settings(current_user: User = Depends(get_current_user)):
+    """Get institution settings including institution_type for the current tenant"""
+    
+    # Try to find existing institution record
+    institution = await db.institutions.find_one({
+        "tenant_id": current_user.tenant_id,
+        "is_active": True
+    })
+    
+    if institution:
+        return {
+            "institution_type": institution.get("institution_type", "school"),
+            "school_name": institution.get("school_name", institution.get("name", "")),
+            "tenant_id": current_user.tenant_id
+        }
+    
+    # Return default settings if no institution found
+    return {
+        "institution_type": "school",
+        "school_name": "",
+        "tenant_id": current_user.tenant_id
+    }
+
+
 @api_router.put("/institution", response_model=Institution)
 async def update_institution(
     institution_data: InstitutionUpdate,

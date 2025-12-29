@@ -620,6 +620,21 @@ const ClassManagement = () => {
   };
 
   const getDisplayName = (cls) => {
+    // For madrasah institution type, apply Bengali class names based on internal_standard
+    if (institutionType === 'madrasah') {
+      const internalStd = cls.internal_standard || parseInt(cls.standard?.match(/\d+/)?.[0]) || 0;
+      const madrasahMatch = madrasahStandards.find(m => m.internal_standard === internalStd && internalStd > 0);
+      if (madrasahMatch) {
+        return madrasahMatch.display_name;
+      }
+      // Check for special classes by standard name
+      const specialMatch = madrasahStandards.find(m => 
+        m.standard === cls.standard || m.standard === cls.name
+      );
+      if (specialMatch) {
+        return specialMatch.display_name;
+      }
+    }
     return cls.display_name || cls.name || cls.standard;
   };
 
