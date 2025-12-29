@@ -28796,3 +28796,251 @@ async def download_payslip_pdf(
 
 # Include router at the end after all routes are defined
 app.include_router(api_router)
+
+# ============================================================================
+# FEE RECEIPT PDF GENERATION
+# ============================================================================
+
+@api_router.get("/fees/receipt/{receipt_no}/pdf")
+async def generate_fee_receipt_pdf(
+    receipt_no: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Generate PDF receipt for a payment"""
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.lib.units import inch, cm
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image as RLImage
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+    import io
+    from fastapi.responses import StreamingResponse
+    
+    try:
+        # Get payment details
+        payment = await db.payments.find_one({
+            "receipt_no": receipt_no,
+            "tenant_id": current_user.tenant_id
+        })
+        
+        if not payment:
+            raise HTTPException(status_code=404, detail="Receipt not found")
+        
+        # Get student details
+        student = await db.students.find_one({
+            "id": payment["student_id"],
+            "tenant_id": current_user.tenant_id
+        })
+        
+        # Get school branding
+        branding = await db.school_branding.find_one({"tenant_id": current_user.tenant_id})
+        institution = await db.institution.find_one({"tenant_id": current_user.tenant_id})
+        
+        school_name = branding.get("school_name") if branding else (institution.get("name") if institution else "School ERP")
+        school_address = branding.get("address") if branding else (institution.get("address") if institution else "")
+        school_phone = branding.get("phone") if branding else (institution.get("phone") if institution else "")
+        school_email = branding.get("email") if branding else (institution.get("email") if institution else "")
+        
+        # Get currency
+        currency_code = institution.get("currency", "BDT") if institution else "BDT"
+        currency_symbols = {'BDT': 'Tk ', 'USD': '$', 'EUR': 'EUR ', 'GBP': 'GBP ', 'INR': 'Rs '}
+        currency = currency_symbols.get(currency_code, currency_code + ' ')
+        
+        # Get class name
+        class_name = "N/A"
+        section_name = "N/A"
+        if student:
+            class_doc = await db.classes.find_one({"id": student.get("class_id")})
+            section_doc = await db.sections.find_one({"id": student.get("section_id")})
+            class_name = class_doc.get("name", "N/A") if class_doc else "N/A"
+            section_name = section_doc.get("name", "N/A") if section_doc else "N/A"
+        
+        # Create PDF
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=0.5*inch, bottomMargin=0.5*inch)
+        
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle('Title', parent=styles['Title'], fontSize=18, textColor=colors.HexColor('#1e40af'), alignment=TA_CENTER)
+        header_style = ParagraphStyle('Header', parent=styles['Normal'], fontSize=12, textColor=colors.HexColor('#374151'), alignment=TA_CENTER)
+        normal_style = ParagraphStyle('Normal', parent=styles['Normal'], fontSize=10)
+        bold_style = ParagraphStyle('Bold', parent=styles['Normal'], fontSize=10, fontName='Helvetica-Bold')
+        
+        elements = []
+        
+        # Header
+        elements.append(Paragraph(school_name, title_style))
+        if school_address:
+            elements.append(Paragraph(school_address, header_style))
+        if school_phone or school_email:
+            contact_info = f"Phone: {school_phone}" if school_phone else ""
+            if school_email:
+                contact_info += f" | Email: {school_email}" if contact_info else f"Email: {school_email}"
+            elements.append(Paragraph(contact_info, header_style))
+        
+        elements.append(Spacer(1, 0.3*inch))
+        
+        # Receipt Title
+        elements.append(Paragraph("PAYMENT RECEIPT", ParagraphStyle('ReceiptTitle', parent=styles['Title'], fontSize=16, textColor=colors.HexColor('#059669'), alignment=TA_CENTER)))
+        elements.append(Paragraph(f"Receipt No: {receipt_no}", ParagraphStyle('ReceiptNo', parent=styles['Normal'], fontSize=11, alignment=TA_CENTER, textColor=colors.HexColor('#6b7280'))))
+        
+        elements.append(Spacer(1, 0.2*inch))
+        
+        # Payment date
+        payment_date = payment.get("payment_date", datetime.utcnow())
+        if isinstance(payment_date, str):
+            payment_date = datetime.fromisoformat(payment_date.replace('Z', '+00:00'))
+        
+        # Student & Payment Details Table
+        student_name = student.get("name", "N/A") if student else payment.get("student_name", "N/A")
+        admission_no = student.get("admission_no", "N/A") if student else payment.get("admission_no", "N/A")
+        
+        details_data = [
+            ["Student Name:", student_name, "Date:", payment_date.strftime("%d-%m-%Y")],
+            ["Admission No:", admission_no, "Time:", payment_date.strftime("%I:%M %p")],
+            ["Class:", f"{class_name} - Section {section_name}", "Payment Mode:", payment.get("payment_mode", "Cash")],
+        ]
+        
+        details_table = Table(details_data, colWidths=[1.5*inch, 2.5*inch, 1.3*inch, 2*inch])
+        details_table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#374151')),
+            ('TEXTCOLOR', (2, 0), (2, -1), colors.HexColor('#374151')),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ]))
+        elements.append(details_table)
+        
+        elements.append(Spacer(1, 0.3*inch))
+        
+        # Payment Details
+        payment_data = [
+            ["Description", "Amount"],
+            [payment.get("fee_type", "Fee Payment"), f"{currency}{payment.get('amount', 0):,.2f}"],
+        ]
+        
+        if payment.get("transaction_id"):
+            payment_data.append(["Transaction ID", payment.get("transaction_id")])
+        
+        payment_data.append(["", ""])
+        payment_data.append(["Total Amount Paid", f"{currency}{payment.get('amount', 0):,.2f}"])
+        
+        payment_table = Table(payment_data, colWidths=[4.5*inch, 2.5*inch])
+        payment_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#059669')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+            ('GRID', (0, 0), (-1, -2), 0.5, colors.HexColor('#e5e7eb')),
+            ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#ecfdf5')),
+            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+            ('TEXTCOLOR', (0, -1), (-1, -1), colors.HexColor('#059669')),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+        ]))
+        elements.append(payment_table)
+        
+        elements.append(Spacer(1, 0.3*inch))
+        
+        # Remarks
+        if payment.get("remarks"):
+            elements.append(Paragraph(f"<b>Remarks:</b> {payment.get('remarks')}", normal_style))
+            elements.append(Spacer(1, 0.2*inch))
+        
+        # Footer
+        elements.append(Spacer(1, 0.5*inch))
+        
+        footer_data = [
+            ["", "Authorized Signature"],
+            ["", "_____________________"],
+        ]
+        footer_table = Table(footer_data, colWidths=[4.5*inch, 2.5*inch])
+        footer_table.setStyle(TableStyle([
+            ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#6b7280')),
+        ]))
+        elements.append(footer_table)
+        
+        elements.append(Spacer(1, 0.3*inch))
+        elements.append(Paragraph("This is a computer-generated receipt and does not require a physical signature.", 
+                                  ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8, alignment=TA_CENTER, textColor=colors.HexColor('#9ca3af'))))
+        elements.append(Paragraph(f"Generated on {datetime.utcnow().strftime('%d-%m-%Y %I:%M %p')}", 
+                                  ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8, alignment=TA_CENTER, textColor=colors.HexColor('#9ca3af'))))
+        
+        # Build PDF
+        doc.build(elements)
+        buffer.seek(0)
+        
+        return StreamingResponse(
+            buffer,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=Receipt-{receipt_no}.pdf"
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Failed to generate receipt PDF: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to generate receipt")
+
+@api_router.get("/student/payments")
+async def get_student_payments(
+    current_user: User = Depends(get_current_user)
+):
+    """Get payment history for logged-in student"""
+    try:
+        if current_user.role != "student":
+            raise HTTPException(status_code=403, detail="This endpoint is for students only")
+        
+        # Find student linked to this user
+        student = await db.students.find_one({
+            "user_id": current_user.id,
+            "tenant_id": current_user.tenant_id
+        })
+        
+        if not student:
+            raise HTTPException(status_code=404, detail="Student profile not found")
+        
+        # Get all payments for this student
+        payments = await db.payments.find({
+            "student_id": student["id"],
+            "tenant_id": current_user.tenant_id
+        }).sort("payment_date", -1).to_list(100)
+        
+        # Get student fees for due summary
+        student_fees = await db.student_fees.find({
+            "student_id": student["id"],
+            "tenant_id": current_user.tenant_id
+        }).to_list(100)
+        
+        # Calculate summary
+        total_paid = sum(p.get("amount", 0) for p in payments)
+        total_due = sum(f.get("pending_amount", 0) + f.get("overdue_amount", 0) for f in student_fees)
+        
+        # Clean MongoDB _id from results
+        cleaned_payments = []
+        for p in payments:
+            p_copy = dict(p)
+            if "_id" in p_copy:
+                del p_copy["_id"]
+            cleaned_payments.append(p_copy)
+        
+        return {
+            "payments": cleaned_payments,
+            "summary": {
+                "total_paid": total_paid,
+                "total_due": total_due,
+                "payment_count": len(payments)
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Failed to get student payments: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to load payment history")
+
