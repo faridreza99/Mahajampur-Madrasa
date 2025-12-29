@@ -25,6 +25,7 @@ Preferred communication style: Simple, everyday language.
 - **Blank Question Paper Template**: Added delete section functionality with Bengali/English confirmation dialog.
 - **Dark Mode Fixes**: Added comprehensive dark mode support to 15+ components including LoginPage, Calendar, Results, StudentResults, ParentResults, RatingSurveys, QuizTool, TestGenerator, AINotes, AISummary, BiometricDevices, Reports, AcademicCMS, Vehicle, and StaffList.
 - **School-wise User Management**: Super_admin can now manage users across all schools in Tenant Management. Features include Edit User modal (name, email, role, status), Reset Password modal with manual entry and auto-generate options, clickable status badges for quick activate/deactivate, and cross-tenant management via target_tenant_id parameter. All actions are logged with admin details and IP address.
+- **ID Card Generation System**: Complete ID card generation for students and staff with PDF output, QR codes, and school branding. Student ID cards include: name (Bengali), father's name, class/marhala, section, roll number, photo, institution logo. Staff ID cards include: name, designation, department, employee ID, photo. Features class/section/department filtering, view/download/print functionality, and credit card sized (3.375 x 2.125 inches) professional output.
 
 ## Technical Implementations
 - **Frontend**: React 19, React Router DOM, Axios, Context API.
