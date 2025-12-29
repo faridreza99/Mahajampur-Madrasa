@@ -542,78 +542,31 @@ const Certificates = () => {
 
   const handleDownloadCC = async (cc) => {
     try {
-      const printContent = `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Course Completion Certificate - ${cc.admission_no}</title>
-            <meta charset="utf-8">
-            <style>
-              body { font-family: 'Georgia', serif; margin: 0; padding: 20px; background: #f5f5f5; }
-              .certificate { max-width: 800px; margin: 0 auto; padding: 60px; background: white; border: 3px solid #2c5282; position: relative; }
-              .header { text-align: center; margin-bottom: 40px; }
-              .school-name { font-size: 32px; font-weight: bold; color: #2c5282; margin-bottom: 10px; }
-              .cert-title { font-size: 28px; color: #2c5282; margin: 30px 0; text-align: center; text-transform: uppercase; letter-spacing: 2px; }
-              .content { text-align: center; font-size: 18px; line-height: 2; margin: 30px 0; }
-              .student-name { font-size: 32px; font-weight: bold; color: #1a365d; margin: 20px 0; text-decoration: underline; }
-              .course-name { font-size: 24px; color: #2c5282; font-weight: bold; margin: 20px 0; }
-              .details { margin: 40px 0; text-align: center; }
-              .detail-row { margin: 15px 0; font-size: 16px; }
-              .footer { margin-top: 60px; display: flex; justify-content: space-between; padding: 0 40px; }
-              .signature { text-align: center; border-top: 2px solid #333; width: 200px; padding-top: 10px; }
-              .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.05; font-size: 100px; font-weight: bold; }
-            </style>
-          </head>
-          <body>
-            <div class="certificate">
-              <div class="watermark">CERTIFIED</div>
-              <div class="header">
-                <div class="school-name">School Name</div>
-                <div style="font-size: 14px; color: #666;">School Address</div>
-              </div>
-              
-              <div class="cert-title">Certificate of Course Completion</div>
-              
-              <div class="content">
-                <div>This is to certify that</div>
-                <div class="student-name">${cc.student_name}</div>
-                <div>Admission No: ${cc.admission_no}</div>
-                <div style="margin: 30px 0;">has successfully completed the course</div>
-                <div class="course-name">${cc.course_name}</div>
-              </div>
-              
-              <div class="details">
-                <div class="detail-row"><strong>Duration:</strong> ${cc.course_duration || 'N/A'}</div>
-                <div class="detail-row"><strong>Completion Date:</strong> ${new Date(cc.completion_date).toLocaleDateString()}</div>
-                <div class="detail-row"><strong>Grade Obtained:</strong> ${cc.grade_obtained || 'N/A'}</div>
-                <div class="detail-row"><strong>Credits Earned:</strong> ${cc.credits_earned || 'N/A'}</div>
-                <div class="detail-row"><strong>Instructor:</strong> ${cc.instructor_name || 'N/A'}</div>
-              </div>
-              
-              <div class="footer">
-                <div class="signature">
-                  <div>Instructor</div>
-                </div>
-                <div class="signature">
-                  <div>Principal</div>
-                </div>
-              </div>
-            </div>
-          </body>
-        </html>
-      `;
+      const API = process.env.REACT_APP_API_URL;
+      const response = await fetch(`${API}/course-certificates/${cc.id}/pdf`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
       
-      const printWindow = window.open('', '_blank', 'width=800,height=600');
-      printWindow.document.write(printContent);
-      printWindow.document.close();
-      printWindow.focus();
-      setTimeout(() => {
-        printWindow.print();
-      }, 250);
-      toast.success('Certificate opened for download/print');
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Course_Certificate_${cc.admission_no}_${cc.student_name}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        toast.success('Certificate downloaded successfully');
+      } else {
+        toast.error('Failed to download certificate');
+      }
     } catch (error) {
-      console.error('Failed to generate PDF:', error);
-      toast.error('Failed to generate PDF');
+      console.error('Failed to download certificate:', error);
+      toast.error('Failed to download certificate');
     }
   };
 
@@ -1851,242 +1804,31 @@ const Certificates = () => {
 
   const handlePDFTC = async (tc) => {
     try {
-      // Create a formatted certificate content
-      const printContent = generateTCPrintContent(tc);
+      const API = process.env.REACT_APP_API_URL;
+      const response = await fetch(`${API}/transfer-certificates/${tc.id}/pdf`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
       
-      // Create a new window with the print content
-      const printWindow = window.open('', '_blank', 'width=800,height=600');
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Transfer Certificate - ${tc.admission_no}</title>
-            <meta charset="utf-8">
-            <style>
-              @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
-              
-              * { margin: 0; padding: 0; box-sizing: border-box; }
-              
-              body { 
-                font-family: 'Poppins', 'Roboto', sans-serif; 
-                margin: 20px; 
-                background: #f5f5f5;
-                color: #111827;
-              }
-              
-              .certificate { 
-                max-width: 850px; 
-                margin: 0 auto; 
-                padding: 40px; 
-                background: white;
-                border: 3px solid #1E3A8A;
-                position: relative;
-                box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-              }
-              
-              .watermark {
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%) rotate(-45deg);
-                font-size: 80px;
-                font-weight: bold;
-                color: rgba(30, 58, 138, 0.05);
-                z-index: 0;
-                pointer-events: none;
-              }
-              
-              .header {
-                background: #1E3A8A;
-                color: white;
-                padding: 25px;
-                border-radius: 8px 8px 0 0;
-                margin: -40px -40px 30px -40px;
-                position: relative;
-                z-index: 1;
-              }
-              
-              .header-content {
-                display: flex;
-                align-items: center;
-                gap: 20px;
-              }
-              
-              .school-logo {
-                font-size: 60px;
-                line-height: 1;
-              }
-              
-              .school-info {
-                flex: 1;
-                text-align: center;
-              }
-              
-              .school-name {
-                font-size: 32px;
-                font-weight: 700;
-                margin-bottom: 8px;
-                letter-spacing: 1px;
-              }
-              
-              .school-tagline {
-                font-size: 14px;
-                font-style: italic;
-                opacity: 0.95;
-                margin-bottom: 8px;
-              }
-              
-              .school-contact {
-                font-size: 12px;
-                opacity: 0.9;
-              }
-              
-              .cert-title {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 15px;
-                margin: 30px 0 15px 0;
-                position: relative;
-                z-index: 1;
-              }
-              
-              .title-icon {
-                font-size: 28px;
-              }
-              
-              .title-text {
-                font-size: 28px;
-                font-weight: 700;
-                color: #1E3A8A;
-                letter-spacing: 2px;
-              }
-              
-              .gold-divider {
-                height: 3px;
-                background: linear-gradient(to right, transparent, #D97706, transparent);
-                margin: 0 auto 30px auto;
-                width: 60%;
-                position: relative;
-                z-index: 1;
-              }
-              
-              .info-table {
-                background: #F8FAFC;
-                border-radius: 8px;
-                padding: 20px;
-                margin: 20px 0;
-                position: relative;
-                z-index: 1;
-              }
-              
-              .info-row {
-                display: flex;
-                padding: 12px;
-                border-bottom: 1px solid #E5E7EB;
-              }
-              
-              .info-row:last-child {
-                border-bottom: none;
-              }
-              
-              .info-row:nth-child(even) {
-                background: white;
-              }
-              
-              .info-label {
-                flex: 0 0 280px;
-                font-weight: 600;
-                color: #374151;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-              }
-              
-              .info-label .icon {
-                font-size: 18px;
-              }
-              
-              .info-value {
-                flex: 1;
-                color: #111827;
-                font-weight: 500;
-              }
-              
-              .signature-section {
-                display: flex;
-                justify-content: space-between;
-                margin: 50px 40px 30px 40px;
-                position: relative;
-                z-index: 1;
-              }
-              
-              .signature-box {
-                text-align: center;
-                width: 200px;
-              }
-              
-              .signature-line {
-                height: 60px;
-                border-bottom: 2px solid #111827;
-                margin-bottom: 10px;
-              }
-              
-              .signature-label {
-                font-weight: 600;
-                color: #374151;
-                font-size: 14px;
-              }
-              
-              .footer {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-top: 40px;
-                padding-top: 20px;
-                border-top: 2px solid #E5E7EB;
-                position: relative;
-                z-index: 1;
-              }
-              
-              .footer-info {
-                color: #6B7280;
-                font-size: 12px;
-                line-height: 1.6;
-              }
-              
-              .qr-code {
-                text-align: center;
-              }
-              
-              .qr-label {
-                font-size: 11px;
-                color: #6B7280;
-                margin-top: 5px;
-              }
-              
-              @media print {
-                body { margin: 0; background: white; }
-                .certificate { box-shadow: none; }
-                .no-print { display: none !important; }
-              }
-            </style>
-          </head>
-          <body>
-            ${printContent}
-            <div class="no-print" style="text-align: center; margin-top: 20px;">
-              <button onclick="window.print()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">Print Certificate</button>
-              <button onclick="window.close()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">Close</button>
-            </div>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-      
-      toast.success('PDF view opened in new tab');
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `TC_${tc.admission_no}_${tc.student_name}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        toast.success('Transfer Certificate downloaded successfully');
+      } else {
+        toast.error('Failed to download Transfer Certificate');
+      }
     } catch (error) {
-      console.error('Failed to generate PDF:', error);
-      toast.error('Failed to generate PDF');
+      console.error('Failed to download Transfer Certificate:', error);
+      toast.error('Failed to download Transfer Certificate');
     }
   };
 

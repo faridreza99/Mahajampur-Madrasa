@@ -14245,6 +14245,195 @@ async def update_tc_status(
         logging.error(f"Failed to update transfer certificate status: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to update transfer certificate status")
 
+@api_router.get("/transfer-certificates/{tc_id}/pdf")
+async def download_transfer_certificate_pdf(
+    tc_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Download transfer certificate as PDF with school branding"""
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+        from reportlab.lib.units import inch
+        from reportlab.lib import colors
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.enums import TA_CENTER, TA_LEFT
+        import tempfile
+        import os
+        
+        tc = await db.transfer_certificates.find_one({
+            "id": tc_id,
+            "tenant_id": current_user.tenant_id
+        })
+        
+        if not tc:
+            raise HTTPException(status_code=404, detail="Transfer certificate not found")
+        
+        branding = await get_school_branding_for_reports(current_user.tenant_id)
+        
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
+        file_path = temp_file.name
+        temp_file.close()
+        
+        doc = SimpleDocTemplate(
+            file_path,
+            pagesize=A4,
+            topMargin=0.5*inch,
+            bottomMargin=0.5*inch,
+            leftMargin=0.75*inch,
+            rightMargin=0.75*inch
+        )
+        
+        styles = getSampleStyleSheet()
+        primary_color = colors.HexColor(branding.get("primary_color", "#1E3A8A"))
+        secondary_color = colors.HexColor(branding.get("secondary_color", "#059669"))
+        
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=22,
+            textColor=primary_color,
+            spaceAfter=6,
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold'
+        )
+        
+        subtitle_style = ParagraphStyle(
+            'CustomSubtitle',
+            parent=styles['Normal'],
+            fontSize=10,
+            textColor=colors.HexColor('#6B7280'),
+            spaceAfter=12,
+            alignment=TA_CENTER
+        )
+        
+        cert_title_style = ParagraphStyle(
+            'CertTitle',
+            parent=styles['Heading1'],
+            fontSize=18,
+            textColor=secondary_color,
+            spaceAfter=20,
+            spaceBefore=10,
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold'
+        )
+        
+        story = []
+        
+        story.append(Paragraph(branding.get("school_name", "School ERP"), title_style))
+        if branding.get("address"):
+            story.append(Paragraph(branding["address"], subtitle_style))
+        contact_info = []
+        if branding.get("phone"):
+            contact_info.append(f"Phone: {branding['phone']}")
+        if branding.get("email"):
+            contact_info.append(f"Email: {branding['email']}")
+        if contact_info:
+            story.append(Paragraph(" | ".join(contact_info), subtitle_style))
+        
+        story.append(Spacer(1, 0.3*inch))
+        
+        story.append(Paragraph("TRANSFER CERTIFICATE", cert_title_style))
+        story.append(Spacer(1, 0.1*inch))
+        
+        divider_table = Table([['']], colWidths=[6.5*inch])
+        divider_table.setStyle(TableStyle([
+            ('LINEABOVE', (0, 0), (-1, 0), 2, secondary_color),
+        ]))
+        story.append(divider_table)
+        story.append(Spacer(1, 0.3*inch))
+        
+        tc_data = [
+            ['TC Number:', tc.get('tc_number', 'N/A'), 'Issue Date:', tc.get('issue_date', 'N/A')],
+            ['Student Name:', tc.get('student_name', 'N/A'), 'Admission No:', tc.get('admission_no', 'N/A')],
+            ["Father's Name:", tc.get('fathers_name', 'N/A'), "Mother's Name:", tc.get('mothers_name', 'N/A')],
+            ['Date of Birth:', tc.get('date_of_birth', 'N/A'), 'Date of Admission:', tc.get('date_of_admission', 'N/A')],
+            ['Class Admitted:', tc.get('class_admitted', 'N/A'), 'Class Leaving:', tc.get('class_leaving', 'N/A')],
+            ['Date of Leaving:', tc.get('date_of_leaving', 'N/A'), 'Reason:', tc.get('reason_for_leaving', 'N/A')],
+        ]
+        
+        tc_table = Table(tc_data, colWidths=[1.3*inch, 2*inch, 1.3*inch, 2*inch])
+        tc_table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#374151')),
+            ('TEXTCOLOR', (2, 0), (2, -1), colors.HexColor('#374151')),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E5E7EB')),
+            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#F9FAFB')),
+            ('BACKGROUND', (2, 0), (2, -1), colors.HexColor('#F9FAFB')),
+        ]))
+        story.append(tc_table)
+        story.append(Spacer(1, 0.3*inch))
+        
+        if tc.get('conduct') or tc.get('character'):
+            conduct_data = [
+                ['Conduct:', tc.get('conduct', 'Good')],
+                ['Character:', tc.get('character', 'Good')],
+            ]
+            if tc.get('remarks'):
+                conduct_data.append(['Remarks:', tc.get('remarks', '')])
+            
+            conduct_table = Table(conduct_data, colWidths=[1.5*inch, 5*inch])
+            conduct_table.setStyle(TableStyle([
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ]))
+            story.append(conduct_table)
+            story.append(Spacer(1, 0.4*inch))
+        
+        story.append(Spacer(1, 0.5*inch))
+        sig_data = [['', '', ''],
+                    ['_________________', '', '_________________'],
+                    ['Class Teacher', '', 'Principal/Head'],
+                    ['', '', ''],
+                    ['Date: ___________', '', 'School Seal']]
+        sig_table = Table(sig_data, colWidths=[2.5*inch, 1.5*inch, 2.5*inch])
+        sig_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('TOPPADDING', (0, 0), (-1, -1), 5),
+        ]))
+        story.append(sig_table)
+        
+        story.append(Spacer(1, 0.4*inch))
+        footer_style = ParagraphStyle(
+            'Footer',
+            parent=styles['Normal'],
+            fontSize=8,
+            textColor=colors.HexColor('#9CA3AF'),
+            alignment=TA_CENTER
+        )
+        story.append(Paragraph(f"This is a computer-generated certificate. | Certificate ID: {tc.get('id', 'N/A')}", footer_style))
+        story.append(Paragraph(f"Verified by {branding.get('school_name', 'School')}", footer_style))
+        
+        doc.build(story)
+        
+        logging.info(f"Transfer certificate PDF generated for {tc.get('student_name')} by {current_user.full_name}")
+        
+        with open(file_path, 'rb') as pdf_file:
+            pdf_content = pdf_file.read()
+        
+        os.unlink(file_path)
+        
+        return StreamingResponse(
+            io.BytesIO(pdf_content),
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=TC_{tc.get('admission_no', 'certificate')}_{tc.get('student_name', 'student')}.pdf"
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Failed to download transfer certificate PDF: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to download PDF")
+
+
 
 # ===== CONDUCT CERTIFICATES =====
 class ConductCertificate(BaseModel):
@@ -15054,6 +15243,215 @@ async def get_course_certificates(
     except Exception as e:
         logging.error(f"Failed to get course certificates: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to retrieve course certificates")
+
+@api_router.get("/course-certificates/{cc_id}/pdf")
+async def download_course_certificate_pdf(
+    cc_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Download course completion certificate as PDF with school branding"""
+    try:
+        from reportlab.lib.pagesizes import A4, landscape
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+        from reportlab.lib.units import inch
+        from reportlab.lib import colors
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.enums import TA_CENTER, TA_LEFT
+        import tempfile
+        import os
+        
+        cc = await db.course_certificates.find_one({
+            "id": cc_id,
+            "tenant_id": current_user.tenant_id
+        })
+        
+        if not cc:
+            raise HTTPException(status_code=404, detail="Course certificate not found")
+        
+        branding = await get_school_branding_for_reports(current_user.tenant_id)
+        
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
+        file_path = temp_file.name
+        temp_file.close()
+        
+        doc = SimpleDocTemplate(
+            file_path,
+            pagesize=landscape(A4),
+            topMargin=0.5*inch,
+            bottomMargin=0.5*inch,
+            leftMargin=1*inch,
+            rightMargin=1*inch
+        )
+        
+        styles = getSampleStyleSheet()
+        primary_color = colors.HexColor(branding.get("primary_color", "#1E3A8A"))
+        secondary_color = colors.HexColor(branding.get("secondary_color", "#059669"))
+        gold_color = colors.HexColor("#D97706")
+        
+        school_title_style = ParagraphStyle(
+            'SchoolTitle',
+            parent=styles['Heading1'],
+            fontSize=24,
+            textColor=primary_color,
+            spaceAfter=6,
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold'
+        )
+        
+        subtitle_style = ParagraphStyle(
+            'Subtitle',
+            parent=styles['Normal'],
+            fontSize=10,
+            textColor=colors.HexColor('#6B7280'),
+            spaceAfter=8,
+            alignment=TA_CENTER
+        )
+        
+        cert_title_style = ParagraphStyle(
+            'CertTitle',
+            parent=styles['Heading1'],
+            fontSize=28,
+            textColor=gold_color,
+            spaceAfter=20,
+            spaceBefore=15,
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold'
+        )
+        
+        name_style = ParagraphStyle(
+            'StudentName',
+            parent=styles['Heading1'],
+            fontSize=26,
+            textColor=primary_color,
+            spaceAfter=15,
+            spaceBefore=10,
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold'
+        )
+        
+        body_style = ParagraphStyle(
+            'Body',
+            parent=styles['Normal'],
+            fontSize=14,
+            textColor=colors.HexColor('#374151'),
+            spaceAfter=8,
+            alignment=TA_CENTER,
+            leading=20
+        )
+        
+        course_style = ParagraphStyle(
+            'CourseName',
+            parent=styles['Heading2'],
+            fontSize=18,
+            textColor=secondary_color,
+            spaceAfter=15,
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold'
+        )
+        
+        story = []
+        
+        story.append(Paragraph(branding.get("school_name", "School ERP"), school_title_style))
+        if branding.get("address"):
+            story.append(Paragraph(branding["address"], subtitle_style))
+        contact_info = []
+        if branding.get("phone"):
+            contact_info.append(f"Phone: {branding['phone']}")
+        if branding.get("email"):
+            contact_info.append(f"Email: {branding['email']}")
+        if contact_info:
+            story.append(Paragraph(" | ".join(contact_info), subtitle_style))
+        
+        story.append(Spacer(1, 0.2*inch))
+        
+        divider_table = Table([['']], colWidths=[9*inch])
+        divider_table.setStyle(TableStyle([
+            ('LINEABOVE', (0, 0), (-1, 0), 3, gold_color),
+        ]))
+        story.append(divider_table)
+        
+        story.append(Paragraph("CERTIFICATE OF COMPLETION", cert_title_style))
+        
+        story.append(Paragraph("This is to certify that", body_style))
+        story.append(Spacer(1, 0.1*inch))
+        
+        story.append(Paragraph(cc.get('student_name', 'Student Name'), name_style))
+        
+        story.append(Paragraph("has successfully completed the course", body_style))
+        story.append(Spacer(1, 0.1*inch))
+        
+        story.append(Paragraph(f'"{cc.get("course_name", "Course Name")}"', course_style))
+        
+        details = []
+        if cc.get('grade_obtained'):
+            details.append(f"Grade Obtained: <b>{cc.get('grade_obtained')}</b>")
+        if cc.get('credits_earned'):
+            details.append(f"Credits Earned: <b>{cc.get('credits_earned')}</b>")
+        if cc.get('course_duration'):
+            details.append(f"Duration: <b>{cc.get('course_duration')}</b>")
+        if cc.get('completion_date'):
+            details.append(f"Completion Date: <b>{cc.get('completion_date')}</b>")
+        
+        if details:
+            story.append(Paragraph(" | ".join(details), body_style))
+        
+        story.append(Spacer(1, 0.3*inch))
+        
+        story.append(Spacer(1, 0.4*inch))
+        sig_data = [['', '', ''],
+                    ['_________________', '', '_________________'],
+                    [cc.get('instructor_name', 'Course Instructor'), '', 'Principal/Director'],
+                    ['', '', ''],
+                    ['Date: ' + (cc.get('issue_date') or cc.get('completion_date', '___________')), '', 'School Seal']]
+        sig_table = Table(sig_data, colWidths=[3.5*inch, 2*inch, 3.5*inch])
+        sig_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 5),
+        ]))
+        story.append(sig_table)
+        
+        story.append(Spacer(1, 0.3*inch))
+        
+        divider_table2 = Table([['']], colWidths=[9*inch])
+        divider_table2.setStyle(TableStyle([
+            ('LINEABOVE', (0, 0), (-1, 0), 3, gold_color),
+        ]))
+        story.append(divider_table2)
+        
+        footer_style = ParagraphStyle(
+            'Footer',
+            parent=styles['Normal'],
+            fontSize=8,
+            textColor=colors.HexColor('#9CA3AF'),
+            alignment=TA_CENTER
+        )
+        story.append(Spacer(1, 0.1*inch))
+        story.append(Paragraph(f"Certificate Number: {cc.get('certificate_number', cc.get('id', 'N/A'))} | Verified by {branding.get('school_name', 'School')}", footer_style))
+        
+        doc.build(story)
+        
+        logging.info(f"Course certificate PDF generated for {cc.get('student_name')} by {current_user.full_name}")
+        
+        with open(file_path, 'rb') as pdf_file:
+            pdf_content = pdf_file.read()
+        
+        os.unlink(file_path)
+        
+        return StreamingResponse(
+            io.BytesIO(pdf_content),
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=Course_Certificate_{cc.get('admission_no', 'cert')}_{cc.get('student_name', 'student')}.pdf"
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Failed to download course certificate PDF: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to download PDF")
+
 
 # ==================== PROGRESS REPORTS ====================
 
