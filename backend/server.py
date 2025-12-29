@@ -7090,7 +7090,10 @@ async def create_class(class_data: ClassCreate, current_user: User = Depends(get
 
 @api_router.get("/sections", response_model=List[Section])
 async def get_sections(class_id: Optional[str] = None, current_user: User = Depends(get_current_user)):
-    query = {"tenant_id": current_user.tenant_id, "is_active": True}
+    query = {
+        "tenant_id": current_user.tenant_id,
+        "$or": [{"is_active": True}, {"is_active": {"$exists": False}}]
+    }
     if class_id and class_id != "all_classes":
         query["class_id"] = class_id
     
