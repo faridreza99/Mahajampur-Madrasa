@@ -48,12 +48,19 @@ const Reports = () => {
     'staff-attendance': 'attendance'
   };
   
-  // Determine current tab from URL slug, default to 'academic'
-  const currentTab = slugToTabMap[reportSlug] || 'academic';
+  // Local state for active tab
+  const [activeTab, setActiveTab] = useState('academic');
   
-  // Tab change handler - same pattern as Fees
+  // Sync tab from URL slug on mount/slug change
+  useEffect(() => {
+    if (reportSlug && slugToTabMap[reportSlug]) {
+      setActiveTab(slugToTabMap[reportSlug]);
+    }
+  }, [reportSlug]);
+  
+  // Tab change handler
   const handleTabChange = (newTab) => {
-    navigate(`/reports`); // Navigate to base reports page
+    setActiveTab(newTab);
   };
   
   const [activeReports, setActiveReports] = useState(8);
@@ -1010,7 +1017,7 @@ const Reports = () => {
       </div>
 
       {/* Report Categories */}
-      <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid w-full grid-cols-4 h-auto">
           <TabsTrigger value="academic" className="text-xs sm:text-sm py-2 px-1 sm:px-3">Academic</TabsTrigger>
           <TabsTrigger value="attendance" className="text-xs sm:text-sm py-2 px-1 sm:px-3">Attendance</TabsTrigger>
