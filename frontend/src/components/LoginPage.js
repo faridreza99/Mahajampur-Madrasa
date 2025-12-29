@@ -25,7 +25,7 @@ const LoginPage = () => {
     primary_color: '#10B981'
   });
   
-  const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://portal.mahajampurdarbarsharif.org/api';
   
   const [registerData, setRegisterData] = useState({
     email: '',

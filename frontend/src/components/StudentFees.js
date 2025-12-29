@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const API = process.env.REACT_APP_API_URL || '/api';
+const API = process.env.REACT_APP_API_URL || 'https://portal.mahajampurdarbarsharif.org/api';
 
 const StudentFees = () => {
   const [loading, setLoading] = useState(true);

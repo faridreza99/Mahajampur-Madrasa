@@ -43,9 +43,10 @@ const SystemSettings = () => {
   const fetchConfigs = useCallback(async () => {
     try {
       setLoading(true);
+      const API = process.env.REACT_APP_API_URL || 'https://portal.mahajampurdarbarsharif.org/api';
       const [bkashRes, sslRes] = await Promise.all([
-        axios.get('/api/payments/config'),
-        axios.get('/api/payments/sslcommerz/config').catch(() => ({ data: { store_id: '', is_sandbox: true, is_configured: false } }))
+        axios.get(`${API}/payments/config`),
+        axios.get(`${API}/payments/sslcommerz/config`).catch(() => ({ data: { store_id: '', is_sandbox: true, is_configured: false } }))
       ]);
       
       setBkashConfig({
@@ -76,7 +77,8 @@ const SystemSettings = () => {
   const saveBkashConfig = async () => {
     try {
       setSaving(true);
-      await axios.put('/api/payments/config', bkashConfig);
+      const API = process.env.REACT_APP_API_URL || 'https://portal.mahajampurdarbarsharif.org/api';
+      await axios.put(`${API}/payments/config`, bkashConfig);
       toast.success('bKash settings saved successfully');
     } catch (error) {
       console.error('Error saving bKash config:', error);
@@ -93,7 +95,8 @@ const SystemSettings = () => {
       if (!dataToSave.store_password) {
         delete dataToSave.store_password;
       }
-      await axios.put('/api/payments/sslcommerz/config', dataToSave);
+      const API = process.env.REACT_APP_API_URL || 'https://portal.mahajampurdarbarsharif.org/api';
+      await axios.put(`${API}/payments/sslcommerz/config`, dataToSave);
       toast.success('SSLCommerz settings saved successfully');
       fetchConfigs();
     } catch (error) {
