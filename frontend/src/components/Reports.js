@@ -73,6 +73,25 @@ const Reports = () => {
     feeCollection: 0,
     pendingReports: 0
   });
+  
+  const [currency, setCurrency] = useState('BDT');
+  
+  // Currency formatting helper based on institution settings
+  const formatCurrency = (amount) => {
+    const currencySymbols = {
+      'BDT': '৳',
+      'USD': '$',
+      'EUR': '€',
+      'GBP': '£',
+      'INR': '₹',
+      'JPY': '¥',
+      'CNY': '¥',
+      'AUD': 'A$',
+      'CAD': 'C$'
+    };
+    const symbol = currencySymbols[currency] || currency + ' ';
+    return `${symbol}${Number(amount || 0).toLocaleString()}`;
+  };
 
   // Report data state - similar to Fees module pattern
   const [admissionData, setAdmissionData] = useState([]);
@@ -922,11 +941,14 @@ const Reports = () => {
         const token = getAuthToken();
         if (!token) return;
         
-        const [attendanceRes, statsRes] = await Promise.all([
+        const [attendanceRes, statsRes, institutionRes] = await Promise.all([
           fetch(`${API}/attendance/summary?type=student`, {
             headers: { 'Authorization': `Bearer ${token}` }
           }),
           fetch(`${API}/dashboard/stats`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          }),
+          fetch(`${API}/institution`, {
             headers: { 'Authorization': `Bearer ${token}` }
           })
         ]);
@@ -948,6 +970,11 @@ const Reports = () => {
             ...prev,
             newAdmissions: stats.new_admissions_this_month || 0
           }));
+        }
+        
+        if (institutionRes.ok) {
+          const institution = await institutionRes.json();
+          setCurrency(institution.currency || 'BDT');
         }
       } catch (error) {
         console.error('Error fetching quick stats:', error);

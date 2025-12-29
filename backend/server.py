@@ -9743,7 +9743,19 @@ async def generate_admission_summary_report(
             query["gender"] = gender.capitalize()
             
         # Fetch filtered students
-        students = await db.students.find(query).to_list(1000)
+        students_raw = await db.students.find(query).to_list(1000)
+        
+        # Convert ObjectIds to strings for JSON serialization
+        students = []
+        for student in students_raw:
+            student_dict = {k: str(v) if isinstance(v, ObjectId) else v for k, v in student.items()}
+            if '_id' in student_dict:
+                student_dict['_id'] = str(student_dict['_id'])
+            students.append(student_dict)
+        
+        # Get institution currency for reports
+        institution = await db.institutions.find_one({"tenant_id": current_user.tenant_id})
+        currency = institution.get("currency", "BDT") if institution else "BDT"
         
         # Generate report data
         report_data = {
@@ -9761,6 +9773,7 @@ async def generate_admission_summary_report(
                 "female_students": len([s for s in students if s.get("gender") == "Female"]),
                 "other_gender": len([s for s in students if s.get("gender") == "Other"])
             },
+            "currency": currency,
             "students": students
         }
         
