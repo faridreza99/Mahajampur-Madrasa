@@ -15,6 +15,7 @@ Preferred communication style: Simple, everyday language.
 - **Responsiveness**: Fully responsive design across all devices using Tailwind CSS breakpoints and adaptive layouts.
 
 ## Recent Changes (December 2025)
+- **Madrasah Class Management System**: Institution type toggle (School/Madrasah) with full Bengali class names support for Madrasah levels: Ebtedayee (ইবতেদায়ী ১ম-৫ম বর্ষ), Dakhil (দাখিল ৬ষ্ঠ-১০ম শ্রেণি), Alim (আলিম ১ম-২য় বর্ষ), plus special classes (Nazera, Hifz, Kitab). Admin CRUD operations with safe delete (usage check), enable/disable toggle, and drag-to-reorder. Internal standard mapping (1-12) preserves analytics compatibility.
 - **Finance Module Bug Fixes**: Fixed "Process Payment & Generate Receipt" button in Collection tab (was missing onClick handler), fixed student dashboard fee calculation to compute from payments when no fee_ledger exists, corrected backend query to use `payments` collection instead of `fee_payments`.
 - **Dynamic Currency System**: All financial modules now use CurrencyContext to display school's configured currency (BDT ৳, USD $, INR ₹, EUR €, GBP £) instead of hardcoded symbols.
 - **Enterprise Payroll Management System**: Complete payroll module with attendance/leave integration, salary structure management, payroll processing workflow (Draft → Approved → Locked), bonus & advance management, payment tracking (Bank/bKash/Nagad/Rocket/Cash), payslip PDF generation with school branding, and comprehensive reports (monthly, department-wise, yearly). Role-based access for super_admin, admin, and accountant.
