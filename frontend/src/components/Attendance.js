@@ -134,10 +134,10 @@ const MarkAttendance = () => {
   const presentCount = Object.values(attendance).filter(s => s === 'present').length;
   const absentCount = Object.values(attendance).filter(s => s === 'absent').length;
 
-  // Filter staff to only show those with attendance records for the selected date
-  const displayedStaff = staff.filter(member => attendance[member.id] !== undefined);
+  // Show all staff members for marking attendance
+  const displayedStaff = staff;
   
-  console.log(`[ATTENDANCE-RENDER] Total staff: ${staff.length}, Staff with attendance for ${selectedDate}: ${displayedStaff.length}`);
+  console.log(`[ATTENDANCE-RENDER] Total staff: ${staff.length}, Displayed: ${displayedStaff.length}`);
 
   return (
     <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
