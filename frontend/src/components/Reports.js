@@ -758,7 +758,7 @@ const Reports = () => {
   const quickReports = [
     { name: 'Today\'s Attendance', icon: UserCheck, count: `${quickStats.todayAttendance.present}/${quickStats.todayAttendance.total}` },
     { name: 'New Admissions', icon: Users, count: String(quickStats.newAdmissions) },
-    { name: 'Fee Collection', icon: TrendingUp, count: `₹${(quickStats.feeCollection / 100000).toFixed(1)}L` },
+    { name: 'Fee Collection', icon: TrendingUp, count: formatCurrency(quickStats.feeCollection) },
     { name: 'Pending Reports', icon: Clock, count: String(quickStats.pendingReports) }
   ];
 

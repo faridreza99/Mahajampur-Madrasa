@@ -126,7 +126,7 @@ const StudentDashboard = () => {
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Fee Status</p>
                 <p className="text-xl font-bold text-gray-900 dark:text-white">
                   {fees.has_dues ? (
-                    <span className="text-red-600">Due: ₹{fees.balance}</span>
+                    <span className="text-red-600">Due: ৳{fees.balance}</span>
                   ) : (
                     <span className="text-green-600">Paid</span>
                   )}
@@ -137,7 +137,7 @@ const StudentDashboard = () => {
               </div>
             </div>
             <p className="text-xs text-gray-500 mt-2">
-              Paid: ₹{fees.paid_amount} / ₹{fees.total_fees}
+              Paid: ৳{fees.paid_amount} / ৳{fees.total_fees}
             </p>
           </CardContent>
         </Card>

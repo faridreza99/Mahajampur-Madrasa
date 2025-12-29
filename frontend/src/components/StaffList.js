@@ -843,7 +843,7 @@ const StaffListView = () => {
                       <TableCell className="hidden xl:table-cell">
                         <div className="flex items-center text-sm">
                           <DollarSign className="h-4 w-4 mr-1 text-gray-400" />
-                          ₹{member.salary?.toLocaleString()}
+                          ৳{member.salary?.toLocaleString()}
                         </div>
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
