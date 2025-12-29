@@ -166,7 +166,7 @@ const ClassManagement = () => {
 
   const fetchInstitutionSettings = async () => {
     try {
-      const response = await axios.get(\`\${API}/institution/settings\`);
+      const response = await axios.get(`${API}/institution/settings`);
       if (response.data?.institution_type) {
         setInstitutionType(response.data.institution_type);
       }
@@ -626,10 +626,10 @@ const ClassManagement = () => {
   const handleToggleClassStatus = async (cls) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(\`\${API}/classes/\${cls.id}/toggle-status\`, {}, {
-        headers: { Authorization: \`Bearer \${token}\` }
+      await axios.put(`${API}/classes/${cls.id}/toggle-status`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
       });
-      toast.success(\`Class "\${getDisplayName(cls)}" \${cls.is_active ? 'disabled' : 'enabled'} successfully\`);
+      toast.success(`Class "${getDisplayName(cls)}" ${cls.is_active ? 'disabled' : 'enabled'} successfully`);
       fetchData();
     } catch (error) {
       console.error('Failed to toggle class status:', error);
@@ -640,8 +640,8 @@ const ClassManagement = () => {
   const handleSafeDeleteClass = async (cls) => {
     try {
       const token = localStorage.getItem('token');
-      const usageRes = await axios.get(\`\${API}/classes/\${cls.id}/usage-check\`, {
-        headers: { Authorization: \`Bearer \${token}\` }
+      const usageRes = await axios.get(`${API}/classes/${cls.id}/usage-check`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
       
       const usage = usageRes.data;
@@ -649,18 +649,18 @@ const ClassManagement = () => {
       if (usage.has_data) {
         Swal.fire({
           title: t('classManagement.cannotDelete') || 'Cannot Delete Class',
-          html: \`
+          html: `
             <div class="text-left">
-              <p>\${t('classManagement.classHasData') || 'This class has associated data:'}</p>
+              <p>${t('classManagement.classHasData') || 'This class has associated data:'}</p>
               <ul class="list-disc ml-4 mt-2">
-                <li>\${t('classManagement.students') || 'Students'}: \${usage.usage.students}</li>
-                <li>\${t('classManagement.attendance') || 'Attendance Records'}: \${usage.usage.attendance}</li>
-                <li>\${t('classManagement.exams') || 'Exams'}: \${usage.usage.exams}</li>
-                <li>\${t('classManagement.results') || 'Results'}: \${usage.usage.results}</li>
+                <li>${t('classManagement.students') || 'Students'}: ${usage.usage.students}</li>
+                <li>${t('classManagement.attendance') || 'Attendance Records'}: ${usage.usage.attendance}</li>
+                <li>${t('classManagement.exams') || 'Exams'}: ${usage.usage.exams}</li>
+                <li>${t('classManagement.results') || 'Results'}: ${usage.usage.results}</li>
               </ul>
-              <p class="mt-3">\${t('classManagement.disableInstead') || 'Consider disabling the class instead.'}</p>
+              <p class="mt-3">${t('classManagement.disableInstead') || 'Consider disabling the class instead.'}</p>
             </div>
-          \`,
+          `,
           icon: 'warning',
           showCancelButton: true,
           confirmButtonText: t('classManagement.disableClass') || 'Disable Class',
@@ -674,7 +674,7 @@ const ClassManagement = () => {
       } else {
         Swal.fire({
           title: t('classManagement.deleteClass') || 'Delete Class',
-          text: \`\${t('classManagement.confirmDelete') || 'Are you sure you want to permanently delete'} "\${getDisplayName(cls)}"?\`,
+          text: `${t('classManagement.confirmDelete') || 'Are you sure you want to permanently delete'} "${getDisplayName(cls)}"?`,
           icon: 'warning',
           showCancelButton: true,
           confirmButtonText: t('common.delete') || 'Delete',
@@ -682,10 +682,10 @@ const ClassManagement = () => {
           confirmButtonColor: '#ef4444'
         }).then(async (result) => {
           if (result.isConfirmed) {
-            await axios.delete(\`\${API}/classes/\${cls.id}/permanent\`, {
-              headers: { Authorization: \`Bearer \${token}\` }
+            await axios.delete(`${API}/classes/${cls.id}/permanent`, {
+              headers: { Authorization: `Bearer ${token}` }
             });
-            toast.success(\`Class "\${getDisplayName(cls)}" deleted successfully\`);
+            toast.success(`Class "${getDisplayName(cls)}" deleted successfully`);
             fetchData();
           }
         });
@@ -701,18 +701,18 @@ const ClassManagement = () => {
       const token = localStorage.getItem('token');
       Swal.fire({
         title: t('classManagement.initializeClasses') || 'Initialize Classes',
-        text: \`\${t('classManagement.initializeConfirm') || 'This will add default classes for'} \${institutionType === 'madrasah' ? 'Madrasah' : 'School'}. \${t('classManagement.existingClassesKept') || 'Existing classes will be kept.'}\`,
+        text: `${t('classManagement.initializeConfirm') || 'This will add default classes for'} ${institutionType === 'madrasah' ? 'Madrasah' : 'School'}. ${t('classManagement.existingClassesKept') || 'Existing classes will be kept.'}`,
         icon: 'question',
         showCancelButton: true,
         confirmButtonText: t('common.confirm') || 'Confirm',
         cancelButtonText: t('common.cancel') || 'Cancel'
       }).then(async (result) => {
         if (result.isConfirmed) {
-          await axios.post(\`\${API}/classes/initialize-defaults\`, {
+          await axios.post(`${API}/classes/initialize-defaults`, {
             institution_type: institutionType,
             include_special_classes: institutionType === 'madrasah'
           }, {
-            headers: { Authorization: \`Bearer \${token}\` }
+            headers: { Authorization: `Bearer ${token}` }
           });
           toast.success(t('classManagement.classesInitialized') || 'Classes initialized successfully!');
           fetchData();
@@ -727,13 +727,13 @@ const ClassManagement = () => {
   const handleInstitutionTypeChange = async (newType) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(\`\${API}/institution/settings\`, {
+      await axios.put(`${API}/institution/settings`, {
         institution_type: newType
       }, {
-        headers: { Authorization: \`Bearer \${token}\` }
+        headers: { Authorization: `Bearer ${token}` }
       });
       setInstitutionType(newType);
-      toast.success(\`Institution type changed to \${newType === 'madrasah' ? 'Madrasah' : 'School'}\`);
+      toast.success(`Institution type changed to ${newType === 'madrasah' ? 'Madrasah' : 'School'}`);
     } catch (error) {
       console.error('Failed to update institution type:', error);
       setInstitutionType(newType);
@@ -860,22 +860,22 @@ const ClassManagement = () => {
               <div className="flex items-center bg-white dark:bg-gray-800 rounded-lg p-1 shadow-sm">
                 <button
                   onClick={() => handleInstitutionTypeChange('school')}
-                  className={\`px-4 py-2 rounded-md text-sm font-medium transition-all \${
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
                     institutionType === 'school'
                       ? 'bg-emerald-500 text-white shadow-sm'
                       : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }\`}
+                  }`}
                 >
                   <Building2 className="h-4 w-4 inline mr-1" />
                   {t('classManagement.school') || 'School'}
                 </button>
                 <button
                   onClick={() => handleInstitutionTypeChange('madrasah')}
-                  className={\`px-4 py-2 rounded-md text-sm font-medium transition-all \${
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
                     institutionType === 'madrasah'
                       ? 'bg-emerald-500 text-white shadow-sm'
                       : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }\`}
+                  }`}
                 >
                   <Moon className="h-4 w-4 inline mr-1" />
                   {t('classManagement.madrasah') || 'Madrasah'}
@@ -1124,7 +1124,7 @@ const ClassManagement = () => {
                       getFilteredClasses().map((cls, index) => (
                         <TableRow 
                           key={cls.id} 
-                          className={\`\${cls.is_active === false ? 'opacity-50 bg-gray-50 dark:bg-gray-800/50' : ''}\`}
+                          className={`${cls.is_active === false ? 'opacity-50 bg-gray-50 dark:bg-gray-800/50' : ''}`}
                         >
                           <TableCell className="font-medium">{index + 1}</TableCell>
                           <TableCell>
@@ -1141,7 +1141,7 @@ const ClassManagement = () => {
                           </TableCell>
                           <TableCell>
                             <Badge variant="secondary" className="dark:bg-gray-700 dark:text-gray-200">
-                              {cls.internal_standard ? \`Level \${cls.internal_standard}\` : cls.standard}
+                              {cls.internal_standard ? `Level ${cls.internal_standard}` : cls.standard}
                             </Badge>
                           </TableCell>
                           <TableCell>
@@ -1171,11 +1171,11 @@ const ClassManagement = () => {
                           <TableCell>
                             <button
                               onClick={() => handleToggleClassStatus(cls)}
-                              className={\`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors \${
+                              className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors ${
                                 cls.is_active !== false
                                   ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                                   : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
-                              }\`}
+                              }`}
                             >
                               {cls.is_active !== false ? (
                                 <>
