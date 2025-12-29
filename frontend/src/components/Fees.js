@@ -716,7 +716,7 @@ const Fees = () => {
           description: 'Please login to process payments.',
           duration: 4000
         });
-        return;
+        return false;
       }
 
       // Create payment in backend
@@ -766,6 +766,8 @@ const Fees = () => {
         }
       });
       
+      return true;
+      
     } catch (error) {
       console.error('Payment failed:', error);
       const errorMessage = error.response?.data?.detail || 'Unable to process payment. Please try again.';
@@ -773,6 +775,7 @@ const Fees = () => {
         description: errorMessage,
         duration: 4000
       });
+      return false;
     } finally {
       setLoading(false);
     }
@@ -2630,12 +2633,80 @@ const Fees = () => {
               </div>
 
               <div className="flex justify-end gap-3 mt-6 pt-6 border-t">
-                <Button variant="outline">
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    setCollectionForm({
+                      student_id: '',
+                      fee_type: '',
+                      amount: '',
+                      payment_mode: '',
+                      transaction_id: '',
+                      remarks: ''
+                    });
+                    setReceiptPreview(null);
+                    toast.info('Form cleared');
+                  }}
+                >
                   Clear Form
                 </Button>
-                <Button className="bg-green-500 hover:bg-green-600">
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  Process Payment & Generate Receipt
+                <Button 
+                  className="bg-green-500 hover:bg-green-600"
+                  disabled={loading || !collectionForm.student_id || !collectionForm.fee_type || !collectionForm.amount || !collectionForm.payment_mode}
+                  onClick={async () => {
+                    if (!collectionForm.student_id) {
+                      toast.error('Please select a student');
+                      return;
+                    }
+                    if (!collectionForm.fee_type) {
+                      toast.error('Please select a fee type');
+                      return;
+                    }
+                    if (!collectionForm.amount || parseFloat(collectionForm.amount) <= 0) {
+                      toast.error('Please enter a valid amount');
+                      return;
+                    }
+                    if (!collectionForm.payment_mode) {
+                      toast.error('Please select a payment mode');
+                      return;
+                    }
+                    
+                    const paymentData = {
+                      student_id: collectionForm.student_id,
+                      fee_type: collectionForm.fee_type,
+                      amount: parseFloat(collectionForm.amount),
+                      payment_mode: collectionForm.payment_mode,
+                      transaction_id: collectionForm.transaction_id || null,
+                      remarks: collectionForm.remarks || null
+                    };
+                    
+                    const success = await submitPayment(paymentData);
+                    
+                    // Only clear form after successful payment
+                    if (success) {
+                      setCollectionForm({
+                        student_id: '',
+                        fee_type: '',
+                        amount: '',
+                        payment_mode: '',
+                        transaction_id: '',
+                        remarks: ''
+                      });
+                      setReceiptPreview(null);
+                    }
+                  }}
+                >
+                  {loading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Process Payment & Generate Receipt
+                    </>
+                  )}
                 </Button>
               </div>
             </CardContent>

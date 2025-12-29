@@ -15,6 +15,8 @@ Preferred communication style: Simple, everyday language.
 - **Responsiveness**: Fully responsive design across all devices using Tailwind CSS breakpoints and adaptive layouts.
 
 ## Recent Changes (December 2025)
+- **Finance Module Bug Fixes**: Fixed "Process Payment & Generate Receipt" button in Collection tab (was missing onClick handler), fixed student dashboard fee calculation to compute from payments when no fee_ledger exists, corrected backend query to use `payments` collection instead of `fee_payments`.
+- **Dynamic Currency System**: All financial modules now use CurrencyContext to display school's configured currency (BDT ৳, USD $, INR ₹, EUR €, GBP £) instead of hardcoded symbols.
 - **Enterprise Payroll Management System**: Complete payroll module with attendance/leave integration, salary structure management, payroll processing workflow (Draft → Approved → Locked), bonus & advance management, payment tracking (Bank/bKash/Nagad/Rocket/Cash), payslip PDF generation with school branding, and comprehensive reports (monthly, department-wise, yearly). Role-based access for super_admin, admin, and accountant.
 - **School Branding in All Reports**: All PDF and Excel reports across the website now use the school branding (logo, name, address, colors) set by the school admin. Added `get_school_branding_for_reports()` helper function to fetch branding consistently.
 - **Enterprise Attendance Management System**: Complete attendance management with rule-based status calculation (on-time, late, absent, half-day), biometric device integration (ZKTeco), offline sync with conflict resolution, parent notifications (SMS/App), AI-assisted insights for at-risk students, and comprehensive audit logging.

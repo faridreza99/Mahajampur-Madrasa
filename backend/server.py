@@ -25779,19 +25779,49 @@ async def get_student_dashboard(current_user: User = Depends(get_current_user)):
         present_days = len([a for a in attendance_records if a.get("status") == "present"])
         attendance_percentage = round((present_days / total_days) * 100, 1) if total_days > 0 else 0
         
-        # Get fee status
+        # Get fee status - calculate from payments if no ledger exists
         fee_ledger = await db.fee_ledgers.find_one({
             "student_id": student_id,
             "tenant_id": current_user.tenant_id,
             "is_active": True
         })
         
-        fee_status = {
-            "total_fees": fee_ledger.get("total_fees", 0) if fee_ledger else 0,
-            "paid_amount": fee_ledger.get("paid_amount", 0) if fee_ledger else 0,
-            "balance": fee_ledger.get("balance", 0) if fee_ledger else 0,
-            "has_dues": (fee_ledger.get("balance", 0) if fee_ledger else 0) > 0
-        }
+        # If no ledger, calculate from payments and fee configurations
+        if not fee_ledger:
+            # Get payments for this student
+            student_payments = await db.payments.find({
+                "student_id": student_id,
+                "tenant_id": current_user.tenant_id
+            }).to_list(100)
+            paid_amount = sum(p.get("amount", 0) for p in student_payments)
+            
+            # Get fee configurations for student's class
+            fee_configs = []
+            if student.get("class_id"):
+                fee_configs = await db.fee_configurations.find({
+                    "tenant_id": current_user.tenant_id,
+                    "$or": [
+                        {"class_id": student["class_id"]},
+                        {"class_id": None},
+                        {"class_id": ""}
+                    ],
+                    "is_active": True
+                }).to_list(50)
+            total_fees = sum(fc.get("amount", 0) for fc in fee_configs)
+            
+            fee_status = {
+                "total_fees": total_fees,
+                "paid_amount": paid_amount,
+                "balance": max(0, total_fees - paid_amount),
+                "has_dues": (total_fees - paid_amount) > 0
+            }
+        else:
+            fee_status = {
+                "total_fees": fee_ledger.get("total_fees", 0),
+                "paid_amount": fee_ledger.get("paid_amount", 0),
+                "balance": fee_ledger.get("balance", 0),
+                "has_dues": fee_ledger.get("balance", 0) > 0
+            }
         
         # Get latest result
         latest_result = await db.student_results.find_one({
