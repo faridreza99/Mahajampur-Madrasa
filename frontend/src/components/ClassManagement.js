@@ -1017,7 +1017,8 @@ const ClassManagement = () => {
                     <Select 
                       value={classFormData.standard} 
                       onValueChange={(value) => {
-                        const selectedStd = defaultStandards.find(s => s.standard === value);
+                        const standardsList = institutionType === 'madrasah' ? madrasahStandards : defaultStandards;
+                        const selectedStd = standardsList.find(s => s.standard === value);
                         setClassFormData({
                           ...classFormData, 
                           standard: value,
@@ -1032,7 +1033,7 @@ const ClassManagement = () => {
                       </SelectTrigger>
                       <SelectContent className="dark:bg-gray-800">
                         <SelectItem value="select_standard" disabled>{t('classManagement.selectStandard') || 'Select Standard'}</SelectItem>
-                        {defaultStandards.map((std) => (
+                        {(institutionType === 'madrasah' ? madrasahStandards : defaultStandards).map((std) => (
                           <SelectItem key={std.standard} value={std.standard}>
                             <span className="flex items-center gap-2">
                               <span>{std.display_name}</span>
