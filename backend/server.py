@@ -30132,6 +30132,7 @@ async def generate_student_id_card(
         c.rect(photo_x, photo_y, photo_width, photo_height, fill=True, stroke=True)
         
         # If student has photo, try to add it
+        # If student has photo, try to add it
         photo_added = False
         if student.get("photo_url"):
             try:
@@ -30162,6 +30163,20 @@ async def generate_student_id_card(
                             photo_added = True
                     except Exception as e:
                         logging.warning(f"Could not fetch student photo from URL: {e}")
+                elif photo_url.startswith("/uploads"):
+                    # Relative path - read from local file system
+                    try:
+                        # The uploads folder is typically at the project root or in backend
+                        local_path = Path(__file__).parent.parent / photo_url.lstrip("/")
+                        if not local_path.exists():
+                            local_path = Path(__file__).parent / photo_url.lstrip("/")
+                        if local_path.exists():
+                            c.drawImage(str(local_path), photo_x, photo_y, photo_width, photo_height, preserveAspectRatio=True, mask='auto')
+                            photo_added = True
+                        else:
+                            logging.warning(f"Photo file not found at: {local_path}")
+                    except Exception as e:
+                        logging.warning(f"Could not load student photo from local path: {e}")
             except Exception as e:
                 logging.warning(f"Could not add student photo: {e}")
         
