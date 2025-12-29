@@ -482,6 +482,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     "/hss/students": ["hss-module", "hss_module"],
     "/transport/routes": ["vehicle", "vehicle_transport", "vehicle-transport"],
     "/certificates": ["certificates"],
+    "/students/attendance": ["student-attendance", "student_attendance", "attendance"],
   };
 
   // Helper to check if a sub-item should be visible based on allowed modules
