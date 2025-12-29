@@ -24,6 +24,7 @@ Preferred communication style: Simple, everyday language.
 - **Enhanced Student Attendance UI**: Added Late (দেরি) and Half-day (অর্ধদিবস) status options with Bengali translations, updated summary cards to show all 5 attendance statuses.
 - **Blank Question Paper Template**: Added delete section functionality with Bengali/English confirmation dialog.
 - **Dark Mode Fixes**: Added comprehensive dark mode support to 15+ components including LoginPage, Calendar, Results, StudentResults, ParentResults, RatingSurveys, QuizTool, TestGenerator, AINotes, AISummary, BiometricDevices, Reports, AcademicCMS, Vehicle, and StaffList.
+- **School-wise User Management**: Super_admin can now manage users across all schools in Tenant Management. Features include Edit User modal (name, email, role, status), Reset Password modal with manual entry and auto-generate options, clickable status badges for quick activate/deactivate, and cross-tenant management via target_tenant_id parameter. All actions are logged with admin details and IP address.
 
 ## Technical Implementations
 - **Frontend**: React 19, React Router DOM, Axios, Context API.
