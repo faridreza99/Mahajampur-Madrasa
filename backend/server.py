@@ -3250,7 +3250,7 @@ async def get_students(
 ):
     query = {"tenant_id": current_user.tenant_id, "is_active": True}
     
-    if class_id:
+    if class_id and class_id != "all_classes":
         query["class_id"] = class_id
     if section_id:
         query["section_id"] = section_id
@@ -3947,7 +3947,7 @@ async def export_students(
     try:
         # Build query
         query = {"tenant_id": current_user.tenant_id, "is_active": True}
-        if class_id:
+        if class_id and class_id != "all_classes":
             query["class_id"] = class_id
         if section_id:
             query["section_id"] = section_id
@@ -4098,7 +4098,7 @@ async def export_students(
             
             # Filter display
             filter_text = []
-            if class_id:
+            if class_id and class_id != "all_classes":
                 class_name = class_map.get(class_id, "")
                 if class_name:
                     filter_text.append(f"Class: {class_name}")
@@ -7091,7 +7091,7 @@ async def create_class(class_data: ClassCreate, current_user: User = Depends(get
 @api_router.get("/sections", response_model=List[Section])
 async def get_sections(class_id: Optional[str] = None, current_user: User = Depends(get_current_user)):
     query = {"tenant_id": current_user.tenant_id, "is_active": True}
-    if class_id:
+    if class_id and class_id != "all_classes":
         query["class_id"] = class_id
     
     sections = await db.sections.find(query).to_list(1000)
@@ -7777,7 +7777,7 @@ async def get_subjects(
     query = {"tenant_id": current_user.tenant_id, "is_active": True}
     
     # If class_id is provided, look up the class name and build variations
-    if class_id:
+    if class_id and class_id != "all_classes":
         class_doc = await db.classes.find_one({
             "id": class_id,
             "tenant_id": current_user.tenant_id
@@ -23779,7 +23779,7 @@ async def get_student_results(
             query["status"] = "published"
         elif current_user.role == "teacher":
             # Teachers can see results for their assigned classes
-            if class_id:
+            if class_id and class_id != "all_classes":
                 query["class_id"] = class_id
             if section_id:
                 query["section_id"] = section_id
@@ -24124,7 +24124,7 @@ async def publish_results_bulk(
             "status": {"$ne": "published"}
         }
         
-        if class_id:
+        if class_id and class_id != "all_classes":
             query["class_id"] = class_id
         if section_id:
             query["section_id"] = section_id
@@ -24161,7 +24161,7 @@ async def calculate_ranks(exam_term_id: str, class_id: Optional[str], section_id
             "status": "published"
         }
         
-        if class_id:
+        if class_id and class_id != "all_classes":
             query["class_id"] = class_id
         if section_id:
             query["section_id"] = section_id
@@ -24999,7 +24999,7 @@ async def get_teacher_dashboard(current_user: User = Depends(get_current_user)):
                         subject = period.get("subject", "")
                         assigned_subjects.add(subject)
                         assigned_classes.add(class_name)
-                        if class_id:
+                        if class_id and class_id != "all_classes":
                             class_ids.add(class_id)
                         
                         if day_schedule.get("day") == current_day:
@@ -25212,7 +25212,7 @@ async def get_teacher_students(
             "is_active": True
         }
         
-        if class_id:
+        if class_id and class_id != "all_classes":
             if class_id not in assigned_class_ids:
                 raise HTTPException(status_code=403, detail="You are not assigned to this class")
             query["class_id"] = class_id
@@ -25329,7 +25329,7 @@ async def get_homework_list(
         if current_user.role == "teacher":
             query["created_by"] = current_user.id
         
-        if class_id:
+        if class_id and class_id != "all_classes":
             query["class_id"] = class_id
         if subject:
             query["subject"] = subject
@@ -25524,7 +25524,7 @@ async def get_lesson_plans(
         if current_user.role == "teacher":
             query["created_by"] = current_user.id
         
-        if class_id:
+        if class_id and class_id != "all_classes":
             query["class_id"] = class_id
         if subject:
             query["subject"] = subject
