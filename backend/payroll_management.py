@@ -169,13 +169,14 @@ async def get_school_branding_for_reports(db, tenant_id: str) -> dict:
     }
 
 async def get_currency_symbol(db, tenant_id: str) -> str:
-    """Get currency symbol from institution settings"""
+    """Get currency symbol from institution settings - PDF-safe text format"""
     institution = await db.institution.find_one({"tenant_id": tenant_id})
     currency = institution.get("currency", "BDT") if institution else "BDT"
     
+    # Use PDF-safe text representations to avoid font encoding issues
     symbols = {
-        'BDT': '৳', 'USD': '$', 'EUR': '€', 'GBP': '£',
-        'INR': '₹', 'JPY': '¥', 'CNY': '¥', 'AUD': 'A$', 'CAD': 'C$'
+        'BDT': 'Tk ', 'USD': '$', 'EUR': 'EUR ', 'GBP': 'GBP ',
+        'INR': 'Rs ', 'JPY': 'JPY ', 'CNY': 'CNY ', 'AUD': 'A$', 'CAD': 'C$'
     }
     return symbols.get(currency, currency + ' ')
 
