@@ -29938,7 +29938,7 @@ async def generate_student_id_card(
     student_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Generate PDF ID card for a student - Professional Madrasah/School format"""
+    """Generate PDF ID card for a student - Professional Madrasah/School format with Bengali support"""
     from reportlab.lib.units import inch, mm
     from reportlab.lib.pagesizes import letter
     from reportlab.pdfgen import canvas as pdf_canvas
@@ -29957,6 +29957,21 @@ async def generate_student_id_card(
         raise HTTPException(status_code=403, detail="Not authorized")
     
     try:
+        # Register Bengali fonts for proper rendering
+        font_dir = Path(__file__).parent / "fonts"
+        bengali_font_regular = font_dir / "NotoSansBengali-Regular.ttf"
+        bengali_font_bold = font_dir / "NotoSansBengali-Bold.ttf"
+        
+        try:
+            if bengali_font_regular.exists():
+                if "NotoSansBengali" not in pdfmetrics.getRegisteredFontNames():
+                    pdfmetrics.registerFont(TTFont("NotoSansBengali", str(bengali_font_regular)))
+            if bengali_font_bold.exists():
+                if "NotoSansBengali-Bold" not in pdfmetrics.getRegisteredFontNames():
+                    pdfmetrics.registerFont(TTFont("NotoSansBengali-Bold", str(bengali_font_bold)))
+        except Exception as e:
+            logging.warning(f"Could not register Bengali fonts: {e}")
+        
         # Fetch student
         student = await db.students.find_one({
             "id": student_id,
@@ -30024,6 +30039,26 @@ async def generate_student_id_card(
         except:
             bg_color = colors.HexColor("#10B981")
         
+        # Helper function to check if text contains Bengali
+        def contains_bengali(text):
+            if not text:
+                return False
+            for char in text:
+                if '\u0980' <= char <= '\u09FF':
+                    return True
+            return False
+        
+        # Helper function to set appropriate font
+        def set_font_for_text(canvas_obj, text, size, bold=False):
+            if contains_bengali(text):
+                font_name = "NotoSansBengali-Bold" if bold and "NotoSansBengali-Bold" in pdfmetrics.getRegisteredFontNames() else "NotoSansBengali"
+                if font_name in pdfmetrics.getRegisteredFontNames():
+                    canvas_obj.setFont(font_name, size)
+                    return True
+            # Fallback to Helvetica
+            canvas_obj.setFont("Helvetica-Bold" if bold else "Helvetica", size)
+            return False
+        
         # Draw header background - taller for logo + name
         header_height = 0.6*inch
         c.setFillColor(bg_color)
@@ -30068,14 +30103,17 @@ async def generate_student_id_card(
         
         # Institution name in header (centered or offset if logo present)
         c.setFillColor(colors.white)
-        c.setFont("Helvetica-Bold", 9)
         name_x = card_width / 2
         if logo_added:
             name_x = (logo_x + logo_size + card_width) / 2
         
         # Truncate long names
         max_name_len = 35 if logo_added else 40
-        c.drawCentredString(name_x, card_height - 0.35*inch, display_name[:max_name_len])
+        display_name_truncated = display_name[:max_name_len]
+        
+        # Use Bengali font if institution name contains Bengali
+        set_font_for_text(c, display_name_truncated, 9, bold=True)
+        c.drawCentredString(name_x, card_height - 0.35*inch, display_name_truncated)
         
         # Add "Student ID Card" subtitle
         c.setFont("Helvetica", 6)
@@ -30141,31 +30179,36 @@ async def generate_student_id_card(
         c.setFillColor(colors.black)
         
         # Name (Bengali/English)
-        c.setFont("Helvetica-Bold", 9)
         student_name = student.get("name", "")[:25]
+        set_font_for_text(c, student_name, 9, bold=True)
         c.drawString(details_x, details_y, student_name)
         details_y -= line_height + 0.02*inch
         
         # Father's name
-        c.setFont("Helvetica", 7)
         father_name = student.get("father_name", "")[:22]
-        c.drawString(details_x, details_y, f"Father: {father_name}")
+        father_text = f"Father: {father_name}"
+        set_font_for_text(c, father_text, 7, bold=False)
+        c.drawString(details_x, details_y, father_text)
         details_y -= line_height
         
         # Class/Marhala - Use Bengali for Madrasah
         if institution_type == "madrasah":
-            c.drawString(details_x, details_y, f"Marhala: {class_name[:18]}")
+            class_text = f"Marhala: {class_name[:18]}"
         else:
-            c.drawString(details_x, details_y, f"Class: {class_name[:20]}")
+            class_text = f"Class: {class_name[:20]}"
+        set_font_for_text(c, class_text, 7, bold=False)
+        c.drawString(details_x, details_y, class_text)
         details_y -= line_height
         
         # Section
         if section_name:
+            c.setFont("Helvetica", 7)
             c.drawString(details_x, details_y, f"Section: {section_name}")
             details_y -= line_height
         
         # Roll/Reg
         roll_or_reg = student.get("roll_no") or student.get("admission_no", "")
+        c.setFont("Helvetica", 7)
         c.drawString(details_x, details_y, f"Roll: {roll_or_reg}")
         
         # Footer background
@@ -30213,8 +30256,6 @@ async def generate_student_id_card(
     except Exception as e:
         logging.error(f"Failed to generate student ID card: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to generate ID card: {str(e)}")
-
-
 @api_router.get("/id-cards/staff/{staff_id}")
 async def generate_staff_id_card(
     staff_id: str,
