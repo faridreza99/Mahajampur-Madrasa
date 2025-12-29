@@ -266,11 +266,11 @@ class AuditLog(BaseModel):
 
 class Tenant(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    name: str
+    name: Optional[str] = "Unknown"
     domain: str
     contact_email: EmailStr
     contact_phone: str
-    address: str
+    address: Optional[str] = None
     is_active: bool = True
     allowed_modules: List[str] = Field(default_factory=lambda: [
         'home', 'students', 'staff', 'class', 'attendance', 'results', 
@@ -283,11 +283,11 @@ class Tenant(BaseModel):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 class TenantCreate(BaseModel):
-    name: str
+    name: Optional[str] = "Unknown"
     domain: str
     contact_email: EmailStr
     contact_phone: str
-    address: str
+    address: Optional[str] = None
     allowed_modules: Optional[List[str]] = None
 
 class TenantModuleUpdate(BaseModel):
@@ -296,9 +296,9 @@ class TenantModuleUpdate(BaseModel):
 class School(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    name: str
+    name: Optional[str] = "Unknown"
     code: str
-    address: str
+    address: Optional[str] = None
     city: str
     state: str
     pincode: str
@@ -312,9 +312,9 @@ class School(BaseModel):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 class SchoolCreate(BaseModel):
-    name: str
+    name: Optional[str] = "Unknown"
     code: str
-    address: str
+    address: Optional[str] = None
     city: str
     state: str
     pincode: str
@@ -327,7 +327,7 @@ class SchoolCreate(BaseModel):
 class Institution(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    school_id: str
+    school_id: Optional[str] = None
     school_name: str
     school_code: Optional[str] = None
     school_type: Optional[str] = None
@@ -367,11 +367,11 @@ class InstitutionUpdate(BaseModel):
 class Student(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    school_id: str
+    school_id: Optional[str] = None
     user_id: Optional[str] = None  # Link to user account for student login
     admission_no: str
     roll_no: str
-    name: str
+    name: Optional[str] = "Unknown"
     father_name: str
     mother_name: str
     date_of_birth: str
@@ -380,7 +380,7 @@ class Student(BaseModel):
     section_id: str
     phone: str
     email: Optional[str] = None
-    address: str
+    address: Optional[str] = None
     guardian_name: str
     guardian_phone: str
     photo_url: Optional[str] = None
@@ -395,7 +395,7 @@ class Student(BaseModel):
 class StudentCreate(BaseModel):
     admission_no: str
     roll_no: str
-    name: str
+    name: Optional[str] = "Unknown"
     father_name: str
     mother_name: str
     date_of_birth: str
@@ -404,7 +404,7 @@ class StudentCreate(BaseModel):
     section_id: str
     phone: str
     email: Optional[str] = None
-    address: str
+    address: Optional[str] = None
     guardian_name: str
     guardian_phone: str
     tags: List[str] = []  # Student tags for categorization
@@ -417,11 +417,11 @@ class StudentCredentials(BaseModel):
 class StudentCreateResponse(BaseModel):
     id: str
     tenant_id: str
-    school_id: str
+    school_id: Optional[str] = None
     user_id: Optional[str] = None
     admission_no: str
     roll_no: str
-    name: str
+    name: Optional[str] = "Unknown"
     father_name: str
     mother_name: str
     date_of_birth: str
@@ -430,7 +430,7 @@ class StudentCreateResponse(BaseModel):
     section_id: str
     phone: str
     email: Optional[str] = None
-    address: str
+    address: Optional[str] = None
     guardian_name: str
     guardian_phone: str
     photo_url: Optional[str] = None
@@ -446,8 +446,8 @@ class StudentCreateResponse(BaseModel):
 class Tag(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    school_id: str
-    name: str
+    school_id: Optional[str] = None
+    name: Optional[str] = "Unknown"
     description: Optional[str] = None
     color: str = "#3B82F6"  # Default blue color
     category: str = "general"  # general, academic, behavioral, achievement, etc.
@@ -457,7 +457,7 @@ class Tag(BaseModel):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 class TagCreate(BaseModel):
-    name: str
+    name: Optional[str] = "Unknown"
     description: Optional[str] = None
     color: str = "#3B82F6"
     category: str = "general"
@@ -465,7 +465,7 @@ class TagCreate(BaseModel):
 class TagAssignment(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    school_id: str
+    school_id: Optional[str] = None
     tag_id: str
     entity_type: str  # "student" or "staff"
     entity_id: str
@@ -475,18 +475,18 @@ class TagAssignment(BaseModel):
 class Staff(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    school_id: str
+    school_id: Optional[str] = None
     employee_id: str
-    name: str
+    name: Optional[str] = "Unknown"
     email: EmailStr
     phone: str
     designation: str
     department: str
-    qualification: str
-    experience_years: int
-    date_of_joining: str
-    salary: float
-    address: str
+    qualification: Optional[str] = None
+    experience_years: Optional[int] = 0
+    date_of_joining: Optional[str] = None
+    salary: Optional[float] = 0.0
+    address: Optional[str] = None
     role: str = "staff"  # for RBAC: admin, teacher, staff
     gender: Optional[str] = None
     date_of_birth: Optional[str] = None
@@ -504,14 +504,14 @@ class Staff(BaseModel):
 
 class StaffCreate(BaseModel):
     employee_id: Optional[str] = None  # Auto-generated if not provided
-    name: str
+    name: Optional[str] = "Unknown"
     email: EmailStr
     phone: str
     designation: str
     department: str
     qualification: Optional[str] = None
     experience_years: int = 0
-    date_of_joining: str
+    date_of_joining: Optional[str] = None
     salary: float = 0
     address: Optional[str] = None
     role: str = "staff"  # admin, teacher, staff
@@ -526,7 +526,7 @@ class StaffCreate(BaseModel):
 class LeaveRequest(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    school_id: str
+    school_id: Optional[str] = None
     staff_id: str
     staff_name: str  # Denormalized for easy display
     staff_employee_id: str  # Denormalized for easy display
@@ -560,7 +560,7 @@ class LeaveRequestUpdate(BaseModel):
 class StaffRole(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    school_id: str
+    school_id: Optional[str] = None
     role_name: str
     description: Optional[str] = None
     is_active: bool = True
@@ -580,7 +580,7 @@ class StaffRoleUpdate(BaseModel):
 class Department(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    school_id: str
+    school_id: Optional[str] = None
     department_name: str
     description: Optional[str] = None
     head_id: Optional[str] = None
@@ -603,7 +603,7 @@ class DepartmentUpdate(BaseModel):
 class EmploymentType(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    school_id: str
+    school_id: Optional[str] = None
     type_name: str
     description: Optional[str] = None
     is_active: bool = True
@@ -623,7 +623,7 @@ class EmploymentTypeUpdate(BaseModel):
 class RolePermission(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    school_id: str
+    school_id: Optional[str] = None
     role_name: str
     description: Optional[str] = None
     permissions: Dict[str, Dict[str, bool]] = Field(default_factory=dict)
@@ -646,8 +646,8 @@ class RolePermissionUpdate(BaseModel):
 class Class(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    school_id: str
-    name: str
+    school_id: Optional[str] = None
+    name: Optional[str] = "Unknown"
     standard: str
     sections: List[str] = Field(default_factory=lambda: ['A'])
     description: Optional[str] = None
@@ -658,7 +658,7 @@ class Class(BaseModel):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 class ClassCreate(BaseModel):
-    name: str
+    name: Optional[str] = "Unknown"
     standard: str
     sections: List[str] = Field(default_factory=lambda: ['A'])
     description: Optional[str] = None
@@ -676,9 +676,9 @@ class ClassUpdate(BaseModel):
 class Section(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    school_id: str
+    school_id: Optional[str] = None
     class_id: str
-    name: str
+    name: Optional[str] = "Unknown"
     section_teacher_id: Optional[str] = None
     max_students: int = 40
     is_active: bool = True
@@ -687,7 +687,7 @@ class Section(BaseModel):
 
 class SectionCreate(BaseModel):
     class_id: str
-    name: str
+    name: Optional[str] = "Unknown"
     section_teacher_id: Optional[str] = None
     max_students: int = 40
 
@@ -720,7 +720,7 @@ class Timetable(BaseModel):
     """Complete timetable for a class"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    school_id: str
+    school_id: Optional[str] = None
     class_id: str
     class_name: str
     standard: str
@@ -771,7 +771,7 @@ class GradingScale(BaseModel):
     """Complete grading scale with multiple grade boundaries"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    school_id: str
+    school_id: Optional[str] = None
     scale_name: str  # "10-Point Scale", "Letter Grade System", etc.
     scale_type: str = "percentage"  # percentage, points, letter
     grade_boundaries: List[GradeBoundary] = []
@@ -814,7 +814,7 @@ class AssessmentCriteria(BaseModel):
     """Assessment criteria configuration for report cards"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    school_id: str
+    school_id: Optional[str] = None
     criteria_name: str  # "Standard Assessment", "CBSE Pattern", etc.
     assessment_weights: List[AssessmentWeight] = []
     applicable_standards: List[str] = []  # ["1st", "2nd", ...] or ["all"]
@@ -869,7 +869,7 @@ class Subject(BaseModel):
     """Subject/Course in the curriculum"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    school_id: str
+    school_id: Optional[str] = None
     subject_name: str
     subject_code: str
     class_standard: str  # "6th", "7th", "8th", etc.
@@ -983,7 +983,7 @@ class StudentRouteAssignment(BaseModel):
     """Student assignment to a transport route"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    school_id: str
+    school_id: Optional[str] = None
     student_id: str
     route_id: str
     boarding_point: str
@@ -1008,7 +1008,7 @@ class AcademicBook(BaseModel):
     """Academic textbook in the CMS with hierarchical structure"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    school_id: str
+    school_id: Optional[str] = None
     
     # Hierarchical Tags
     class_standard: str  # "6th", "7th", "8th", "9th", "10th", etc.
@@ -1062,7 +1062,7 @@ class ReferenceBook(BaseModel):
     """Reference book in the CMS with hierarchical structure"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    school_id: str
+    school_id: Optional[str] = None
     
     # Hierarchical Tags
     class_standard: str  # "6th", "7th", "8th", "9th", "10th", etc.
@@ -1108,7 +1108,7 @@ class BookChapter(BaseModel):
     """Chapter within an academic/reference book"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    school_id: str
+    school_id: Optional[str] = None
     book_id: str  # Links to AcademicBook or ReferenceBook
     book_type: str  # "academic" or "reference"
 
@@ -1150,7 +1150,7 @@ class QAKnowledgeBase(BaseModel):
     """Question-Answer knowledge base with hierarchical structure"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    school_id: str
+    school_id: Optional[str] = None
     
     # Hierarchical Tags
     class_standard: str  # "6th", "7th", "8th", "9th", "10th", etc.
@@ -1193,7 +1193,7 @@ class PreviousYearPaper(BaseModel):
     """Previous years' question papers with hierarchical structure"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    school_id: str
+    school_id: Optional[str] = None
     
     # Hierarchical Tags
     class_standard: str  # "6th", "7th", "8th", "9th", "10th", etc.
@@ -1237,7 +1237,7 @@ class PaperQuestion(BaseModel):
     """Individual question from a previous year paper with solution"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    school_id: str
+    school_id: Optional[str] = None
     paper_id: str  # Links to PreviousYearPaper
     
     # Question Details
@@ -1277,7 +1277,7 @@ class ExamTerm(BaseModel):
     """Exam term/type configuration (Unit Test, Mid-term, Final, etc.)"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    school_id: str
+    school_id: Optional[str] = None
     name: str  # "Unit Test 1", "Mid-term", "Final Exam"
     exam_type: str  # "unit_test", "mid_term", "final", "quarterly"
     academic_year: str  # "2024-2025"
@@ -1291,7 +1291,7 @@ class ExamTerm(BaseModel):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 class ExamTermCreate(BaseModel):
-    name: str
+    name: Optional[str] = "Unknown"
     exam_type: str
     academic_year: str
     start_date: Optional[str] = None
@@ -1323,7 +1323,7 @@ class StudentResult(BaseModel):
     """Student result for an exam term"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    school_id: str
+    school_id: Optional[str] = None
     exam_term_id: str
     student_id: str
     student_name: str
@@ -14175,7 +14175,7 @@ class ConductCertificateRequest(BaseModel):
 class FeeConfiguration(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    school_id: str
+    school_id: Optional[str] = None
     fee_type: str  # "Tuition Fees", "Transport Fees", "Admission Fees"
     amount: float
     frequency: str  # "monthly", "quarterly", "half-yearly", "yearly", "one-time"
@@ -14213,7 +14213,7 @@ class FeeConfigurationUpdate(BaseModel):
 class StudentFee(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    school_id: str
+    school_id: Optional[str] = None
     student_id: str
     student_name: str
     admission_no: str
@@ -14237,7 +14237,7 @@ class StudentFee(BaseModel):
 class Payment(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    school_id: str
+    school_id: Optional[str] = None
     student_id: str
     student_name: str
     admission_no: str
@@ -14282,7 +14282,7 @@ class FeeDashboard(BaseModel):
 class Transaction(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    school_id: str
+    school_id: Optional[str] = None
     transaction_type: str  # "Income" or "Expense"
     category: str  # "Fees", "Salaries", "Utilities", "Donations", etc.
     description: str
@@ -15175,7 +15175,7 @@ class AdharExtract(BaseModel):
     father_name: str
     mother_name: str
     date_of_birth: str
-    address: str
+    address: Optional[str] = None
     class_name: str
     section: str
     extraction_date: str
@@ -15194,7 +15194,7 @@ class AdharExtractRequest(BaseModel):
     father_name: str
     mother_name: str
     date_of_birth: str
-    address: str
+    address: Optional[str] = None
     class_name: str
     section: str
     verified_by: str
@@ -24414,7 +24414,7 @@ class GradeBand(BaseModel):
     remarks: str = ""
 
 class GradingSchemeCreate(BaseModel):
-    name: str
+    name: Optional[str] = "Unknown"
     description: str = ""
     grade_bands: List[GradeBand]
     is_default: bool = False
@@ -26528,7 +26528,7 @@ class ExamSection(BaseModel):
 class QuestionPaper(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    school_id: str
+    school_id: Optional[str] = None
     title_bn: str  # Bengali title like "বার্ষিক পরীক্ষা - ২০২৫"
     title_en: Optional[str] = None
     class_name: str
