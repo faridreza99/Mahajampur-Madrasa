@@ -65,6 +65,7 @@ import { format } from 'date-fns';
 import { cn } from '../lib/utils';
 
 const API = process.env.REACT_APP_API_URL;
+const BASE_URL = API ? API.replace('/api', '') : '';
 
 const StudentList = () => {
   const navigate = useNavigate();
@@ -1221,7 +1222,7 @@ const StudentList = () => {
                       <TableCell className="px-2 sm:px-4">
                         <div className="flex items-center space-x-2 sm:space-x-3">
                           <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
-                            <AvatarImage src={student.photo_url} />
+                            <AvatarImage src={student.photo_url ? `${BASE_URL}${student.photo_url}` : ''} />
                             <AvatarFallback className="bg-emerald-100 text-emerald-700 text-xs sm:text-sm">
                               {student.name.split(' ').map(n => n[0]).join('')}
                             </AvatarFallback>
@@ -2157,7 +2158,7 @@ const StudentList = () => {
               {/* Student Header */}
               <div className="flex items-center space-x-4 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg">
                 <Avatar className="h-20 w-20">
-                  <AvatarImage src={viewingStudent.photo_url} />
+                  <AvatarImage src={viewingStudent.photo_url ? `${BASE_URL}${viewingStudent.photo_url}` : ''} />
                   <AvatarFallback className="bg-emerald-100 text-emerald-700 text-xl">
                     {viewingStudent.name.split(' ').map(n => n[0]).join('')}
                   </AvatarFallback>
@@ -2384,7 +2385,7 @@ const StudentList = () => {
               <div className="relative">
                 {photoPreview || editingStudent?.photo_url ? (
                   <img 
-                    src={photoPreview || editingStudent?.photo_url} 
+                    src={photoPreview || (editingStudent?.photo_url ? `${BASE_URL}${editingStudent.photo_url}` : '')} 
                     alt="Student" 
                     className="w-24 h-24 rounded-full object-cover border-4 border-emerald-100"
                   />

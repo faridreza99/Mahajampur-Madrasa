@@ -19,6 +19,7 @@ import {
 import { toast } from 'sonner';
 
 const API = process.env.REACT_APP_API_URL || 'https://portal.mahajampurdarbarsharif.org/api';
+const BASE_URL = API.replace('/api', '');
 
 const StudentProfile = () => {
   const [loading, setLoading] = useState(true);
@@ -152,7 +153,7 @@ const StudentProfile = () => {
             <div className="relative inline-block">
               {profile.photo_url ? (
                 <img 
-                  src={`${API}${profile.photo_url}`} 
+                  src={`${BASE_URL}${profile.photo_url}`} 
                   alt={profile.name}
                   className="w-32 h-32 rounded-full object-cover mx-auto border-4 border-blue-500"
                 />

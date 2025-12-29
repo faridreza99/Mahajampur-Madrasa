@@ -54,6 +54,7 @@ import { toast } from 'sonner';
 
 const BACKEND_URL = process.env.REACT_APP_API_URL;
 const API = BACKEND_URL;
+const BASE_URL = API ? API.replace('/api', '') : '';
 
 // Staff List Component (shows all staff)
 const StaffListView = () => {
@@ -501,7 +502,7 @@ const StaffListView = () => {
                   <div className="flex-shrink-0">
                     {photoPreview || editingStaff?.photo_url ? (
                       <img 
-                        src={photoPreview || `${API}${editingStaff?.photo_url}`} 
+                        src={photoPreview || `${BASE_URL}${editingStaff?.photo_url}`} 
                         alt="Staff" 
                         className="h-20 w-20 rounded-full object-cover border-2 border-gray-300"
                       />

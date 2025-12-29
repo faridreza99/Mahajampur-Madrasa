@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
 const API = process.env.REACT_APP_API_URL || 'https://portal.mahajampurdarbarsharif.org/api';
+const BASE_URL = API.replace('/api', '');
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -79,7 +80,7 @@ const StudentDashboard = () => {
         </div>
         {student.photo_url && (
           <img 
-            src={`${API}${student.photo_url}`} 
+            src={`${BASE_URL}${student.photo_url}`} 
             alt={student.name}
             className="w-16 h-16 rounded-full object-cover border-2 border-blue-500"
           />
