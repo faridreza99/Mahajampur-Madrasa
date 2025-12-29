@@ -2523,8 +2523,6 @@ async def get_current_subscription(current_user: User = Depends(get_current_user
     }
 
 
-
-
 @api_router.get("/subscriptions/{tenant_id}")
 async def get_tenant_subscription(tenant_id: str, current_user: User = Depends(get_current_user)):
     """Get subscription for a specific tenant"""
@@ -26520,7 +26518,6 @@ async def get_question_bank_stats(
         return {"total_questions": 0, "by_type": {}, "by_difficulty": {}, "subjects": []}
 
 
-
 @api_router.post("/question-bank/ai-generate")
 async def ai_generate_questions(
     request: dict,
@@ -27582,9 +27579,6 @@ setup_attendance_routes(api_router, db, get_current_user, User)
 
 
 
-# Include router at the end after all routes are defined
-app.include_router(api_router)
-
 # ==================== PAYROLL MANAGEMENT SYSTEM ====================
 # Complete payroll processing with attendance & leave integration
 
@@ -27885,6 +27879,305 @@ async def list_payrolls(
     
     return result
 
+@api_router.get("/payroll/bonuses")
+async def list_bonuses(
+    year: Optional[int] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """List all bonuses"""
+    if current_user.role not in ["super_admin", "admin", "accountant"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    query = {"tenant_id": current_user.tenant_id}
+    if year:
+        query["effective_year"] = year
+    
+    bonuses = await db.payroll_bonuses.find(query).sort("created_at", -1).to_list(100)
+    return bonuses
+
+@api_router.post("/payroll/bonuses")
+async def create_bonus(
+    data: BonusCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create bonus"""
+    if current_user.role not in ["super_admin", "admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    bonus_dict = data.dict()
+    bonus_dict["id"] = str(uuid.uuid4())
+    bonus_dict["tenant_id"] = current_user.tenant_id
+    bonus_dict["created_at"] = datetime.utcnow()
+    bonus_dict["created_by"] = current_user.id
+    
+    await db.payroll_bonuses.insert_one(bonus_dict)
+    
+    return {"message": "Bonus created successfully", "id": bonus_dict["id"]}
+
+@api_router.get("/payroll/advances")
+async def list_advances(
+    employee_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """List advances/loans"""
+    if current_user.role not in ["super_admin", "admin", "accountant"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    query = {"tenant_id": current_user.tenant_id}
+    if employee_id:
+        query["employee_id"] = employee_id
+    
+    advances = await db.employee_advances.find(query).sort("created_at", -1).to_list(100)
+
+@api_router.post("/payroll/advances")
+async def create_advance(
+    data: AdvanceCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create advance/loan"""
+    if current_user.role not in ["super_admin", "admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+@api_router.get("/payroll/payments")
+async def list_payments(
+    year: Optional[int] = None,
+    month: Optional[int] = None,
+    status: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """List all payments"""
+    if current_user.role not in ["super_admin", "admin", "accountant"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    query = {"tenant_id": current_user.tenant_id}
+    if year:
+        query["year"] = year
+    if month:
+        query["month"] = month
+    
+    payrolls = await db.payrolls.find(query).to_list(100)
+    
+    payments = []
+    for p in payrolls:
+        for item in p.get("items", []):
+            payment = item.get("payment", {})
+            if status and payment.get("status") != status:
+                continue
+            
+            payments.append({
+                "payroll_id": p["id"],
+                "item_id": item["id"],
+                "employee_id": item["employee_id"],
+                "employee_name": item["employee_name"],
+                "department": item.get("department"),
+                "net_salary": item["net_salary"],
+                "payment_status": payment.get("status", "unpaid"),
+                "payment_method": payment.get("method"),
+                "payment_date": payment.get("date"),
+                "payment_reference": payment.get("reference"),
+                "month": p["month"],
+                "year": p["year"]
+            })
+    
+    return payments
+
+@api_router.get("/payroll/my-payslips")
+async def get_my_payslips(
+    current_user: User = Depends(get_current_user)
+):
+    """Get payslips for current logged-in employee"""
+
+@api_router.get("/payroll/reports/monthly")
+async def monthly_payroll_report(
+    year: int,
+    month: int,
+    format: str = "json",
+    current_user: User = Depends(get_current_user)
+):
+    """Monthly payroll report"""
+    if current_user.role not in ["super_admin", "admin", "accountant"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    payroll = await db.payrolls.find_one({
+        "tenant_id": current_user.tenant_id,
+        "year": year,
+        "month": month
+    })
+    
+    if not payroll:
+        raise HTTPException(status_code=404, detail="Payroll not found for this month")
+    
+    if format == "json":
+        return {
+            "month": calendar.month_name[month],
+            "year": year,
+            "status": payroll["status"],
+            "total_employees": payroll["total_employees"],
+            "total_gross_salary": payroll["total_gross_salary"],
+            "total_deductions": payroll["total_deductions"],
+            "total_net_salary": payroll["total_net_salary"],
+            "items": payroll["items"]
+        }
+
+@api_router.get("/payroll/reports/department")
+async def department_payroll_report(
+    year: int,
+    month: int,
+    current_user: User = Depends(get_current_user)
+):
+    """Department-wise payroll report"""
+    if current_user.role not in ["super_admin", "admin", "accountant"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    payroll = await db.payrolls.find_one({
+        "tenant_id": current_user.tenant_id,
+        "year": year,
+        "month": month
+    })
+    
+    if not payroll:
+        raise HTTPException(status_code=404, detail="Payroll not found")
+
+@api_router.get("/payroll/reports/employee/{employee_id}")
+async def employee_salary_report(
+    employee_id: str,
+    year: int,
+    current_user: User = Depends(get_current_user)
+):
+    """Employee-wise yearly salary report"""
+    if current_user.role not in ["super_admin", "admin", "accountant"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+@api_router.get("/payroll/reports/deductions")
+async def deduction_summary_report(
+    year: int,
+    month: int,
+    current_user: User = Depends(get_current_user)
+):
+    """Deduction summary report"""
+    if current_user.role not in ["super_admin", "admin", "accountant"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    payroll = await db.payrolls.find_one({
+        "tenant_id": current_user.tenant_id,
+        "year": year,
+        "month": month
+    })
+    
+    if not payroll:
+        raise HTTPException(status_code=404, detail="Payroll not found")
+
+@api_router.get("/payroll/reports/bonuses")
+async def bonus_report(
+    year: int,
+    current_user: User = Depends(get_current_user)
+):
+    """Yearly bonus report"""
+    if current_user.role not in ["super_admin", "admin", "accountant"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    bonuses = await db.payroll_bonuses.find({
+        "tenant_id": current_user.tenant_id,
+        "effective_year": year
+    }).to_list(100)
+
+@api_router.get("/payroll/reports/yearly-summary")
+async def yearly_payroll_summary(
+    year: int,
+    current_user: User = Depends(get_current_user)
+):
+    """Yearly payroll summary"""
+    if current_user.role not in ["super_admin", "admin", "accountant"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    payrolls = await db.payrolls.find({
+        "tenant_id": current_user.tenant_id,
+        "year": year
+    }).sort("month", 1).to_list(12)
+    
+    monthly_summary = []
+    total_gross = 0
+    total_deductions = 0
+    total_net = 0
+    
+    for p in payrolls:
+        monthly_summary.append({
+            "month": calendar.month_name[p["month"]],
+            "month_num": p["month"],
+            "status": p["status"],
+            "employees": p.get("total_employees", 0),
+            "gross": p.get("total_gross_salary", 0),
+            "deductions": p.get("total_deductions", 0),
+            "net": p.get("total_net_salary", 0)
+        })
+        total_gross += p.get("total_gross_salary", 0)
+        total_deductions += p.get("total_deductions", 0)
+        total_net += p.get("total_net_salary", 0)
+    
+    return {
+        "year": year,
+        "monthly_summary": monthly_summary,
+        "totals": {
+            "total_gross": total_gross,
+            "total_deductions": total_deductions,
+            "total_net": total_net
+        }
+    }
+
+@api_router.get("/payroll/dashboard")
+async def payroll_dashboard(
+    current_user: User = Depends(get_current_user)
+):
+    """Payroll dashboard statistics"""
+    if current_user.role not in ["super_admin", "admin", "accountant"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    now = datetime.utcnow()
+    current_year = now.year
+    current_month = now.month
+    
+    # Current month payroll
+    current_payroll = await db.payrolls.find_one({
+        "tenant_id": current_user.tenant_id,
+        "year": current_year,
+        "month": current_month
+    })
+    
+    # Count active employees
+    active_employees = await db.staff.count_documents({
+        "tenant_id": current_user.tenant_id,
+        "status": "Active"
+    })
+    
+    # Pending advances
+    pending_advances = await db.employee_advances.count_documents({
+        "tenant_id": current_user.tenant_id,
+        "is_active": True,
+        "remaining_amount": {"$gt": 0}
+    })
+    
+    # This year's totals
+    year_payrolls = await db.payrolls.find({
+        "tenant_id": current_user.tenant_id,
+        "year": current_year
+    }).to_list(12)
+    
+    year_total = sum(p.get("total_net_salary", 0) for p in year_payrolls)
+    
+    return {
+        "current_month": {
+            "month_name": calendar.month_name[current_month],
+            "year": current_year,
+            "status": current_payroll.get("status", "not_processed") if current_payroll else "not_processed",
+            "total_employees": current_payroll.get("total_employees", 0) if current_payroll else 0,
+            "total_net": current_payroll.get("total_net_salary", 0) if current_payroll else 0
+        },
+        "active_employees": active_employees,
+        "pending_advances": pending_advances,
+        "year_to_date_total": year_total,
+        "processed_months": len(year_payrolls)
+    }
+
 @api_router.get("/payroll/{payroll_id}")
 async def get_payroll(
     payroll_id: str,
@@ -28042,40 +28335,6 @@ async def lock_payroll(
 # BONUS ENDPOINTS
 # ================================
 
-@api_router.get("/payroll/bonuses")
-async def list_bonuses(
-    year: Optional[int] = None,
-    current_user: User = Depends(get_current_user)
-):
-    """List all bonuses"""
-    if current_user.role not in ["super_admin", "admin", "accountant"]:
-        raise HTTPException(status_code=403, detail="Not authorized")
-    
-    query = {"tenant_id": current_user.tenant_id}
-    if year:
-        query["effective_year"] = year
-    
-    bonuses = await db.payroll_bonuses.find(query).sort("created_at", -1).to_list(100)
-    return bonuses
-
-@api_router.post("/payroll/bonuses")
-async def create_bonus(
-    data: BonusCreate,
-    current_user: User = Depends(get_current_user)
-):
-    """Create bonus"""
-    if current_user.role not in ["super_admin", "admin"]:
-        raise HTTPException(status_code=403, detail="Not authorized")
-    
-    bonus_dict = data.dict()
-    bonus_dict["id"] = str(uuid.uuid4())
-    bonus_dict["tenant_id"] = current_user.tenant_id
-    bonus_dict["created_at"] = datetime.utcnow()
-    bonus_dict["created_by"] = current_user.id
-    
-    await db.payroll_bonuses.insert_one(bonus_dict)
-    
-    return {"message": "Bonus created successfully", "id": bonus_dict["id"]}
 
 @api_router.delete("/payroll/bonuses/{bonus_id}")
 async def delete_bonus(
@@ -28100,20 +28359,7 @@ async def delete_bonus(
 # ADVANCE/LOAN ENDPOINTS
 # ================================
 
-@api_router.get("/payroll/advances")
-async def list_advances(
-    employee_id: Optional[str] = None,
-    current_user: User = Depends(get_current_user)
-):
-    """List advances/loans"""
-    if current_user.role not in ["super_admin", "admin", "accountant"]:
-        raise HTTPException(status_code=403, detail="Not authorized")
-    
-    query = {"tenant_id": current_user.tenant_id}
-    if employee_id:
-        query["employee_id"] = employee_id
-    
-    advances = await db.employee_advances.find(query).sort("created_at", -1).to_list(100)
+
     
     # Enrich with employee names
     for adv in advances:
@@ -28123,14 +28369,7 @@ async def list_advances(
     
     return advances
 
-@api_router.post("/payroll/advances")
-async def create_advance(
-    data: AdvanceCreate,
-    current_user: User = Depends(get_current_user)
-):
-    """Create advance/loan"""
-    if current_user.role not in ["super_admin", "admin"]:
-        raise HTTPException(status_code=403, detail="Not authorized")
+
     
     # Verify employee exists
     employee = await db.staff.find_one({
@@ -28229,48 +28468,6 @@ async def record_payment(
     
     return {"message": "Payment recorded successfully"}
 
-@api_router.get("/payroll/payments")
-async def list_payments(
-    year: Optional[int] = None,
-    month: Optional[int] = None,
-    status: Optional[str] = None,
-    current_user: User = Depends(get_current_user)
-):
-    """List all payments"""
-    if current_user.role not in ["super_admin", "admin", "accountant"]:
-        raise HTTPException(status_code=403, detail="Not authorized")
-    
-    query = {"tenant_id": current_user.tenant_id}
-    if year:
-        query["year"] = year
-    if month:
-        query["month"] = month
-    
-    payrolls = await db.payrolls.find(query).to_list(100)
-    
-    payments = []
-    for p in payrolls:
-        for item in p.get("items", []):
-            payment = item.get("payment", {})
-            if status and payment.get("status") != status:
-                continue
-            
-            payments.append({
-                "payroll_id": p["id"],
-                "item_id": item["id"],
-                "employee_id": item["employee_id"],
-                "employee_name": item["employee_name"],
-                "department": item.get("department"),
-                "net_salary": item["net_salary"],
-                "payment_status": payment.get("status", "unpaid"),
-                "payment_method": payment.get("method"),
-                "payment_date": payment.get("date"),
-                "payment_reference": payment.get("reference"),
-                "month": p["month"],
-                "year": p["year"]
-            })
-    
-    return payments
 
 # ================================
 # PAYSLIP ENDPOINTS
@@ -28371,11 +28568,7 @@ async def download_payslip_pdf(
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
-@api_router.get("/payroll/my-payslips")
-async def get_my_payslips(
-    current_user: User = Depends(get_current_user)
-):
-    """Get payslips for current logged-in employee"""
+
     # Find employee record linked to user
     employee = await db.staff.find_one({
         "user_id": current_user.id,
@@ -28413,37 +28606,7 @@ async def get_my_payslips(
 # PAYROLL REPORTS ENDPOINTS
 # ================================
 
-@api_router.get("/payroll/reports/monthly")
-async def monthly_payroll_report(
-    year: int,
-    month: int,
-    format: str = "json",
-    current_user: User = Depends(get_current_user)
-):
-    """Monthly payroll report"""
-    if current_user.role not in ["super_admin", "admin", "accountant"]:
-        raise HTTPException(status_code=403, detail="Not authorized")
-    
-    payroll = await db.payrolls.find_one({
-        "tenant_id": current_user.tenant_id,
-        "year": year,
-        "month": month
-    })
-    
-    if not payroll:
-        raise HTTPException(status_code=404, detail="Payroll not found for this month")
-    
-    if format == "json":
-        return {
-            "month": calendar.month_name[month],
-            "year": year,
-            "status": payroll["status"],
-            "total_employees": payroll["total_employees"],
-            "total_gross_salary": payroll["total_gross_salary"],
-            "total_deductions": payroll["total_deductions"],
-            "total_net_salary": payroll["total_net_salary"],
-            "items": payroll["items"]
-        }
+
     
     # Excel export
     if format == "excel":
@@ -28483,24 +28646,7 @@ async def monthly_payroll_report(
     
     raise HTTPException(status_code=400, detail="Invalid format. Use 'json' or 'excel'")
 
-@api_router.get("/payroll/reports/department")
-async def department_payroll_report(
-    year: int,
-    month: int,
-    current_user: User = Depends(get_current_user)
-):
-    """Department-wise payroll report"""
-    if current_user.role not in ["super_admin", "admin", "accountant"]:
-        raise HTTPException(status_code=403, detail="Not authorized")
-    
-    payroll = await db.payrolls.find_one({
-        "tenant_id": current_user.tenant_id,
-        "year": year,
-        "month": month
-    })
-    
-    if not payroll:
-        raise HTTPException(status_code=404, detail="Payroll not found")
+
     
     # Group by department
     dept_summary = {}
@@ -28525,15 +28671,7 @@ async def department_payroll_report(
         "departments": list(dept_summary.values())
     }
 
-@api_router.get("/payroll/reports/employee/{employee_id}")
-async def employee_salary_report(
-    employee_id: str,
-    year: int,
-    current_user: User = Depends(get_current_user)
-):
-    """Employee-wise yearly salary report"""
-    if current_user.role not in ["super_admin", "admin", "accountant"]:
-        raise HTTPException(status_code=403, detail="Not authorized")
+
     
     # Get employee details
     employee = await db.staff.find_one({
@@ -28586,24 +28724,7 @@ async def employee_salary_report(
         }
     }
 
-@api_router.get("/payroll/reports/deductions")
-async def deduction_summary_report(
-    year: int,
-    month: int,
-    current_user: User = Depends(get_current_user)
-):
-    """Deduction summary report"""
-    if current_user.role not in ["super_admin", "admin", "accountant"]:
-        raise HTTPException(status_code=403, detail="Not authorized")
-    
-    payroll = await db.payrolls.find_one({
-        "tenant_id": current_user.tenant_id,
-        "year": year,
-        "month": month
-    })
-    
-    if not payroll:
-        raise HTTPException(status_code=404, detail="Payroll not found")
+
     
     # Aggregate deductions
     deduction_types = {}
@@ -28623,19 +28744,7 @@ async def deduction_summary_report(
         "total_deductions": payroll.get("total_deductions", 0)
     }
 
-@api_router.get("/payroll/reports/bonuses")
-async def bonus_report(
-    year: int,
-    current_user: User = Depends(get_current_user)
-):
-    """Yearly bonus report"""
-    if current_user.role not in ["super_admin", "admin", "accountant"]:
-        raise HTTPException(status_code=403, detail="Not authorized")
-    
-    bonuses = await db.payroll_bonuses.find({
-        "tenant_id": current_user.tenant_id,
-        "effective_year": year
-    }).to_list(100)
+
     
     # Get bonus amounts from payroll items
     payrolls = await db.payrolls.find({
@@ -28654,100 +28763,7 @@ async def bonus_report(
         "total_bonus_paid": total_bonus_paid
     }
 
-@api_router.get("/payroll/reports/yearly-summary")
-async def yearly_payroll_summary(
-    year: int,
-    current_user: User = Depends(get_current_user)
-):
-    """Yearly payroll summary"""
-    if current_user.role not in ["super_admin", "admin", "accountant"]:
-        raise HTTPException(status_code=403, detail="Not authorized")
-    
-    payrolls = await db.payrolls.find({
-        "tenant_id": current_user.tenant_id,
-        "year": year
-    }).sort("month", 1).to_list(12)
-    
-    monthly_summary = []
-    total_gross = 0
-    total_deductions = 0
-    total_net = 0
-    
-    for p in payrolls:
-        monthly_summary.append({
-            "month": calendar.month_name[p["month"]],
-            "month_num": p["month"],
-            "status": p["status"],
-            "employees": p.get("total_employees", 0),
-            "gross": p.get("total_gross_salary", 0),
-            "deductions": p.get("total_deductions", 0),
-            "net": p.get("total_net_salary", 0)
-        })
-        total_gross += p.get("total_gross_salary", 0)
-        total_deductions += p.get("total_deductions", 0)
-        total_net += p.get("total_net_salary", 0)
-    
-    return {
-        "year": year,
-        "monthly_summary": monthly_summary,
-        "totals": {
-            "total_gross": total_gross,
-            "total_deductions": total_deductions,
-            "total_net": total_net
-        }
-    }
 
-@api_router.get("/payroll/dashboard")
-async def payroll_dashboard(
-    current_user: User = Depends(get_current_user)
-):
-    """Payroll dashboard statistics"""
-    if current_user.role not in ["super_admin", "admin", "accountant"]:
-        raise HTTPException(status_code=403, detail="Not authorized")
-    
-    now = datetime.utcnow()
-    current_year = now.year
-    current_month = now.month
-    
-    # Current month payroll
-    current_payroll = await db.payrolls.find_one({
-        "tenant_id": current_user.tenant_id,
-        "year": current_year,
-        "month": current_month
-    })
-    
-    # Count active employees
-    active_employees = await db.staff.count_documents({
-        "tenant_id": current_user.tenant_id,
-        "status": "Active"
-    })
-    
-    # Pending advances
-    pending_advances = await db.employee_advances.count_documents({
-        "tenant_id": current_user.tenant_id,
-        "is_active": True,
-        "remaining_amount": {"$gt": 0}
-    })
-    
-    # This year's totals
-    year_payrolls = await db.payrolls.find({
-        "tenant_id": current_user.tenant_id,
-        "year": current_year
-    }).to_list(12)
-    
-    year_total = sum(p.get("total_net_salary", 0) for p in year_payrolls)
-    
-    return {
-        "current_month": {
-            "month_name": calendar.month_name[current_month],
-            "year": current_year,
-            "status": current_payroll.get("status", "not_processed") if current_payroll else "not_processed",
-            "total_employees": current_payroll.get("total_employees", 0) if current_payroll else 0,
-            "total_net": current_payroll.get("total_net_salary", 0) if current_payroll else 0
-        },
-        "active_employees": active_employees,
-        "pending_advances": pending_advances,
-        "year_to_date_total": year_total,
-        "processed_months": len(year_payrolls)
-    }
 
+# Include router at the end after all routes are defined
+app.include_router(api_router)
