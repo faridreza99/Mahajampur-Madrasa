@@ -202,11 +202,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       roles: ["super_admin", "admin", "teacher", "parent", "principal"],
       subItems: [
         {
-          title: "Attendance",
-          path: "/attendance",
-          roles: ["super_admin", "admin", "teacher"],
-        },
-        {
           title: "Results",
           path: "/results",
           roles: ["super_admin", "admin", "principal", "teacher", "parent"],
@@ -261,6 +256,11 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           title: "Staff List",
           path: "/staff",
           roles: ["super_admin", "admin", "teacher"],
+        },
+        {
+          title: "Staff Attendance",
+          path: "/attendance",
+          roles: ["super_admin", "admin"],
         },
         {
           title: "Add Staff",
@@ -483,6 +483,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     "/transport/routes": ["vehicle", "vehicle_transport", "vehicle-transport"],
     "/certificates": ["certificates"],
     "/students/attendance": ["student-attendance", "student_attendance", "attendance"],
+    "/attendance": ["staff-attendance", "staff_attendance", "attendance"],
   };
 
   // Helper to check if a sub-item should be visible based on allowed modules
