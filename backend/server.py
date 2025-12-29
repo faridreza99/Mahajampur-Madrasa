@@ -3382,24 +3382,105 @@ async def get_students(
 ):
     query = {"tenant_id": current_user.tenant_id, "is_active": True}
     
+    logging.info(f"DEBUG get_students - tenant: {current_user.tenant_id}, class_id: {class_id}, section_id: {section_id}")
+    
     if class_id and class_id != "all_classes":
         query["class_id"] = class_id
+    
+    # Build section filter conditions
+    section_conditions = None
     if section_id:
-        # Include students with matching section_id OR empty/null section_id (for backwards compatibility)
-        query["$or"] = [
+        section_conditions = [
             {"section_id": section_id},
             {"section_id": ""},
             {"section_id": None},
             {"section_id": {"$exists": False}}
         ]
+    
+    # Build search conditions
+    search_conditions = None
     if search:
-        query["$or"] = [
+        search_conditions = [
             {"name": {"$regex": search, "$options": "i"}},
             {"admission_no": {"$regex": search, "$options": "i"}},
             {"roll_no": {"$regex": search, "$options": "i"}}
         ]
     
+    # Combine conditions properly using $and if both exist
+    if section_conditions and search_conditions:
+        query["$and"] = [
+            {"$or": section_conditions},
+            {"$or": search_conditions}
+        ]
+    elif section_conditions:
+        query["$or"] = section_conditions
+    elif search_conditions:
+        query["$or"] = search_conditions
+    
+    logging.info(f"DEBUG get_students - query: {query}")
+    
     students = await db.students.find(query).to_list(1000)
+    
+    logging.info(f"DEBUG get_students - found {len(students)} students")
+    
+    # If no students found with class_id UUID, try matching by class name for Madrasah tenants
+    if len(students) == 0 and class_id and current_user.tenant_id.lower() == "mham5678":
+        logging.info(f"DEBUG get_students - No students found for MHAM5678 with class_id={class_id}, trying fallback...")
+        
+        # Get the class to find its name/standard
+        class_doc = await db.classes.find_one({"id": class_id, "tenant_id": current_user.tenant_id})
+        if class_doc:
+            class_name = class_doc.get("name", "")
+            class_standard = class_doc.get("standard", "")
+            display_name = class_doc.get("display_name", "")
+            logging.info(f"DEBUG get_students - Class found: name={class_name}, standard={class_standard}, display_name={display_name}")
+            
+            # Try finding students by class name or standard
+            fallback_query = {
+                "tenant_id": current_user.tenant_id,
+                "is_active": True,
+                "$or": [
+                    {"class_id": class_name},
+                    {"class_id": class_standard},
+                    {"class_id": display_name},
+                    {"class": class_name},
+                    {"class": class_standard},
+                    {"class_name": class_name},
+                    {"class_name": class_standard}
+                ]
+            }
+            
+            if section_id:
+                # Get section name
+                section_doc = await db.sections.find_one({"id": section_id, "tenant_id": current_user.tenant_id})
+                section_name = section_doc.get("name", "") if section_doc else ""
+                
+                fallback_query["$or"].extend([
+                    {"section_id": section_id},
+                    {"section_id": section_name},
+                    {"section": section_name},
+                    {"section_id": ""},
+                    {"section_id": None}
+                ])
+            
+            logging.info(f"DEBUG get_students - Fallback query: {fallback_query}")
+            students = await db.students.find(fallback_query).to_list(1000)
+            logging.info(f"DEBUG get_students - Fallback found {len(students)} students")
+            
+            # If students found with fallback, update their class_id to the correct UUID
+            if len(students) > 0:
+                logging.info(f"DEBUG get_students - Updating {len(students)} students with correct class_id")
+                student_ids = [s["id"] for s in students]
+                await db.students.update_many(
+                    {"id": {"$in": student_ids}},
+                    {"$set": {"class_id": class_id}}
+                )
+                if section_id:
+                    await db.students.update_many(
+                        {"id": {"$in": student_ids}},
+                        {"$set": {"section_id": section_id}}
+                    )
+    
     return [Student(**student) for student in students]
 
 @api_router.post("/students", response_model=StudentCreateResponse)
