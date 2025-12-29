@@ -25770,7 +25770,7 @@ async def get_student_dashboard(current_user: User = Depends(get_current_user)):
         # Get attendance stats for current academic year
         current_year = datetime.utcnow().year
         attendance_records = await db.attendance.find({
-            "student_id": student_id,
+            "person_id": student_id,
             "tenant_id": current_user.tenant_id,
             "type": "student"
         }).to_list(500)
@@ -25956,10 +25956,12 @@ async def get_student_attendance_self(
         else:
             end_date = datetime(year, month + 1, 1)
         
-        # Query attendance records
-        records = await db.student_attendance.find({
-            "student_id": student["id"],
+        # Query attendance records from the 'attendance' collection
+        # Attendance is saved with person_id for students, not student_id
+        records = await db.attendance.find({
+            "person_id": student["id"],
             "tenant_id": current_user.tenant_id,
+            "type": "student",
             "date": {"$gte": start_date.isoformat()[:10], "$lt": end_date.isoformat()[:10]}
         }).sort("date", -1).to_list(100)
         
