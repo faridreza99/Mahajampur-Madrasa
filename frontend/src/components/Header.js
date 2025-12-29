@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../App';
 import { useNavigate } from 'react-router-dom';
 import i18n from '../i18n';
@@ -29,6 +29,8 @@ const Header = ({ onMenuClick }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [, forceUpdate] = useState(0);
   const [attendanceSummary, setAttendanceSummary] = useState({ present: 0, absent: 0, late: 0 });
+  const fetchingRef = useRef(false);
+  const intervalRef = useRef(null);
 
   useEffect(() => {
     const handleLanguageChange = () => forceUpdate(n => n + 1);
@@ -38,52 +40,40 @@ const Header = ({ onMenuClick }) => {
 
   const t = (key) => i18n.t(key);
 
-  const fetchNotifications = useCallback(async () => {
+  const fetchHeaderData = useCallback(async () => {
+    if (fetchingRef.current) return;
+    
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    
+    fetchingRef.current = true;
+    
     try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
+      const [notifRes, countRes, attendRes] = await Promise.all([
+        axios.get(`${API_BASE_URL}/notifications?limit=5`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).catch(() => ({ data: [] })),
+        axios.get(`${API_BASE_URL}/notifications/unread-count`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).catch(() => ({ data: { unread_count: 0 } })),
+        axios.get(`${API_BASE_URL}/attendance/summary?type=student`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).catch(() => ({ data: { present: 0, absent: 0, late: 0 } }))
+      ]);
       
-      const response = await axios.get(`${API_BASE_URL}/notifications?limit=5`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = response.data;
-      const notificationsArray = Array.isArray(data) ? data : (data.notifications || []);
+      const notifData = notifRes.data;
+      const notificationsArray = Array.isArray(notifData) ? notifData : (notifData.notifications || []);
       setNotifications(notificationsArray.slice(0, 5));
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-      setNotifications([]);
-    }
-  }, []);
-
-  const fetchUnreadCount = useCallback(async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-      
-      const response = await axios.get(`${API_BASE_URL}/notifications/unread-count`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setUnreadCount(response.data.unread_count || 0);
-    } catch (error) {
-      console.error('Error fetching unread count:', error);
-    }
-  }, []);
-
-  const fetchAttendanceSummary = useCallback(async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-      
-      const response = await axios.get(`${API_BASE_URL}/attendance/summary?type=student`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      setUnreadCount(countRes.data.unread_count || 0);
       setAttendanceSummary({
-        present: response.data.present || 0,
-        absent: response.data.absent || 0,
-        late: response.data.late || 0
+        present: attendRes.data.present || 0,
+        absent: attendRes.data.absent || 0,
+        late: attendRes.data.late || 0
       });
     } catch (error) {
-      console.error('Error fetching attendance summary:', error);
+      console.error('Error fetching header data:', error);
+    } finally {
+      fetchingRef.current = false;
     }
   }, []);
 
@@ -94,18 +84,19 @@ const Header = ({ onMenuClick }) => {
       document.documentElement.classList.add('dark');
     }
     
-    fetchNotifications();
-    fetchUnreadCount();
-    fetchAttendanceSummary();
+    fetchHeaderData();
     
-    const interval = setInterval(() => {
-      fetchNotifications();
-      fetchUnreadCount();
-      fetchAttendanceSummary();
-    }, 30000);
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+    intervalRef.current = setInterval(fetchHeaderData, 60000);
     
-    return () => clearInterval(interval);
-  }, [fetchNotifications, fetchUnreadCount, fetchAttendanceSummary]);
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
 
   const handleLogout = () => {
     logout();

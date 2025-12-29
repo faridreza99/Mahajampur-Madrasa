@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -75,6 +75,8 @@ const StaffListView = () => {
   const [uploadProgress, setUploadProgress] = useState('');
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false);
 
   const [formData, setFormData] = useState({
     employee_id: '',
@@ -142,7 +144,13 @@ const StaffListView = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    
+    if (submittingRef.current) {
+      return;
+    }
+    
+    submittingRef.current = true;
+    setIsSubmitting(true);
 
     try {
       const token = localStorage.getItem('token');
@@ -171,7 +179,6 @@ const StaffListView = () => {
         toast.success('Staff added successfully');
       }
 
-      // Upload photo if selected
       if (photoFile && staffId) {
         const photoFormData = new FormData();
         photoFormData.append('file', photoFile);
@@ -197,7 +204,8 @@ const StaffListView = () => {
       console.error('Failed to save staff:', error);
       toast.error(error.response?.data?.detail || 'Failed to save staff');
     } finally {
-      setLoading(false);
+      submittingRef.current = false;
+      setIsSubmitting(false);
     }
   };
 

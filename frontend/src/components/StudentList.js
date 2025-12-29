@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
@@ -104,6 +104,8 @@ const StudentList = () => {
   const [importSummary, setImportSummary] = useState(null);
   const [isCredentialsModalOpen, setIsCredentialsModalOpen] = useState(false);
   const [studentCredentials, setStudentCredentials] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false);
 
   const getCurrentView = () => {
     const path = location.pathname;
@@ -313,11 +315,18 @@ const StudentList = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    
+    if (submittingRef.current) {
+      return;
+    }
+    
+    submittingRef.current = true;
+    setIsSubmitting(true);
 
     try {
       let studentId = null;
       let newCredentials = null;
+      const wasEditing = !!editingStudent;
       
       if (editingStudent) {
         await axios.put(`${API}/students/${editingStudent.id}`, formData);
@@ -325,11 +334,9 @@ const StudentList = () => {
         toast.success('Student updated successfully');
       } else {
         const response = await axios.post(`${API}/students`, formData);
-        // Response includes student fields at top level plus credentials
         const responseData = response.data;
         studentId = responseData.id;
         
-        // Check if credentials are included (new feature)
         if (responseData.credentials) {
           newCredentials = {
             studentName: responseData.name,
@@ -354,9 +361,7 @@ const StudentList = () => {
         }
       }
       
-      await fetchData();
-      
-      if (editingStudent) {
+      if (wasEditing) {
         setIsAddModalOpen(false);
       } else {
         setIsAddStudentModalOpen(false);
@@ -365,8 +370,9 @@ const StudentList = () => {
       setEditingStudent(null);
       resetForm();
       
-      // Show credentials modal for new students after a brief delay
-      if (!editingStudent && newCredentials) {
+      fetchData();
+      
+      if (!wasEditing && newCredentials) {
         setTimeout(() => {
           setIsCredentialsModalOpen(true);
         }, 100);
@@ -375,7 +381,8 @@ const StudentList = () => {
       console.error('Failed to save student:', error);
       toast.error(error.response?.data?.detail || 'Failed to save student');
     } finally {
-      setLoading(false);
+      submittingRef.current = false;
+      setIsSubmitting(false);
     }
   };
 
