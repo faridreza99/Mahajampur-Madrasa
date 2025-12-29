@@ -938,17 +938,30 @@ const TenantManagement = () => {
               </Label>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditUserDialogOpen(false)}>
-              Cancel
-            </Button>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button 
-              className="bg-blue-500 hover:bg-blue-600"
-              onClick={handleSaveUser}
-              disabled={savingUser}
+              variant="outline" 
+              className="text-orange-500 border-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20 flex items-center gap-2"
+              onClick={() => {
+                setIsEditUserDialogOpen(false);
+                handleOpenResetPassword(editingUser);
+              }}
             >
-              {savingUser ? 'Saving...' : 'Save Changes'}
+              <Key className="h-4 w-4" />
+              Reset Password
             </Button>
+            <div className="flex gap-2 ml-auto">
+              <Button variant="outline" onClick={() => setIsEditUserDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                className="bg-blue-500 hover:bg-blue-600"
+                onClick={handleSaveUser}
+                disabled={savingUser}
+              >
+                {savingUser ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
