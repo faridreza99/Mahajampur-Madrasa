@@ -15,6 +15,7 @@ Preferred communication style: Simple, everyday language.
 - **Responsiveness**: Fully responsive design across all devices using Tailwind CSS breakpoints and adaptive layouts.
 
 ## Recent Changes (December 2025)
+- **Enterprise Payroll Management System**: Complete payroll module with attendance/leave integration, salary structure management, payroll processing workflow (Draft → Approved → Locked), bonus & advance management, payment tracking (Bank/bKash/Nagad/Rocket/Cash), payslip PDF generation with school branding, and comprehensive reports (monthly, department-wise, yearly). Role-based access for super_admin, admin, and accountant.
 - **School Branding in All Reports**: All PDF and Excel reports across the website now use the school branding (logo, name, address, colors) set by the school admin. Added `get_school_branding_for_reports()` helper function to fetch branding consistently.
 - **Enterprise Attendance Management System**: Complete attendance management with rule-based status calculation (on-time, late, absent, half-day), biometric device integration (ZKTeco), offline sync with conflict resolution, parent notifications (SMS/App), AI-assisted insights for at-risk students, and comprehensive audit logging.
 - **Enhanced Student Attendance UI**: Added Late (দেরি) and Half-day (অর্ধদিবস) status options with Bengali translations, updated summary cards to show all 5 attendance statuses.
@@ -47,6 +48,16 @@ Preferred communication style: Simple, everyday language.
 - **Bulk Student Upload**: Import multiple students via Excel/CSV with validation, duplicate detection, and progress tracking.
 - **Student Result Automation**: Comprehensive result management including exam term configuration, mark entry, bulk upload, automatic grading, publication workflow, and student/parent viewing portals.
 - **Dynamic Currency System**: Global currency configuration for the institution, applied across financial modules.
+- **Enterprise Payroll Management System**: Complete payroll solution with:
+    - Salary structure management (basic, allowances, deductions)
+    - Attendance & leave integration for automatic salary calculation
+    - Payroll processing workflow (Draft → Approved → Locked)
+    - Bonus management (Eid, Hadiya, Performance bonuses)
+    - Advance/loan tracking with monthly deductions
+    - Payment tracking (Bank, bKash, Nagad, Rocket, Cash)
+    - Professional payslip PDF generation with school branding
+    - Comprehensive reports (monthly, department-wise, employee-wise, yearly)
+    - Role-based access (super_admin, admin, accountant, staff)
 
 ## System Design Choices
 - **Build Tooling**: Create React App with Craco and Webpack.

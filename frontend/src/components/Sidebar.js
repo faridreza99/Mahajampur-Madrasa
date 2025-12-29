@@ -296,6 +296,11 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           roles: ["super_admin", "admin"],
         },
         {
+          title: "Payroll",
+          path: "/payroll",
+          roles: ["super_admin", "admin", "accountant"],
+        },
+        {
           title: "Certificates",
           path: "/certificates",
           roles: ["super_admin", "admin"],
@@ -455,7 +460,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     academic: ["attendance", "results", "timetable", "calendar", "class", "classes"],
     students: ["students", "admission-summary", "admission_summary"],
     staff: ["staff"],
-    finance: ["fees", "accounts", "certificates"],
+    finance: ["fees", "accounts", "certificates", "payroll"],
     content: ["cms", "academic_cms", "academic-cms"],
     "ai-tools": ["cms", "academic_cms", "ai-assistant", "ai_assistant", "quiz-tool", "quiz_tool", "test-generator", "test_generator", "ai-summary", "ai_summary", "ai-notes", "ai_notes"],
     reports: ["reports"],

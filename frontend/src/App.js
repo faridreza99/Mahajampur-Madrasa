@@ -25,6 +25,7 @@ import Accounts from "./components/Accounts";
 import Certificates from "./components/Certificates";
 import Vehicle from "./components/Vehicle";
 import Reports from "./components/Reports";
+import Payroll from "./components/Payroll";
 import BiometricDevices from "./components/BiometricDevices";
 import OnlineAdmission from "./components/OnlineAdmission";
 import Attendance from "./components/Attendance";
@@ -451,6 +452,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <Fees />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/payroll/*"
+                  element={
+                    <ProtectedRoute>
+                      <Payroll />
                     </ProtectedRoute>
                   }
                 />
