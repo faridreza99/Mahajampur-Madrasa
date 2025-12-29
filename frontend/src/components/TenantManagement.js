@@ -280,6 +280,119 @@ const TenantManagement = () => {
     }
   };
 
+  // Open Edit User Dialog
+  const openEditUserDialog = (user) => {
+    setEditingUser(user);
+    setEditUserForm({
+      full_name: user.full_name || '',
+      email: user.email || '',
+      role: user.role || 'teacher',
+      is_active: user.is_active !== false
+    });
+    setIsEditUserDialogOpen(true);
+  };
+
+  // Save User Changes
+  const handleSaveUser = async () => {
+    if (!editingUser) return;
+    
+    try {
+      setSavingUser(true);
+      await axios.put(
+        `/api/admin/users/${editingUser.id}?target_tenant_id=${selectedTenant.id}`,
+        editUserForm
+      );
+      
+      toast.success('User updated successfully');
+      setIsEditUserDialogOpen(false);
+      setEditingUser(null);
+      
+      // Refresh users list
+      const response = await axios.get(`/api/tenants/${selectedTenant.id}/users`);
+      setTenantUsers(response.data.users || []);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to update user');
+    } finally {
+      setSavingUser(false);
+    }
+  };
+
+  // Open Reset Password Dialog
+  const openResetPasswordDialog = (user) => {
+    setResetPasswordUser(user);
+    setNewPassword('');
+    setShowNewPassword(false);
+    setPasswordCopied(false);
+    setIsResetPasswordDialogOpen(true);
+  };
+
+  // Generate Random Password
+  const generatePassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
+    let password = '';
+    for (let i = 0; i < 12; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setNewPassword(password);
+    setShowNewPassword(true);
+  };
+
+  // Copy Password to Clipboard
+  const copyPassword = async () => {
+    if (!newPassword) return;
+    try {
+      await navigator.clipboard.writeText(newPassword);
+      setPasswordCopied(true);
+      toast.success('Password copied to clipboard');
+      setTimeout(() => setPasswordCopied(false), 2000);
+    } catch (error) {
+      toast.error('Failed to copy password');
+    }
+  };
+
+  // Reset User Password
+  const handleResetPassword = async () => {
+    if (!resetPasswordUser || !newPassword || newPassword.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+    
+    try {
+      setResettingPassword(true);
+      await axios.post(
+        `/api/admin/users/${resetPasswordUser.id}/reset-password?target_tenant_id=${selectedTenant.id}`,
+        { new_password: newPassword }
+      );
+      
+      toast.success('Password reset successfully');
+      setIsResetPasswordDialogOpen(false);
+      setResetPasswordUser(null);
+      setNewPassword('');
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to reset password');
+    } finally {
+      setResettingPassword(false);
+    }
+  };
+
+  // Toggle User Status
+  const handleStatusToggle = async (user) => {
+    try {
+      await axios.post(
+        `/api/admin/users/${user.id}/status?target_tenant_id=${selectedTenant.id}`,
+        { is_active: !user.is_active }
+      );
+      
+      toast.success(`User ${user.is_active ? 'deactivated' : 'activated'} successfully`);
+      
+      // Refresh users list
+      const response = await axios.get(`/api/tenants/${selectedTenant.id}/users`);
+      setTenantUsers(response.data.users || []);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to update user status');
+    }
+  };
+
   const groupedModules = ALL_MODULES.reduce((acc, module) => {
     if (!acc[module.category]) {
       acc[module.category] = [];
