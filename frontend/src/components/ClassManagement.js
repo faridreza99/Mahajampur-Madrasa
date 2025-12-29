@@ -296,42 +296,60 @@ const ClassManagement = () => {
   const handleSectionSubmit = async (e) => {
     e.preventDefault();
     
+    console.log('🔄 Section form submit triggered, submittingRef:', submittingRef.current);
+    console.log('📋 Section form data:', sectionFormData);
+    
     if (submittingRef.current) {
+      console.log('⚠️ Already submitting, returning early');
       return;
     }
     
-    console.log('🔄 Submitting section form:', sectionFormData);
     submittingRef.current = true;
     setIsSubmitting(true);
+    setLoading(true);
 
     const unlockTimeout = setTimeout(() => {
       submittingRef.current = false;
       setIsSubmitting(false);
+      setLoading(false);
       toast.warning('Operation is taking longer than expected. Please check the list.');
     }, 15000);
 
     try {
-      if (sectionFormData.class_id === 'select_class') {
+      if (!sectionFormData.class_id || sectionFormData.class_id === 'select_class' || sectionFormData.class_id === '') {
         toast.error('Please select a class');
         clearTimeout(unlockTimeout);
         submittingRef.current = false;
         setIsSubmitting(false);
+        setLoading(false);
+        return;
+      }
+
+      if (!sectionFormData.name || sectionFormData.name.trim() === '') {
+        toast.error('Please enter a section name');
+        clearTimeout(unlockTimeout);
+        submittingRef.current = false;
+        setIsSubmitting(false);
+        setLoading(false);
         return;
       }
 
       const submitData = {
-        ...sectionFormData,
-        max_students: parseInt(sectionFormData.max_students),
+        class_id: sectionFormData.class_id,
+        name: sectionFormData.name.trim(),
+        max_students: parseInt(sectionFormData.max_students) || 40,
         section_teacher_id: sectionFormData.section_teacher_id === 'no_teacher' ? null : sectionFormData.section_teacher_id
       };
 
       console.log('📤 Sending section data to API:', submitData);
 
       if (editingSection) {
-        await withTimeout(axios.put(`${API}/sections/${editingSection.id}`, submitData), 10000);
+        const response = await withTimeout(axios.put(`${API}/sections/${editingSection.id}`, submitData), 10000);
+        console.log('✅ Section update response:', response.data);
         toast.success('Section updated successfully');
       } else {
-        await withTimeout(axios.post(`${API}/sections`, submitData), 10000);
+        const response = await withTimeout(axios.post(`${API}/sections`, submitData), 10000);
+        console.log('✅ Section create response:', response.data);
         toast.success('Section added successfully');
       }
       
@@ -340,15 +358,17 @@ const ClassManagement = () => {
       resetSectionForm();
       safeBackgroundRefresh(fetchData);
     } catch (error) {
-      console.error('Failed to save section:', error);
+      console.error('❌ Failed to save section:', error);
+      console.error('❌ Error details:', error.response?.data);
       const errorMessage = error.message === 'Request timeout' 
         ? 'Request timed out. Please try again.'
-        : (error.response?.data?.detail || 'Failed to save section');
+        : (error.response?.data?.detail || error.message || 'Failed to save section');
       toast.error(errorMessage);
     } finally {
       clearTimeout(unlockTimeout);
       submittingRef.current = false;
       setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
@@ -1390,8 +1410,8 @@ const ClassManagement = () => {
                     >
                       Cancel
                     </Button>
-                    <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600" disabled={loading}>
-                      {loading ? 'Saving...' : (editingSection ? 'Update Section' : 'Add Section')}
+                    <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600" disabled={isSubmitting}>
+                      {isSubmitting ? 'Saving...' : (editingSection ? 'Update Section' : 'Add Section')}
                     </Button>
                   </DialogFooter>
                 </form>
