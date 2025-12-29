@@ -56,6 +56,8 @@ import StudentProfile from "./components/StudentProfile";
 import StudentFees from "./components/StudentFees";
 import StudentAdmitCard from "./components/StudentAdmitCard";
 import StudentAttendanceView from "./components/StudentAttendanceView";
+import StudentIDCard from "./components/StudentIDCard";
+import StaffIDCard from "./components/StaffIDCard";
 import TeacherDashboard from "./components/TeacherDashboard";
 import Homework from "./components/Homework";
 import LessonPlans from "./components/LessonPlans";
@@ -368,10 +370,26 @@ function App() {
                   }
                 />
                 <Route
+                  path="/students/id-cards"
+                  element={
+                    <ProtectedRoute>
+                      <StudentIDCard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/students/*"
                   element={
                     <ProtectedRoute>
                       <StudentList />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/staff/id-cards"
+                  element={
+                    <ProtectedRoute>
+                      <StaffIDCard />
                     </ProtectedRoute>
                   }
                 />

@@ -227,5 +227,23 @@
     "invalidPhone": "Invalid phone number",
     "minLength": "Minimum {{count}} characters required",
     "maxLength": "Maximum {{count}} characters allowed"
+  },
+  "idCard": {
+    "studentTitle": "Student ID Cards",
+    "staffTitle": "Staff ID Cards",
+    "totalStudents": "Total Students",
+    "totalStaff": "Total Staff",
+    "noStudents": "No students found",
+    "noStaff": "No staff found",
+    "searchPlaceholder": "Search by name, roll no...",
+    "searchStaffPlaceholder": "Search by name, designation...",
+    "generateError": "Failed to generate ID card",
+    "preview": "Preview",
+    "download": "Download",
+    "print": "Print"
+  },
+  "sidebar": {
+    "studentIDCards": "Student ID Cards",
+    "staffIDCards": "Staff ID Cards"
   }
 }

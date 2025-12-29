@@ -29930,6 +29930,427 @@ async def download_payslip_pdf(
 
 
 # Include router at the end after all routes are defined
+
+# ==================== ID CARD GENERATION ====================
+
+@api_router.get("/id-cards/student/{student_id}")
+async def generate_student_id_card(
+    student_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Generate PDF ID card for a student"""
+    from reportlab.lib.units import inch, mm
+    from reportlab.lib.pagesizes import letter
+    from reportlab.pdfgen import canvas as pdf_canvas
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import Paragraph
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT
+    import qrcode
+    from io import BytesIO
+    import tempfile
+    
+    if current_user.role not in ["super_admin", "admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    try:
+        # Fetch student
+        student = await db.students.find_one({
+            "id": student_id,
+            "tenant_id": current_user.tenant_id
+        })
+        if not student:
+            raise HTTPException(status_code=404, detail="Student not found")
+        
+        # Fetch class info
+        class_info = await db.classes.find_one({
+            "id": student.get("class_id"),
+            "tenant_id": current_user.tenant_id
+        })
+        class_name = ""
+        if class_info:
+            # For Madrasah, prefer display_name (Bengali)
+            class_name = class_info.get("display_name") or class_info.get("name", "")
+        
+        # Fetch section info
+        section_name = ""
+        if student.get("section_id"):
+            section_info = await db.sections.find_one({
+                "id": student.get("section_id"),
+                "tenant_id": current_user.tenant_id
+            })
+            if section_info:
+                section_name = section_info.get("name", "")
+        
+        # Get school branding
+        branding = await get_school_branding_for_reports(current_user.tenant_id)
+        
+        # Create PDF buffer
+        buffer = BytesIO()
+        
+        # ID card size: Credit card size (3.375 x 2.125 inches = 85.6 x 53.98 mm)
+        card_width = 3.375 * inch
+        card_height = 2.125 * inch
+        
+        # Create canvas
+        c = pdf_canvas.Canvas(buffer, pagesize=(card_width, card_height))
+        
+        # Background gradient effect (simple colored background)
+        primary_color = branding.get("primary_color", "#10B981")
+        try:
+            from reportlab.lib.colors import HexColor
+            bg_color = HexColor(primary_color)
+        except:
+            bg_color = colors.HexColor("#10B981")
+        
+        # Draw header background
+        c.setFillColor(bg_color)
+        c.rect(0, card_height - 0.5*inch, card_width, 0.5*inch, fill=True, stroke=False)
+        
+        # School name in header
+        c.setFillColor(colors.white)
+        c.setFont("Helvetica-Bold", 10)
+        school_name = branding.get("school_name", "School ERP")
+        c.drawCentredString(card_width/2, card_height - 0.35*inch, school_name[:30])
+        
+        # Student photo placeholder (left side)
+        photo_x = 0.15*inch
+        photo_y = card_height - 1.4*inch
+        photo_size = 0.7*inch
+        
+        c.setStrokeColor(colors.HexColor("#d1d5db"))
+        c.setFillColor(colors.HexColor("#f3f4f6"))
+        c.rect(photo_x, photo_y, photo_size, photo_size, fill=True, stroke=True)
+        
+        # If student has photo, try to add it
+        if student.get("photo_url"):
+            try:
+                from PIL import Image as PILImage
+                import base64
+                photo_url = student.get("photo_url")
+                if photo_url.startswith("data:image"):
+                    header, encoded = photo_url.split(",", 1)
+                    photo_data = base64.b64decode(encoded)
+                    temp_photo = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+                    temp_photo.write(photo_data)
+                    temp_photo.close()
+                    c.drawImage(temp_photo.name, photo_x, photo_y, photo_size, photo_size, preserveAspectRatio=True, mask='auto')
+                    os.unlink(temp_photo.name)
+            except Exception as e:
+                logging.warning(f"Could not add student photo: {e}")
+                # Draw placeholder text
+                c.setFillColor(colors.HexColor("#9ca3af"))
+                c.setFont("Helvetica", 8)
+                c.drawCentredString(photo_x + photo_size/2, photo_y + photo_size/2, "Photo")
+        else:
+            c.setFillColor(colors.HexColor("#9ca3af"))
+            c.setFont("Helvetica", 8)
+            c.drawCentredString(photo_x + photo_size/2, photo_y + photo_size/2, "Photo")
+        
+        # Student details (right side of photo)
+        details_x = photo_x + photo_size + 0.15*inch
+        details_y = card_height - 0.65*inch
+        line_height = 0.18*inch
+        
+        c.setFillColor(colors.black)
+        
+        # Name (Bengali/English)
+        c.setFont("Helvetica-Bold", 9)
+        student_name = student.get("name", "")[:25]
+        c.drawString(details_x, details_y, student_name)
+        details_y -= line_height
+        
+        # Father's name
+        c.setFont("Helvetica", 7)
+        father_name = student.get("father_name", "")[:25]
+        c.drawString(details_x, details_y, f"Father: {father_name}")
+        details_y -= line_height
+        
+        # Class/Marhala
+        c.drawString(details_x, details_y, f"Class: {class_name[:20]}")
+        details_y -= line_height
+        
+        # Section
+        if section_name:
+            c.drawString(details_x, details_y, f"Section: {section_name}")
+            details_y -= line_height
+        
+        # Roll/Reg
+        roll_or_reg = student.get("roll_no") or student.get("admission_no", "")
+        c.drawString(details_x, details_y, f"Roll: {roll_or_reg}")
+        
+        # QR Code (bottom right)
+        try:
+            qr = qrcode.QRCode(version=1, box_size=2, border=1)
+            qr_data = f"{school_name}|{student_name}|{student_id}"
+            qr.add_data(qr_data)
+            qr.make(fit=True)
+            qr_img = qr.make_image(fill_color="black", back_color="white")
+            
+            # Save QR to temp file
+            qr_temp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+            qr_img.save(qr_temp.name)
+            qr_temp.close()
+            
+            qr_size = 0.5*inch
+            c.drawImage(qr_temp.name, card_width - qr_size - 0.1*inch, 0.1*inch, qr_size, qr_size)
+            os.unlink(qr_temp.name)
+        except Exception as e:
+            logging.warning(f"Could not generate QR code: {e}")
+        
+        # Footer with ID
+        c.setFont("Helvetica", 6)
+        c.setFillColor(colors.HexColor("#6b7280"))
+        c.drawString(0.15*inch, 0.1*inch, f"ID: {student_id[:15]}...")
+        
+        c.save()
+        buffer.seek(0)
+        
+        return StreamingResponse(
+            buffer,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=StudentID-{student.get('name', 'student').replace(' ', '_')}.pdf"
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Failed to generate student ID card: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate ID card: {str(e)}")
+
+
+@api_router.get("/id-cards/staff/{staff_id}")
+async def generate_staff_id_card(
+    staff_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Generate PDF ID card for a staff member"""
+    from reportlab.lib.units import inch, mm
+    from reportlab.lib.pagesizes import letter
+    from reportlab.pdfgen import canvas as pdf_canvas
+    from reportlab.lib import colors
+    import qrcode
+    from io import BytesIO
+    import tempfile
+    
+    if current_user.role not in ["super_admin", "admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    try:
+        # Fetch staff
+        staff = await db.staff.find_one({
+            "id": staff_id,
+            "tenant_id": current_user.tenant_id
+        })
+        if not staff:
+            raise HTTPException(status_code=404, detail="Staff not found")
+        
+        # Get school branding
+        branding = await get_school_branding_for_reports(current_user.tenant_id)
+        
+        # Create PDF buffer
+        buffer = BytesIO()
+        
+        # ID card size
+        card_width = 3.375 * inch
+        card_height = 2.125 * inch
+        
+        c = pdf_canvas.Canvas(buffer, pagesize=(card_width, card_height))
+        
+        # Background gradient effect
+        primary_color = branding.get("primary_color", "#10B981")
+        try:
+            from reportlab.lib.colors import HexColor
+            bg_color = HexColor(primary_color)
+        except:
+            bg_color = colors.HexColor("#10B981")
+        
+        # Draw header background
+        c.setFillColor(bg_color)
+        c.rect(0, card_height - 0.5*inch, card_width, 0.5*inch, fill=True, stroke=False)
+        
+        # School name in header
+        c.setFillColor(colors.white)
+        c.setFont("Helvetica-Bold", 10)
+        school_name = branding.get("school_name", "School ERP")
+        c.drawCentredString(card_width/2, card_height - 0.35*inch, school_name[:30])
+        
+        # Staff photo placeholder
+        photo_x = 0.15*inch
+        photo_y = card_height - 1.4*inch
+        photo_size = 0.7*inch
+        
+        c.setStrokeColor(colors.HexColor("#d1d5db"))
+        c.setFillColor(colors.HexColor("#f3f4f6"))
+        c.rect(photo_x, photo_y, photo_size, photo_size, fill=True, stroke=True)
+        
+        # If staff has photo
+        if staff.get("photo_url"):
+            try:
+                from PIL import Image as PILImage
+                import base64
+                photo_url = staff.get("photo_url")
+                if photo_url.startswith("data:image"):
+                    header, encoded = photo_url.split(",", 1)
+                    photo_data = base64.b64decode(encoded)
+                    temp_photo = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+                    temp_photo.write(photo_data)
+                    temp_photo.close()
+                    c.drawImage(temp_photo.name, photo_x, photo_y, photo_size, photo_size, preserveAspectRatio=True, mask='auto')
+                    os.unlink(temp_photo.name)
+            except Exception as e:
+                logging.warning(f"Could not add staff photo: {e}")
+                c.setFillColor(colors.HexColor("#9ca3af"))
+                c.setFont("Helvetica", 8)
+                c.drawCentredString(photo_x + photo_size/2, photo_y + photo_size/2, "Photo")
+        else:
+            c.setFillColor(colors.HexColor("#9ca3af"))
+            c.setFont("Helvetica", 8)
+            c.drawCentredString(photo_x + photo_size/2, photo_y + photo_size/2, "Photo")
+        
+        # Staff details
+        details_x = photo_x + photo_size + 0.15*inch
+        details_y = card_height - 0.65*inch
+        line_height = 0.18*inch
+        
+        c.setFillColor(colors.black)
+        
+        # Name
+        c.setFont("Helvetica-Bold", 9)
+        staff_name = staff.get("name", "")[:25]
+        c.drawString(details_x, details_y, staff_name)
+        details_y -= line_height
+        
+        # Designation
+        c.setFont("Helvetica", 7)
+        designation = staff.get("designation", staff.get("role", "Staff"))[:30]
+        c.drawString(details_x, details_y, f"Designation: {designation}")
+        details_y -= line_height
+        
+        # Department (if available)
+        department = staff.get("department", "")
+        if department:
+            c.drawString(details_x, details_y, f"Dept: {department[:25]}")
+            details_y -= line_height
+        
+        # Employee ID
+        emp_id = staff.get("employee_id", staff_id[:10])
+        c.drawString(details_x, details_y, f"Emp ID: {emp_id}")
+        
+        # QR Code
+        try:
+            qr = qrcode.QRCode(version=1, box_size=2, border=1)
+            qr_data = f"{school_name}|{staff_name}|{staff_id}"
+            qr.add_data(qr_data)
+            qr.make(fit=True)
+            qr_img = qr.make_image(fill_color="black", back_color="white")
+            
+            qr_temp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+            qr_img.save(qr_temp.name)
+            qr_temp.close()
+            
+            qr_size = 0.5*inch
+            c.drawImage(qr_temp.name, card_width - qr_size - 0.1*inch, 0.1*inch, qr_size, qr_size)
+            os.unlink(qr_temp.name)
+        except Exception as e:
+            logging.warning(f"Could not generate QR code: {e}")
+        
+        # Footer
+        c.setFont("Helvetica", 6)
+        c.setFillColor(colors.HexColor("#6b7280"))
+        c.drawString(0.15*inch, 0.1*inch, f"ID: {staff_id[:15]}...")
+        
+        c.save()
+        buffer.seek(0)
+        
+        return StreamingResponse(
+            buffer,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=StaffID-{staff.get('name', 'staff').replace(' ', '_')}.pdf"
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Failed to generate staff ID card: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate ID card: {str(e)}")
+
+
+@api_router.get("/id-cards/students/list")
+async def get_students_for_id_cards(
+    class_id: Optional[str] = None,
+    section_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get list of students for ID card generation"""
+    if current_user.role not in ["super_admin", "admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    query = {"tenant_id": current_user.tenant_id, "is_active": True}
+    
+    if class_id and class_id != "all":
+        query["class_id"] = class_id
+    if section_id and section_id != "all":
+        query["section_id"] = section_id
+    
+    students = await db.students.find(query).to_list(500)
+    
+    # Fetch class and section names
+    classes = await db.classes.find({"tenant_id": current_user.tenant_id}).to_list(100)
+    sections = await db.sections.find({"tenant_id": current_user.tenant_id}).to_list(100)
+    
+    class_map = {c["id"]: c.get("display_name") or c.get("name", "") for c in classes}
+    section_map = {s["id"]: s.get("name", "") for s in sections}
+    
+    result = []
+    for s in students:
+        result.append({
+            "id": s["id"],
+            "name": s.get("name", ""),
+            "father_name": s.get("father_name", ""),
+            "class_name": class_map.get(s.get("class_id"), ""),
+            "section_name": section_map.get(s.get("section_id"), ""),
+            "roll_no": s.get("roll_no", ""),
+            "admission_no": s.get("admission_no", ""),
+            "photo_url": s.get("photo_url", "")
+        })
+    
+    return result
+
+
+@api_router.get("/id-cards/staff/list")
+async def get_staff_for_id_cards(
+    department: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get list of staff for ID card generation"""
+    if current_user.role not in ["super_admin", "admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    query = {"tenant_id": current_user.tenant_id, "is_active": True}
+    
+    if department and department != "all":
+        query["department"] = department
+    
+    staff = await db.staff.find(query).to_list(500)
+    
+    result = []
+    for s in staff:
+        result.append({
+            "id": s["id"],
+            "name": s.get("name", ""),
+            "designation": s.get("designation", s.get("role", "Staff")),
+            "department": s.get("department", ""),
+            "employee_id": s.get("employee_id", ""),
+            "photo_url": s.get("photo_url", "")
+        })
+    
+    return result
+
 app.include_router(api_router)
 
 # ============================================================================

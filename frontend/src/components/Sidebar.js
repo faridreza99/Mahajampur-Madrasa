@@ -240,6 +240,11 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           roles: ["super_admin", "admin", "teacher"],
         },
         {
+          title: "Student ID Cards",
+          path: "/students/id-cards",
+          roles: ["super_admin", "admin", "teacher"],
+        },
+        {
           title: "Admission Summary",
           path: "/admission-summary",
           roles: ["super_admin", "admin"],
@@ -260,6 +265,11 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         {
           title: "Staff Attendance",
           path: "/attendance",
+          roles: ["super_admin", "admin"],
+        },
+        {
+          title: "Staff ID Cards",
+          path: "/staff/id-cards",
           roles: ["super_admin", "admin"],
         },
         {

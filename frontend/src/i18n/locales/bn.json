@@ -227,5 +227,23 @@
     "invalidPhone": "ফোন নম্বর সঠিক নয়",
     "minLength": "সর্বনিম্ন {{count}} অক্ষর প্রয়োজন",
     "maxLength": "সর্বোচ্চ {{count}} অক্ষর অনুমোদিত"
+  },
+  "idCard": {
+    "studentTitle": "শিক্ষার্থী পরিচয়পত্র",
+    "staffTitle": "কর্মচারী পরিচয়পত্র",
+    "totalStudents": "মোট শিক্ষার্থী",
+    "totalStaff": "মোট কর্মচারী",
+    "noStudents": "কোন শিক্ষার্থী পাওয়া যায়নি",
+    "noStaff": "কোন কর্মচারী পাওয়া যায়নি",
+    "searchPlaceholder": "নাম, রোল নম্বর দিয়ে খুঁজুন...",
+    "searchStaffPlaceholder": "নাম, পদবি দিয়ে খুঁজুন...",
+    "generateError": "পরিচয়পত্র তৈরি করতে ব্যর্থ",
+    "preview": "প্রিভিউ",
+    "download": "ডাউনলোড",
+    "print": "প্রিন্ট"
+  },
+  "sidebar": {
+    "studentIDCards": "শিক্ষার্থী পরিচয়পত্র",
+    "staffIDCards": "কর্মচারী পরিচয়পত্র"
   }
 }
