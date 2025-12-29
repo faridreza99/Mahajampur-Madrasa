@@ -281,7 +281,7 @@ const TenantManagement = () => {
   };
 
   // Open Edit User Dialog
-  const openEditUserDialog = (user) => {
+  const handleOpenEditUser = (user) => {
     setEditingUser(user);
     setEditUserForm({
       full_name: user.full_name || '',
@@ -318,7 +318,7 @@ const TenantManagement = () => {
   };
 
   // Open Reset Password Dialog
-  const openResetPasswordDialog = (user) => {
+  const handleOpenResetPassword = (user) => {
     setResetPasswordUser(user);
     setNewPassword('');
     setShowNewPassword(false);
