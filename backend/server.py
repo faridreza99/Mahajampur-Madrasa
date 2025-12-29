@@ -9745,6 +9745,14 @@ async def generate_admission_summary_report(
         # Fetch filtered students
         students_raw = await db.students.find(query).to_list(1000)
         
+        # Fetch all classes to create a lookup map for class names
+        classes_raw = await db.classes.find({"tenant_id": current_user.tenant_id}).to_list(100)
+        class_lookup = {}
+        for cls in classes_raw:
+            class_lookup[str(cls.get("_id"))] = cls.get("name", cls.get("class_name", ""))
+            if cls.get("class_id"):
+                class_lookup[str(cls.get("class_id"))] = cls.get("name", cls.get("class_name", ""))
+        
         # Convert ObjectIds to strings for JSON serialization
         from bson import ObjectId
         students = []
@@ -9757,6 +9765,15 @@ async def generate_admission_summary_report(
                     student_dict[k] = v.isoformat()
                 else:
                     student_dict[k] = v
+            
+            # Add class_name lookup
+            class_id = student_dict.get("class_id", "")
+            student_dict["class_name"] = class_lookup.get(str(class_id), student_dict.get("class", "N/A"))
+            
+            # Format admission_date if exists
+            if not student_dict.get("admission_date"):
+                student_dict["admission_date"] = student_dict.get("date_of_admission", student_dict.get("created_at", "N/A"))
+            
             students.append(student_dict)
         
         # Get institution currency for reports
