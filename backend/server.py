@@ -3305,7 +3305,13 @@ async def get_students(
     if class_id and class_id != "all_classes":
         query["class_id"] = class_id
     if section_id:
-        query["section_id"] = section_id
+        # Include students with matching section_id OR empty/null section_id (for backwards compatibility)
+        query["$or"] = [
+            {"section_id": section_id},
+            {"section_id": ""},
+            {"section_id": None},
+            {"section_id": {"$exists": False}}
+        ]
     if search:
         query["$or"] = [
             {"name": {"$regex": search, "$options": "i"}},
