@@ -29938,7 +29938,7 @@ async def generate_student_id_card(
     student_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Generate PDF ID card for a student"""
+    """Generate PDF ID card for a student - Professional Madrasah/School format"""
     from reportlab.lib.units import inch, mm
     from reportlab.lib.pagesizes import letter
     from reportlab.pdfgen import canvas as pdf_canvas
@@ -29946,9 +29946,12 @@ async def generate_student_id_card(
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.platypus import Paragraph
     from reportlab.lib.enums import TA_CENTER, TA_LEFT
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
     import qrcode
     from io import BytesIO
     import tempfile
+    import requests as http_requests
     
     if current_user.role not in ["super_admin", "admin", "teacher"]:
         raise HTTPException(status_code=403, detail="Not authorized")
@@ -29962,6 +29965,18 @@ async def generate_student_id_card(
         if not student:
             raise HTTPException(status_code=404, detail="Student not found")
         
+        # Fetch institution data for logo and name
+        institution = await db.institutions.find_one({
+            "tenant_id": current_user.tenant_id
+        })
+        institution_name = ""
+        institution_logo = ""
+        institution_type = "school"
+        if institution:
+            institution_name = institution.get("name", "") or institution.get("name_bn", "")
+            institution_logo = institution.get("logo_url", "") or institution.get("logo", "")
+            institution_type = institution.get("institution_type", "school")
+        
         # Fetch class info
         class_info = await db.classes.find_one({
             "id": student.get("class_id"),
@@ -29969,8 +29984,11 @@ async def generate_student_id_card(
         })
         class_name = ""
         if class_info:
-            # For Madrasah, prefer display_name (Bengali)
-            class_name = class_info.get("display_name") or class_info.get("name", "")
+            # For Madrasah institutions, use display_name (Bengali) first
+            if institution_type == "madrasah":
+                class_name = class_info.get("display_name") or class_info.get("display_name_bn") or class_info.get("name", "")
+            else:
+                class_name = class_info.get("display_name") or class_info.get("name", "")
         
         # Fetch section info
         section_name = ""
@@ -29984,6 +30002,9 @@ async def generate_student_id_card(
         
         # Get school branding
         branding = await get_school_branding_for_reports(current_user.tenant_id)
+        
+        # Use institution name if available, otherwise fall back to branding
+        display_name = institution_name or branding.get("school_name", "School ERP")
         
         # Create PDF buffer
         buffer = BytesIO()
@@ -30003,54 +30024,119 @@ async def generate_student_id_card(
         except:
             bg_color = colors.HexColor("#10B981")
         
-        # Draw header background
+        # Draw header background - taller for logo + name
+        header_height = 0.6*inch
         c.setFillColor(bg_color)
-        c.rect(0, card_height - 0.5*inch, card_width, 0.5*inch, fill=True, stroke=False)
+        c.rect(0, card_height - header_height, card_width, header_height, fill=True, stroke=False)
         
-        # School name in header
+        # Try to add institution logo in header
+        logo_added = False
+        logo_size = 0.35*inch
+        logo_x = 0.1*inch
+        logo_y = card_height - header_height + (header_height - logo_size) / 2
+        
+        if institution_logo:
+            try:
+                from PIL import Image as PILImage
+                import base64
+                
+                if institution_logo.startswith("data:image"):
+                    # Base64 encoded
+                    header_data, encoded = institution_logo.split(",", 1)
+                    logo_data = base64.b64decode(encoded)
+                    temp_logo = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+                    temp_logo.write(logo_data)
+                    temp_logo.close()
+                    c.drawImage(temp_logo.name, logo_x, logo_y, logo_size, logo_size, preserveAspectRatio=True, mask='auto')
+                    os.unlink(temp_logo.name)
+                    logo_added = True
+                elif institution_logo.startswith("http"):
+                    # HTTP URL - fetch the image
+                    try:
+                        response = http_requests.get(institution_logo, timeout=5)
+                        if response.status_code == 200:
+                            temp_logo = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+                            temp_logo.write(response.content)
+                            temp_logo.close()
+                            c.drawImage(temp_logo.name, logo_x, logo_y, logo_size, logo_size, preserveAspectRatio=True, mask='auto')
+                            os.unlink(temp_logo.name)
+                            logo_added = True
+                    except Exception as e:
+                        logging.warning(f"Could not fetch institution logo: {e}")
+            except Exception as e:
+                logging.warning(f"Could not add institution logo: {e}")
+        
+        # Institution name in header (centered or offset if logo present)
         c.setFillColor(colors.white)
-        c.setFont("Helvetica-Bold", 10)
-        school_name = branding.get("school_name", "School ERP")
-        c.drawCentredString(card_width/2, card_height - 0.35*inch, school_name[:30])
+        c.setFont("Helvetica-Bold", 9)
+        name_x = card_width / 2
+        if logo_added:
+            name_x = (logo_x + logo_size + card_width) / 2
         
-        # Student photo placeholder (left side)
+        # Truncate long names
+        max_name_len = 35 if logo_added else 40
+        c.drawCentredString(name_x, card_height - 0.35*inch, display_name[:max_name_len])
+        
+        # Add "Student ID Card" subtitle
+        c.setFont("Helvetica", 6)
+        c.drawCentredString(name_x, card_height - 0.5*inch, "STUDENT IDENTITY CARD")
+        
+        # Student photo (left side)
         photo_x = 0.15*inch
-        photo_y = card_height - 1.4*inch
-        photo_size = 0.7*inch
+        photo_y = card_height - header_height - 0.85*inch
+        photo_width = 0.7*inch
+        photo_height = 0.8*inch
         
-        c.setStrokeColor(colors.HexColor("#d1d5db"))
+        # Photo border
+        c.setStrokeColor(colors.HexColor("#10B981"))
+        c.setLineWidth(1.5)
         c.setFillColor(colors.HexColor("#f3f4f6"))
-        c.rect(photo_x, photo_y, photo_size, photo_size, fill=True, stroke=True)
+        c.rect(photo_x, photo_y, photo_width, photo_height, fill=True, stroke=True)
         
         # If student has photo, try to add it
+        photo_added = False
         if student.get("photo_url"):
             try:
                 from PIL import Image as PILImage
                 import base64
                 photo_url = student.get("photo_url")
+                
                 if photo_url.startswith("data:image"):
-                    header, encoded = photo_url.split(",", 1)
+                    # Base64 encoded image
+                    header_data, encoded = photo_url.split(",", 1)
                     photo_data = base64.b64decode(encoded)
                     temp_photo = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
                     temp_photo.write(photo_data)
                     temp_photo.close()
-                    c.drawImage(temp_photo.name, photo_x, photo_y, photo_size, photo_size, preserveAspectRatio=True, mask='auto')
+                    c.drawImage(temp_photo.name, photo_x, photo_y, photo_width, photo_height, preserveAspectRatio=True, mask='auto')
                     os.unlink(temp_photo.name)
+                    photo_added = True
+                elif photo_url.startswith("http"):
+                    # HTTP URL - fetch the image
+                    try:
+                        response = http_requests.get(photo_url, timeout=5)
+                        if response.status_code == 200:
+                            temp_photo = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+                            temp_photo.write(response.content)
+                            temp_photo.close()
+                            c.drawImage(temp_photo.name, photo_x, photo_y, photo_width, photo_height, preserveAspectRatio=True, mask='auto')
+                            os.unlink(temp_photo.name)
+                            photo_added = True
+                    except Exception as e:
+                        logging.warning(f"Could not fetch student photo from URL: {e}")
             except Exception as e:
                 logging.warning(f"Could not add student photo: {e}")
-                # Draw placeholder text
-                c.setFillColor(colors.HexColor("#9ca3af"))
-                c.setFont("Helvetica", 8)
-                c.drawCentredString(photo_x + photo_size/2, photo_y + photo_size/2, "Photo")
-        else:
+        
+        if not photo_added:
+            # Draw placeholder text
             c.setFillColor(colors.HexColor("#9ca3af"))
             c.setFont("Helvetica", 8)
-            c.drawCentredString(photo_x + photo_size/2, photo_y + photo_size/2, "Photo")
+            c.drawCentredString(photo_x + photo_width/2, photo_y + photo_height/2, "Photo")
         
         # Student details (right side of photo)
-        details_x = photo_x + photo_size + 0.15*inch
-        details_y = card_height - 0.65*inch
-        line_height = 0.18*inch
+        details_x = photo_x + photo_width + 0.15*inch
+        details_y = card_height - header_height - 0.15*inch
+        line_height = 0.15*inch
         
         c.setFillColor(colors.black)
         
@@ -30058,16 +30144,19 @@ async def generate_student_id_card(
         c.setFont("Helvetica-Bold", 9)
         student_name = student.get("name", "")[:25]
         c.drawString(details_x, details_y, student_name)
-        details_y -= line_height
+        details_y -= line_height + 0.02*inch
         
         # Father's name
         c.setFont("Helvetica", 7)
-        father_name = student.get("father_name", "")[:25]
+        father_name = student.get("father_name", "")[:22]
         c.drawString(details_x, details_y, f"Father: {father_name}")
         details_y -= line_height
         
-        # Class/Marhala
-        c.drawString(details_x, details_y, f"Class: {class_name[:20]}")
+        # Class/Marhala - Use Bengali for Madrasah
+        if institution_type == "madrasah":
+            c.drawString(details_x, details_y, f"Marhala: {class_name[:18]}")
+        else:
+            c.drawString(details_x, details_y, f"Class: {class_name[:20]}")
         details_y -= line_height
         
         # Section
@@ -30079,10 +30168,20 @@ async def generate_student_id_card(
         roll_or_reg = student.get("roll_no") or student.get("admission_no", "")
         c.drawString(details_x, details_y, f"Roll: {roll_or_reg}")
         
-        # QR Code (bottom right)
+        # Footer background
+        footer_height = 0.35*inch
+        c.setFillColor(colors.HexColor("#f3f4f6"))
+        c.rect(0, 0, card_width, footer_height, fill=True, stroke=False)
+        
+        # Footer with ID (left side)
+        c.setFont("Helvetica", 6)
+        c.setFillColor(colors.HexColor("#374151"))
+        c.drawString(0.1*inch, 0.15*inch, f"ID: {student_id[:20]}")
+        
+        # QR Code (bottom right in footer)
         try:
             qr = qrcode.QRCode(version=1, box_size=2, border=1)
-            qr_data = f"{school_name}|{student_name}|{student_id}"
+            qr_data = f"{display_name}|{student_name}|{class_name}|{student_id}"
             qr.add_data(qr_data)
             qr.make(fit=True)
             qr_img = qr.make_image(fill_color="black", back_color="white")
@@ -30092,16 +30191,11 @@ async def generate_student_id_card(
             qr_img.save(qr_temp.name)
             qr_temp.close()
             
-            qr_size = 0.5*inch
-            c.drawImage(qr_temp.name, card_width - qr_size - 0.1*inch, 0.1*inch, qr_size, qr_size)
+            qr_size = 0.3*inch
+            c.drawImage(qr_temp.name, card_width - qr_size - 0.08*inch, 0.03*inch, qr_size, qr_size)
             os.unlink(qr_temp.name)
         except Exception as e:
             logging.warning(f"Could not generate QR code: {e}")
-        
-        # Footer with ID
-        c.setFont("Helvetica", 6)
-        c.setFillColor(colors.HexColor("#6b7280"))
-        c.drawString(0.15*inch, 0.1*inch, f"ID: {student_id[:15]}...")
         
         c.save()
         buffer.seek(0)
@@ -30299,11 +30393,19 @@ async def get_students_for_id_cards(
     
     students = await db.students.find(query).to_list(500)
     
+    # Fetch institution to check type
+    institution = await db.institutions.find_one({"tenant_id": current_user.tenant_id})
+    institution_type = institution.get("institution_type", "school") if institution else "school"
+    
     # Fetch class and section names
     classes = await db.classes.find({"tenant_id": current_user.tenant_id}).to_list(100)
     sections = await db.sections.find({"tenant_id": current_user.tenant_id}).to_list(100)
     
-    class_map = {c["id"]: c.get("display_name") or c.get("name", "") for c in classes}
+    # For Madrasah, prefer display_name (Bengali)
+    if institution_type == "madrasah":
+        class_map = {c["id"]: c.get("display_name") or c.get("display_name_bn") or c.get("name", "") for c in classes}
+    else:
+        class_map = {c["id"]: c.get("display_name") or c.get("name", "") for c in classes}
     section_map = {s["id"]: s.get("name", "") for s in sections}
     
     result = []
@@ -30320,9 +30422,6 @@ async def get_students_for_id_cards(
         })
     
     return result
-
-
-@api_router.get("/id-cards/staff/list")
 async def get_staff_for_id_cards(
     department: Optional[str] = None,
     current_user: User = Depends(get_current_user)
