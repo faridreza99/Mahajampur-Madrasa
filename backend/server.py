@@ -12365,6 +12365,7 @@ async def get_school_branding_for_reports(tenant_id: str) -> dict:
         
         logo_path = None
         logo_url = branding.get("logo_url")
+        logo_path = logo_url  # Use logo_url as logo_path for PDF header
         if logo_url:
             if logo_url.startswith("data:image"):
                 import tempfile
@@ -13497,6 +13498,7 @@ async def generate_attendance_pdf_report(report_type: str, report_data: dict, cu
         school_email = branding.get("email", "")
         school_contact = f"Phone: {school_phone} | Email: {school_email}" if school_phone or school_email else ""
         logo_url = branding.get("logo_url")
+        logo_path = logo_url  # Use logo_url as logo_path for PDF header
         
         template = create_professional_pdf_template(school_name)
         
@@ -18389,6 +18391,7 @@ async def generate_biometric_pdf_report(report_type: str, report_data: dict, cur
         school_email = branding.get("email", "")
         school_contact = f"Phone: {school_phone} | Email: {school_email}" if school_phone or school_email else ""
         logo_url = branding.get("logo_url")
+        logo_path = logo_url  # Use logo_url as logo_path for PDF header
         
         
         logo_path = None
