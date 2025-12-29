@@ -34,7 +34,12 @@ import {
   UserCheck,
   Trash2,
   Eye,
-  EyeOff
+  EyeOff,
+  Edit,
+  Key,
+  RefreshCw,
+  Copy,
+  Check
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -107,6 +112,25 @@ const TenantManagement = () => {
     role: 'admin',
     phone: ''
   });
+  
+  // Edit User state
+  const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [editUserForm, setEditUserForm] = useState({
+    full_name: '',
+    email: '',
+    role: '',
+    is_active: true
+  });
+  const [savingUser, setSavingUser] = useState(false);
+  
+  // Reset Password state
+  const [isResetPasswordDialogOpen, setIsResetPasswordDialogOpen] = useState(false);
+  const [resetPasswordUser, setResetPasswordUser] = useState(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
+  const [passwordCopied, setPasswordCopied] = useState(false);
 
   const fetchTenants = useCallback(async () => {
     try {
@@ -547,22 +571,47 @@ const TenantManagement = () => {
               </div>
             ) : (
               <div className="space-y-2">
-                <div className="grid grid-cols-5 gap-4 p-2 bg-gray-100 rounded-lg font-medium text-sm">
+                <div className="grid grid-cols-6 gap-4 p-2 bg-gray-100 dark:bg-gray-800 rounded-lg font-medium text-sm">
                   <span>Name</span>
                   <span>Username</span>
                   <span>Email</span>
                   <span>Role</span>
                   <span>Status</span>
+                  <span className="text-right">Actions</span>
                 </div>
                 {tenantUsers.map((u) => (
-                  <div key={u.id} className="grid grid-cols-5 gap-4 p-2 border rounded-lg text-sm items-center">
+                  <div key={u.id} className="grid grid-cols-6 gap-4 p-2 border dark:border-gray-700 rounded-lg text-sm items-center">
                     <span className="truncate">{u.full_name}</span>
-                    <span className="truncate text-gray-600">{u.username}</span>
-                    <span className="truncate text-gray-600">{u.email}</span>
+                    <span className="truncate text-gray-600 dark:text-gray-400">{u.username}</span>
+                    <span className="truncate text-gray-600 dark:text-gray-400">{u.email}</span>
                     <Badge variant="outline" className="w-fit capitalize">{u.role}</Badge>
-                    <Badge variant={u.is_active !== false ? 'default' : 'secondary'} className="w-fit">
+                    <Badge 
+                      variant={u.is_active !== false ? 'default' : 'secondary'} 
+                      className={`w-fit cursor-pointer ${u.is_active !== false ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-400 hover:bg-gray-500'}`}
+                      onClick={() => handleToggleUserStatus(u)}
+                    >
                       {u.is_active !== false ? 'Active' : 'Inactive'}
                     </Badge>
+                    <div className="flex gap-1 justify-end">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={() => handleOpenEditUser(u)}
+                        title="Edit User"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-orange-500 hover:text-orange-600"
+                        onClick={() => handleOpenResetPassword(u)}
+                        title="Reset Password"
+                      >
+                        <Key className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -721,6 +770,150 @@ const TenantManagement = () => {
                   Delete School
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit User Dialog */}
+      <Dialog open={isEditUserDialogOpen} onOpenChange={setIsEditUserDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5 text-blue-500" />
+              Edit User - {editingUser?.full_name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Full Name</Label>
+              <Input
+                value={editUserForm.full_name}
+                onChange={(e) => setEditUserForm(prev => ({ ...prev, full_name: e.target.value }))}
+                placeholder="Enter full name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input
+                type="email"
+                value={editUserForm.email}
+                onChange={(e) => setEditUserForm(prev => ({ ...prev, email: e.target.value }))}
+                placeholder="user@school.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Role</Label>
+              <select
+                className="w-full h-10 px-3 rounded-md border border-input bg-background dark:bg-gray-800 dark:text-white"
+                value={editUserForm.role}
+                onChange={(e) => setEditUserForm(prev => ({ ...prev, role: e.target.value }))}
+              >
+                {ROLES.map(role => (
+                  <option key={role.value} value={role.value}>{role.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-3 p-3 border rounded-lg">
+              <Checkbox 
+                id="user-active"
+                checked={editUserForm.is_active}
+                onCheckedChange={(checked) => setEditUserForm(prev => ({ ...prev, is_active: checked }))}
+              />
+              <Label htmlFor="user-active" className="cursor-pointer">
+                User is Active
+              </Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditUserDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              className="bg-blue-500 hover:bg-blue-600"
+              onClick={handleSaveUser}
+              disabled={savingUser}
+            >
+              {savingUser ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={isResetPasswordDialogOpen} onOpenChange={setIsResetPasswordDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Key className="h-5 w-5 text-orange-500" />
+              Reset Password - {resetPasswordUser?.full_name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+              <p className="text-sm text-orange-800 dark:text-orange-300">
+                You are about to reset the password for <strong>{resetPasswordUser?.username}</strong>.
+                The user will need to use the new password to log in.
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>New Password</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={generatePassword}
+                  className="flex items-center gap-1"
+                >
+                  <RefreshCw className="h-3 w-3" />
+                  Generate
+                </Button>
+              </div>
+              <div className="relative">
+                <Input
+                  type={showNewPassword ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password (min 6 characters)"
+                  className="pr-20"
+                />
+                <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1">
+                  {newPassword && (
+                    <button
+                      type="button"
+                      className="p-1.5 text-gray-500 hover:text-gray-700"
+                      onClick={copyPassword}
+                      title="Copy password"
+                    >
+                      {passwordCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="p-1.5 text-gray-500 hover:text-gray-700"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                  >
+                    {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+              {newPassword && newPassword.length < 6 && (
+                <p className="text-xs text-red-500">Password must be at least 6 characters</p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsResetPasswordDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              className="bg-orange-500 hover:bg-orange-600"
+              onClick={handleResetPassword}
+              disabled={resettingPassword || !newPassword || newPassword.length < 6}
+            >
+              {resettingPassword ? 'Resetting...' : 'Reset Password'}
             </Button>
           </DialogFooter>
         </DialogContent>
