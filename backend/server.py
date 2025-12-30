@@ -3259,8 +3259,6 @@ async def get_institution(current_user: User = Depends(get_current_user)):
 
 @api_router.get("/institution/settings")
 async def get_institution_settings(current_user: User = Depends(get_current_user)):
-    """Get institution settings including institution_type for the current tenant"""
-    
     # Try to find existing institution record
     institution = await db.institutions.find_one({
         "tenant_id": current_user.tenant_id,
