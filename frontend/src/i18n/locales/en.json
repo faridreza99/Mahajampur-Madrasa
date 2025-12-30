@@ -286,6 +286,16 @@
     "totalSections": "Total Sections",
     "totalSubjects": "Total Subjects",
     "assignedTeachers": "Assigned Teachers",
-    "classSubjects": "Class Subjects"
+    "classSubjects": "Class Subjects",
+    "maxStudents": "Max Students",
+    "status": "Status",
+    "actions": "Actions",
+    "active": "Active",
+    "inactive": "Inactive",
+    "className": "Class Name",
+    "classTeacher": "Class Teacher",
+    "noTeacher": "No Teacher Assigned",
+    "noClasses": "No classes found",
+    "createFirst": "Create your first class to get started"
   }
 }

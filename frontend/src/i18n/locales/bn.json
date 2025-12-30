@@ -286,6 +286,16 @@
     "totalSections": "মোট শাখা",
     "totalSubjects": "মোট বিষয়",
     "assignedTeachers": "নিয়োগকৃত শিক্ষক",
-    "classSubjects": "শ্রেণির বিষয়"
+    "classSubjects": "শ্রেণির বিষয়",
+    "maxStudents": "সর্বোচ্চ শিক্ষার্থী",
+    "status": "অবস্থা",
+    "actions": "কার্যক্রম",
+    "active": "সক্রিয়",
+    "inactive": "নিষ্ক্রিয়",
+    "className": "শ্রেণির নাম",
+    "classTeacher": "শ্রেণি শিক্ষক",
+    "noTeacher": "শিক্ষক নিয়োগ হয়নি",
+    "noClasses": "কোন শ্রেণি পাওয়া যায়নি",
+    "createFirst": "শুরু করতে প্রথম শ্রেণি তৈরি করুন"
   }
 }
