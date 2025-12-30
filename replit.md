@@ -9,6 +9,9 @@ This Cloud School ERP is a **Single Madrasah** management system (fixed tenant: 
 - Implemented in-memory TTL caching layer (Redis-ready architecture)
 - Cache invalidation on all create/update/delete operations
 - Updated ID card back side with professional Bengali text
+- Added pagination support for student listings (backward compatible)
+- Created background job queue for long-running operations (PDF/ID Card generation)
+- Bulk ID card generation with ZIP download and progress tracking
 
 # User Preferences
 
