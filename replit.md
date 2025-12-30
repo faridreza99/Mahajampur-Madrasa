@@ -38,7 +38,7 @@ Preferred communication style: Simple, everyday language.
 - **Enterprise Payroll Management System**: Complete payroll solution with salary structure, attendance/leave integration, payment tracking, payslip generation, and comprehensive reports.
 - **Enterprise Attendance Management System**: Rule-based attendance, biometric integration, offline sync, parent notifications, and AI insights.
 - **ID Card Generation System**: Student and staff ID card generation with QR codes and school branding.
-- **Madrasah Specific Features**: Madrasah Class Management, Madrasah Simple Fee Wizard, Professional Madrasah Receipt, Simplified Madrasah Certificate System, all with full Bengali support and Madrasah-specific nomenclature.
+- **Madrasah Specific Features**: Madrasah Class Management, Madrasah Simple Fee Wizard, Professional Madrasah Receipt, Simplified Madrasah Certificate System, **Madrasah Simple Result System** (মুমতাজ/জায়্যিদ জিদ্দান/জায়্যিদ/মাকবুল/রাসেব grading with print), **Madrasah Simple Routine System** (সহজ সাপ্তাহিক রুটিন with print), all with full Bengali support and Madrasah-specific nomenclature. Madrasah sidebar shows only: সহজ ফলাফল, সহজ রুটিন (instead of complex Results/TimeTable).
 
 ## System Design Choices
 - **Build Tooling**: Create React App with Craco and Webpack.

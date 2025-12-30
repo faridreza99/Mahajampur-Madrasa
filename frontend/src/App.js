@@ -47,6 +47,8 @@ import RatingSurveys from "./components/RatingSurveys";
 import Results from "./components/Results";
 import StudentResults from "./components/StudentResults";
 import ParentResults from "./components/ParentResults";
+import MadrasahSimpleResult from "./components/MadrasahSimpleResult";
+import MadrasahSimpleRoutine from "./components/MadrasahSimpleRoutine";
 import ResultConfiguration from "./components/ResultConfiguration";
 import TenantManagement from "./components/TenantManagement";
 import SubscriptionManagement from "./components/SubscriptionManagement";
@@ -433,6 +435,22 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <ResultConfiguration />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/madrasah/simple-result"
+                  element={
+                    <ProtectedRoute>
+                      <MadrasahSimpleResult />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/madrasah/simple-routine"
+                  element={
+                    <ProtectedRoute>
+                      <MadrasahSimpleRoutine />
                     </ProtectedRoute>
                   }
                 />

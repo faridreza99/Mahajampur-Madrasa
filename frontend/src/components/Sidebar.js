@@ -214,6 +214,18 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           roles: ["super_admin", "admin", "teacher"],
         },
         {
+          title: "সহজ ফলাফল",
+          path: "/madrasah/simple-result",
+          roles: ["super_admin", "admin", "principal", "teacher"],
+          madrasahOnly: true,
+        },
+        {
+          title: "সহজ রুটিন",
+          path: "/madrasah/simple-routine",
+          roles: ["super_admin", "admin", "principal", "teacher"],
+          madrasahOnly: true,
+        },
+        {
           title: "Calendar",
           path: "/calendar",
           roles: ["super_admin", "admin", "teacher"],
@@ -637,7 +649,8 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                         (subItem) =>
                           (!subItem.roles || subItem.roles.includes(user?.role)) &&
                           isSubItemAllowed(subItem.path) &&
-                          !(isMadrasahSimpleUI && ['/fees/structure', '/fees/reports', '/accounts', '/payroll', '/results', '/settings/timetable'].includes(subItem.path)),
+                          !(isMadrasahSimpleUI && ['/fees/structure', '/fees/reports', '/accounts', '/payroll', '/results', '/settings/timetable'].includes(subItem.path)) &&
+                          (subItem.madrasahOnly ? isMadrasahSimpleUI : true),
                       )
                       .map((subItem, index) => (
                         <button

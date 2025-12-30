@@ -30540,6 +30540,272 @@ async def get_students_for_id_cards(
     
     return result
 
+
+# ==================== MADRASAH SIMPLE RESULT SYSTEM ====================
+
+class MadrasahSimpleResult(BaseModel):
+    """Simple result for Madrasah students - just grade based"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    school_id: Optional[str] = None
+    student_id: str
+    student_name: str
+    class_id: str
+    class_name: str
+    session: str  # Year like "2024"
+    grade: str  # mumtaz, jayyid_jiddan, jayyid, maqbul, rasib
+    remarks: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_by: Optional[str] = None
+
+class MadrasahSimpleResultCreate(BaseModel):
+    student_id: str
+    student_name: str
+    class_id: str
+    class_name: str
+    session: str
+    grade: str
+    remarks: Optional[str] = None
+
+class MadrasahSimpleResultUpdate(BaseModel):
+    grade: Optional[str] = None
+    session: Optional[str] = None
+    remarks: Optional[str] = None
+
+@api_router.get("/madrasah/simple-results")
+async def get_madrasah_simple_results(
+    class_id: Optional[str] = None,
+    session: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get simple results for Madrasah"""
+    query = {"tenant_id": current_user.tenant_id}
+    if class_id:
+        query["class_id"] = class_id
+    if session:
+        query["session"] = session
+    
+    results = await db.madrasah_simple_results.find(query).to_list(1000)
+    results = sanitize_mongo_data(results)
+    return results
+
+@api_router.post("/madrasah/simple-results")
+async def create_madrasah_simple_result(
+    result_data: MadrasahSimpleResultCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a simple result for Madrasah student"""
+    if current_user.role not in ["super_admin", "admin", "principal", "teacher"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Check if result already exists for this student/session
+    existing = await db.madrasah_simple_results.find_one({
+        "tenant_id": current_user.tenant_id,
+        "student_id": result_data.student_id,
+        "session": result_data.session
+    })
+    
+    if existing:
+        # Update existing result
+        await db.madrasah_simple_results.update_one(
+            {"id": existing["id"]},
+            {"$set": {"grade": result_data.grade, "updated_at": datetime.utcnow()}}
+        )
+        updated = await db.madrasah_simple_results.find_one({"id": existing["id"]})
+        return sanitize_mongo_data(updated)
+    
+    result = MadrasahSimpleResult(
+        tenant_id=current_user.tenant_id,
+        school_id=f"school-{current_user.tenant_id}",
+        student_id=result_data.student_id,
+        student_name=result_data.student_name,
+        class_id=result_data.class_id,
+        class_name=result_data.class_name,
+        session=result_data.session,
+        grade=result_data.grade,
+        remarks=result_data.remarks,
+        created_by=current_user.id
+    )
+    
+    await db.madrasah_simple_results.insert_one(result.dict())
+    return result.dict()
+
+@api_router.put("/madrasah/simple-results/{result_id}")
+async def update_madrasah_simple_result(
+    result_id: str,
+    result_data: MadrasahSimpleResultUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update a simple result"""
+    if current_user.role not in ["super_admin", "admin", "principal", "teacher"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    existing = await db.madrasah_simple_results.find_one({
+        "id": result_id,
+        "tenant_id": current_user.tenant_id
+    })
+    
+    if not existing:
+        raise HTTPException(status_code=404, detail="Result not found")
+    
+    update_data = {k: v for k, v in result_data.dict().items() if v is not None}
+    update_data["updated_at"] = datetime.utcnow()
+    
+    await db.madrasah_simple_results.update_one(
+        {"id": result_id},
+        {"$set": update_data}
+    )
+    
+    updated = await db.madrasah_simple_results.find_one({"id": result_id})
+    return sanitize_mongo_data(updated)
+
+@api_router.delete("/madrasah/simple-results/{result_id}")
+async def delete_madrasah_simple_result(
+    result_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a simple result"""
+    if current_user.role not in ["super_admin", "admin", "principal"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    result = await db.madrasah_simple_results.delete_one({
+        "id": result_id,
+        "tenant_id": current_user.tenant_id
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Result not found")
+    
+    return {"message": "Result deleted successfully"}
+
+
+# ==================== MADRASAH SIMPLE ROUTINE SYSTEM ====================
+
+class MadrasahSimpleRoutine(BaseModel):
+    """Simple routine entry for Madrasah"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    school_id: Optional[str] = None
+    class_id: str
+    class_name: str
+    day: str  # saturday, sunday, monday, tuesday, wednesday, thursday
+    subject: str
+    teacher_id: Optional[str] = None
+    teacher_name: Optional[str] = None
+    start_time: str  # "09:00"
+    end_time: str  # "09:45"
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_by: Optional[str] = None
+
+class MadrasahSimpleRoutineCreate(BaseModel):
+    class_id: str
+    class_name: str
+    day: str
+    subject: str
+    teacher_id: Optional[str] = None
+    teacher_name: Optional[str] = None
+    start_time: str
+    end_time: str
+
+class MadrasahSimpleRoutineUpdate(BaseModel):
+    day: Optional[str] = None
+    subject: Optional[str] = None
+    teacher_id: Optional[str] = None
+    teacher_name: Optional[str] = None
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+
+@api_router.get("/madrasah/simple-routines")
+async def get_madrasah_simple_routines(
+    class_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get simple routines for Madrasah"""
+    query = {"tenant_id": current_user.tenant_id, "is_active": True}
+    if class_id:
+        query["class_id"] = class_id
+    
+    routines = await db.madrasah_simple_routines.find(query).to_list(500)
+    routines = sanitize_mongo_data(routines)
+    return routines
+
+@api_router.post("/madrasah/simple-routines")
+async def create_madrasah_simple_routine(
+    routine_data: MadrasahSimpleRoutineCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a simple routine entry for Madrasah"""
+    if current_user.role not in ["super_admin", "admin", "principal", "teacher"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    routine = MadrasahSimpleRoutine(
+        tenant_id=current_user.tenant_id,
+        school_id=f"school-{current_user.tenant_id}",
+        class_id=routine_data.class_id,
+        class_name=routine_data.class_name,
+        day=routine_data.day,
+        subject=routine_data.subject,
+        teacher_id=routine_data.teacher_id,
+        teacher_name=routine_data.teacher_name,
+        start_time=routine_data.start_time,
+        end_time=routine_data.end_time,
+        created_by=current_user.id
+    )
+    
+    await db.madrasah_simple_routines.insert_one(routine.dict())
+    return routine.dict()
+
+@api_router.put("/madrasah/simple-routines/{routine_id}")
+async def update_madrasah_simple_routine(
+    routine_id: str,
+    routine_data: MadrasahSimpleRoutineUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update a simple routine"""
+    if current_user.role not in ["super_admin", "admin", "principal", "teacher"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    existing = await db.madrasah_simple_routines.find_one({
+        "id": routine_id,
+        "tenant_id": current_user.tenant_id
+    })
+    
+    if not existing:
+        raise HTTPException(status_code=404, detail="Routine not found")
+    
+    update_data = {k: v for k, v in routine_data.dict().items() if v is not None}
+    update_data["updated_at"] = datetime.utcnow()
+    
+    await db.madrasah_simple_routines.update_one(
+        {"id": routine_id},
+        {"$set": update_data}
+    )
+    
+    updated = await db.madrasah_simple_routines.find_one({"id": routine_id})
+    return sanitize_mongo_data(updated)
+
+@api_router.delete("/madrasah/simple-routines/{routine_id}")
+async def delete_madrasah_simple_routine(
+    routine_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a simple routine"""
+    if current_user.role not in ["super_admin", "admin", "principal"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    result = await db.madrasah_simple_routines.delete_one({
+        "id": routine_id,
+        "tenant_id": current_user.tenant_id
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Routine not found")
+    
+    return {"message": "Routine deleted successfully"}
+
 app.include_router(api_router)
 
 # ============================================================================
