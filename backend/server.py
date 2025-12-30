@@ -30047,26 +30047,24 @@ async def generate_student_id_card(
     student_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Generate PDF ID card for a student - Professional Madrasah/School format with Bengali support"""
+    """Generate Professional Madrasah Student ID Card PDF with Front + Back"""
     from reportlab.lib.units import inch, mm
     from reportlab.lib.pagesizes import letter
     from reportlab.pdfgen import canvas as pdf_canvas
     from reportlab.lib import colors
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.platypus import Paragraph
-    from reportlab.lib.enums import TA_CENTER, TA_LEFT
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
     import qrcode
     from io import BytesIO
     import tempfile
     import requests as http_requests
+    from datetime import datetime, timedelta
     
     if current_user.role not in ["super_admin", "admin", "teacher"]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
     try:
-        # Register Bengali fonts for proper rendering
+        # Register Bengali fonts
         font_dir = Path(__file__).parent / "fonts"
         bengali_font_regular = font_dir / "NotoSansBengali-Regular.ttf"
         bengali_font_bold = font_dir / "NotoSansBengali-Bold.ttf"
@@ -30081,7 +30079,15 @@ async def generate_student_id_card(
         except Exception as e:
             logging.warning(f"Could not register Bengali fonts: {e}")
         
-        # Fetch student
+        # Helper function to use Bengali font
+        def use_font(canvas_obj, size, bold=False):
+            font_name = "NotoSansBengali-Bold" if bold and "NotoSansBengali-Bold" in pdfmetrics.getRegisteredFontNames() else "NotoSansBengali"
+            if font_name in pdfmetrics.getRegisteredFontNames():
+                canvas_obj.setFont(font_name, size)
+            else:
+                canvas_obj.setFont("Helvetica-Bold" if bold else "Helvetica", size)
+        
+        # Fetch student data
         student = await db.students.find_one({
             "id": student_id,
             "tenant_id": current_user.tenant_id
@@ -30089,17 +30095,25 @@ async def generate_student_id_card(
         if not student:
             raise HTTPException(status_code=404, detail="Student not found")
         
-        # Fetch institution data for logo and name
+        # Fetch institution data
         institution = await db.institutions.find_one({
             "tenant_id": current_user.tenant_id
         })
-        institution_name = ""
+        
+        institution_name_bn = ""
+        institution_name_en = ""
+        institution_address = ""
+        institution_phone = ""
         institution_logo = ""
-        institution_type = "school"
+        institution_type = "madrasah"
+        
         if institution:
-            institution_name = institution.get("name", "") or institution.get("name_bn", "")
-            institution_logo = institution.get("logo_url", "") or institution.get("logo", "")
-            institution_type = institution.get("institution_type", "school")
+            institution_name_bn = institution.get("name_bn") or institution.get("name", "")
+            institution_name_en = institution.get("name_en") or institution.get("name", "")
+            institution_address = institution.get("address", "")
+            institution_phone = institution.get("phone", "") or institution.get("contact_phone", "")
+            institution_logo = institution.get("logo_url") or institution.get("logo", "")
+            institution_type = institution.get("institution_type", "madrasah")
         
         # Fetch class info
         class_info = await db.classes.find_one({
@@ -30108,11 +30122,7 @@ async def generate_student_id_card(
         })
         class_name = ""
         if class_info:
-            # For Madrasah institutions, use display_name (Bengali) first
-            if institution_type == "madrasah":
-                class_name = class_info.get("display_name") or class_info.get("display_name_bn") or class_info.get("name", "")
-            else:
-                class_name = class_info.get("display_name") or class_info.get("name", "")
+            class_name = class_info.get("display_name") or class_info.get("name", "")
         
         # Fetch section info
         section_name = ""
@@ -30124,76 +30134,52 @@ async def generate_student_id_card(
             if section_info:
                 section_name = section_info.get("name", "")
         
-        # Get school branding
-        branding = await get_school_branding_for_reports(current_user.tenant_id)
+        # Student data
+        student_name = student.get("name", "")
+        father_name = student.get("father_name", "")
+        mother_name = student.get("mother_name", "")
+        roll_no = student.get("roll_no") or student.get("admission_no", "")
+        address = student.get("address", "") or student.get("present_address", "")
+        phone = student.get("guardian_phone") or student.get("phone", "")
+        photo_url = student.get("photo_url", "")
+        blood_group = student.get("blood_group", "")
+        dob = student.get("date_of_birth", "")
         
-        # Use institution name if available, otherwise fall back to branding
-        display_name = institution_name or branding.get("school_name", "School ERP")
+        # Dates
+        issue_date = datetime.now().strftime("%d/%m/%Y")
+        expiry_date = (datetime.now() + timedelta(days=365*2)).strftime("%d/%m/%Y")  # 2 years validity
         
         # Create PDF buffer
         buffer = BytesIO()
         
-        # ID card size: Credit card size (3.375 x 2.125 inches = 85.6 x 53.98 mm)
-        card_width = 3.375 * inch
-        card_height = 2.125 * inch
+        # ID card size: Standard ID card (3.375 x 2.125 inches = 85.6 x 53.98 mm)
+        card_width = 3.5 * inch
+        card_height = 2.25 * inch
         
-        # Create canvas
+        # Create canvas with 2 pages (front and back)
         c = pdf_canvas.Canvas(buffer, pagesize=(card_width, card_height))
         
-        # Background gradient effect (simple colored background)
-        primary_color = branding.get("primary_color", "#10B981")
-        try:
-            from reportlab.lib.colors import HexColor
-            bg_color = HexColor(primary_color)
-        except:
-            bg_color = colors.HexColor("#10B981")
+        # Colors
+        primary_color = colors.HexColor("#1a5f7a")  # Dark teal/blue
+        secondary_color = colors.HexColor("#57c5b6")  # Light teal
+        accent_color = colors.HexColor("#ffd93d")  # Yellow/Gold
+        bg_color = colors.HexColor("#e8f4f8")  # Light blue background
         
-        # Helper function to check if text contains Bengali
-        def contains_bengali(text):
-            if not text:
-                return False
-            for char in text:
-                if '\u0980' <= char <= '\u09FF':
-                    return True
-            return False
-        
-        # Helper function to set appropriate font
-        # Always use NotoSansBengali if registered (it supports Latin characters too)
-        def set_font_for_text(canvas_obj, text, size, bold=False):
-            # Check if NotoSansBengali is registered
-            bengali_font = "NotoSansBengali-Bold" if bold and "NotoSansBengali-Bold" in pdfmetrics.getRegisteredFontNames() else "NotoSansBengali"
-            
-            # If text contains Bengali, we MUST use Bengali font
-            if contains_bengali(text):
-                if bengali_font in pdfmetrics.getRegisteredFontNames():
-                    canvas_obj.setFont(bengali_font, size)
-                    return True
-                else:
-                    # Bengali text but no Bengali font - sanitize the text to avoid encoding errors
-                    # This should not happen if fonts are properly set up
-                    logging.warning(f"Bengali font not available for text: {text[:20]}...")
-                    canvas_obj.setFont("Helvetica-Bold" if bold else "Helvetica", size)
-                    return False
-            
-            # For non-Bengali text, prefer Bengali font if available (it supports Latin too)
-            if bengali_font in pdfmetrics.getRegisteredFontNames():
-                canvas_obj.setFont(bengali_font, size)
-                return True
-            
-            # Fallback to Helvetica for pure ASCII
-            canvas_obj.setFont("Helvetica-Bold" if bold else "Helvetica", size)
-            return False
-        
-        # Draw header background - taller for logo + name
-        header_height = 0.6*inch
+        # ================== FRONT SIDE ==================
+        # Background
         c.setFillColor(bg_color)
+        c.rect(0, 0, card_width, card_height, fill=True, stroke=False)
+        
+        # Header banner
+        header_height = 0.55 * inch
+        c.setFillColor(primary_color)
         c.rect(0, card_height - header_height, card_width, header_height, fill=True, stroke=False)
         
-        # Try to add institution logo in header
+        # Institution logo in header (left)
         logo_added = False
-        logo_size = 0.35*inch
-        logo_x = 0.1*inch
-        logo_y = card_height - header_height + (header_height - logo_size) / 2
+        logo_size = 0.4 * inch
+        logo_x = 0.08 * inch
+        logo_y = card_height - header_height + 0.08 * inch
         
         if institution_logo:
             try:
@@ -30201,7 +30187,6 @@ async def generate_student_id_card(
                 import base64
                 
                 if institution_logo.startswith("data:image"):
-                    # Base64 encoded
                     header_data, encoded = institution_logo.split(",", 1)
                     logo_data = base64.b64decode(encoded)
                     temp_logo = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
@@ -30211,7 +30196,6 @@ async def generate_student_id_card(
                     os.unlink(temp_logo.name)
                     logo_added = True
                 elif institution_logo.startswith("http"):
-                    # HTTP URL - fetch the image
                     try:
                         response = http_requests.get(institution_logo, timeout=5)
                         if response.status_code == 200:
@@ -30221,52 +30205,60 @@ async def generate_student_id_card(
                             c.drawImage(temp_logo.name, logo_x, logo_y, logo_size, logo_size, preserveAspectRatio=True, mask='auto')
                             os.unlink(temp_logo.name)
                             logo_added = True
-                    except Exception as e:
-                        logging.warning(f"Could not fetch institution logo: {e}")
+                    except:
+                        pass
+                elif institution_logo.startswith("/uploads"):
+                    try:
+                        local_path = Path(__file__).parent.parent / institution_logo.lstrip("/")
+                        if not local_path.exists():
+                            local_path = Path(__file__).parent / institution_logo.lstrip("/")
+                        if local_path.exists():
+                            c.drawImage(str(local_path), logo_x, logo_y, logo_size, logo_size, preserveAspectRatio=True, mask='auto')
+                            logo_added = True
+                    except:
+                        pass
             except Exception as e:
                 logging.warning(f"Could not add institution logo: {e}")
         
-        # Institution name in header (centered or offset if logo present)
+        # Institution name in header (Bengali - main)
         c.setFillColor(colors.white)
-        name_x = card_width / 2
-        if logo_added:
-            name_x = (logo_x + logo_size + card_width) / 2
+        name_x = card_width / 2 + (0.15 * inch if logo_added else 0)
+        use_font(c, 10, bold=True)
+        inst_name_display = institution_name_bn[:30] if institution_name_bn else "মাদ্রাসা"
+        c.drawCentredString(name_x, card_height - 0.25 * inch, inst_name_display)
         
-        # Truncate long names
-        max_name_len = 35 if logo_added else 40
-        display_name_truncated = display_name[:max_name_len]
+        # Institution name (English - smaller)
+        use_font(c, 6, bold=False)
+        inst_name_en_display = institution_name_en[:40] if institution_name_en else ""
+        if inst_name_en_display:
+            c.drawCentredString(name_x, card_height - 0.38 * inch, inst_name_en_display.upper())
         
-        # Use Bengali font if institution name contains Bengali
-        set_font_for_text(c, display_name_truncated, 9, bold=True)
-        c.drawCentredString(name_x, card_height - 0.35*inch, display_name_truncated)
+        # Address line
+        use_font(c, 5, bold=False)
+        addr_display = institution_address[:50] if institution_address else ""
+        if addr_display:
+            c.drawCentredString(name_x, card_height - 0.48 * inch, addr_display)
         
-        # Add "Student ID Card" subtitle
-        c.setFont("Helvetica", 6)
-        c.drawCentredString(name_x, card_height - 0.5*inch, "STUDENT IDENTITY CARD")
+        # Student photo area (left side)
+        photo_x = 0.15 * inch
+        photo_y = card_height - header_height - 0.95 * inch
+        photo_width = 0.75 * inch
+        photo_height = 0.85 * inch
         
-        # Student photo (left side)
-        photo_x = 0.15*inch
-        photo_y = card_height - header_height - 0.85*inch
-        photo_width = 0.7*inch
-        photo_height = 0.8*inch
+        # Photo border (rounded effect with rectangle)
+        c.setStrokeColor(primary_color)
+        c.setLineWidth(2)
+        c.setFillColor(colors.white)
+        c.roundRect(photo_x - 0.03*inch, photo_y - 0.03*inch, photo_width + 0.06*inch, photo_height + 0.06*inch, 0.05*inch, fill=True, stroke=True)
         
-        # Photo border
-        c.setStrokeColor(colors.HexColor("#10B981"))
-        c.setLineWidth(1.5)
-        c.setFillColor(colors.HexColor("#f3f4f6"))
-        c.rect(photo_x, photo_y, photo_width, photo_height, fill=True, stroke=True)
-        
-        # If student has photo, try to add it
-        # If student has photo, try to add it
+        # Add student photo
         photo_added = False
-        if student.get("photo_url"):
+        if photo_url:
             try:
                 from PIL import Image as PILImage
                 import base64
-                photo_url = student.get("photo_url")
                 
                 if photo_url.startswith("data:image"):
-                    # Base64 encoded image
                     header_data, encoded = photo_url.split(",", 1)
                     photo_data = base64.b64decode(encoded)
                     temp_photo = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
@@ -30276,7 +30268,6 @@ async def generate_student_id_card(
                     os.unlink(temp_photo.name)
                     photo_added = True
                 elif photo_url.startswith("http"):
-                    # HTTP URL - fetch the image
                     try:
                         response = http_requests.get(photo_url, timeout=5)
                         if response.status_code == 200:
@@ -30286,97 +30277,191 @@ async def generate_student_id_card(
                             c.drawImage(temp_photo.name, photo_x, photo_y, photo_width, photo_height, preserveAspectRatio=True, mask='auto')
                             os.unlink(temp_photo.name)
                             photo_added = True
-                    except Exception as e:
-                        logging.warning(f"Could not fetch student photo from URL: {e}")
+                    except:
+                        pass
                 elif photo_url.startswith("/uploads"):
-                    # Relative path - read from local file system
                     try:
-                        # The uploads folder is typically at the project root or in backend
                         local_path = Path(__file__).parent.parent / photo_url.lstrip("/")
                         if not local_path.exists():
                             local_path = Path(__file__).parent / photo_url.lstrip("/")
                         if local_path.exists():
                             c.drawImage(str(local_path), photo_x, photo_y, photo_width, photo_height, preserveAspectRatio=True, mask='auto')
                             photo_added = True
-                        else:
-                            logging.warning(f"Photo file not found at: {local_path}")
-                    except Exception as e:
-                        logging.warning(f"Could not load student photo from local path: {e}")
+                    except:
+                        pass
             except Exception as e:
                 logging.warning(f"Could not add student photo: {e}")
         
         if not photo_added:
-            # Draw placeholder text
-            c.setFillColor(colors.HexColor("#9ca3af"))
-            c.setFont("Helvetica", 8)
-            c.drawCentredString(photo_x + photo_width/2, photo_y + photo_height/2, "Photo")
+            c.setFillColor(colors.HexColor("#e0e0e0"))
+            c.rect(photo_x, photo_y, photo_width, photo_height, fill=True, stroke=False)
+            c.setFillColor(colors.HexColor("#888888"))
+            use_font(c, 7, bold=False)
+            c.drawCentredString(photo_x + photo_width/2, photo_y + photo_height/2, "ছবি")
         
         # Student details (right side of photo)
-        details_x = photo_x + photo_width + 0.15*inch
-        details_y = card_height - header_height - 0.15*inch
-        line_height = 0.15*inch
+        details_x = photo_x + photo_width + 0.12 * inch
+        details_y = card_height - header_height - 0.12 * inch
+        line_height = 0.13 * inch
         
         c.setFillColor(colors.black)
         
-        # Name (Bengali/English)
-        student_name = student.get("name", "")[:25]
-        set_font_for_text(c, student_name, 9, bold=True)
-        c.drawString(details_x, details_y, student_name)
-        details_y -= line_height + 0.02*inch
+        # Student Name (Bold, larger)
+        use_font(c, 9, bold=True)
+        c.drawString(details_x, details_y, student_name[:25])
+        details_y -= line_height + 0.02 * inch
         
-        # Father's name
-        father_name = student.get("father_name", "")[:22]
-        father_text = f"Father: {father_name}"
-        set_font_for_text(c, father_text, 7, bold=False)
-        c.drawString(details_x, details_y, father_text)
+        # Father's Name
+        use_font(c, 6, bold=False)
+        c.setFillColor(colors.HexColor("#333333"))
+        father_label = f"পিতাঃ {father_name[:20]}"
+        c.drawString(details_x, details_y, father_label)
         details_y -= line_height
         
-        # Class/Marhala - Use Bengali for Madrasah
-        if institution_type == "madrasah":
-            class_text = f"Marhala: {class_name[:18]}"
-        else:
-            class_text = f"Class: {class_name[:20]}"
-        set_font_for_text(c, class_text, 7, bold=False)
-        c.drawString(details_x, details_y, class_text)
-        details_y -= line_height
-        
-        # Section
+        # Class/Marhala
+        class_section = class_name
         if section_name:
-            section_text = f"Section: {section_name}"
-            set_font_for_text(c, section_text, 7, bold=False)
-            c.drawString(details_x, details_y, section_text)
+            class_section = f"{class_name} ({section_name})"
+        class_label = f"মারহালাঃ {class_section[:18]}"
+        c.drawString(details_x, details_y, class_label)
+        details_y -= line_height
+        
+        # Roll No
+        roll_label = f"রোল নম্বরঃ {roll_no}"
+        c.drawString(details_x, details_y, roll_label)
+        details_y -= line_height
+        
+        # Mobile
+        if phone:
+            phone_label = f"মোবাইলঃ {phone[:15]}"
+            c.drawString(details_x, details_y, phone_label)
             details_y -= line_height
         
-        # Roll/Reg
-        roll_or_reg = student.get("roll_no") or student.get("admission_no", "")
-        roll_text = f"Roll: {roll_or_reg}"
-        set_font_for_text(c, roll_text, 7, bold=False)
-        c.drawString(details_x, details_y, roll_text)
-        # Footer background
-        footer_height = 0.35*inch
-        c.setFillColor(colors.HexColor("#f3f4f6"))
+        # ID No
+        id_label = f"আইডি নংঃ {student_id[:8]}"
+        c.drawString(details_x, details_y, id_label)
+        
+        # Footer bar
+        footer_height = 0.25 * inch
+        c.setFillColor(primary_color)
         c.rect(0, 0, card_width, footer_height, fill=True, stroke=False)
         
-        # Footer with ID (left side)
-        c.setFont("Helvetica", 6)
-        c.setFillColor(colors.HexColor("#374151"))
-        c.drawString(0.1*inch, 0.15*inch, f"ID: {student_id[:20]}")
+        # Footer text
+        c.setFillColor(colors.white)
+        use_font(c, 8, bold=True)
+        c.drawCentredString(card_width / 2, 0.08 * inch, "STUDENT CARD")
         
-        # QR Code (bottom right in footer)
+        # Signature line (left of photo)
+        sig_y = photo_y - 0.15 * inch
+        c.setStrokeColor(colors.black)
+        c.setLineWidth(0.5)
+        c.line(photo_x, sig_y, photo_x + photo_width, sig_y)
+        use_font(c, 5, bold=False)
+        c.setFillColor(colors.HexColor("#666666"))
+        c.drawCentredString(photo_x + photo_width/2, sig_y - 0.1*inch, "মুহতামিমের স্বাক্ষর")
+        
+        # ================== PAGE BREAK - BACK SIDE ==================
+        c.showPage()
+        
+        # Back side background
+        c.setFillColor(bg_color)
+        c.rect(0, 0, card_width, card_height, fill=True, stroke=False)
+        
+        # Top instruction text
+        c.setFillColor(colors.HexColor("#333333"))
+        use_font(c, 6, bold=False)
+        
+        instruction_y = card_height - 0.2 * inch
+        instructions = [
+            "এই কার্ডটি ব্যবহারকারী ব্যতিত অন্য কেউ",
+            "পেলে মাদ্রাসার ঠিকানায় পৌঁছে",
+            "দেওয়ার জন্য অনুরোধ করা গেল।"
+        ]
+        for line in instructions:
+            c.drawCentredString(card_width / 2, instruction_y, line)
+            instruction_y -= 0.12 * inch
+        
+        # Center logo
+        center_logo_size = 0.6 * inch
+        center_logo_x = (card_width - center_logo_size) / 2
+        center_logo_y = card_height / 2 - 0.1 * inch
+        
+        if institution_logo and logo_added:
+            # Reuse the logo
+            try:
+                if institution_logo.startswith("data:image"):
+                    header_data, encoded = institution_logo.split(",", 1)
+                    logo_data = base64.b64decode(encoded)
+                    temp_logo = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+                    temp_logo.write(logo_data)
+                    temp_logo.close()
+                    c.drawImage(temp_logo.name, center_logo_x, center_logo_y, center_logo_size, center_logo_size, preserveAspectRatio=True, mask='auto')
+                    os.unlink(temp_logo.name)
+                elif institution_logo.startswith("http"):
+                    response = http_requests.get(institution_logo, timeout=5)
+                    if response.status_code == 200:
+                        temp_logo = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+                        temp_logo.write(response.content)
+                        temp_logo.close()
+                        c.drawImage(temp_logo.name, center_logo_x, center_logo_y, center_logo_size, center_logo_size, preserveAspectRatio=True, mask='auto')
+                        os.unlink(temp_logo.name)
+                elif institution_logo.startswith("/uploads"):
+                    local_path = Path(__file__).parent.parent / institution_logo.lstrip("/")
+                    if not local_path.exists():
+                        local_path = Path(__file__).parent / institution_logo.lstrip("/")
+                    if local_path.exists():
+                        c.drawImage(str(local_path), center_logo_x, center_logo_y, center_logo_size, center_logo_size, preserveAspectRatio=True, mask='auto')
+            except:
+                pass
+        else:
+            # Draw placeholder circle for logo
+            c.setStrokeColor(primary_color)
+            c.setLineWidth(2)
+            c.circle(card_width/2, center_logo_y + center_logo_size/2, center_logo_size/2, fill=False, stroke=True)
+        
+        # Institution name below logo
+        use_font(c, 8, bold=True)
+        c.setFillColor(primary_color)
+        c.drawCentredString(card_width / 2, center_logo_y - 0.15 * inch, inst_name_display)
+        
+        # Address and contact
+        use_font(c, 5, bold=False)
+        c.setFillColor(colors.HexColor("#666666"))
+        contact_line = f"{addr_display[:40]}"
+        if institution_phone:
+            contact_line += f" | মোবাঃ {institution_phone}"
+        c.drawCentredString(card_width / 2, center_logo_y - 0.3 * inch, contact_line[:55])
+        
+        # Terms box
+        terms_y = 0.6 * inch
+        c.setFillColor(colors.HexColor("#f0f0f0"))
+        c.roundRect(0.15*inch, 0.35*inch, card_width - 0.3*inch, 0.35*inch, 0.03*inch, fill=True, stroke=False)
+        
+        c.setFillColor(colors.HexColor("#555555"))
+        use_font(c, 5, bold=False)
+        c.drawCentredString(card_width / 2, 0.55 * inch, "রাষ্ট্রদ্রোহী কাজে জড়িত না থাকার শর্তে")
+        c.drawCentredString(card_width / 2, 0.43 * inch, "অধ্যয়ন অধ্যয়নকালীন সময়ের জন্য প্রযোজ্য।")
+        
+        # Issue and Expiry dates
+        use_font(c, 6, bold=False)
+        c.setFillColor(colors.black)
+        c.drawString(card_width - 1.3*inch, 0.22 * inch, f"ইস্যু তারিখঃ {issue_date}")
+        c.drawString(card_width - 1.3*inch, 0.08 * inch, f"মেয়াদ কালঃ {expiry_date}")
+        
+        # QR Code (bottom left)
         try:
-            qr = qrcode.QRCode(version=1, box_size=2, border=1)
-            qr_data = f"{display_name}|{student_name}|{class_name}|{student_id}"
+            qr = qrcode.QRCode(version=1, box_size=3, border=1)
+            qr_data = f"{institution_name_bn}|{student_name}|{class_name}|{roll_no}|{student_id}"
             qr.add_data(qr_data)
             qr.make(fit=True)
             qr_img = qr.make_image(fill_color="black", back_color="white")
             
-            # Save QR to temp file
             qr_temp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
             qr_img.save(qr_temp.name)
             qr_temp.close()
             
-            qr_size = 0.3*inch
-            c.drawImage(qr_temp.name, card_width - qr_size - 0.08*inch, 0.03*inch, qr_size, qr_size)
+            qr_size = 0.45 * inch
+            c.drawImage(qr_temp.name, 0.12*inch, 0.05*inch, qr_size, qr_size)
             os.unlink(qr_temp.name)
         except Exception as e:
             logging.warning(f"Could not generate QR code: {e}")
@@ -30388,15 +30473,17 @@ async def generate_student_id_card(
             buffer,
             media_type="application/pdf",
             headers={
-                "Content-Disposition": f"attachment; filename=StudentID-{student.get('name', 'student').replace(' ', '_')}.pdf"
+                "Content-Disposition": f"inline; filename=StudentID_{student_name.replace(' ', '_')}.pdf"
             }
         )
-        
+    
     except HTTPException:
         raise
     except Exception as e:
-        logging.error(f"Failed to generate student ID card: {str(e)}")
+        logging.error(f"Failed to generate student ID card: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to generate ID card: {str(e)}")
+
+
 
 @api_router.get("/id-cards/staff/list")
 async def get_staff_for_id_cards(
