@@ -11,6 +11,17 @@ from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 from pathlib import Path
 
+# Performance optimization modules
+from db_indexes import create_performance_indexes
+from cache import (
+    cache, CacheTTL, 
+    get_cached_dashboard_stats, set_cached_dashboard_stats,
+    get_cached_institution, set_cached_institution,
+    get_cached_classes, set_cached_classes,
+    get_cached_sections, set_cached_sections,
+    invalidate_tenant_cache
+)
+
 import os
 import logging
 import uuid
@@ -7359,7 +7370,14 @@ async def get_leave_types(current_user: User = Depends(get_current_user)):
 
 @api_router.get("/classes", response_model=List[Class])
 async def get_classes(current_user: User = Depends(get_current_user)):
-    query = {"tenant_id": current_user.tenant_id, "is_active": True}
+    tenant_id = current_user.tenant_id
+    
+    # Check cache first (30 minute TTL)
+    cached = await get_cached_classes(tenant_id)
+    if cached:
+        return cached
+    
+    query = {"tenant_id": tenant_id, "is_active": True}
     classes = await db.classes.find(query).to_list(1000)
     
     # Ensure all classes have sections field (for backward compatibility)
@@ -7371,6 +7389,8 @@ async def get_classes(current_user: User = Depends(get_current_user)):
             cls['description'] = ''
         result.append(Class(**cls))
     
+    # Cache for 30 minutes
+    await set_cached_classes(tenant_id, result)
     return result
 
 @api_router.post("/classes", response_model=Class)
@@ -7403,15 +7423,27 @@ async def create_class(class_data: ClassCreate, current_user: User = Depends(get
 
 @api_router.get("/sections", response_model=List[Section])
 async def get_sections(class_id: Optional[str] = None, current_user: User = Depends(get_current_user)):
+    tenant_id = current_user.tenant_id
+    cache_key = f"{tenant_id}:{class_id or 'all'}"
+    
+    # Check cache first (30 minute TTL)
+    cached = await get_cached_sections(cache_key)
+    if cached:
+        return cached
+    
     query = {
-        "tenant_id": current_user.tenant_id,
+        "tenant_id": tenant_id,
         "$or": [{"is_active": True}, {"is_active": {"$exists": False}}]
     }
     if class_id and class_id != "all_classes":
         query["class_id"] = class_id
     
     sections = await db.sections.find(query).to_list(1000)
-    return [Section(**section) for section in sections]
+    result = [Section(**section) for section in sections]
+    
+    # Cache for 30 minutes
+    await set_cached_sections(cache_key, result)
+    return result
 
 @api_router.post("/sections", response_model=Section)
 async def create_section(section_data: SectionCreate, current_user: User = Depends(get_current_user)):
@@ -7439,6 +7471,10 @@ async def create_section(section_data: SectionCreate, current_user: User = Depen
     
     section = Section(**section_dict)
     await db.sections.insert_one(section.dict())
+    
+    # Invalidate cache
+    await cache.clear_pattern(f"sections:{current_user.tenant_id}")
+    
     return section
 
 @api_router.put("/sections/{section_id}", response_model=Section)
@@ -14445,6 +14481,12 @@ async def get_dashboard_stats_filtered(
 ):
     tenant_id = current_user.tenant_id
     
+    # Check cache first (5 minute TTL)
+    cache_key = f"{tenant_id}:{year}"
+    cached_stats = await get_cached_dashboard_stats(cache_key, db)
+    if cached_stats:
+        return cached_stats
+    
     # Base query with tenant isolation
     base_query = {"tenant_id": tenant_id, "is_active": True}
     
@@ -14488,7 +14530,7 @@ async def get_dashboard_stats_filtered(
     })
     pending_applications += pending_online
     
-    return {
+    result = {
         "total_students": total_students,
         "total_staff": total_staff,
         "total_teachers": total_teachers, 
@@ -14501,6 +14543,10 @@ async def get_dashboard_stats_filtered(
         "out_pass": 0,
         "academic_year": year
     }
+    
+    # Cache the result for 5 minutes
+    await set_cached_dashboard_stats(f"{tenant_id}:{year}", result)
+    return result
 
 @api_router.get("/dashboard/recent-admissions")
 async def get_recent_admissions(
@@ -27515,11 +27561,15 @@ root_logger.setLevel(logging.INFO)
 
 @app.on_event("startup")
 async def startup_db_client():
-    """Initialize database and create seed data"""
+    """Initialize database, create indexes, and seed data"""
     try:
         # Test database connection
         await client.admin.command('ping')
         logger.info("Connected to MongoDB successfully")
+        
+        # Create performance indexes for big data optimization
+        await create_performance_indexes(db)
+        logger.info("Performance indexes verified")
         
         # Ensure seed data exists
         await ensure_seed_data()
