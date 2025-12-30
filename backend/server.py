@@ -30378,9 +30378,10 @@ async def generate_student_id_card(
         
         instruction_y = card_height - 0.2 * inch
         instructions = [
-            "এই কার্ডটি ব্যবহারকারী ব্যতিত অন্য কেউ",
-            "পেলে মাদরাসার ঠিকানায় পৌঁছে",
-            "দেওয়ার জন্য অনুরোধ করা গেল।"
+            "এই পরিচয়পত্রটি শুধুমাত্র",
+            "মাদ্রাসার শিক্ষার্থীর পরিচয় নিশ্চিতকরণ",
+            "এবং মাদ্রাসার অভ্যন্তরীণ কার্যক্রমে",
+            "ব্যবহারের জন্য প্রযোজ্য।"
         ]
         for line in instructions:
             c.drawCentredString(card_width / 2, instruction_y, line)
@@ -30449,8 +30450,8 @@ async def generate_student_id_card(
         
         c.setFillColor(text_dark)
         use_font(c, 5, bold=False)
-        c.drawCentredString(card_width / 2, terms_box_y + 0.22 * inch, "রাষ্ট্রদ্রোহী কাজে জড়িত না থাকার শর্তে")
-        c.drawCentredString(card_width / 2, terms_box_y + 0.08 * inch, "শুধুমাত্র অধ্যয়নকালীন সময়ের জন্য প্রযোজ্য।")
+        c.drawCentredString(card_width / 2, terms_box_y + 0.22 * inch, "")
+        c.drawCentredString(card_width / 2, terms_box_y + 0.08 * inch, "")
         
         # Issue and Expiry dates at bottom right
         use_font(c, 6, bold=False)
