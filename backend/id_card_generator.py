@@ -41,14 +41,22 @@ def register_fonts():
     bengali_regular = font_dir / "NotoSansBengali-Regular.ttf"
     bengali_bold = font_dir / "NotoSansBengali-Bold.ttf"
     
+    logging.info(f"Font registration - font_dir: {font_dir}, exists: {font_dir.exists()}")
+    logging.info(f"Regular font: {bengali_regular}, exists: {bengali_regular.exists()}")
+    
     try:
         if bengali_regular.exists() and "NotoSansBengali" not in pdfmetrics.getRegisteredFontNames():
             pdfmetrics.registerFont(TTFont("NotoSansBengali", str(bengali_regular)))
+            logging.info("Registered NotoSansBengali font")
         if bengali_bold.exists() and "NotoSansBengali-Bold" not in pdfmetrics.getRegisteredFontNames():
             pdfmetrics.registerFont(TTFont("NotoSansBengali-Bold", str(bengali_bold)))
+            logging.info("Registered NotoSansBengali-Bold font")
+        logging.info(f"Registered fonts: {pdfmetrics.getRegisteredFontNames()}")
         return True
     except Exception as e:
         logging.warning(f"Could not register Bengali fonts: {e}")
+        import traceback
+        logging.warning(traceback.format_exc())
         return False
 
 
