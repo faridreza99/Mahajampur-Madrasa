@@ -30158,13 +30158,29 @@ async def generate_student_id_card(
             return False
         
         # Helper function to set appropriate font
+        # Always use NotoSansBengali if registered (it supports Latin characters too)
         def set_font_for_text(canvas_obj, text, size, bold=False):
+            # Check if NotoSansBengali is registered
+            bengali_font = "NotoSansBengali-Bold" if bold and "NotoSansBengali-Bold" in pdfmetrics.getRegisteredFontNames() else "NotoSansBengali"
+            
+            # If text contains Bengali, we MUST use Bengali font
             if contains_bengali(text):
-                font_name = "NotoSansBengali-Bold" if bold and "NotoSansBengali-Bold" in pdfmetrics.getRegisteredFontNames() else "NotoSansBengali"
-                if font_name in pdfmetrics.getRegisteredFontNames():
-                    canvas_obj.setFont(font_name, size)
+                if bengali_font in pdfmetrics.getRegisteredFontNames():
+                    canvas_obj.setFont(bengali_font, size)
                     return True
-            # Fallback to Helvetica
+                else:
+                    # Bengali text but no Bengali font - sanitize the text to avoid encoding errors
+                    # This should not happen if fonts are properly set up
+                    logging.warning(f"Bengali font not available for text: {text[:20]}...")
+                    canvas_obj.setFont("Helvetica-Bold" if bold else "Helvetica", size)
+                    return False
+            
+            # For non-Bengali text, prefer Bengali font if available (it supports Latin too)
+            if bengali_font in pdfmetrics.getRegisteredFontNames():
+                canvas_obj.setFont(bengali_font, size)
+                return True
+            
+            # Fallback to Helvetica for pure ASCII
             canvas_obj.setFont("Helvetica-Bold" if bold else "Helvetica", size)
             return False
         
