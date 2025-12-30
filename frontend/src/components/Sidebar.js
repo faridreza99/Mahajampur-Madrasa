@@ -227,11 +227,13 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         },
         {
           title: "Calendar",
+          madrasahTitle: "ক্যালেন্ডার",
           path: "/calendar",
           roles: ["super_admin", "admin", "teacher"],
         },
         {
           title: "Classes",
+          madrasahTitle: "মারহালা / শ্রেণি",
           path: "/classes",
           roles: ["super_admin", "admin", "teacher"],
         },
@@ -662,7 +664,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                               : "text-gray-400 hover:text-white"
                           }`}
                         >
-                          {subItem.title}
+                          {isMadrasahSimpleUI && subItem.madrasahTitle ? subItem.madrasahTitle : subItem.title}
                         </button>
                       ))}
                   </CollapsibleContent>
