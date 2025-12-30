@@ -1529,7 +1529,8 @@ const Fees = () => {
             </CardContent>
           </Card>
 
-          {/* Recent Payments Summary for Manage Fees */}
+          {/* Recent Payments Summary for Manage Fees - Hidden for Madrasah Simple UI */}
+          {(!institutionLoading && !isMadrasahSimpleUI) && (
           <Card>
             <CardHeader className="p-4 sm:p-6">
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
@@ -1563,6 +1564,7 @@ const Fees = () => {
               </div>
             </CardContent>
           </Card>
+          )}
 
           {(!institutionLoading && !isMadrasahSimpleUI) && (
           <Card>
