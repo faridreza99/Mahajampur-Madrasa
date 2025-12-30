@@ -372,8 +372,8 @@ def generate_front_side(c, student, institution, class_name=""):
                       centered=True, width=CARD_WIDTH, bg_color=white_bg)
     details_y -= line_height + 1 * mm
     
-    # Father's name
-    father_name = student.get("father_name", "") or student.get("guardian_name", "")
+    # Father's name (always show, use placeholder if missing)
+    father_name = student.get("father_name", "") or student.get("guardian_name", "") or "N/A"
     draw_bengali_text(c, details_x, details_y, f"পিতা: {father_name}", 5, color=(0, 0, 0), bg_color=white_bg)
     details_y -= line_height
     
@@ -392,11 +392,30 @@ def generate_front_side(c, student, institution, class_name=""):
         draw_bengali_text(c, details_x, details_y, f"মোবাইল: {mobile}", 5, color=(0, 0, 0), bg_color=white_bg)
         details_y -= line_height
     
-    # Address (truncated if too long)
-    address = student.get("address", "") or student.get("present_address", "")
+    # Address (multi-line with proper wrapping for complete display)
+    address = student.get("address", "") or student.get("present_address", "") or ""
     if address:
-        addr_short = address[:25] + "..." if len(address) > 25 else address
-        draw_bengali_text(c, details_x, details_y, f"ঠিকানা: {addr_short}", 4, color=(0, 0, 0), bg_color=white_bg)
+        # Calculate characters per line based on font size and available width
+        chars_per_line = 22  # Fits within card width at font size 4
+        addr_font_size = 4
+        
+        # First line with label
+        first_line_chars = chars_per_line - 6  # Account for "ঠিকানা: " label
+        if len(address) <= first_line_chars:
+            draw_bengali_text(c, details_x, details_y, f"ঠিকানা: {address}", addr_font_size, color=(0, 0, 0), bg_color=white_bg)
+        else:
+            # Multi-line address - wrap text
+            draw_bengali_text(c, details_x, details_y, f"ঠিকানা: {address[:first_line_chars]}", addr_font_size, color=(0, 0, 0), bg_color=white_bg)
+            remaining = address[first_line_chars:]
+            
+            # Add additional lines as needed (max 3 lines total for space)
+            line_count = 0
+            while remaining and line_count < 2:
+                details_y -= 2.5 * mm
+                line_text = remaining[:chars_per_line]
+                remaining = remaining[chars_per_line:]
+                draw_bengali_text(c, details_x + 8 * mm, details_y, line_text, addr_font_size, color=(0, 0, 0), bg_color=white_bg)
+                line_count += 1
     
     # Signature area above footer
     sig_y = footer_height + 6 * mm
