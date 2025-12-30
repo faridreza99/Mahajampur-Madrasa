@@ -131,6 +131,10 @@ const Fees = () => {
   const [showExportOptions, setShowExportOptions] = useState(false);
   const [dueFees, setDueFees] = useState([]);
   
+  // Madrasah Simple Wizard State
+  const [madrasahWizardStep, setMadrasahWizardStep] = useState(1); // 1=ছাত্র নির্বাচন, 2=বেতন আদায়, 3=রসিদ
+  const [lastReceipt, setLastReceipt] = useState(null); // For receipt printing
+  
   // Modal states for new functionality
   const [showFeeConfigModal, setShowFeeConfigModal] = useState(false);
   const [currentFeeType, setCurrentFeeType] = useState('');
@@ -444,7 +448,7 @@ const Fees = () => {
 
   const getClassName = (classId) => {
     const cls = classes.find(c => c.id === classId);
-    return cls ? cls.name : 'Unknown';
+    return cls ? (cls.display_name || cls.name) : (isMadrasahSimpleUI ? 'অজ্ঞাত শ্রেণি' : 'Unknown');
   };
 
   const getStatusBadge = (status) => {
@@ -1473,113 +1477,440 @@ const Fees = () => {
       </div>
 
       </>)}
-      {/* Fees Management Tabs - Wait for institution settings to load */}
+      {/* Fees Management - Wait for institution settings to load */}
       {institutionLoading ? (
         <div className="flex items-center justify-center p-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
-          <span className="ml-3 text-gray-600">Loading...</span>
+          <span className="ml-3 text-gray-600">লোড হচ্ছে...</span>
         </div>
-      ) : (
-      <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
-        {isMadrasahSimpleUI ? (
-          <TabsList className="grid w-full grid-cols-3 h-auto">
-            <TabsTrigger value="manage" className="text-xs sm:text-sm py-2 px-1 sm:px-3">সেটআপ</TabsTrigger>
-            <TabsTrigger value="select-student" className="text-xs sm:text-sm py-2 px-1 sm:px-3">ছাত্র নির্বাচন</TabsTrigger>
-            <TabsTrigger value="collection" className="text-xs sm:text-sm py-2 px-1 sm:px-3">বেতন আদায়</TabsTrigger>
-          </TabsList>
-        ) : (
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 h-auto">
-            <TabsTrigger value="manage" className="text-xs sm:text-sm py-2 px-1 sm:px-3">Manage</TabsTrigger>
-            <TabsTrigger value="student-specific" className="text-xs sm:text-sm py-2 px-1 sm:px-3">Student</TabsTrigger>
-            <TabsTrigger value="due" className="text-xs sm:text-sm py-2 px-1 sm:px-3">Due</TabsTrigger>
-            <TabsTrigger value="select-student" className="text-xs sm:text-sm py-2 px-1 sm:px-3 hidden sm:flex">Select</TabsTrigger>
-            <TabsTrigger value="collection" className="text-xs sm:text-sm py-2 px-1 sm:px-3 hidden sm:flex">Collection</TabsTrigger>
-          </TabsList>
-        )}
-
-        <TabsContent value="manage" className="space-y-4">
-          {/* Fee Section Header - Different for Madrasah Simple UI */}
-          <div className={`bg-gradient-to-r ${isMadrasahSimpleUI ? 'from-emerald-50 to-green-50 border-emerald-500' : 'from-blue-50 to-indigo-50 border-blue-500'} border-l-4 sm:border-l-8 rounded-lg p-4 sm:p-6 md:p-8 mb-4 sm:mb-6`}>
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className={`${isMadrasahSimpleUI ? 'bg-emerald-500' : 'bg-blue-500'} text-white rounded-full p-2 sm:p-3 md:p-4`}>
-                <DollarSign className="h-4 w-4 sm:h-6 sm:w-6 md:h-8 md:w-8" />
-              </div>
-              <div>
-                <h2 className={`text-lg sm:text-xl md:text-2xl font-bold ${isMadrasahSimpleUI ? 'text-emerald-700' : 'text-blue-700'}`}>
-                  {isMadrasahSimpleUI ? 'মাসিক বেতন সেটআপ' : 'Fee Structure Management'}
-                </h2>
-                <p className={`text-xs sm:text-sm ${isMadrasahSimpleUI ? 'text-emerald-600' : 'text-blue-600'}`}>
-                  {isMadrasahSimpleUI ? 'মারহালা অনুযায়ী মাসিক বেতন নির্ধারণ করুন' : 'Configure fee types, amounts, and payment schedules'}
-                </p>
-              </div>
+      ) : isMadrasahSimpleUI ? (
+        /* ============= MADRASAH SIMPLE FEE WIZARD ============= */
+        <div className="space-y-4">
+          {/* Wizard Step Indicator */}
+          <div className="flex items-center justify-center gap-2 sm:gap-4 mb-6">
+            <div 
+              className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full cursor-pointer transition-all ${
+                madrasahWizardStep === 1 ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+              onClick={() => setMadrasahWizardStep(1)}
+            >
+              <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-sm font-bold">১</span>
+              <span className="text-sm font-medium hidden sm:inline">ছাত্র নির্বাচন</span>
+            </div>
+            <div className="w-8 h-0.5 bg-gray-300"></div>
+            <div 
+              className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full cursor-pointer transition-all ${
+                madrasahWizardStep === 2 ? 'bg-emerald-500 text-white' : selectedStudent ? 'bg-gray-100 text-gray-600 hover:bg-gray-200' : 'bg-gray-50 text-gray-400 cursor-not-allowed'
+              }`}
+              onClick={() => selectedStudent && setMadrasahWizardStep(2)}
+            >
+              <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-sm font-bold">২</span>
+              <span className="text-sm font-medium hidden sm:inline">বেতন আদায়</span>
+            </div>
+            <div className="w-8 h-0.5 bg-gray-300"></div>
+            <div 
+              className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full ${
+                madrasahWizardStep === 3 ? 'bg-emerald-500 text-white' : 'bg-gray-50 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-sm font-bold">৩</span>
+              <span className="text-sm font-medium hidden sm:inline">রসিদ প্রিন্ট</span>
             </div>
           </div>
-          
-          {/* Madrasah Simple UI - Only Monthly Fee */}
-          {isMadrasahSimpleUI ? (
-            <Card>
-              <CardHeader className="p-4 sm:p-6">
-                <CardTitle className="text-base sm:text-lg">মাসিক বেতন সেটিংস</CardTitle>
+
+          {/* STEP 1: Student Selection */}
+          {madrasahWizardStep === 1 && (
+            <Card className="border-2 border-emerald-200">
+              <CardHeader className="bg-emerald-50 p-4 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-emerald-700 text-lg sm:text-xl">
+                  <Users className="h-5 w-5 sm:h-6 sm:w-6" />
+                  ছাত্র নির্বাচন করুন
+                </CardTitle>
+                <p className="text-sm text-emerald-600 mt-1">মারহালা ও শাখা বাছাই করে ছাত্র খুঁজুন</p>
               </CardHeader>
-              <CardContent className="p-3 sm:p-6">
-                <Card className="border-2 border-emerald-300 hover:border-emerald-500 transition-colors max-w-md mx-auto">
-                  <CardContent className="p-6 sm:p-8 text-center">
-                    <DollarSign className="h-12 w-12 sm:h-16 sm:w-16 mx-auto text-emerald-500 mb-3 sm:mb-4" />
-                    <h3 className="font-bold text-lg sm:text-xl mb-2">মাসিক বেতন</h3>
-                    <p className="text-sm text-gray-600 mb-4">মারহালা অনুযায়ী মাসিক বেতন নির্ধারণ</p>
-                    <Button 
-                      className="w-full bg-emerald-500 hover:bg-emerald-600 text-white" 
-                      onClick={() => handleFeeConfiguration('Tuition Fees')}
-                    >
-                      মাসিক বেতন নির্ধারণ করুন
-                    </Button>
-                    <p className="text-xs text-gray-500 mt-3 flex items-center justify-center gap-1">
-                      <span>ℹ️</span> একবার সেট করলে পরে পরিবর্তন করা যাবে
-                    </p>
-                  </CardContent>
-                </Card>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardHeader className="p-4 sm:p-6">
-                <CardTitle className="text-base sm:text-lg">Fee Types Configuration</CardTitle>
-              </CardHeader>
-              <CardContent className="p-3 sm:p-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                  <Card className="border-2 border-dashed border-gray-300 hover:border-emerald-500 transition-colors min-w-0">
-                    <CardContent className="p-4 sm:p-6 text-center">
-                      <DollarSign className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 mx-auto text-gray-400 mb-2 sm:mb-3" />
-                      <h3 className="font-medium text-sm sm:text-base mb-1 sm:mb-2">Tuition Fees</h3>
-                      <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">Monthly tuition charges</p>
-                      <Button variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm" onClick={() => handleFeeConfiguration('Tuition Fees')}>Configure</Button>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card className="border-2 border-dashed border-gray-300 hover:border-emerald-500 transition-colors min-w-0">
-                    <CardContent className="p-4 sm:p-6 text-center">
-                      <Receipt className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 mx-auto text-gray-400 mb-2 sm:mb-3" />
-                      <h3 className="font-medium text-sm sm:text-base mb-1 sm:mb-2">Transport Fees</h3>
-                      <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">Bus and transport charges</p>
-                      <Button variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm" onClick={() => handleFeeConfiguration('Transport Fees')}>Configure</Button>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card className="border-2 border-dashed border-gray-300 hover:border-emerald-500 transition-colors min-w-0 sm:col-span-2 lg:col-span-1">
-                    <CardContent className="p-4 sm:p-6 text-center">
-                      <CreditCard className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 mx-auto text-gray-400 mb-2 sm:mb-3" />
-                      <h3 className="font-medium text-sm sm:text-base mb-1 sm:mb-2">Admission Fees</h3>
-                      <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">One-time admission charges</p>
-                      <Button variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm" onClick={() => handleFeeConfiguration('Admission Fees')}>Configure</Button>
-                    </CardContent>
-                  </Card>
+              <CardContent className="p-4 sm:p-6">
+                {/* Class/Section Filters */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">মারহালা নির্বাচন করুন</label>
+                    <Select value={selectedClass} onValueChange={(value) => {
+                      setSelectedClass(value);
+                      setSelectedSection('all');
+                      setSelectedStudent(null);
+                    }}>
+                      <SelectTrigger className="border-emerald-300 focus:border-emerald-500 h-12 text-base">
+                        <SelectValue placeholder="মারহালা বাছুন..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">সকল মারহালা</SelectItem>
+                        {classes.map((cls) => (
+                          <SelectItem key={cls.id || cls._id || cls.name} value={cls.name || cls.class_name}>
+                            {cls.display_name || cls.name || cls.class_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">শাখা নির্বাচন করুন</label>
+                    <Select value={selectedSection} onValueChange={(value) => {
+                      setSelectedSection(value);
+                      setSelectedStudent(null);
+                    }}>
+                      <SelectTrigger className="border-emerald-300 focus:border-emerald-500 h-12 text-base">
+                        <SelectValue placeholder="শাখা বাছুন..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">সকল শাখা</SelectItem>
+                        {sections.map((section) => (
+                          <SelectItem key={section.id || section._id || section.name} value={section.name || section.section_name}>
+                            {section.display_name || section.name || section.section_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Simplified Student List */}
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="bg-gray-50 px-4 py-3 border-b">
+                    <h4 className="font-medium text-gray-700">ছাত্র তালিকা ({students.filter(s => 
+                      (selectedClass === 'all' || s.class === selectedClass || s.class_name === selectedClass || getClassName(s.class_id) === selectedClass) &&
+                      (selectedSection === 'all' || s.section === selectedSection || s.section_name === selectedSection || s.section_id === selectedSection)
+                    ).length} জন)</h4>
+                  </div>
+                  <div className="max-h-96 overflow-y-auto divide-y">
+                    {students.filter(s => 
+                      (selectedClass === 'all' || s.class === selectedClass || s.class_name === selectedClass || getClassName(s.class_id) === selectedClass) &&
+                      (selectedSection === 'all' || s.section === selectedSection || s.section_name === selectedSection || s.section_id === selectedSection)
+                    ).length === 0 ? (
+                      <div className="p-8 text-center text-gray-500">
+                        <Users className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                        <p className="font-medium">কোনো ছাত্র পাওয়া যায়নি</p>
+                        <p className="text-sm">মারহালা বা শাখা পরিবর্তন করুন</p>
+                      </div>
+                    ) : (
+                      students.filter(s => 
+                        (selectedClass === 'all' || s.class === selectedClass || s.class_name === selectedClass || getClassName(s.class_id) === selectedClass) &&
+                        (selectedSection === 'all' || s.section === selectedSection || s.section_name === selectedSection || s.section_id === selectedSection)
+                      ).map((student) => {
+                        const studentDue = dueFees.find(f => f.student_id === student.id);
+                        const hasDue = studentDue && (studentDue.pending_amount > 0 || studentDue.overdue_amount > 0);
+                        return (
+                          <div 
+                            key={student.id || student._id} 
+                            className={`flex items-center justify-between p-4 hover:bg-emerald-50 cursor-pointer transition-colors ${
+                              selectedStudent?.id === student.id ? 'bg-emerald-100 border-l-4 border-l-emerald-500' : ''
+                            }`}
+                            onClick={() => setSelectedStudent(student)}
+                          >
+                            <div className="flex items-center gap-3 flex-1">
+                              <Avatar className="h-12 w-12">
+                                <AvatarFallback className="bg-emerald-100 text-emerald-700 text-lg font-bold">
+                                  {(student.name || student.student_name || 'ছ').charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1">
+                                <p className="font-bold text-gray-900 text-base">{student.name || student.student_name || `ছাত্র #${student.id?.slice(-4) || ''}`}</p>
+                                <p className="text-sm text-gray-500">রোল: {student.roll_no || student.roll || '-'}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <Badge className={`text-sm px-3 py-1 ${hasDue ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                                {hasDue ? 'বকেয়া আছে' : 'বকেয়া নেই'}
+                              </Badge>
+                              <Button 
+                                size="lg" 
+                                className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-6"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedStudent(student);
+                                  setMadrasahWizardStep(2);
+                                }}
+                              >
+                                বেতন নিন
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                {/* Marhala Fee Overview Panel */}
+                <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                  <h4 className="font-medium text-gray-700 mb-3 flex items-center gap-2">
+                    <DollarSign className="h-4 w-4" />
+                    মারহালা ফি অবস্থা
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {feeConfigurations['Tuition Fees']?.length > 0 ? (
+                      feeConfigurations['Tuition Fees'].slice(0, 6).map((config, idx) => (
+                        <div key={idx} className="bg-white p-3 rounded border flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-sm">{config.applyToClasses || 'সকল মারহালা'}</p>
+                            <p className="text-xs text-gray-500">মাসিক: {formatCurrency(config.amount || 0)}</p>
+                          </div>
+                          <Badge className="bg-green-100 text-green-700 text-xs">সক্রিয়</Badge>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="col-span-full text-center text-gray-500 py-4">
+                        <p className="text-sm">কোনো ফি কনফিগার করা হয়নি</p>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="mt-2"
+                          onClick={() => handleFeeConfiguration('Tuition Fees')}
+                        >
+                          ফি সেট করুন
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
           )}
 
-          {/* Recent Payments Summary for Manage Fees - Hidden for Madrasah Simple UI */}
-          {(!institutionLoading && !isMadrasahSimpleUI) && (
+          {/* STEP 2: Fee Collection */}
+          {madrasahWizardStep === 2 && selectedStudent && (
+            <Card className="border-2 border-emerald-200">
+              <CardHeader className="bg-emerald-50 p-4 sm:p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-emerald-700 text-lg sm:text-xl">
+                      <CreditCard className="h-5 w-5 sm:h-6 sm:w-6" />
+                      বেতন আদায় করুন
+                    </CardTitle>
+                    <p className="text-sm text-emerald-600 mt-1">{selectedStudent.name || selectedStudent.student_name} এর বেতন</p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => setMadrasahWizardStep(1)}>
+                    ← ছাত্র পরিবর্তন
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-4 sm:p-6">
+                {/* Selected Student Info */}
+                <div className="bg-gray-50 rounded-lg p-4 mb-6 flex items-center gap-4">
+                  <Avatar className="h-16 w-16">
+                    <AvatarFallback className="bg-emerald-100 text-emerald-700 text-xl font-bold">
+                      {(selectedStudent.name || selectedStudent.student_name || 'ছ').charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-bold text-lg text-gray-900">{selectedStudent.name || selectedStudent.student_name}</p>
+                    <p className="text-gray-600">{getClassName(selectedStudent.class_id)} | রোল: {selectedStudent.roll_no || selectedStudent.roll || '-'}</p>
+                    <p className="text-gray-500 text-sm">ভর্তি নং: {selectedStudent.admission_no || '-'}</p>
+                  </div>
+                </div>
+
+                {/* Simple Fee Form */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">বেতনের পরিমাণ (টাকা)</label>
+                    <Input
+                      type="number"
+                      placeholder="যেমন: ৫০০"
+                      value={collectionForm.amount}
+                      onChange={(e) => setCollectionForm({...collectionForm, amount: e.target.value})}
+                      className="h-14 text-xl font-bold text-center border-emerald-300 focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">মন্তব্য (ঐচ্ছিক)</label>
+                    <Input
+                      placeholder="যেমন: ডিসেম্বর মাসের বেতন"
+                      value={collectionForm.remarks}
+                      onChange={(e) => setCollectionForm({...collectionForm, remarks: e.target.value})}
+                      className="h-12 border-gray-300"
+                    />
+                  </div>
+                  <Button 
+                    className="w-full h-14 text-lg font-bold bg-emerald-500 hover:bg-emerald-600"
+                    onClick={async () => {
+                      if (!collectionForm.amount || parseFloat(collectionForm.amount) <= 0) {
+                        toast.error('বেতনের পরিমাণ দিন');
+                        return;
+                      }
+                      setLoading(true);
+                      try {
+                        const token = localStorage.getItem('token');
+                        const response = await axios.post(`${API}/fees/payments`, {
+                          student_id: selectedStudent.id,
+                          student_name: selectedStudent.name || selectedStudent.student_name,
+                          fee_type: 'Tuition Fees',
+                          amount: parseFloat(collectionForm.amount),
+                          payment_mode: 'Cash',
+                          remarks: collectionForm.remarks || 'মাসিক বেতন',
+                          class_id: selectedStudent.class_id,
+                          section_id: selectedStudent.section_id
+                        }, {
+                          headers: { Authorization: `Bearer ${token}` }
+                        });
+                        setLastReceipt({
+                          ...response.data,
+                          student: selectedStudent,
+                          amount: parseFloat(collectionForm.amount),
+                          date: new Date().toLocaleDateString('bn-BD')
+                        });
+                        setMadrasahWizardStep(3);
+                        toast.success('✅ বেতন সফলভাবে আদায় হয়েছে!');
+                        loadFeeDataFromBackend();
+                      } catch (error) {
+                        console.error('Payment failed:', error);
+                        toast.error('বেতন আদায় ব্যর্থ হয়েছে');
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    disabled={loading}
+                  >
+                    {loading ? 'প্রক্রিয়াকরণ হচ্ছে...' : '✓ বেতন আদায় করুন'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* STEP 3: Receipt */}
+          {madrasahWizardStep === 3 && lastReceipt && (
+            <Card className="border-2 border-emerald-200">
+              <CardHeader className="bg-emerald-50 p-4 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-emerald-700 text-lg sm:text-xl">
+                  <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6" />
+                  বেতন সফলভাবে আদায় হয়েছে!
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 sm:p-6">
+                {/* Receipt Preview */}
+                <div className="bg-white border-2 border-dashed border-gray-300 rounded-lg p-6 max-w-md mx-auto mb-6" id="receipt-print">
+                  <div className="text-center mb-4">
+                    <h3 className="font-bold text-lg">বেতন রসিদ</h3>
+                    <p className="text-sm text-gray-600">{lastReceipt.date}</p>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">ছাত্রের নাম:</span>
+                      <span className="font-medium">{lastReceipt.student?.name || lastReceipt.student?.student_name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">শ্রেণি:</span>
+                      <span className="font-medium">{getClassName(lastReceipt.student?.class_id)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">রোল:</span>
+                      <span className="font-medium">{lastReceipt.student?.roll_no || lastReceipt.student?.roll || '-'}</span>
+                    </div>
+                    <hr className="my-2" />
+                    <div className="flex justify-between text-lg font-bold">
+                      <span>পরিশোধিত:</span>
+                      <span className="text-emerald-600">{formatCurrency(lastReceipt.amount)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>রসিদ নং:</span>
+                      <span>{lastReceipt.receipt_no || `রসিদ-${Date.now().toString().slice(-6)}`}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+                  <Button 
+                    className="flex-1 h-12 bg-emerald-500 hover:bg-emerald-600 font-bold"
+                    onClick={() => {
+                      window.print();
+                    }}
+                  >
+                    🖨️ রসিদ প্রিন্ট করুন
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    className="flex-1 h-12 font-bold"
+                    onClick={() => {
+                      setSelectedStudent(null);
+                      setCollectionForm({...collectionForm, amount: '', remarks: ''});
+                      setLastReceipt(null);
+                      setMadrasahWizardStep(1);
+                    }}
+                  >
+                    ← আরেকজনের বেতন নিন
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      ) : (
+      /* ============= STANDARD FEES UI ============= */
+      <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
+        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 h-auto">
+          <TabsTrigger value="manage" className="text-xs sm:text-sm py-2 px-1 sm:px-3">Manage</TabsTrigger>
+          <TabsTrigger value="student-specific" className="text-xs sm:text-sm py-2 px-1 sm:px-3">Student</TabsTrigger>
+          <TabsTrigger value="due" className="text-xs sm:text-sm py-2 px-1 sm:px-3">Due</TabsTrigger>
+          <TabsTrigger value="select-student" className="text-xs sm:text-sm py-2 px-1 sm:px-3 hidden sm:flex">Select</TabsTrigger>
+          <TabsTrigger value="collection" className="text-xs sm:text-sm py-2 px-1 sm:px-3 hidden sm:flex">Collection</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="manage" className="space-y-4">
+          {/* Fee Section Header */}
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-500 border-l-4 sm:border-l-8 rounded-lg p-4 sm:p-6 md:p-8 mb-4 sm:mb-6">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="bg-blue-500 text-white rounded-full p-2 sm:p-3 md:p-4">
+                <DollarSign className="h-4 w-4 sm:h-6 sm:w-6 md:h-8 md:w-8" />
+              </div>
+              <div>
+                <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-blue-700">
+                  Fee Structure Management
+                </h2>
+                <p className="text-xs sm:text-sm text-blue-600">
+                  Configure fee types, amounts, and payment schedules
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Fee Types Configuration */}
+          <Card>
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="text-base sm:text-lg">Fee Types Configuration</CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 sm:p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                <Card className="border-2 border-dashed border-gray-300 hover:border-emerald-500 transition-colors min-w-0">
+                  <CardContent className="p-4 sm:p-6 text-center">
+                    <DollarSign className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 mx-auto text-gray-400 mb-2 sm:mb-3" />
+                    <h3 className="font-medium text-sm sm:text-base mb-1 sm:mb-2">Tuition Fees</h3>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">Monthly tuition charges</p>
+                    <Button variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm" onClick={() => handleFeeConfiguration('Tuition Fees')}>Configure</Button>
+                  </CardContent>
+                </Card>
+                
+                <Card className="border-2 border-dashed border-gray-300 hover:border-emerald-500 transition-colors min-w-0">
+                  <CardContent className="p-4 sm:p-6 text-center">
+                    <Receipt className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 mx-auto text-gray-400 mb-2 sm:mb-3" />
+                    <h3 className="font-medium text-sm sm:text-base mb-1 sm:mb-2">Transport Fees</h3>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">Bus and transport charges</p>
+                    <Button variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm" onClick={() => handleFeeConfiguration('Transport Fees')}>Configure</Button>
+                  </CardContent>
+                </Card>
+                
+                <Card className="border-2 border-dashed border-gray-300 hover:border-emerald-500 transition-colors min-w-0 sm:col-span-2 lg:col-span-1">
+                  <CardContent className="p-4 sm:p-6 text-center">
+                    <CreditCard className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 mx-auto text-gray-400 mb-2 sm:mb-3" />
+                    <h3 className="font-medium text-sm sm:text-base mb-1 sm:mb-2">Admission Fees</h3>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">One-time admission charges</p>
+                    <Button variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm" onClick={() => handleFeeConfiguration('Admission Fees')}>Configure</Button>
+                  </CardContent>
+                </Card>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Recent Payments Summary for Manage Fees */}
+          {!institutionLoading && (
           <Card>
             <CardHeader className="p-4 sm:p-6">
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
@@ -1615,7 +1946,7 @@ const Fees = () => {
           </Card>
           )}
 
-          {(!institutionLoading && !isMadrasahSimpleUI) && (
+          {!institutionLoading && (
           <Card>
             <CardHeader>
               <CardTitle>Management Actions</CardTitle>
