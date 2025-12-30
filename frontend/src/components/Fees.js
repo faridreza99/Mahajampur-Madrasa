@@ -1854,9 +1854,14 @@ const Fees = () => {
                         {schoolBranding.address && (
                           <p className="text-xs opacity-90">{schoolBranding.address}</p>
                         )}
-                        {schoolBranding.phone && (
-                          <p className="text-xs opacity-90">ফোন: {schoolBranding.phone}</p>
-                        )}
+                        <div className="flex items-center justify-center gap-3 text-xs opacity-90 mt-1 flex-wrap">
+                          {schoolBranding.phone && (
+                            <span>ফোন: {schoolBranding.phone}</span>
+                          )}
+                          {schoolBranding.email && (
+                            <span>ইমেইল: {schoolBranding.email}</span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -4797,6 +4797,34 @@ const Certificates = () => {
                           onChange={(e) => setAppreciationFormData({...appreciationFormData, achievement: e.target.value})}
                           className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500"
                         />
+                        <div className="mt-2">
+                          <p className="text-xs text-gray-500 mb-2">দ্রুত নির্বাচন করুন:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {[
+                              'কুরআন হিফজ সম্পন্ন',
+                              'নাজেরা কুরআন শেষ',
+                              'উত্তম আখলাক',
+                              'প্রথম স্থান অর্জন',
+                              'মেধাবৃত্তি প্রাপ্ত',
+                              'বার্ষিক পরীক্ষায় সেরা',
+                              'হাদিস প্রতিযোগিতায় বিজয়ী',
+                              'কিরাআত প্রতিযোগিতায় বিজয়ী'
+                            ].map((suggestion) => (
+                              <button
+                                key={suggestion}
+                                type="button"
+                                onClick={() => setAppreciationFormData({...appreciationFormData, achievement: suggestion})}
+                                className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
+                                  appreciationFormData.achievement === suggestion 
+                                    ? 'bg-amber-500 text-white border-amber-500' 
+                                    : 'bg-white text-gray-600 border-gray-300 hover:bg-amber-50 hover:border-amber-300'
+                                }`}
+                              >
+                                {suggestion}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                       </div>
 
                       <div>
