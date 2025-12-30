@@ -325,8 +325,8 @@ const Layout = ({ children }) => {
 function App() {
   return (
     <CurrencyProvider>
-      <InstitutionProvider>
       <AuthProvider>
+      <InstitutionProvider>
         <Router>
           <div className="App">
             <Layout>
@@ -714,8 +714,8 @@ function App() {
             <Toaster />
           </div>
         </Router>
-      </AuthProvider>
-    </InstitutionProvider>
+      </InstitutionProvider>
+    </AuthProvider>
     </CurrencyProvider>
   );
 }

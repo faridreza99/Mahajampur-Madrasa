@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 
 const InstitutionContext = createContext();
@@ -13,15 +13,17 @@ export const InstitutionProvider = ({ children }) => {
     tenant_id: ''
   });
   const [loading, setLoading] = useState(true);
+  const fetchAttempts = useRef(0);
 
   const fetchInstitutionSettings = useCallback(async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setLoading(false);
-        return;
-      }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setLoading(false);
+      return;
+    }
 
+    setLoading(true);
+    try {
       const response = await axios.get(`${API}/institution/settings`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -32,6 +34,7 @@ export const InstitutionProvider = ({ children }) => {
         school_name: response.data.school_name || '',
         tenant_id: response.data.tenant_id || ''
       });
+      fetchAttempts.current = 0;
     } catch (error) {
       console.error('Failed to fetch institution settings:', error);
     } finally {
@@ -57,7 +60,8 @@ export const InstitutionProvider = ({ children }) => {
 
     const tokenCheckInterval = setInterval(() => {
       const token = localStorage.getItem('token');
-      if (token && !institutionSettings.tenant_id) {
+      if (token && !institutionSettings.tenant_id && fetchAttempts.current < 5) {
+        fetchAttempts.current += 1;
         fetchInstitutionSettings();
       }
     }, 1000);

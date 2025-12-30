@@ -61,7 +61,7 @@ console.log('🔗 API Base URL:', API);
 const Fees = () => {
   // Currency context for dynamic currency display
   const { formatCurrency, getCurrencySymbol } = useCurrency();
-  const { isMadrasahSimpleUI, isMadrasah } = useInstitution();
+  const { isMadrasahSimpleUI, isMadrasah, loading: institutionLoading } = useInstitution();
   
   // Router-controlled tabs
   const { '*': tabPath } = useParams();
@@ -1415,7 +1415,7 @@ const Fees = () => {
         </div>
       </div>
 
-      {!isMadrasahSimpleUI && (<>
+      {(!institutionLoading && !isMadrasahSimpleUI) && (<>
       {/* Financial Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
         <Card className="card-hover min-w-0">
@@ -1564,7 +1564,7 @@ const Fees = () => {
             </CardContent>
           </Card>
 
-          {!isMadrasahSimpleUI && (
+          {(!institutionLoading && !isMadrasahSimpleUI) && (
           <Card>
             <CardHeader>
               <CardTitle>Management Actions</CardTitle>
