@@ -637,7 +637,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                         (subItem) =>
                           (!subItem.roles || subItem.roles.includes(user?.role)) &&
                           isSubItemAllowed(subItem.path) &&
-                          !(isMadrasahSimpleUI && ['/fees/structure', '/fees/reports', '/accounts', '/payroll'].includes(subItem.path)),
+                          !(isMadrasahSimpleUI && ['/fees/structure', '/fees/reports', '/accounts', '/payroll', '/results', '/settings/timetable'].includes(subItem.path)),
                       )
                       .map((subItem, index) => (
                         <button

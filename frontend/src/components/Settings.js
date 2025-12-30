@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useInstitution } from '../context/InstitutionContext';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -39,6 +40,7 @@ import UserManagement from './UserManagement';
 const Settings = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isMadrasah } = useInstitution();
   const [activeSettings, setActiveSettings] = useState(12);
   const [loading, setLoading] = useState(false);
   
@@ -2373,7 +2375,7 @@ const Settings = () => {
           <TabsList className="inline-flex w-auto min-w-full lg:grid lg:w-full lg:grid-cols-7 h-auto">
             <TabsTrigger value="academic" className="text-[10px] sm:text-xs lg:text-sm py-2 px-3 whitespace-nowrap">Academic Period</TabsTrigger>
             <TabsTrigger value="classes" className="text-[10px] sm:text-xs lg:text-sm py-2 px-3 whitespace-nowrap">Manage Classes</TabsTrigger>
-            <TabsTrigger value="timetable" className="text-[10px] sm:text-xs lg:text-sm py-2 px-3 whitespace-nowrap">Time Table</TabsTrigger>
+            <TabsTrigger value="timetable" className="text-[10px] sm:text-xs lg:text-sm py-2 px-3 whitespace-nowrap">{isMadrasah ? 'রুটিন' : 'Time Table'}</TabsTrigger>
             <TabsTrigger value="institution" className="text-[10px] sm:text-xs lg:text-sm py-2 px-3 whitespace-nowrap">Institution</TabsTrigger>
             <TabsTrigger value="staff-settings" className="text-[10px] sm:text-xs lg:text-sm py-2 px-3 whitespace-nowrap">Staff Setting</TabsTrigger>
             <TabsTrigger value="permissions" className="text-[10px] sm:text-xs lg:text-sm py-2 px-3 whitespace-nowrap">Permission</TabsTrigger>
@@ -2453,7 +2455,7 @@ const Settings = () => {
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="flex items-center space-x-2">
                 <Clock className="h-5 w-5 text-purple-500" />
-                <span>Timetable — Day Structure Mode</span>
+                <span>{isMadrasah ? 'রুটিন — দৈনিক কাঠামো' : 'Timetable — Day Structure Mode'}</span>
               </CardTitle>
               <div className="flex items-center space-x-2">
                 {!dayStructureEditMode ? (
@@ -2484,7 +2486,7 @@ const Settings = () => {
               {/* Class, Section, and Periods per day controls */}
               <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-2 sm:gap-4 mb-6 pb-4 border-b">
                 <div className="flex items-center gap-2 w-full sm:w-auto">
-                  <Label htmlFor="dayStructureClass" className="text-sm font-medium whitespace-nowrap">Class</Label>
+                  <Label htmlFor="dayStructureClass" className="text-sm font-medium whitespace-nowrap">{isMadrasah ? 'মারহালা' : 'Class'}</Label>
                   <Select 
                     value={dayStructureClass} 
                     onValueChange={(value) => {
@@ -2516,7 +2518,7 @@ const Settings = () => {
                 </div>
                 
                 <div className="flex items-center gap-2 w-full sm:w-auto">
-                  <Label htmlFor="dayStructureSection" className="text-sm font-medium whitespace-nowrap">Section</Label>
+                  <Label htmlFor="dayStructureSection" className="text-sm font-medium whitespace-nowrap">{isMadrasah ? 'শাখা' : 'Section'}</Label>
                   <Select 
                     value={dayStructureSection} 
                     onValueChange={setDayStructureSection}
@@ -2534,7 +2536,7 @@ const Settings = () => {
                 </div>
                 
                 <div className="flex items-center gap-2 w-full sm:w-auto sm:ml-auto">
-                  <Label className="text-sm font-medium whitespace-nowrap">Periods per day</Label>
+                  <Label className="text-sm font-medium whitespace-nowrap">{isMadrasah ? 'দৈনিক পিরিয়ড' : 'Periods per day'}</Label>
                   <div className="flex items-center border rounded-md w-full sm:w-auto justify-between sm:justify-start">
                     <Button 
                       variant="ghost" 
@@ -2613,10 +2615,10 @@ const Settings = () => {
               {/* Legacy Actions */}
               <div className="mt-6 pt-4 border-t flex justify-end space-x-3">
                 <Button variant="outline" onClick={handleViewTimetable} disabled={loading}>
-                  {loading ? 'Loading...' : 'View All Timetables'}
+                  {loading ? (isMadrasah ? 'লোড হচ্ছে...' : 'Loading...') : (isMadrasah ? 'সব রুটিন দেখুন' : 'View All Timetables')}
                 </Button>
                 <Button variant="outline" onClick={handleCreateSchedule} disabled={loading}>
-                  {loading ? 'Loading...' : 'Advanced Schedule'}
+                  {loading ? (isMadrasah ? 'লোড হচ্ছে...' : 'Loading...') : (isMadrasah ? 'বিস্তারিত রুটিন' : 'Advanced Schedule')}
                 </Button>
               </div>
             </CardContent>

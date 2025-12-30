@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../App';
+import { useInstitution } from '../context/InstitutionContext';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -38,6 +39,7 @@ import { toast } from 'sonner';
 
 const Results = () => {
   const { user } = useAuth();
+  const { isMadrasah } = useInstitution();
   const [searchParams] = useSearchParams();
   const [examTerms, setExamTerms] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -578,8 +580,8 @@ const Results = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Student Results</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Manage and track student examination results</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{isMadrasah ? 'ছাত্র ফলাফল' : 'Student Results'}</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">{isMadrasah ? 'ছাত্রদের পরীক্ষার ফলাফল দেখুন ও পরিচালনা করুন' : 'Manage and track student examination results'}</p>
         </div>
         {canEdit && (
           <div className="flex flex-wrap gap-2">
@@ -587,7 +589,7 @@ const Results = () => {
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm">
                   <Plus className="h-4 w-4 mr-2" />
-                  New Exam
+                  {isMadrasah ? 'নতুন পরীক্ষা' : 'New Exam'}
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-md">
@@ -674,14 +676,14 @@ const Results = () => {
             
             <Button variant="outline" size="sm" onClick={handleDownloadTemplate}>
               <Download className="h-4 w-4 mr-2" />
-              Template
+              {isMadrasah ? 'টেমপ্লেট' : 'Template'}
             </Button>
             
             <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm">
                   <Upload className="h-4 w-4 mr-2" />
-                  Upload
+                  {isMadrasah ? 'আপলোড' : 'Upload'}
                 </Button>
               </DialogTrigger>
               <DialogContent>
@@ -708,7 +710,7 @@ const Results = () => {
             {canPublish && (
               <Button size="sm" onClick={handlePublishAll} className="bg-emerald-600 hover:bg-emerald-700">
                 <Send className="h-4 w-4 mr-2" />
-                Publish All
+                {isMadrasah ? 'সব প্রকাশ করুন' : 'Publish All'}
               </Button>
             )}
           </div>
@@ -724,7 +726,7 @@ const Results = () => {
                 <Users className="h-5 w-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Total Students</p>
+                <p className="text-sm text-gray-500">{isMadrasah ? 'মোট ছাত্র' : 'Total Students'}</p>
                 <p className="text-xl font-bold">{stats.totalStudents}</p>
               </div>
             </div>
@@ -737,7 +739,7 @@ const Results = () => {
                 <FileSpreadsheet className="h-5 w-5 text-emerald-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Results Entered</p>
+                <p className="text-sm text-gray-500">{isMadrasah ? 'ফলাফল প্রবেশ' : 'Results Entered'}</p>
                 <p className="text-xl font-bold">{stats.resultsEntered}</p>
               </div>
             </div>
@@ -750,7 +752,7 @@ const Results = () => {
                 <CheckCircle className="h-5 w-5 text-green-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Published</p>
+                <p className="text-sm text-gray-500">{isMadrasah ? 'প্রকাশিত' : 'Published'}</p>
                 <p className="text-xl font-bold">{stats.published}</p>
               </div>
             </div>
@@ -763,7 +765,7 @@ const Results = () => {
                 <TrendingUp className="h-5 w-5 text-purple-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Avg %</p>
+                <p className="text-sm text-gray-500">{isMadrasah ? 'গড় %' : 'Avg %'}</p>
                 <p className="text-xl font-bold">{stats.avgPercentage}%</p>
               </div>
             </div>
@@ -776,16 +778,16 @@ const Results = () => {
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
             <Filter className="h-5 w-5" />
-            Filters
+            {isMadrasah ? 'ফিল্টার' : 'Filters'}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-              <Label className="text-sm">Exam Term</Label>
+              <Label className="text-sm">{isMadrasah ? 'পরীক্ষার মেয়াদ' : 'Exam Term'}</Label>
               <Select value={selectedExamTerm} onValueChange={setSelectedExamTerm}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select Exam" />
+                  <SelectValue placeholder={isMadrasah ? 'পরীক্ষা নির্বাচন' : 'Select Exam'} />
                 </SelectTrigger>
                 <SelectContent>
                   {examTerms.map(term => (
@@ -797,10 +799,10 @@ const Results = () => {
               </Select>
             </div>
             <div>
-              <Label className="text-sm">Class</Label>
+              <Label className="text-sm">{isMadrasah ? 'মারহালা' : 'Class'}</Label>
               <Select value={selectedClass} onValueChange={setSelectedClass}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select Class" />
+                  <SelectValue placeholder={isMadrasah ? 'মারহালা নির্বাচন' : 'Select Class'} />
                 </SelectTrigger>
                 <SelectContent>
                   {classes.map(cls => (
@@ -810,10 +812,10 @@ const Results = () => {
               </Select>
             </div>
             <div>
-              <Label className="text-sm">Section</Label>
+              <Label className="text-sm">{isMadrasah ? 'শাখা' : 'Section'}</Label>
               <Select value={selectedSection} onValueChange={setSelectedSection}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select Section" />
+                  <SelectValue placeholder={isMadrasah ? 'শাখা নির্বাচন' : 'Select Section'} />
                 </SelectTrigger>
                 <SelectContent>
                   {sections.map(sec => (
@@ -848,7 +850,7 @@ const Results = () => {
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              Exam Terms
+              {isMadrasah ? 'পরীক্ষার মেয়াদ তালিকা' : 'Exam Terms'}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -902,7 +904,7 @@ const Results = () => {
                   {examTerms.length === 0 && (
                     <tr>
                       <td colSpan={6} className="py-8 text-center text-gray-500">
-                        No exam terms created yet. Click "New Exam" to create one.
+                        {isMadrasah ? 'এখনো কোনো পরীক্ষার মেয়াদ তৈরি হয়নি। নতুন পরীক্ষা তৈরি করতে "নতুন পরীক্ষা" বাটনে ক্লিক করুন।' : 'No exam terms created yet. Click "New Exam" to create one.'}
                       </td>
                     </tr>
                   )}
@@ -1126,8 +1128,8 @@ const Results = () => {
         <Card>
           <CardContent className="py-16 text-center">
             <GraduationCap className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-            <h3 className="text-lg font-medium text-gray-700 mb-2">Select an Exam Term</h3>
-            <p className="text-gray-500">Choose an exam term from the filters above to view or enter results</p>
+            <h3 className="text-lg font-medium text-gray-700 mb-2">{isMadrasah ? 'পরীক্ষার মেয়াদ নির্বাচন করুন' : 'Select an Exam Term'}</h3>
+            <p className="text-gray-500">{isMadrasah ? 'ফলাফল দেখতে বা প্রবেশ করতে উপরের ফিল্টার থেকে একটি পরীক্ষার মেয়াদ নির্বাচন করুন' : 'Choose an exam term from the filters above to view or enter results'}</p>
           </CardContent>
         </Card>
       )}
