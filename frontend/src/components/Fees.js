@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useCurrency } from '../context/CurrencyContext';
+import { useInstitution } from '../context/InstitutionContext';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -60,6 +61,7 @@ console.log('🔗 API Base URL:', API);
 const Fees = () => {
   // Currency context for dynamic currency display
   const { formatCurrency, getCurrencySymbol } = useCurrency();
+  const { isMadrasahSimpleUI, isMadrasah } = useInstitution();
   
   // Router-controlled tabs
   const { '*': tabPath } = useParams();
@@ -1398,8 +1400,8 @@ const Fees = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-sm sm:text-base md:text-2xl lg:text-3xl font-bold text-gray-900">Fees Management</h1>
-          <p className="text-xs sm:text-sm text-gray-600 mt-1">Manage school fees, payments, and financial records</p>
+          <h1 className="text-sm sm:text-base md:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">{isMadrasahSimpleUI ? "বেতন ব্যবস্থাপনা" : "Fees Management"}</h1>
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">{isMadrasahSimpleUI ? "মাসিক বেতন আদায় ও হিসাব" : "Manage school fees, payments, and financial records"}</p>
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
           <Button variant="outline" size="sm" className="w-full sm:w-auto text-sm sm:text-base h-8 sm:h-9" onClick={() => handleExportReport('excel')}>
@@ -1413,6 +1415,7 @@ const Fees = () => {
         </div>
       </div>
 
+      {!isMadrasahSimpleUI && (<>
       {/* Financial Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
         <Card className="card-hover min-w-0">
@@ -1465,6 +1468,7 @@ const Fees = () => {
         </Card>
       </div>
 
+      </>)}
       {/* Fees Management Tabs */}
       <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 h-auto">
@@ -1560,7 +1564,7 @@ const Fees = () => {
             </CardContent>
           </Card>
 
-          {/* Fee Management Actions */}
+          {!isMadrasahSimpleUI && (
           <Card>
             <CardHeader>
               <CardTitle>Management Actions</CardTitle>
@@ -1582,6 +1586,7 @@ const Fees = () => {
               </div>
             </CardContent>
           </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="student-specific" className="space-y-6">

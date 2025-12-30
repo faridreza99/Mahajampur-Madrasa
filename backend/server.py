@@ -341,6 +341,7 @@ class Institution(BaseModel):
     school_code: Optional[str] = None
     school_type: Optional[str] = None
     institution_type: Optional[str] = "school"  # school or madrasah
+    ui_mode: Optional[str] = "standard"  # standard or simple (for madrasah)
     established_year: Optional[int] = None
     address: Optional[str] = None
     phone: Optional[str] = None
@@ -362,6 +363,7 @@ class InstitutionUpdate(BaseModel):
     school_code: Optional[str] = None
     school_type: Optional[str] = None
     institution_type: Optional[str] = None  # school or madrasah
+    ui_mode: Optional[str] = None  # standard or simple
     established_year: Optional[int] = None
     address: Optional[str] = None
     phone: Optional[str] = None
@@ -669,6 +671,7 @@ class Class(BaseModel):
     is_active: bool = True
     order_index: int = 0  # For custom ordering
     institution_type: Optional[str] = "school"  # school or madrasah
+    ui_mode: Optional[str] = "standard"
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -682,6 +685,7 @@ class ClassCreate(BaseModel):
     class_teacher_id: Optional[str] = None
     max_students: int = 60
     order_index: int = 0
+    ui_mode: Optional[str] = "standard"
     institution_type: Optional[str] = "school"
 
 class ClassUpdate(BaseModel):
@@ -3266,6 +3270,7 @@ async def get_institution_settings(current_user: User = Depends(get_current_user
     if institution:
         return {
             "institution_type": institution.get("institution_type", "school"),
+            "ui_mode": institution.get("ui_mode", "standard"),
             "school_name": institution.get("school_name", institution.get("name", "")),
             "tenant_id": current_user.tenant_id
         }

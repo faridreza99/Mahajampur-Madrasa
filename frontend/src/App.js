@@ -11,6 +11,7 @@ import "./App.css";
 
 // Import contexts
 import { CurrencyProvider } from "./context/CurrencyContext";
+import { InstitutionProvider } from "./context/InstitutionContext";
 
 // Import components
 import LoginPage from "./components/LoginPage";
@@ -145,6 +146,7 @@ const AuthProvider = ({ children }) => {
       const { access_token, user: userData } = response.data;
 
       localStorage.setItem("token", access_token);
+      window.dispatchEvent(new Event("userLoggedIn"));
       localStorage.setItem("user", JSON.stringify(userData));
 
       setToken(access_token);
@@ -323,6 +325,7 @@ const Layout = ({ children }) => {
 function App() {
   return (
     <CurrencyProvider>
+      <InstitutionProvider>
       <AuthProvider>
         <Router>
           <div className="App">
@@ -712,6 +715,7 @@ function App() {
           </div>
         </Router>
       </AuthProvider>
+    </InstitutionProvider>
     </CurrencyProvider>
   );
 }
