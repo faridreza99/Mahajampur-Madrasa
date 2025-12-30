@@ -21,6 +21,8 @@ from cache import (
     get_cached_sections, set_cached_sections,
     invalidate_tenant_cache
 )
+from pagination import get_pagination_params, create_paginated_response, MAX_PAGE_SIZE
+from job_queue import job_queue, JobStatus
 
 import os
 import logging
@@ -3404,8 +3406,15 @@ async def get_students(
     class_id: Optional[str] = None,
     section_id: Optional[str] = None,
     search: Optional[str] = None,
+    page: Optional[int] = None,
+    limit: Optional[int] = None,
     current_user: User = Depends(get_current_user)
 ):
+    # Check if pagination was explicitly requested
+    paginate = page is not None or limit is not None
+    if paginate:
+        pagination = get_pagination_params(page or 1, limit or 50)
+    
     query = {"tenant_id": current_user.tenant_id, "is_active": True}
     
     logging.info(f"DEBUG get_students - tenant: {current_user.tenant_id}, class_id: {class_id}, section_id: {section_id}")
@@ -3445,7 +3454,15 @@ async def get_students(
     
     logging.info(f"DEBUG get_students - query: {query}")
     
-    students = await db.students.find(query).to_list(1000)
+    if paginate:
+        # Get total count for pagination
+        total_count = await db.students.count_documents(query)
+        # Apply pagination
+        students = await db.students.find(query).skip(pagination.skip).limit(pagination.effective_limit).to_list(pagination.effective_limit)
+    else:
+        # Legacy behavior: return all students (capped at 1000)
+        students = await db.students.find(query).to_list(1000)
+        total_count = len(students)
     
     logging.info(f"DEBUG get_students - found {len(students)} students")
     
@@ -3507,7 +3524,20 @@ async def get_students(
                         {"$set": {"section_id": section_id}}
                     )
     
-    return [Student(**student) for student in students]
+    # Return paginated response if pagination was explicitly requested, otherwise return array for backward compatibility
+    student_list = [Student(**student) for student in students]
+    
+    if paginate:
+        # Return paginated response
+        return create_paginated_response(
+            items=[s.dict() for s in student_list],
+            total=total_count,
+            page=pagination.page,
+            limit=pagination.effective_limit
+        )
+    
+    # Backward compatible: return simple array
+    return student_list
 
 
 @api_router.get("/students/next-roll")
@@ -30077,6 +30107,235 @@ async def download_payslip_pdf(
 # Include router at the end after all routes are defined
 
 # ==================== ID CARD GENERATION ====================
+
+# ===== Background Job Endpoints =====
+@api_router.get("/jobs/{job_id}")
+async def get_job_status(
+    job_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get status of a background job"""
+    job = job_queue.get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    if job.tenant_id != current_user.tenant_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    return {
+        "id": job.id,
+        "status": job.status,
+        "job_type": job.job_type,
+        "progress": job.progress,
+        "total": job.total,
+        "created_at": job.created_at.isoformat() if job.created_at else None,
+        "completed_at": job.completed_at.isoformat() if job.completed_at else None,
+        "error": job.error,
+        "result": job.result
+    }
+
+@api_router.get("/jobs")
+async def list_jobs(
+    job_type: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """List all jobs for the current tenant"""
+    jobs = job_queue.get_tenant_jobs(current_user.tenant_id, job_type)
+    return [{
+        "id": j.id,
+        "status": j.status,
+        "job_type": j.job_type,
+        "progress": j.progress,
+        "total": j.total,
+        "created_at": j.created_at.isoformat() if j.created_at else None,
+        "completed_at": j.completed_at.isoformat() if j.completed_at else None
+    } for j in jobs[:20]]  # Return last 20 jobs
+
+@api_router.post("/id-cards/bulk-generate")
+async def start_bulk_id_card_generation(
+    class_id: Optional[str] = None,
+    section_id: Optional[str] = None,
+    student_ids: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Start bulk ID card generation in background. Returns job ID for status polling."""
+    if current_user.role not in ["super_admin", "admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Get student list
+    query = {"tenant_id": current_user.tenant_id, "is_active": True}
+    
+    if student_ids:
+        id_list = [s.strip() for s in student_ids.split(",")]
+        query["id"] = {"$in": id_list}
+    elif class_id:
+        query["class_id"] = class_id
+        if section_id:
+            query["section_id"] = section_id
+    
+    students = await db.students.find(query).to_list(100)  # Max 100 students per batch for performance
+    
+    if not students:
+        raise HTTPException(status_code=404, detail="No students found")
+    
+    tenant_id = current_user.tenant_id
+    
+    # Create a job
+    job = job_queue.create_job(
+        job_type="bulk_id_cards",
+        tenant_id=tenant_id,
+        total=len(students)
+    )
+    
+    # Get institution data for ID cards
+    institution = await db.institutions.find_one({"tenant_id": tenant_id})
+    
+    # Background task that generates actual PDFs
+    async def generate_bulk_cards_task(job_id: str, student_list: list, tenant: str, inst_data: dict):
+        """Generate bulk ID cards as a merged PDF file"""
+        import asyncio
+        import tempfile
+        import os
+        import zipfile
+        from io import BytesIO
+        from reportlab.lib.units import inch, mm
+        from reportlab.lib.pagesizes import letter
+        from reportlab.pdfgen import canvas as pdf_canvas
+        from reportlab.lib import colors
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+        
+        try:
+            # Register Bengali fonts
+            font_dir = Path(__file__).parent / "fonts"
+            bengali_font_regular = font_dir / "NotoSansBengali-Regular.ttf"
+            bengali_font_bold = font_dir / "NotoSansBengali-Bold.ttf"
+            
+            try:
+                if bengali_font_regular.exists():
+                    if "NotoSansBengali" not in pdfmetrics.getRegisteredFontNames():
+                        pdfmetrics.registerFont(TTFont("NotoSansBengali", str(bengali_font_regular)))
+                if bengali_font_bold.exists():
+                    if "NotoSansBengali-Bold" not in pdfmetrics.getRegisteredFontNames():
+                        pdfmetrics.registerFont(TTFont("NotoSansBengali-Bold", str(bengali_font_bold)))
+            except Exception as e:
+                logging.warning(f"Could not register Bengali fonts: {e}")
+            
+            # Create output directory
+            output_dir = tempfile.mkdtemp(prefix="bulk_idcards_")
+            zip_path = os.path.join(output_dir, f"id_cards_{job_id[:8]}.zip")
+            
+            generated_count = 0
+            
+            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                for i, student in enumerate(student_list):
+                    try:
+                        # Update progress
+                        job_queue.update_progress(job_id, i + 1)
+                        
+                        # Generate a simple ID card PDF for this student
+                        student_name = student.get("name", "Unknown")
+                        student_id = student.get("id", "")
+                        admission_no = student.get("admission_no", "")
+                        
+                        # Create a simple PDF
+                        pdf_buffer = BytesIO()
+                        c = pdf_canvas.Canvas(pdf_buffer, pagesize=(3.375*inch, 2.125*inch))
+                        
+                        # Simple card design
+                        c.setFillColor(colors.HexColor("#006400"))
+                        c.rect(0, 1.875*inch, 3.375*inch, 0.25*inch, fill=True)
+                        
+                        c.setFillColor(colors.white)
+                        c.setFont("Helvetica-Bold", 8)
+                        c.drawCentredString(1.6875*inch, 1.925*inch, inst_data.get("name", "মাদ্রাসা") if inst_data else "মাদ্রাসা")
+                        
+                        c.setFillColor(colors.black)
+                        c.setFont("Helvetica-Bold", 10)
+                        c.drawCentredString(1.6875*inch, 1.5*inch, student_name)
+                        
+                        c.setFont("Helvetica", 8)
+                        c.drawString(0.25*inch, 1.2*inch, f"Admission: {admission_no}")
+                        c.drawString(0.25*inch, 1.0*inch, f"ID: {student_id[:8]}...")
+                        
+                        c.save()
+                        pdf_buffer.seek(0)
+                        
+                        # Add to zip
+                        safe_name = "".join(c for c in student_name if c.isalnum() or c in (' ', '-', '_'))[:30]
+                        filename = f"{safe_name}_{admission_no or student_id[:8]}.pdf"
+                        zipf.writestr(filename, pdf_buffer.getvalue())
+                        
+                        generated_count += 1
+                        
+                        # Yield control periodically
+                        if i > 0 and i % 10 == 0:
+                            await asyncio.sleep(0.01)
+                            
+                    except Exception as e:
+                        logging.error(f"Failed to generate card for student {student.get('id')}: {e}")
+                        continue
+            
+            # Store the zip path in the job result
+            return {
+                "message": f"Generated {generated_count} ID cards",
+                "count": generated_count,
+                "zip_path": zip_path,
+                "filename": f"id_cards_{job_id[:8]}.zip"
+            }
+            
+        except Exception as e:
+            logging.error(f"Bulk ID card generation failed: {e}")
+            raise Exception(f"Failed to generate bulk ID cards: {str(e)}")
+    
+    # Schedule the background job
+    asyncio.create_task(job_queue.run_job(
+        job.id,
+        generate_bulk_cards_task,
+        students,
+        tenant_id,
+        institution
+    ))
+    
+    return {
+        "job_id": job.id,
+        "message": f"Started generating ID cards for {len(students)} students",
+        "total": len(students),
+        "status_url": f"/api/jobs/{job.id}"
+    }
+
+@api_router.get("/id-cards/bulk-download")
+async def download_bulk_id_cards(
+    job_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Download completed bulk ID cards as ZIP file"""
+    import os
+    
+    job = job_queue.get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    if job.tenant_id != current_user.tenant_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    if job.status != JobStatus.COMPLETED:
+        raise HTTPException(status_code=400, detail=f"Job not completed. Current status: {job.status}")
+    
+    if not job.result or "zip_path" not in job.result:
+        raise HTTPException(status_code=400, detail="No ID cards generated")
+    
+    zip_path = job.result["zip_path"]
+    filename = job.result.get("filename", "id_cards.zip")
+    
+    if not os.path.exists(zip_path):
+        raise HTTPException(status_code=404, detail="Generated file not found. Please regenerate.")
+    
+    return FileResponse(
+        path=zip_path,
+        filename=filename,
+        media_type="application/zip"
+    )
 
 @api_router.get("/id-cards/student/{student_id}")
 async def generate_student_id_card(
