@@ -3512,6 +3512,84 @@ async def get_students(
     
     return [Student(**student) for student in students]
 
+
+@api_router.get("/students/next-roll")
+async def get_next_roll_number(
+    class_id: str,
+    section_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get the next available roll number for a class/section combination"""
+    if current_user.role not in ["super_admin", "admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    try:
+        query = {
+            "tenant_id": current_user.tenant_id,
+            "class_id": class_id,
+            "is_active": True
+        }
+        if section_id:
+            query["section_id"] = section_id
+        
+        students = await db.students.find(query).to_list(1000)
+        
+        max_roll = 0
+        for student in students:
+            roll_no = student.get("roll_no", "0")
+            try:
+                roll_int = int(str(roll_no).strip())
+                if roll_int > max_roll:
+                    max_roll = roll_int
+            except (ValueError, TypeError):
+                continue
+        
+        next_roll = max_roll + 1
+        
+        return {
+            "next_roll": next_roll,
+            "class_id": class_id,
+            "section_id": section_id,
+            "total_students": len(students)
+        }
+    except Exception as e:
+        logging.error(f"Error getting next roll number: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to get next roll number")
+
+@api_router.get("/students/check-roll-duplicate")
+async def check_roll_duplicate(
+    class_id: str,
+    roll_no: str,
+    section_id: Optional[str] = None,
+    student_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Check if a roll number already exists in the class/section"""
+    if current_user.role not in ["super_admin", "admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    try:
+        query = {
+            "tenant_id": current_user.tenant_id,
+            "class_id": class_id,
+            "roll_no": roll_no,
+            "is_active": True
+        }
+        if section_id:
+            query["section_id"] = section_id
+        if student_id:
+            query["id"] = {"$ne": student_id}
+        
+        existing = await db.students.find_one(query)
+        
+        return {
+            "is_duplicate": existing is not None,
+            "existing_student_name": existing.get("name") if existing else None
+        }
+    except Exception as e:
+        logging.error(f"Error checking roll duplicate: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to check roll duplicate")
+
 @api_router.post("/students", response_model=StudentCreateResponse)
 async def create_student(student_data: StudentCreate, current_user: User = Depends(get_current_user)):
     if current_user.role not in ["super_admin", "admin", "teacher"]:
