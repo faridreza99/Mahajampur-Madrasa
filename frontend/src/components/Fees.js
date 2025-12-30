@@ -1519,20 +1519,23 @@ const Fees = () => {
           {isMadrasahSimpleUI ? (
             <Card>
               <CardHeader className="p-4 sm:p-6">
-                <CardTitle className="text-base sm:text-lg">মাসিক বেতন কনফিগারেশন</CardTitle>
+                <CardTitle className="text-base sm:text-lg">মাসিক বেতন সেটিংস</CardTitle>
               </CardHeader>
               <CardContent className="p-3 sm:p-6">
                 <Card className="border-2 border-emerald-300 hover:border-emerald-500 transition-colors max-w-md mx-auto">
                   <CardContent className="p-6 sm:p-8 text-center">
                     <DollarSign className="h-12 w-12 sm:h-16 sm:w-16 mx-auto text-emerald-500 mb-3 sm:mb-4" />
                     <h3 className="font-bold text-lg sm:text-xl mb-2">মাসিক বেতন</h3>
-                    <p className="text-sm text-gray-600 mb-4">Monthly Fee Configuration</p>
+                    <p className="text-sm text-gray-600 mb-4">মারহালা অনুযায়ী মাসিক বেতন নির্ধারণ</p>
                     <Button 
                       className="w-full bg-emerald-500 hover:bg-emerald-600 text-white" 
                       onClick={() => handleFeeConfiguration('Tuition Fees')}
                     >
-                      কনফিগার করুন
+                      মাসিক বেতন নির্ধারণ করুন
                     </Button>
+                    <p className="text-xs text-gray-500 mt-3 flex items-center justify-center gap-1">
+                      <span>ℹ️</span> একবার সেট করলে পরে পরিবর্তন করা যাবে
+                    </p>
                   </CardContent>
                 </Card>
               </CardContent>
