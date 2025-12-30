@@ -30478,6 +30478,7 @@ async def get_students_for_id_cards(
         })
     
     return result
+@api_router.get("/id-cards/staff/list")
 async def get_staff_for_id_cards(
     department: Optional[str] = None,
     current_user: User = Depends(get_current_user)
