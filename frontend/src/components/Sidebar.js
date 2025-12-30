@@ -47,7 +47,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
-  const { isMadrasahSimpleUI } = useInstitution();
+  const { isMadrasahSimpleUI, loading: institutionLoading } = useInstitution();
   const [openMenus, setOpenMenus] = useState({});
   const [, forceUpdate] = useState(0);
   const [allowedModules, setAllowedModules] = useState(null);

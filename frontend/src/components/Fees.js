@@ -1469,7 +1469,13 @@ const Fees = () => {
       </div>
 
       </>)}
-      {/* Fees Management Tabs */}
+      {/* Fees Management Tabs - Wait for institution settings to load */}
+      {institutionLoading ? (
+        <div className="flex items-center justify-center p-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
+          <span className="ml-3 text-gray-600">Loading...</span>
+        </div>
+      ) : (
       <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
         {isMadrasahSimpleUI ? (
           <TabsList className="grid w-full grid-cols-3 h-auto">
@@ -2800,6 +2806,7 @@ const Fees = () => {
         </TabsContent>
 
       </Tabs>
+      )}
 
       {/* Payment Collection Modal */}
       <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
