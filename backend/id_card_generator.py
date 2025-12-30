@@ -163,21 +163,28 @@ def get_logo_url(institution):
 
 
 def get_institution_name(institution, lang="bn"):
-    """Get institution name dynamically from settings - NO hardcoded fallbacks"""
+    """Get institution name dynamically from settings - checks all common field names"""
     if not institution:
+        logging.warning("ID Card: No institution data provided")
         return ""
     
+    # Log available fields for debugging
+    logging.info(f"ID Card institution fields: {list(institution.keys())}")
+    
     if lang == "bn":
-        return (institution.get("name_bn") or institution.get("name") or 
+        result = (institution.get("name_bn") or institution.get("name") or 
                 institution.get("institution_name") or institution.get("school_name") or "")
+        logging.info(f"ID Card Bengali name: {result}")
+        return result
     elif lang == "en":
         name = (institution.get("name_en") or institution.get("english_name") or 
-                institution.get("institution_name_en") or "")
+                institution.get("institution_name_en") or institution.get("school_name") or 
+                institution.get("name") or "")
         return name.upper() if name else ""
     elif lang == "ar":
         return (institution.get("name_ar") or institution.get("arabic_name") or 
                 institution.get("institution_name_ar") or "")
-    return institution.get("name", "")
+    return institution.get("name", "") or institution.get("school_name", "")
 
 
 def draw_logo(c, x, y, size, logo_url=None):
