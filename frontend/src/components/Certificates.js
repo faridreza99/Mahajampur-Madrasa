@@ -3007,35 +3007,40 @@ const Certificates = () => {
             // TC Form View
             <>
               <Card>
-                <CardHeader>
+                <CardHeader className={isMadrasah ? "bg-gradient-to-r from-blue-50 to-indigo-50 border-b" : ""}>
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle>Generate Transfer Certificate</CardTitle>
-                      <p className="text-sm text-gray-600 mt-1">Fill in the details to generate a transfer certificate</p>
+                      <CardTitle className={isMadrasah ? "flex items-center gap-2 text-blue-800" : ""}>
+                        {isMadrasah && <FileText className="h-6 w-6" />}
+                        {isMadrasah ? 'স্থানান্তর সনদ তৈরি করুন' : 'Generate Transfer Certificate'}
+                      </CardTitle>
+                      <p className={`text-sm mt-1 ${isMadrasah ? 'text-blue-700' : 'text-gray-600'}`}>
+                        {isMadrasah ? 'ছাত্রের স্থানান্তর সনদপত্র তৈরির জন্য তথ্য পূরণ করুন' : 'Fill in the details to generate a transfer certificate'}
+                      </p>
                     </div>
                     <Button 
                       variant="outline" 
                       onClick={() => {
                         setTcView('list');
                         resetTCForm();
-                        toast.info('Returned to Transfer Certificate list.');
+                        toast.info(isMadrasah ? 'তালিকায় ফিরে এসেছেন।' : 'Returned to Transfer Certificate list.');
                       }}
                     >
-                      Back to List
+                      {isMadrasah ? 'তালিকায় ফিরুন' : 'Back to List'}
                     </Button>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {/* Student Selection */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Student Selection</h3>
+                    <h3 className="text-lg font-medium">{isMadrasah ? 'ছাত্র নির্বাচন' : 'Student Selection'}</h3>
                     {selectedStudent ? (
                       <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-md">
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="font-medium text-emerald-900">Selected Student</p>
+                            <p className="font-medium text-emerald-900">{isMadrasah ? 'নির্বাচিত ছাত্র' : 'Selected Student'}</p>
                             <p className="text-emerald-700">{selectedStudent.name}</p>
-                            <p className="text-sm text-emerald-600">Admission No: {selectedStudent.admission_no}</p>
+                            <p className="text-sm text-emerald-600">{isMadrasah ? 'ভর্তি নং:' : 'Admission No:'} {selectedStudent.admission_no}</p>
                           </div>
                           <Button 
                             variant="outline" 
@@ -3045,7 +3050,7 @@ const Certificates = () => {
                               setTcFormData({...tcFormData, student_id: '', student_name: '', admission_no: ''});
                             }}
                           >
-                            Change
+                            {isMadrasah ? 'পরিবর্তন' : 'Change'}
                           </Button>
                         </div>
                       </div>
@@ -3057,7 +3062,7 @@ const Certificates = () => {
                           className="flex-1"
                         >
                           <UserPlus className="h-4 w-4 mr-2" />
-                          Select Student
+                          {isMadrasah ? 'ছাত্র নির্বাচন করুন' : 'Select Student'}
                         </Button>
                       </div>
                     )}
@@ -3066,7 +3071,7 @@ const Certificates = () => {
                   {/* TC Form Fields */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium mb-2">Date of Admission</label>
+                      <label className="block text-sm font-medium mb-2">{isMadrasah ? 'ভর্তির তারিখ' : 'Date of Admission'}</label>
                       <input
                         type="date"
                         className="w-full p-2 border rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
@@ -3075,43 +3080,73 @@ const Certificates = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-2">Last Attended Class</label>
+                      <label className="block text-sm font-medium mb-2">{isMadrasah ? 'সর্বশেষ মারহালা / শ্রেণি' : 'Last Attended Class'}</label>
                       <select
                         className="w-full p-2 border rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                         value={tcFormData.last_class}
                         onChange={(e) => setTcFormData({...tcFormData, last_class: e.target.value})}
                       >
-                        <option value="">Select Class</option>
-                        <option value="1">Class I</option>
-                        <option value="2">Class II</option>
-                        <option value="3">Class III</option>
-                        <option value="4">Class IV</option>
-                        <option value="5">Class V</option>
-                        <option value="6">Class VI</option>
-                        <option value="7">Class VII</option>
-                        <option value="8">Class VIII</option>
-                        <option value="9">Class IX</option>
-                        <option value="10">Class X</option>
-                        <option value="11">Class XI</option>
-                        <option value="12">Class XII</option>
+                        <option value="">{isMadrasah ? 'মারহালা নির্বাচন করুন' : 'Select Class'}</option>
+                        {isMadrasah ? (
+                          <>
+                            <option value="1">ইবতেদায়ী ১ম বর্ষ</option>
+                            <option value="2">ইবতেদায়ী ২য় বর্ষ</option>
+                            <option value="3">ইবতেদায়ী ৩য় বর্ষ</option>
+                            <option value="4">ইবতেদায়ী ৪র্থ বর্ষ</option>
+                            <option value="5">ইবতেদায়ী ৫ম বর্ষ</option>
+                            <option value="6">দাখিল ৬ষ্ঠ শ্রেণি</option>
+                            <option value="7">দাখিল ৭ম শ্রেণি</option>
+                            <option value="8">দাখিল ৮ম শ্রেণি</option>
+                            <option value="9">দাখিল ৯ম শ্রেণি</option>
+                            <option value="10">দাখিল ১০ম শ্রেণি</option>
+                            <option value="11">আলিম ১ম বর্ষ</option>
+                            <option value="12">আলিম ২য় বর্ষ</option>
+                          </>
+                        ) : (
+                          <>
+                            <option value="1">Class I</option>
+                            <option value="2">Class II</option>
+                            <option value="3">Class III</option>
+                            <option value="4">Class IV</option>
+                            <option value="5">Class V</option>
+                            <option value="6">Class VI</option>
+                            <option value="7">Class VII</option>
+                            <option value="8">Class VIII</option>
+                            <option value="9">Class IX</option>
+                            <option value="10">Class X</option>
+                            <option value="11">Class XI</option>
+                            <option value="12">Class XII</option>
+                          </>
+                        )}
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-2">Last Section</label>
+                      <label className="block text-sm font-medium mb-2">{isMadrasah ? 'সর্বশেষ শাখা' : 'Last Section'}</label>
                       <select
                         className="w-full p-2 border rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                         value={tcFormData.last_section}
                         onChange={(e) => setTcFormData({...tcFormData, last_section: e.target.value})}
                       >
-                        <option value="">Select Section</option>
-                        <option value="A">Section A</option>
-                        <option value="B">Section B</option>
-                        <option value="C">Section C</option>
-                        <option value="D">Section D</option>
+                        <option value="">{isMadrasah ? 'শাখা নির্বাচন করুন' : 'Select Section'}</option>
+                        {isMadrasah ? (
+                          <>
+                            <option value="A">শাখা - ক</option>
+                            <option value="B">শাখা - খ</option>
+                            <option value="C">শাখা - গ</option>
+                            <option value="D">শাখা - ঘ</option>
+                          </>
+                        ) : (
+                          <>
+                            <option value="A">Section A</option>
+                            <option value="B">Section B</option>
+                            <option value="C">Section C</option>
+                            <option value="D">Section D</option>
+                          </>
+                        )}
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-2">Date of Leaving *</label>
+                      <label className="block text-sm font-medium mb-2">{isMadrasah ? 'বিদায়ের তারিখ *' : 'Date of Leaving *'}</label>
                       <input
                         type="date"
                         className="w-full p-2 border rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
@@ -3123,56 +3158,109 @@ const Certificates = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-2">Reason for Transfer *</label>
+                    <label className="block text-sm font-medium mb-2">{isMadrasah ? 'স্থানান্তরের কারণ *' : 'Reason for Transfer *'}</label>
                     <textarea
                       className="w-full p-3 border rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                       rows="3"
-                      placeholder="Enter reason for transfer..."
+                      placeholder={isMadrasah ? 'স্থানান্তরের কারণ লিখুন...' : 'Enter reason for transfer...'}
                       value={tcFormData.reason_for_transfer}
                       onChange={(e) => setTcFormData({...tcFormData, reason_for_transfer: e.target.value})}
                       required
                     />
+                    {isMadrasah && (
+                      <div className="mt-2">
+                        <p className="text-xs text-gray-500 mb-2">সাধারণ কারণ:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {[
+                            'অন্য প্রতিষ্ঠানে ভর্তি',
+                            'পারিবারিক স্থানান্তর',
+                            'অভিভাবকের ইচ্ছা',
+                            'আর্থিক সমস্যা',
+                            'স্বাস্থ্যগত কারণ'
+                          ].map((reason) => (
+                            <button
+                              key={reason}
+                              type="button"
+                              onClick={() => setTcFormData({...tcFormData, reason_for_transfer: reason})}
+                              className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
+                                tcFormData.reason_for_transfer === reason 
+                                  ? 'bg-blue-500 text-white border-blue-500' 
+                                  : 'bg-white text-gray-600 border-gray-300 hover:bg-blue-50 hover:border-blue-300'
+                              }`}
+                            >
+                              {reason}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-2">Conduct/Behavior Remarks</label>
+                    <label className="block text-sm font-medium mb-2">{isMadrasah ? 'আচরণ সংক্রান্ত মন্তব্য' : 'Conduct/Behavior Remarks'}</label>
                     <textarea
                       className="w-full p-3 border rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                       rows="3"
-                      placeholder="Enter conduct and behavior remarks..."
+                      placeholder={isMadrasah ? 'আচরণ ও চরিত্র সম্পর্কে মন্তব্য লিখুন...' : 'Enter conduct and behavior remarks...'}
                       value={tcFormData.conduct_remarks}
                       onChange={(e) => setTcFormData({...tcFormData, conduct_remarks: e.target.value})}
                     />
+                    {isMadrasah && (
+                      <div className="mt-2">
+                        <p className="text-xs text-gray-500 mb-2">দ্রুত নির্বাচন:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {[
+                            'আচরণ অতি উত্তম',
+                            'আচরণ উত্তম',
+                            'আচরণ ভালো',
+                            'আচরণ সন্তোষজনক'
+                          ].map((conduct) => (
+                            <button
+                              key={conduct}
+                              type="button"
+                              onClick={() => setTcFormData({...tcFormData, conduct_remarks: conduct})}
+                              className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
+                                tcFormData.conduct_remarks === conduct 
+                                  ? 'bg-emerald-500 text-white border-emerald-500' 
+                                  : 'bg-white text-gray-600 border-gray-300 hover:bg-emerald-50 hover:border-emerald-300'
+                              }`}
+                            >
+                              {conduct}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex justify-end space-x-3 pt-4 border-t">
+                  <div className="flex flex-wrap justify-end gap-3 pt-4 border-t">
                     <Button 
                       variant="outline" 
                       onClick={resetTCForm}
                     >
-                      Reset
+                      {isMadrasah ? 'পুনরায় সেট করুন' : 'Reset'}
                     </Button>
                     <Button 
                       variant="outline" 
                       onClick={() => handleTCSubmit('draft')}
                       disabled={!tcFormData.student_id}
                     >
-                      Save as Draft
+                      {isMadrasah ? 'খসড়া সংরক্ষণ' : 'Save as Draft'}
                     </Button>
                     <Button 
                       onClick={() => handleTCSubmit('pending_approval')}
                       className="bg-blue-500 hover:bg-blue-600"
                       disabled={!tcFormData.student_id}
                     >
-                      Submit for Approval
+                      {isMadrasah ? 'অনুমোদনের জন্য জমা দিন' : 'Submit for Approval'}
                     </Button>
                     <Button 
                       onClick={() => handleTCSubmit('issued')}
                       className="bg-emerald-500 hover:bg-emerald-600"
                       disabled={!tcFormData.student_id}
                     >
-                      Issue TC
+                      {isMadrasah ? 'সনদ প্রদান করুন' : 'Issue TC'}
                     </Button>
                   </div>
                 </CardContent>
@@ -3185,13 +3273,13 @@ const Certificates = () => {
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-medium">Select Student</h3>
+                  <h3 className="text-lg font-medium">{isMadrasah ? 'ছাত্র নির্বাচন করুন' : 'Select Student'}</h3>
                   <Button 
                     variant="outline" 
                     size="sm" 
                     onClick={() => setShowStudentModal(false)}
                   >
-                    Cancel
+                    {isMadrasah ? 'বাতিল' : 'Cancel'}
                   </Button>
                 </div>
                 
@@ -3200,7 +3288,7 @@ const Certificates = () => {
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                     <input
                       type="text"
-                      placeholder="Search students..."
+                      placeholder={isMadrasah ? 'ছাত্রের নাম দিয়ে খুঁজুন...' : 'Search students...'}
                       className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
@@ -3211,19 +3299,19 @@ const Certificates = () => {
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   {loading ? (
                     <div className="text-center py-4">
-                      <p className="text-gray-500">Loading students...</p>
+                      <p className="text-gray-500">{isMadrasah ? 'ছাত্র লোড হচ্ছে...' : 'Loading students...'}</p>
                     </div>
                   ) : filteredStudents.length === 0 ? (
                     <div className="text-center py-4">
                       {availableStudents.length === 0 ? (
                         <div>
-                          <p className="text-gray-500 font-medium">No students available</p>
-                          <p className="text-sm text-gray-400 mt-1">Please add students first or check if they are active.</p>
+                          <p className="text-gray-500 font-medium">{isMadrasah ? 'কোন ছাত্র নেই' : 'No students available'}</p>
+                          <p className="text-sm text-gray-400 mt-1">{isMadrasah ? 'প্রথমে ছাত্র যোগ করুন অথবা তারা সক্রিয় আছে কিনা যাচাই করুন।' : 'Please add students first or check if they are active.'}</p>
                         </div>
                       ) : (
                         <div>
-                          <p className="text-gray-500 font-medium">No students match your search</p>
-                          <p className="text-sm text-gray-400 mt-1">Try searching by name or admission number.</p>
+                          <p className="text-gray-500 font-medium">{isMadrasah ? 'কোন ছাত্র পাওয়া যায়নি' : 'No students match your search'}</p>
+                          <p className="text-sm text-gray-400 mt-1">{isMadrasah ? 'নাম বা ভর্তি নম্বর দিয়ে খুঁজুন।' : 'Try searching by name or admission number.'}</p>
                         </div>
                       )}
                     </div>
@@ -3236,12 +3324,12 @@ const Certificates = () => {
                       >
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="font-medium">{String(student.name || 'Unknown')}</p>
-                            <p className="text-sm text-gray-600">Admission: {String(student.admission_no || 'N/A')}</p>
-                            <p className="text-xs text-gray-400">Father: {String(student.father_name || 'N/A')}</p>
+                            <p className="font-medium">{String(student.name || (isMadrasah ? 'অজ্ঞাত' : 'Unknown'))}</p>
+                            <p className="text-sm text-gray-600">{isMadrasah ? 'ভর্তি নং:' : 'Admission:'} {String(student.admission_no || '-')}</p>
+                            <p className="text-xs text-gray-400">{isMadrasah ? 'পিতা:' : 'Father:'} {String(student.father_name || '-')}</p>
                           </div>
                           <div className="text-sm text-gray-500">
-                            Class {String(student.class_id || student.class_name || 'N/A')}
+                            {isMadrasah ? 'শ্রেণি' : 'Class'} {String(student.class_id || student.class_name || '-')}
                           </div>
                         </div>
                       </div>
