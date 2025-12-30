@@ -1471,63 +1471,99 @@ const Fees = () => {
       </>)}
       {/* Fees Management Tabs */}
       <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 h-auto">
-          <TabsTrigger value="manage" className="text-xs sm:text-sm py-2 px-1 sm:px-3">Manage</TabsTrigger>
-          <TabsTrigger value="student-specific" className="text-xs sm:text-sm py-2 px-1 sm:px-3">Student</TabsTrigger>
-          <TabsTrigger value="due" className="text-xs sm:text-sm py-2 px-1 sm:px-3">Due</TabsTrigger>
-          <TabsTrigger value="select-student" className="text-xs sm:text-sm py-2 px-1 sm:px-3 hidden sm:flex">Select</TabsTrigger>
-          <TabsTrigger value="collection" className="text-xs sm:text-sm py-2 px-1 sm:px-3 hidden sm:flex">Collection</TabsTrigger>
-        </TabsList>
+        {isMadrasahSimpleUI ? (
+          <TabsList className="grid w-full grid-cols-3 h-auto">
+            <TabsTrigger value="manage" className="text-xs sm:text-sm py-2 px-1 sm:px-3">সেটআপ</TabsTrigger>
+            <TabsTrigger value="select-student" className="text-xs sm:text-sm py-2 px-1 sm:px-3">ছাত্র নির্বাচন</TabsTrigger>
+            <TabsTrigger value="collection" className="text-xs sm:text-sm py-2 px-1 sm:px-3">বেতন আদায়</TabsTrigger>
+          </TabsList>
+        ) : (
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 h-auto">
+            <TabsTrigger value="manage" className="text-xs sm:text-sm py-2 px-1 sm:px-3">Manage</TabsTrigger>
+            <TabsTrigger value="student-specific" className="text-xs sm:text-sm py-2 px-1 sm:px-3">Student</TabsTrigger>
+            <TabsTrigger value="due" className="text-xs sm:text-sm py-2 px-1 sm:px-3">Due</TabsTrigger>
+            <TabsTrigger value="select-student" className="text-xs sm:text-sm py-2 px-1 sm:px-3 hidden sm:flex">Select</TabsTrigger>
+            <TabsTrigger value="collection" className="text-xs sm:text-sm py-2 px-1 sm:px-3 hidden sm:flex">Collection</TabsTrigger>
+          </TabsList>
+        )}
 
         <TabsContent value="manage" className="space-y-4">
-          {/* Fee Section Header */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 sm:border-l-8 border-blue-500 rounded-lg p-4 sm:p-6 md:p-8 mb-4 sm:mb-6">
+          {/* Fee Section Header - Different for Madrasah Simple UI */}
+          <div className={`bg-gradient-to-r ${isMadrasahSimpleUI ? 'from-emerald-50 to-green-50 border-emerald-500' : 'from-blue-50 to-indigo-50 border-blue-500'} border-l-4 sm:border-l-8 rounded-lg p-4 sm:p-6 md:p-8 mb-4 sm:mb-6`}>
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className="bg-blue-500 text-white rounded-full p-2 sm:p-3 md:p-4">
+              <div className={`${isMadrasahSimpleUI ? 'bg-emerald-500' : 'bg-blue-500'} text-white rounded-full p-2 sm:p-3 md:p-4`}>
                 <DollarSign className="h-4 w-4 sm:h-6 sm:w-6 md:h-8 md:w-8" />
               </div>
               <div>
-                <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-blue-700">Fee Structure Management</h2>
-                <p className="text-xs sm:text-sm text-blue-600">Configure fee types, amounts, and payment schedules</p>
+                <h2 className={`text-lg sm:text-xl md:text-2xl font-bold ${isMadrasahSimpleUI ? 'text-emerald-700' : 'text-blue-700'}`}>
+                  {isMadrasahSimpleUI ? 'মাসিক বেতন সেটআপ' : 'Fee Structure Management'}
+                </h2>
+                <p className={`text-xs sm:text-sm ${isMadrasahSimpleUI ? 'text-emerald-600' : 'text-blue-600'}`}>
+                  {isMadrasahSimpleUI ? 'মারহালা অনুযায়ী মাসিক বেতন নির্ধারণ করুন' : 'Configure fee types, amounts, and payment schedules'}
+                </p>
               </div>
             </div>
           </div>
           
-          <Card>
-            <CardHeader className="p-4 sm:p-6">
-              <CardTitle className="text-base sm:text-lg">Fee Types Configuration</CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 sm:p-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                <Card className="border-2 border-dashed border-gray-300 hover:border-emerald-500 transition-colors min-w-0">
-                  <CardContent className="p-4 sm:p-6 text-center">
-                    <DollarSign className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 mx-auto text-gray-400 mb-2 sm:mb-3" />
-                    <h3 className="font-medium text-sm sm:text-base mb-1 sm:mb-2">Tuition Fees</h3>
-                    <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">Monthly tuition charges</p>
-                    <Button variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm" onClick={() => handleFeeConfiguration('Tuition Fees')}>Configure</Button>
+          {/* Madrasah Simple UI - Only Monthly Fee */}
+          {isMadrasahSimpleUI ? (
+            <Card>
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="text-base sm:text-lg">মাসিক বেতন কনফিগারেশন</CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 sm:p-6">
+                <Card className="border-2 border-emerald-300 hover:border-emerald-500 transition-colors max-w-md mx-auto">
+                  <CardContent className="p-6 sm:p-8 text-center">
+                    <DollarSign className="h-12 w-12 sm:h-16 sm:w-16 mx-auto text-emerald-500 mb-3 sm:mb-4" />
+                    <h3 className="font-bold text-lg sm:text-xl mb-2">মাসিক বেতন</h3>
+                    <p className="text-sm text-gray-600 mb-4">Monthly Fee Configuration</p>
+                    <Button 
+                      className="w-full bg-emerald-500 hover:bg-emerald-600 text-white" 
+                      onClick={() => handleFeeConfiguration('Tuition Fees')}
+                    >
+                      কনফিগার করুন
+                    </Button>
                   </CardContent>
                 </Card>
-                
-                <Card className="border-2 border-dashed border-gray-300 hover:border-emerald-500 transition-colors min-w-0">
-                  <CardContent className="p-4 sm:p-6 text-center">
-                    <Receipt className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 mx-auto text-gray-400 mb-2 sm:mb-3" />
-                    <h3 className="font-medium text-sm sm:text-base mb-1 sm:mb-2">Transport Fees</h3>
-                    <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">Bus and transport charges</p>
-                    <Button variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm" onClick={() => handleFeeConfiguration('Transport Fees')}>Configure</Button>
-                  </CardContent>
-                </Card>
-                
-                <Card className="border-2 border-dashed border-gray-300 hover:border-emerald-500 transition-colors min-w-0 sm:col-span-2 lg:col-span-1">
-                  <CardContent className="p-4 sm:p-6 text-center">
-                    <CreditCard className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 mx-auto text-gray-400 mb-2 sm:mb-3" />
-                    <h3 className="font-medium text-sm sm:text-base mb-1 sm:mb-2">Admission Fees</h3>
-                    <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">One-time admission charges</p>
-                    <Button variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm" onClick={() => handleFeeConfiguration('Admission Fees')}>Configure</Button>
-                  </CardContent>
-                </Card>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="text-base sm:text-lg">Fee Types Configuration</CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 sm:p-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                  <Card className="border-2 border-dashed border-gray-300 hover:border-emerald-500 transition-colors min-w-0">
+                    <CardContent className="p-4 sm:p-6 text-center">
+                      <DollarSign className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 mx-auto text-gray-400 mb-2 sm:mb-3" />
+                      <h3 className="font-medium text-sm sm:text-base mb-1 sm:mb-2">Tuition Fees</h3>
+                      <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">Monthly tuition charges</p>
+                      <Button variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm" onClick={() => handleFeeConfiguration('Tuition Fees')}>Configure</Button>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="border-2 border-dashed border-gray-300 hover:border-emerald-500 transition-colors min-w-0">
+                    <CardContent className="p-4 sm:p-6 text-center">
+                      <Receipt className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 mx-auto text-gray-400 mb-2 sm:mb-3" />
+                      <h3 className="font-medium text-sm sm:text-base mb-1 sm:mb-2">Transport Fees</h3>
+                      <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">Bus and transport charges</p>
+                      <Button variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm" onClick={() => handleFeeConfiguration('Transport Fees')}>Configure</Button>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="border-2 border-dashed border-gray-300 hover:border-emerald-500 transition-colors min-w-0 sm:col-span-2 lg:col-span-1">
+                    <CardContent className="p-4 sm:p-6 text-center">
+                      <CreditCard className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 mx-auto text-gray-400 mb-2 sm:mb-3" />
+                      <h3 className="font-medium text-sm sm:text-base mb-1 sm:mb-2">Admission Fees</h3>
+                      <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">One-time admission charges</p>
+                      <Button variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm" onClick={() => handleFeeConfiguration('Admission Fees')}>Configure</Button>
+                    </CardContent>
+                  </Card>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Recent Payments Summary for Manage Fees - Hidden for Madrasah Simple UI */}
           {(!institutionLoading && !isMadrasahSimpleUI) && (

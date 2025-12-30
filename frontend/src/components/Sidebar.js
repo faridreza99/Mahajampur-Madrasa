@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../App";
+import { useInstitution } from "../context/InstitutionContext";
 import i18n from "../i18n";
 import {
   Home,
@@ -46,6 +47,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { isMadrasahSimpleUI } = useInstitution();
   const [openMenus, setOpenMenus] = useState({});
   const [, forceUpdate] = useState(0);
   const [allowedModules, setAllowedModules] = useState(null);
@@ -634,7 +636,8 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                       .filter(
                         (subItem) =>
                           (!subItem.roles || subItem.roles.includes(user?.role)) &&
-                          isSubItemAllowed(subItem.path),
+                          isSubItemAllowed(subItem.path) &&
+                          !(isMadrasahSimpleUI && ['/fees/structure', '/fees/reports', '/accounts', '/payroll'].includes(subItem.path)),
                       )
                       .map((subItem, index) => (
                         <button
