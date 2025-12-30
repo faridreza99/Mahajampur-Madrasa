@@ -30375,15 +30375,17 @@ async def generate_student_id_card(
         # Generate the ID card PDF using the new generator
         pdf_buffer = generate_student_id_card_pdf(student, institution, class_name)
         
-        # Return PDF response
-        student_name = student.get("name", "student").replace(" ", "_")
-        filename = f"id_card_{student_name}.pdf"
+        # Return PDF response - use roll number/ID for filename to avoid encoding issues
+        from urllib.parse import quote
+        student_roll = student.get("roll_number", "") or student_id[:8]
+        student_name_encoded = quote(student.get("name", "student"))
+        filename_ascii = f"id_card_{student_roll}.pdf"
         
         return StreamingResponse(
             pdf_buffer,
             media_type="application/pdf",
             headers={
-                "Content-Disposition": f"attachment; filename={filename}",
+                "Content-Disposition": f"attachment; filename={filename_ascii}; filename*=UTF-8''{student_name_encoded}.pdf",
                 "Content-Type": "application/pdf"
             }
         )
