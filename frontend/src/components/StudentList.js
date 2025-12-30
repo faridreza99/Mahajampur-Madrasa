@@ -124,6 +124,10 @@ const StudentList = () => {
   const [studentCredentials, setStudentCredentials] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submittingRef = useRef(false);
+  const [autoRoll, setAutoRoll] = useState(true);
+  const autoRollRef = useRef(true);
+  const [rollDuplicateWarning, setRollDuplicateWarning] = useState(null);
+  const [isCheckingRoll, setIsCheckingRoll] = useState(false);
 
   const getCurrentView = () => {
     const path = location.pathname;
@@ -199,6 +203,48 @@ const StudentList = () => {
       setSections(response.data);
     } catch (error) {
       console.error('Failed to fetch sections:', error);
+    }
+  };
+
+  const fetchNextRollNumber = async (classId, sectionId) => {
+    if (!classId) return;
+    try {
+      let url = `${API}/students/next-roll?class_id=${classId}`;
+      if (sectionId) {
+        url += `&section_id=${sectionId}`;
+      }
+      const response = await axios.get(url);
+      if (autoRollRef.current) {
+        setFormData(prev => ({ ...prev, roll_no: String(response.data.next_roll) }));
+      }
+      return response.data.next_roll;
+    } catch (error) {
+      console.error('Failed to fetch next roll number:', error);
+      return null;
+    }
+  };
+
+  const checkRollDuplicate = async (classId, rollNo, sectionId) => {
+    if (!classId || !rollNo) {
+      setRollDuplicateWarning(null);
+      return;
+    }
+    setIsCheckingRoll(true);
+    try {
+      let url = `${API}/students/check-roll-duplicate?class_id=${classId}&roll_no=${rollNo}`;
+      if (sectionId) {
+        url += `&section_id=${sectionId}`;
+      }
+      const response = await axios.get(url);
+      if (response.data.is_duplicate) {
+        setRollDuplicateWarning(`এই রোল নম্বর ইতিমধ্যে ব্যবহৃত হয়েছে (${response.data.existing_student_name})`);
+      } else {
+        setRollDuplicateWarning(null);
+      }
+    } catch (error) {
+      console.error('Failed to check roll duplicate:', error);
+    } finally {
+      setIsCheckingRoll(false);
     }
   };
 
@@ -1767,6 +1813,9 @@ const StudentList = () => {
                     onValueChange={(value) => {
                       setFormData({...formData, class_id: value, section_id: ''});
                       fetchSections(value);
+                      if (autoRoll) {
+                        fetchNextRollNumber(value, null);
+                      }
                     }}
                   >
                     <SelectTrigger className="text-lg py-3">
@@ -1790,7 +1839,12 @@ const StudentList = () => {
                 {formData.class_id && sections.length > 0 && (
                   <div>
                     <Label htmlFor="add_section_id" className="text-base font-semibold">শাখা</Label>
-                    <Select value={formData.section_id} onValueChange={(value) => setFormData({...formData, section_id: value})}>
+                    <Select value={formData.section_id} onValueChange={(value) => {
+                      setFormData({...formData, section_id: value});
+                      if (autoRoll && formData.class_id) {
+                        fetchNextRollNumber(formData.class_id, value);
+                      }
+                    }}>
                       <SelectTrigger className="text-lg py-3">
                         <SelectValue placeholder="শাখা নির্বাচন করুন" />
                       </SelectTrigger>
@@ -1805,15 +1859,60 @@ const StudentList = () => {
                   </div>
                 )}
                 <div>
-                  <Label htmlFor="add_roll_no" className="text-base font-semibold">রোল নম্বর *</Label>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label htmlFor="add_roll_no" className="text-base font-semibold">রোল নম্বর *</Label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAutoRoll(true);
+                          autoRollRef.current = true;
+                          setRollDuplicateWarning(null);
+                          if (formData.class_id) {
+                            fetchNextRollNumber(formData.class_id, formData.section_id);
+                          }
+                        }}
+                        className={`px-2 py-1 text-xs rounded ${autoRoll ? 'bg-emerald-600 text-white' : 'bg-gray-200 text-gray-600'}`}
+                      >
+                        স্বয়ংক্রিয়
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAutoRoll(false);
+                          autoRollRef.current = false;
+                          setFormData(prev => ({ ...prev, roll_no: '' }));
+                        }}
+                        className={`px-2 py-1 text-xs rounded ${!autoRoll ? 'bg-emerald-600 text-white' : 'bg-gray-200 text-gray-600'}`}
+                      >
+                        ম্যানুয়াল
+                      </button>
+                    </div>
+                  </div>
                   <Input
                     id="add_roll_no"
                     value={formData.roll_no}
-                    onChange={(e) => setFormData({...formData, roll_no: e.target.value})}
-                    placeholder="যেমন: ১, ২, ৩..."
-                    className="text-lg py-3"
+                    onChange={(e) => {
+                      const newRoll = e.target.value;
+                      setFormData({...formData, roll_no: newRoll});
+                      if (!autoRoll && formData.class_id && newRoll) {
+                        checkRollDuplicate(formData.class_id, newRoll, formData.section_id);
+                      }
+                    }}
+                    placeholder={autoRoll ? "মারহালা নির্বাচন করলে স্বয়ংক্রিয়ভাবে হবে" : "যেমন: ১, ২, ৩..."}
+                    className={`text-lg py-3 ${autoRoll ? 'bg-gray-50' : ''}`}
+                    readOnly={autoRoll}
                     required
                   />
+                  {rollDuplicateWarning && (
+                    <p className="text-xs text-orange-600 mt-1 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {rollDuplicateWarning}
+                    </p>
+                  )}
+                  {isCheckingRoll && (
+                    <p className="text-xs text-gray-500 mt-1">যাচাই করা হচ্ছে...</p>
+                  )}
                 </div>
                 
                 {/* Optional fields collapsed */}
