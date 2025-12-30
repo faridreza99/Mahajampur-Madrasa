@@ -30326,15 +30326,16 @@ async def generate_student_id_card(
         
         # Section
         if section_name:
-            c.setFont("Helvetica", 7)
-            c.drawString(details_x, details_y, f"Section: {section_name}")
+            section_text = f"Section: {section_name}"
+            set_font_for_text(c, section_text, 7, bold=False)
+            c.drawString(details_x, details_y, section_text)
             details_y -= line_height
         
         # Roll/Reg
         roll_or_reg = student.get("roll_no") or student.get("admission_no", "")
-        c.setFont("Helvetica", 7)
-        c.drawString(details_x, details_y, f"Roll: {roll_or_reg}")
-        
+        roll_text = f"Roll: {roll_or_reg}"
+        set_font_for_text(c, roll_text, 7, bold=False)
+        c.drawString(details_x, details_y, roll_text)
         # Footer background
         footer_height = 0.35*inch
         c.setFillColor(colors.HexColor("#f3f4f6"))
