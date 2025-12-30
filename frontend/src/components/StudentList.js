@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import { useInstitution } from '../context/InstitutionContext';
 import * as XLSX from 'xlsx';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -85,6 +86,8 @@ const safeBackgroundRefresh = (refreshFn) => {
 const StudentList = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isMadrasahSimpleUI } = useInstitution();
+  const [useSimpleForm, setUseSimpleForm] = useState(true);
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
   const [sections, setSections] = useState([]);
@@ -1686,59 +1689,236 @@ const StudentList = () => {
 
       {/* Add Student Modal */}
       <Dialog open={isAddStudentModalOpen} onOpenChange={setIsAddStudentModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className={`${isMadrasahSimpleUI && useSimpleForm ? 'max-w-lg' : 'max-w-2xl'} max-h-[90vh] overflow-y-auto`}>
           <DialogHeader>
-            <DialogTitle>Add New Student</DialogTitle>
+            <DialogTitle>{isMadrasahSimpleUI ? 'নতুন ছাত্র যোগ করুন' : 'Add New Student'}</DialogTitle>
             <DialogDescription>
-              Enter student information below. All fields marked with * are required.
+              {isMadrasahSimpleUI 
+                ? 'নিচে ছাত্রের তথ্য দিন। * চিহ্নিত ঘর অবশ্যই পূরণ করতে হবে।'
+                : 'Enter student information below. All fields marked with * are required.'}
             </DialogDescription>
           </DialogHeader>
+          
+          {/* Form Mode Toggle for Madrasah */}
+          {isMadrasahSimpleUI && (
+            <div className="flex items-center justify-center gap-2 p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg mb-2">
+              <Button
+                type="button"
+                variant={useSimpleForm ? "default" : "outline"}
+                size="sm"
+                onClick={() => setUseSimpleForm(true)}
+                className={useSimpleForm ? "bg-emerald-600 hover:bg-emerald-700" : ""}
+              >
+                সহজ ফর্ম
+              </Button>
+              <Button
+                type="button"
+                variant={!useSimpleForm ? "default" : "outline"}
+                size="sm"
+                onClick={() => setUseSimpleForm(false)}
+                className={!useSimpleForm ? "bg-emerald-600 hover:bg-emerald-700" : ""}
+              >
+                সম্পূর্ণ ফর্ম
+              </Button>
+            </div>
+          )}
+          
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Photo Upload Section */}
-            <div className="flex flex-col items-center space-y-3 pb-4 border-b">
-              <div className="relative">
-                {photoPreview ? (
-                  <img 
-                    src={photoPreview} 
-                    alt="Student" 
-                    className="w-24 h-24 rounded-full object-cover border-4 border-emerald-100"
+            {/* Simplified Madrasah Form */}
+            {isMadrasahSimpleUI && useSimpleForm ? (
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="add_name" className="text-base font-semibold">ছাত্রের নাম *</Label>
+                  <Input
+                    id="add_name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    placeholder="ছাত্রের পুরো নাম লিখুন"
+                    className="text-lg py-3"
+                    required
                   />
-                ) : (
-                  <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center border-4 border-gray-200">
-                    <Camera className="h-8 w-8 text-gray-400" />
+                </div>
+                <div>
+                  <Label htmlFor="add_father_name" className="text-base font-semibold">পিতার নাম *</Label>
+                  <Input
+                    id="add_father_name"
+                    value={formData.father_name}
+                    onChange={(e) => setFormData({...formData, father_name: e.target.value})}
+                    placeholder="পিতার নাম লিখুন"
+                    className="text-lg py-3"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="add_phone" className="text-base font-semibold">মোবাইল নম্বর *</Label>
+                  <Input
+                    id="add_phone"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    placeholder="০১XXXXXXXXX"
+                    className="text-lg py-3"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="add_class_id" className="text-base font-semibold">মারহালা / শ্রেণি *</Label>
+                  <Select 
+                    value={formData.class_id} 
+                    onValueChange={(value) => {
+                      setFormData({...formData, class_id: value, section_id: ''});
+                      fetchSections(value);
+                    }}
+                  >
+                    <SelectTrigger className="text-lg py-3">
+                      <SelectValue placeholder="মারহালা নির্বাচন করুন" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {classes.length === 0 ? (
+                        <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                          কোনো মারহালা পাওয়া যায়নি। প্রথমে সেটিংস থেকে মারহালা যোগ করুন।
+                        </div>
+                      ) : (
+                        classes.map((cls) => (
+                          <SelectItem key={cls.id} value={cls.id}>
+                            {cls.name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {formData.class_id && sections.length > 0 && (
+                  <div>
+                    <Label htmlFor="add_section_id" className="text-base font-semibold">শাখা</Label>
+                    <Select value={formData.section_id} onValueChange={(value) => setFormData({...formData, section_id: value})}>
+                      <SelectTrigger className="text-lg py-3">
+                        <SelectValue placeholder="শাখা নির্বাচন করুন" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sections.map((section) => (
+                          <SelectItem key={section.id} value={section.id}>
+                            {section.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 )}
-              </div>
-              <Label htmlFor="student-photo" className="cursor-pointer">
-                <div className="flex items-center space-x-2 text-emerald-600 hover:text-emerald-700">
-                  <Camera className="h-4 w-4" />
-                  <span>{photoPreview ? 'Change Photo' : 'Upload Photo'}</span>
+                <div>
+                  <Label htmlFor="add_roll_no" className="text-base font-semibold">রোল নম্বর *</Label>
+                  <Input
+                    id="add_roll_no"
+                    value={formData.roll_no}
+                    onChange={(e) => setFormData({...formData, roll_no: e.target.value})}
+                    placeholder="যেমন: ১, ২, ৩..."
+                    className="text-lg py-3"
+                    required
+                  />
                 </div>
-                <Input
-                  id="student-photo"
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoChange}
-                  className="hidden"
-                />
-              </Label>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="add_admission_no">Admission Number *</Label>
-                <Input
-                  id="add_admission_no"
-                  value={formData.admission_no}
-                  onChange={(e) => setFormData({...formData, admission_no: e.target.value})}
-                  required
-                />
+                
+                {/* Optional fields collapsed */}
+                <details className="border rounded-lg p-3">
+                  <summary className="cursor-pointer text-sm text-muted-foreground">ঐচ্ছিক তথ্য (ক্লিক করুন)</summary>
+                  <div className="mt-3 space-y-3">
+                    <div>
+                      <Label htmlFor="add_email">ইমেইল</Label>
+                      <Input
+                        id="add_email"
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                        placeholder="example@email.com"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="add_father_whatsapp">পিতার হোয়াটসঅ্যাপ</Label>
+                      <Input
+                        id="add_father_whatsapp"
+                        value={formData.father_whatsapp}
+                        onChange={(e) => setFormData({...formData, father_whatsapp: e.target.value})}
+                        placeholder="হোয়াটসঅ্যাপ নম্বর"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="add_address">ঠিকানা</Label>
+                      <Input
+                        id="add_address"
+                        value={formData.address}
+                        onChange={(e) => setFormData({...formData, address: e.target.value})}
+                        placeholder="গ্রাম, থানা, জেলা"
+                      />
+                    </div>
+                    <div className="flex flex-col items-center space-y-2">
+                      <Label>ছবি (ঐচ্ছিক)</Label>
+                      {photoPreview ? (
+                        <img src={photoPreview} alt="Student" className="w-20 h-20 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center">
+                          <Camera className="h-6 w-6 text-gray-400" />
+                        </div>
+                      )}
+                      <Label htmlFor="student-photo-simple" className="cursor-pointer text-emerald-600 text-sm">
+                        {photoPreview ? 'ছবি পরিবর্তন' : 'ছবি আপলোড'}
+                        <Input
+                          id="student-photo-simple"
+                          type="file"
+                          accept="image/*"
+                          onChange={handlePhotoChange}
+                          className="hidden"
+                        />
+                      </Label>
+                    </div>
+                  </div>
+                </details>
               </div>
-              <div>
-                <Label htmlFor="add_roll_no">Roll Number *</Label>
-                <Input
-                  id="add_roll_no"
-                  value={formData.roll_no}
-                  onChange={(e) => setFormData({...formData, roll_no: e.target.value})}
+            ) : (
+              /* Full Form */
+              <>
+                {/* Photo Upload Section */}
+                <div className="flex flex-col items-center space-y-3 pb-4 border-b">
+                  <div className="relative">
+                    {photoPreview ? (
+                      <img 
+                        src={photoPreview} 
+                        alt="Student" 
+                        className="w-24 h-24 rounded-full object-cover border-4 border-emerald-100"
+                      />
+                    ) : (
+                      <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center border-4 border-gray-200">
+                        <Camera className="h-8 w-8 text-gray-400" />
+                      </div>
+                    )}
+                  </div>
+                  <Label htmlFor="student-photo" className="cursor-pointer">
+                    <div className="flex items-center space-x-2 text-emerald-600 hover:text-emerald-700">
+                      <Camera className="h-4 w-4" />
+                      <span>{photoPreview ? 'Change Photo' : 'Upload Photo'}</span>
+                    </div>
+                    <Input
+                      id="student-photo"
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoChange}
+                      className="hidden"
+                    />
+                  </Label>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="add_admission_no">Admission Number *</Label>
+                    <Input
+                      id="add_admission_no"
+                      value={formData.admission_no}
+                      onChange={(e) => setFormData({...formData, admission_no: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="add_roll_no">Roll Number *</Label>
+                    <Input
+                      id="add_roll_no"
+                      value={formData.roll_no}
+                      onChange={(e) => setFormData({...formData, roll_no: e.target.value})}
                   required
                 />
               </div>
@@ -1983,6 +2163,8 @@ const StudentList = () => {
                 />
               </div>
             </div>
+              </>
+            )}
             <DialogFooter>
               <Button
                 type="button"
@@ -1992,10 +2174,10 @@ const StudentList = () => {
                   resetForm();
                 }}
               >
-                Cancel
+                {isMadrasahSimpleUI ? 'বাতিল' : 'Cancel'}
               </Button>
               <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600" disabled={loading}>
-                {loading ? 'Saving...' : 'Add Student'}
+                {loading ? (isMadrasahSimpleUI ? 'সংরক্ষণ হচ্ছে...' : 'Saving...') : (isMadrasahSimpleUI ? 'ছাত্র যোগ করুন' : 'Add Student')}
               </Button>
             </DialogFooter>
           </form>
