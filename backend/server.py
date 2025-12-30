@@ -30451,7 +30451,8 @@ async def generate_student_id_card(
         # QR Code (bottom left)
         try:
             qr = qrcode.QRCode(version=1, box_size=3, border=1)
-            qr_data = f"{institution_name_bn}|{student_name}|{class_name}|{roll_no}|{student_id}"
+            # Use ASCII-safe data for QR code
+            qr_data = f"ID:{student_id}|Roll:{roll_no}"
             qr.add_data(qr_data)
             qr.make(fit=True)
             qr_img = qr.make_image(fill_color="black", back_color="white")
@@ -30469,11 +30470,14 @@ async def generate_student_id_card(
         c.save()
         buffer.seek(0)
         
+        # Use ASCII-safe filename
+        safe_filename = f"StudentID_{student_id}.pdf"
+        
         return StreamingResponse(
             buffer,
             media_type="application/pdf",
             headers={
-                "Content-Disposition": f"inline; filename=StudentID_{student_name.replace(' ', '_')}.pdf"
+                "Content-Disposition": f"inline; filename={safe_filename}"
             }
         )
     
