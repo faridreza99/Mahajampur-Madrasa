@@ -117,10 +117,35 @@ def draw_bengali_text(c, x, y, text, font_size, color=(0, 0, 0), bold=False, cen
         pil_font_size = int(font_size * dpi_scale)
         font = get_pil_font(pil_font_size, bold)
         
-        # Calculate text size
-        bbox = font.getbbox(text)
-        text_width = bbox[2] - bbox[0]
-        text_height = bbox[3] - bbox[1]
+        # Calculate text size - use multiple methods for robustness
+        try:
+            bbox = font.getbbox(text)
+            text_width = bbox[2] - bbox[0]
+            text_height = bbox[3] - bbox[1]
+            x_offset = bbox[0]
+            y_offset = bbox[1]
+        except Exception:
+            bbox = None
+            text_width = 0
+            text_height = 0
+            x_offset = 0
+            y_offset = 0
+        
+        # Fallback if getbbox returns zero/invalid dimensions
+        if text_width <= 0 or text_height <= 0:
+            try:
+                # Use getlength for width estimation
+                text_width = int(font.getlength(text))
+            except Exception:
+                # Manual estimation based on character count
+                text_width = int(len(text) * pil_font_size * 0.6)
+            text_height = int(pil_font_size * 1.5)
+            x_offset = 0
+            y_offset = 0
+        
+        # Ensure minimum dimensions
+        text_width = max(text_width, pil_font_size)
+        text_height = max(text_height, pil_font_size)
         
         # Create image - use opaque background for better compatibility
         padding = 4 * dpi_scale
@@ -132,14 +157,14 @@ def draw_bengali_text(c, x, y, text, font_size, color=(0, 0, 0), bold=False, cen
             # Use specified background color (opaque)
             img = Image.new('RGB', (img_width, img_height), bg_color)
             draw = ImageDraw.Draw(img)
-            draw.text((padding - bbox[0], padding - bbox[1]), text, font=font, fill=color)
+            draw.text((padding - x_offset, padding - y_offset), text, font=font, fill=color)
             use_mask = False
         else:
             # Use transparent background with proper alpha channel
             img = Image.new('RGBA', (img_width, img_height), (255, 255, 255, 0))
             draw = ImageDraw.Draw(img)
             fill_color = color + (255,) if len(color) == 3 else color
-            draw.text((padding - bbox[0], padding - bbox[1]), text, font=font, fill=fill_color)
+            draw.text((padding - x_offset, padding - y_offset), text, font=font, fill=fill_color)
             use_mask = True
         
         # Scale down for PDF embedding
@@ -168,10 +193,10 @@ def draw_bengali_text(c, x, y, text, font_size, color=(0, 0, 0), bold=False, cen
         return final_width
         
     except Exception as e:
-        logging.warning(f"PIL Bengali text render failed: {e}, falling back to direct text")
+        logging.error(f"PIL Bengali text render failed: {e}")
         import traceback
-        logging.warning(traceback.format_exc())
-        # Fallback to direct text
+        logging.error(traceback.format_exc())
+        # Fallback to direct text (won't render Bengali properly but prevents crash)
         use_font(c, font_size, bold)
         if isinstance(color, tuple) and len(color) >= 3:
             c.setFillColor(colors.Color(color[0]/255, color[1]/255, color[2]/255))
