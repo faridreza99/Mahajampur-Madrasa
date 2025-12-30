@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 import { Check, X, Users, UserCheck, UserX, Calendar, Download, FileSpreadsheet, Clock, AlertTriangle, Brain, Settings, Edit, History } from 'lucide-react';
 
-const API = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+const API = process.env.REACT_APP_API_URL || '/api';
 
 const MarkStudentAttendance = () => {
   const [students, setStudents] = useState([]);

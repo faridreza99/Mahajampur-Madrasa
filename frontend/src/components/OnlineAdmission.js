@@ -110,7 +110,7 @@ const OnlineAdmission = () => {
     isActive: true
   });
 
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://3516d251-7e36-40e8-b0eb-3a3eaa6959f7-00-3t9xpjugl0f0e.pike.replit.dev:8000/api';
+  const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
 
   useEffect(() => {
     fetchAdmissionData();

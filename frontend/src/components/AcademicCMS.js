@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import * as XLSX from "xlsx";
 
 const API_BASE_URL =
-  process.env.REACT_APP_API_URL || "http://localhost:8000/api";
+  process.env.REACT_APP_API_URL || "/api";
 
 // Helper function to format API validation errors
 const formatErrorMessage = (error, fallbackMsg) => {

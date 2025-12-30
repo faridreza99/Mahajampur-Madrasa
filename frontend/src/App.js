@@ -68,7 +68,7 @@ import Search from "./components/Search";
 import SubscriptionPopup from "./components/SubscriptionPopup";
 import { Toaster } from "./components/ui/sonner";
 
-const API = process.env.REACT_APP_API_URL || "http://localhost:8000/api";
+const API = process.env.REACT_APP_API_URL || "/api";
 console.log("API URL - ", API);
 // Auth Context
 const AuthContext = createContext();

@@ -3,7 +3,7 @@ import axios from 'axios';
 
 const InstitutionContext = createContext();
 
-const API = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+const API = process.env.REACT_APP_API_URL || '/api';
 
 export const InstitutionProvider = ({ children }) => {
   const [institutionSettings, setInstitutionSettings] = useState({

@@ -54,7 +54,7 @@ const Accounts = () => {
   });
   
   // Get API configuration
-  const API = process.env.REACT_APP_API_URL || 'https://3516d251-7e36-40e8-b0eb-3a3eaa6959f7-00-3t9xpjugl0f0e.pike.replit.dev:8000/api';
+  const API = process.env.REACT_APP_API_URL || '/api';
   const token = localStorage.getItem('token');
 
   useEffect(() => {

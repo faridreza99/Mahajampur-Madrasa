@@ -14,7 +14,7 @@ import {
 import { toast } from "sonner";
 
 const API_BASE_URL =
-  process.env.REACT_APP_API_URL || "http://localhost:8000/api";
+  process.env.REACT_APP_API_URL || "/api";
 
 const TestGenerator = () => {
   const [activeTab, setActiveTab] = useState("generate");

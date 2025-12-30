@@ -43,7 +43,7 @@ import { Badge } from "./ui/badge";
 import { toast } from "sonner";
 
 const API_BASE_URL =
-  process.env.REACT_APP_API_URL || "http://localhost:8000/api";
+  process.env.REACT_APP_API_URL || "/api";
 
 const Notifications = () => {
   const [notifications, setNotifications] = useState([]);

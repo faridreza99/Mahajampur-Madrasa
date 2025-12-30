@@ -53,7 +53,7 @@ const Calendar = () => {
     color: '#10b981'
   });
   
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+  const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
   
   const userRole = JSON.parse(localStorage.getItem('user') || '{}')?.role || 'student';
   const canManageEvents = ['super_admin', 'admin'].includes(userRole);
