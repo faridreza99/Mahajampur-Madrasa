@@ -26,11 +26,16 @@ Preferred communication style: Simple, everyday language.
 - **Dark Mode Fixes**: Added comprehensive dark mode support to 15+ components including LoginPage, Calendar, Results, StudentResults, ParentResults, RatingSurveys, QuizTool, TestGenerator, AINotes, AISummary, BiometricDevices, Reports, AcademicCMS, Vehicle, and StaffList.
 - **School-wise User Management**: Super_admin can now manage users across all schools in Tenant Management. Features include Edit User modal (name, email, role, status), Reset Password modal with manual entry and auto-generate options, clickable status badges for quick activate/deactivate, and cross-tenant management via target_tenant_id parameter. All actions are logged with admin details and IP address.
 - **ID Card Generation System**: Complete ID card generation for students and staff with PDF output, QR codes, and school branding. Student ID cards include: name (Bengali), father's name, class/marhala, section, roll number, photo, institution logo. Staff ID cards include: name, designation, department, employee ID, photo. Features class/section/department filtering, view/download/print functionality, and credit card sized (3.375 x 2.125 inches) professional output.
-- **Madrasah Simple UI Mode**: Tenant-level `ui_mode` field ("standard" or "simple") that controls UI complexity. When set to "simple" for Madrasah institutions:
+- **Madrasah Simple UI Mode (Enhanced)**: Tenant-level `ui_mode` field ("standard" or "simple") that controls UI complexity. When set to "simple" for Madrasah institutions (tenant MHAM5678):
     - Hides financial stats cards (Total Fees, Collected, Pending, Overdue) in Fees module
-    - Hides Management Actions (Bulk Payment, Generate Reports, Send Reminders)
-    - Shows Bengali-first title "বেতন ব্যবস্থাপনা" for Fees page
-    - InstitutionContext properly loads settings after login with flash prevention
+    - Hides Management Actions (Bulk Payment, Generate Reports, Send Reminders, Export)
+    - Shows Bengali-first labels: title "বেতন ব্যবস্থাপনা", subtitle "মাসিক বেতন আদায় ও হিসাব", collect button "বেতন আদায়"
+    - Simplified 3-tab interface: সেটআপ, ছাত্র নির্বাচন, বেতন আদায়
+    - Collection Tab: 3-step flow (মারহালা → শাখা → ছাত্র নির্বাচন → বেতন আদায়) with Class/Section dropdowns, student list with Paid/Due status, one-click collect
+    - Hides analytics stats and Recent Collections section in collection tab
+    - Sidebar hides: Fee Structure, Fee Reports, Accounts, Payroll (keeps only Fees)
+    - Bengali fallback for missing student names: "ছাত্র #..." or "অজ্ঞাত ছাত্র" (no "Unknown Student")
+    - InstitutionContext with loading guard prevents UI flash
     - Provider ordering: AuthProvider → InstitutionProvider ensures correct auth state
 
 ## Technical Implementations
