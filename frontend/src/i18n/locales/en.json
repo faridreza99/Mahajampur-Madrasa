@@ -51,7 +51,21 @@
     "total": "Total",
     "language": "Language",
     "english": "English",
-    "bangla": "বাংলা"
+    "bangla": "বাংলা",
+    "class": "Class",
+    "section": "Section",
+    "rollNo": "Roll No",
+    "refresh": "Refresh",
+    "name": "Name",
+    "fatherName": "Father's Name",
+    "phone": "Mobile",
+    "address": "Address",
+    "photo": "Photo",
+    "allClasses": "All Classes",
+    "allSections": "All Sections",
+    "preview": "Preview",
+    "marhala": "Marhala",
+    "mobile": "Mobile"
   },
   "auth": {
     "welcomeBack": "Welcome Back",
@@ -293,7 +307,6 @@
     "active": "Active",
     "inactive": "Inactive",
     "className": "Class Name",
-    "classTeacher": "Class Teacher",
     "noTeacher": "No Teacher Assigned",
     "noClasses": "No classes found",
     "createFirst": "Create your first class to get started"
