@@ -2501,7 +2501,7 @@ const Certificates = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="overflow-x-auto">
           {isMadrasah ? (
-            <TabsList className="inline-flex w-auto min-w-full lg:grid lg:w-full lg:grid-cols-4 h-auto">
+            <TabsList className="inline-flex w-auto min-w-full lg:grid lg:w-full lg:grid-cols-3 h-auto">
               <TabsTrigger value="appreciation" className="text-sm lg:text-base py-3 px-4 whitespace-nowrap font-medium">
                 <Star className="h-4 w-4 mr-2" />
                 প্রশংসাপত্র
@@ -2513,10 +2513,6 @@ const Certificates = () => {
               <TabsTrigger value="transfer" className="text-sm lg:text-base py-3 px-4 whitespace-nowrap font-medium">
                 <FileText className="h-4 w-4 mr-2" />
                 স্থানান্তর সনদ
-              </TabsTrigger>
-              <TabsTrigger value="id-cards" className="text-sm lg:text-base py-3 px-4 whitespace-nowrap font-medium">
-                <CreditCard className="h-4 w-4 mr-2" />
-                পরিচয়পত্র
               </TabsTrigger>
             </TabsList>
           ) : (
