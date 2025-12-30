@@ -30272,6 +30272,36 @@ async def generate_student_id_card(
     except Exception as e:
         logging.error(f"Failed to generate student ID card: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to generate ID card: {str(e)}")
+
+@api_router.get("/id-cards/staff/list")
+async def get_staff_for_id_cards(
+    department: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get list of staff for ID card generation"""
+    if current_user.role not in ["super_admin", "admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    query = {"tenant_id": current_user.tenant_id, "is_active": True}
+    
+    if department and department != "all":
+        query["department"] = department
+    
+    staff = await db.staff.find(query).to_list(500)
+    
+    result = []
+    for s in staff:
+        result.append({
+            "id": s["id"],
+            "name": s.get("name", ""),
+            "designation": s.get("designation", s.get("role", "Staff")),
+            "department": s.get("department", ""),
+            "employee_id": s.get("employee_id", ""),
+            "photo_url": s.get("photo_url", "")
+        })
+    
+    return result
+
 @api_router.get("/id-cards/staff/{staff_id}")
 async def generate_staff_id_card(
     staff_id: str,
@@ -30475,34 +30505,6 @@ async def get_students_for_id_cards(
             "section_name": section_map.get(s.get("section_id"), ""),
             "roll_no": s.get("roll_no", ""),
             "admission_no": s.get("admission_no", ""),
-            "photo_url": s.get("photo_url", "")
-        })
-    
-    return result
-@api_router.get("/id-cards/staff/list")
-async def get_staff_for_id_cards(
-    department: Optional[str] = None,
-    current_user: User = Depends(get_current_user)
-):
-    """Get list of staff for ID card generation"""
-    if current_user.role not in ["super_admin", "admin"]:
-        raise HTTPException(status_code=403, detail="Not authorized")
-    
-    query = {"tenant_id": current_user.tenant_id, "is_active": True}
-    
-    if department and department != "all":
-        query["department"] = department
-    
-    staff = await db.staff.find(query).to_list(500)
-    
-    result = []
-    for s in staff:
-        result.append({
-            "id": s["id"],
-            "name": s.get("name", ""),
-            "designation": s.get("designation", s.get("role", "Staff")),
-            "department": s.get("department", ""),
-            "employee_id": s.get("employee_id", ""),
             "photo_url": s.get("photo_url", "")
         })
     
