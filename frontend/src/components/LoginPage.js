@@ -11,11 +11,14 @@ import { toast } from 'sonner';
 import { Eye, EyeOff, GraduationCap, Users, BookOpen, Award, Globe } from 'lucide-react';
 import i18n from '../i18n';
 
+// Single Madrasah Mode - Fixed tenant for faster loading
+const FIXED_TENANT_ID = 'mham5678';
+
 const LoginPage = () => {
   const [loginData, setLoginData] = useState({
     username: '',
     password: '',
-    tenantId: ''
+    tenantId: FIXED_TENANT_ID  // Fixed tenant - no selection needed
   });
   
   const [schoolBranding, setSchoolBranding] = useState({
@@ -71,13 +74,9 @@ const LoginPage = () => {
   }, [API_BASE_URL]);
 
   useEffect(() => {
-    const debounceTimer = setTimeout(() => {
-      if (loginData.tenantId) {
-        fetchSchoolBranding(loginData.tenantId);
-      }
-    }, 500);
-    return () => clearTimeout(debounceTimer);
-  }, [loginData.tenantId, fetchSchoolBranding]);
+    // Single Madrasah Mode - Load branding immediately for fixed tenant
+    fetchSchoolBranding(FIXED_TENANT_ID);
+  }, [fetchSchoolBranding]);
 
   const t = (key) => {
     return i18n.t(key);
@@ -86,10 +85,7 @@ const LoginPage = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     
-    if (!loginData.tenantId || loginData.tenantId.trim() === '') {
-      toast.error('School CODE is required');
-      return;
-    }
+    // Single Madrasah Mode - tenant is always fixed, no validation needed
     
     console.log('🔄 Login form submitted!', loginData);
     setLoading(true);
@@ -116,15 +112,12 @@ const LoginPage = () => {
   const handleRegister = async (e) => {
     e.preventDefault();
     
-    if (!registerData.school_code || registerData.school_code.trim() === '') {
-      toast.error('School CODE is required');
-      return;
-    }
+    // Single Madrasah Mode - using fixed tenant
     
     setLoading(true);
     
     try {
-      const result = await register({...registerData, tenant_id: registerData.school_code});
+      const result = await register({...registerData, tenant_id: FIXED_TENANT_ID});
       
       if (result.success) {
         toast.success('Registration successful! Please login.');
@@ -253,18 +246,7 @@ const LoginPage = () => {
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="tenantId">School CODE <span className="text-red-500">*</span></Label>
-                    <Input
-                      id="tenantId"
-                      type="text"
-                      placeholder="School CODE"
-                      value={loginData.tenantId}
-                      onChange={(e) => setLoginData({...loginData, tenantId: e.target.value})}
-                      required
-                      className="form-input"
-                    />
-                  </div>
+                  {/* Single Madrasah Mode - School CODE field hidden, using fixed tenant */}
 
                   <Button 
                     type="submit" 
@@ -344,19 +326,7 @@ const LoginPage = () => {
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="reg_school_code">School CODE <span className="text-red-500">*</span></Label>
-                    <Input
-                      id="reg_school_code"
-                      type="text"
-                      placeholder="Enter your school code"
-                      value={registerData.school_code}
-                      onChange={(e) => setRegisterData({...registerData, school_code: e.target.value})}
-                      required
-                      className="form-input"
-                    />
-                    <p className="text-xs text-gray-500 dark:text-gray-400">School CODE is provided by your institution (Settings → Institution)</p>
-                  </div>
+                  {/* Single Madrasah Mode - School CODE field hidden, using fixed tenant */}
 
                   <Button 
                     type="submit" 
@@ -381,7 +351,7 @@ const LoginPage = () => {
             Comprehensive School Management System
           </p>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-            Multi-tenant • Role-based Access • Real-time Analytics
+            Role-based Access • Real-time Analytics
           </p>
         </div>
       </div>

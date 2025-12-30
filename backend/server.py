@@ -138,8 +138,8 @@ except ValueError as e:
     )
 
 # Default tenant/school IDs for fallback
-DEFAULT_TENANT_ID = "demo"
-DEFAULT_SCHOOL_ID = "demo-school-001"
+DEFAULT_TENANT_ID = "mham5678"
+DEFAULT_SCHOOL_ID = "mham5678-school"
 
 app = FastAPI(title="School ERP API", version="1.0.0")
 api_router = APIRouter(prefix="/api")
@@ -191,29 +191,15 @@ def extract_tenant_from_host(host: str) -> Optional[str]:
     return None
 
 async def tenant_resolver_middleware(request: Request, call_next):
-    """Middleware to resolve tenant and school context - SECURE VERSION"""
-    # Extract tenant ONLY from trusted sources (subdomain/host, never from headers)
+    """Middleware to set fixed single-tenant context - OPTIMIZED for single Madrasah mode"""
+    # Single Madrasah Mode: Use fixed tenant, skip database lookups for faster loading
     host = request.headers.get('host', '')
-    tenant_from_host = extract_tenant_from_host(host)
     
-    # SECURITY: Only use host-based tenant resolution, never headers
-    # This prevents tenant spoofing attacks via X-Tenant-Id header manipulation
-    resolved_tenant = tenant_from_host or DEFAULT_TENANT_ID
+    # Fixed tenant - no dynamic resolution needed
+    resolved_tenant = DEFAULT_TENANT_ID  # MHAM5678
     resolved_school_id = DEFAULT_SCHOOL_ID
     
-    # Try to resolve school for this tenant
-    try:
-        if resolved_tenant:
-            school = await db.schools.find_one({
-                "tenant_id": resolved_tenant, 
-                "is_active": True
-            })
-            if school:
-                resolved_school_id = school["id"]
-    except Exception as e:
-        logging.error(f"Error resolving school context: {e}")
-    
-    # Store ONLY in request.state (no global mutation)
+    # Store in request.state (no database lookup needed - faster!)
     request.state.tenant_id = resolved_tenant
     request.state.school_id = resolved_school_id
     request.state.domain = host
