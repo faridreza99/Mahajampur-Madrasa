@@ -223,11 +223,13 @@ const Fees = () => {
       setPendingApprovals(dashboardData.pending_approvals || 0);
       setMonthlyTarget(dashboardData.monthly_target || 0);
       
-      // Process and set recent payments data
+      // Process and set recent payments data - use Bengali fallback for missing names
       const paymentsData = paymentsRes.data || [];
       const transformedPayments = paymentsData.map(payment => ({
         id: payment.id,
-        student_name: payment.student_name || 'Unknown Student',
+        student_name: payment.student_name && payment.student_name.trim() !== '' && payment.student_name !== 'Unknown Student' 
+          ? payment.student_name 
+          : (payment.student_id ? `ছাত্র #${String(payment.student_id).slice(-6)}` : 'অজ্ঞাত ছাত্র'),
         amount: payment.amount || 0,
         payment_mode: payment.payment_mode || 'Cash',
         fee_type: payment.fee_type || 'Tuition Fees',
@@ -1404,13 +1406,15 @@ const Fees = () => {
           <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">{isMadrasahSimpleUI ? "মাসিক বেতন আদায় ও হিসাব" : "Manage school fees, payments, and financial records"}</p>
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
-          <Button variant="outline" size="sm" className="w-full sm:w-auto text-sm sm:text-base h-8 sm:h-9" onClick={() => handleExportReport('excel')}>
-            <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-            Export
-          </Button>
+          {!isMadrasahSimpleUI && (
+            <Button variant="outline" size="sm" className="w-full sm:w-auto text-sm sm:text-base h-8 sm:h-9" onClick={() => handleExportReport('excel')}>
+              <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              Export
+            </Button>
+          )}
           <Button className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600 text-sm sm:text-base h-8 sm:h-9" onClick={handleCollectPayment}>
             <CreditCard className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-            Collect
+            {isMadrasahSimpleUI ? 'বেতন আদায়' : 'Collect'}
           </Button>
         </div>
       </div>
@@ -2397,21 +2401,25 @@ const Fees = () => {
         </TabsContent>
 
         <TabsContent value="collection" className="space-y-6">
-          {/* HUGE CLEAR VISUAL INDICATOR FOR FEE COLLECTION TAB */}
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-l-8 border-green-500 rounded-lg p-8 mb-6">
+          {/* Header - Different for Madrasah Simple UI */}
+          <div className={`bg-gradient-to-r ${isMadrasahSimpleUI ? 'from-emerald-50 to-green-50 border-emerald-500' : 'from-green-50 to-emerald-50 border-green-500'} border-l-8 rounded-lg p-6 sm:p-8 mb-6`}>
             <div className="flex items-center gap-3">
-              <div className="bg-green-500 text-white rounded-full p-4">
-                <CreditCard className="h-8 w-8" />
+              <div className={`${isMadrasahSimpleUI ? 'bg-emerald-500' : 'bg-green-500'} text-white rounded-full p-3 sm:p-4`}>
+                <CreditCard className="h-6 w-6 sm:h-8 sm:w-8" />
               </div>
               <div>
-                <h1 className="text-4xl font-bold text-green-700">💳 FEE COLLECTION TAB</h1>
-                <h2 className="text-xl font-bold text-green-700">Dedicated Payment Processing & Collection</h2>
-                <p className="text-green-600">Process payments, generate receipts, and track daily collections</p>
+                <h1 className={`text-2xl sm:text-3xl md:text-4xl font-bold ${isMadrasahSimpleUI ? 'text-emerald-700' : 'text-green-700'}`}>
+                  {isMadrasahSimpleUI ? '💰 বেতন আদায়' : '💳 FEE COLLECTION TAB'}
+                </h1>
+                <p className={`text-sm sm:text-base ${isMadrasahSimpleUI ? 'text-emerald-600' : 'text-green-600'}`}>
+                  {isMadrasahSimpleUI ? 'মারহালা → শাখা → ছাত্র নির্বাচন → বেতন আদায়' : 'Process payments, generate receipts, and track daily collections'}
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Dynamic Collection Summary */}
+          {/* Analytics Stats - HIDE for Madrasah Simple UI */}
+          {!isMadrasahSimpleUI && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card className="border-l-4 border-l-green-500">
               <CardContent className="p-6">
@@ -2468,8 +2476,187 @@ const Fees = () => {
               </CardContent>
             </Card>
           </div>
+          )}
 
-          {/* Payment Form */}
+          {/* Madrasah Simple UI - Class/Section Flow */}
+          {isMadrasahSimpleUI ? (
+            <Card className="border-2 border-emerald-200">
+              <CardHeader className="bg-emerald-50">
+                <CardTitle className="flex items-center gap-2 text-emerald-700">
+                  <Users className="h-5 w-5" />
+                  ছাত্র নির্বাচন ও বেতন আদায়
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 sm:p-6">
+                {/* Step 1: Class Selection */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">মারহালা নির্বাচন করুন *</label>
+                    <Select value={selectedClass} onValueChange={(value) => {
+                      setSelectedClass(value);
+                      setSelectedSection('all');
+                      setSelectedStudent(null);
+                    }}>
+                      <SelectTrigger className="border-emerald-300 focus:border-emerald-500">
+                        <SelectValue placeholder="মারহালা বাছুন..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">সকল মারহালা</SelectItem>
+                        {classes.map((cls) => (
+                          <SelectItem key={cls.id || cls._id || cls.name} value={cls.name || cls.class_name}>
+                            {cls.display_name || cls.name || cls.class_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">শাখা নির্বাচন করুন</label>
+                    <Select value={selectedSection} onValueChange={(value) => {
+                      setSelectedSection(value);
+                      setSelectedStudent(null);
+                    }}>
+                      <SelectTrigger className="border-emerald-300 focus:border-emerald-500">
+                        <SelectValue placeholder="শাখা বাছুন..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">সকল শাখা</SelectItem>
+                        {sections.map((section) => (
+                          <SelectItem key={section.id || section._id || section.name} value={section.name || section.section_name}>
+                            {section.display_name || section.name || section.section_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Step 2: Student List with Paid/Due Status */}
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="bg-gray-50 px-4 py-3 border-b">
+                    <h4 className="font-medium text-gray-700">ছাত্র তালিকা ({students.filter(s => 
+                      (selectedClass === 'all' || s.class === selectedClass || s.class_name === selectedClass) &&
+                      (selectedSection === 'all' || s.section === selectedSection || s.section_name === selectedSection)
+                    ).length} জন)</h4>
+                  </div>
+                  <div className="max-h-96 overflow-y-auto">
+                    {students.filter(s => 
+                      (selectedClass === 'all' || s.class === selectedClass || s.class_name === selectedClass) &&
+                      (selectedSection === 'all' || s.section === selectedSection || s.section_name === selectedSection)
+                    ).map((student) => (
+                      <div 
+                        key={student.id || student._id} 
+                        className={`flex items-center justify-between p-4 border-b hover:bg-emerald-50 cursor-pointer transition-colors ${selectedStudent?.id === student.id ? 'bg-emerald-100 border-l-4 border-l-emerald-500' : ''}`}
+                        onClick={() => setSelectedStudent(student)}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-10 w-10">
+                            <AvatarFallback className="bg-emerald-100 text-emerald-700">
+                              {(student.name || student.student_name || 'S').charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium text-gray-900">{student.name || student.student_name}</p>
+                            <p className="text-xs text-gray-500">{student.class || student.class_name} - {student.section || student.section_name} | রোল: {student.roll_no || student.roll || '-'}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <Badge className={student.fee_status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                            {student.fee_status === 'paid' ? 'পরিশোধিত' : 'বাকি'}
+                          </Badge>
+                          {student.due_amount > 0 && (
+                            <p className="text-sm font-bold text-red-600 mt-1">{formatCurrency(student.due_amount)}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {students.filter(s => 
+                      (selectedClass === 'all' || s.class === selectedClass || s.class_name === selectedClass) &&
+                      (selectedSection === 'all' || s.section === selectedSection || s.section_name === selectedSection)
+                    ).length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        <Users className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                        <p>কোন ছাত্র পাওয়া যায়নি</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Step 3: Quick Collect - Selected Student */}
+                {selectedStudent && (
+                  <div className="mt-6 p-4 bg-emerald-50 rounded-lg border-2 border-emerald-300">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-12 w-12">
+                          <AvatarFallback className="bg-emerald-200 text-emerald-800 text-lg">
+                            {(selectedStudent.name || selectedStudent.student_name || 'S').charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-bold text-lg text-gray-900">{selectedStudent.name || selectedStudent.student_name}</p>
+                          <p className="text-sm text-gray-600">{selectedStudent.class || selectedStudent.class_name} - {selectedStudent.section || selectedStudent.section_name}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-gray-600">মাসিক বেতন</p>
+                        <Input
+                          type="number"
+                          placeholder="টাকার পরিমাণ"
+                          className="w-32 text-right font-bold"
+                          value={collectionForm.amount}
+                          onChange={(e) => setCollectionForm(prev => ({ ...prev, amount: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <Select 
+                        value={collectionForm.payment_mode || 'Cash'} 
+                        onValueChange={(value) => setCollectionForm(prev => ({ ...prev, payment_mode: value }))}
+                      >
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder="পেমেন্ট মোড" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Cash">নগদ</SelectItem>
+                          <SelectItem value="bKash">বিকাশ</SelectItem>
+                          <SelectItem value="Nagad">নগদ (ডিজিটাল)</SelectItem>
+                          <SelectItem value="Bank">ব্যাংক</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button 
+                        className="bg-emerald-500 hover:bg-emerald-600 px-8"
+                        disabled={loading || !collectionForm.amount || parseFloat(collectionForm.amount) <= 0}
+                        onClick={async () => {
+                          const paymentData = {
+                            student_id: selectedStudent.id || selectedStudent._id,
+                            fee_type: 'Monthly Fee',
+                            amount: parseFloat(collectionForm.amount),
+                            payment_mode: collectionForm.payment_mode || 'Cash',
+                            remarks: 'মাসিক বেতন আদায়'
+                          };
+                          const success = await submitPayment(paymentData);
+                          if (success) {
+                            setSelectedStudent(null);
+                            setCollectionForm(prev => ({ ...prev, amount: '', payment_mode: 'Cash' }));
+                            toast.success('✅ বেতন আদায় সফল!');
+                          }
+                        }}
+                      >
+                        {loading ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                        ) : (
+                          <>
+                            <CreditCard className="h-4 w-4 mr-2" />
+                            বেতন আদায় করুন
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -2760,8 +2947,10 @@ const Fees = () => {
               </div>
             </CardContent>
           </Card>
+          )}
 
-          {/* Recent Collections */}
+          {/* Recent Collections - Hide for Madrasah Simple UI */}
+          {!isMadrasahSimpleUI && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
@@ -2803,6 +2992,7 @@ const Fees = () => {
               </div>
             </CardContent>
           </Card>
+          )}
         </TabsContent>
 
       </Tabs>
