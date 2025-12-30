@@ -45,6 +45,16 @@ Preferred communication style: Simple, everyday language.
     - A5/A6 print-friendly layout with proper @media print CSS
     - Auto-loads institution settings from `/api/school-branding` endpoint
     - Bengali text throughout for Madrasah mode
+- **Simplified Madrasah Certificate System (December 30, 2025)**: Complete redesign of Certificates module for Madrasah tenants:
+    - **Simplified Tabs**: Only 4 tabs for Madrasah (vs 6 for School): প্রশংসাপত্র, চরিত্র সনদ, স্থানান্তর সনদ, পরিচয়পত্র
+    - **Removed**: Course, Progress, Adhar tabs (not relevant for Madrasah)
+    - **প্রশংসাপত্র (Appreciation Certificate)**: For student achievements (Hifz completion, top ranks, etc.)
+    - **চরিত্র সনদ (Character Certificate)**: Character evaluation (অতি উত্তম, উত্তম, ভালো, মধ্যম)
+    - **স্থানান্তর সনদ (Transfer Certificate)**: Bengali labels added to existing TC functionality
+    - **100% Bengali UI**: All headers, labels, buttons, placeholders, and messages in Bengali for Madrasah mode
+    - **Print-ready layouts**: Professional certificate designs with school branding, signature placeholders
+    - Student selection modals for each certificate type
+    - InstitutionContext detection for automatic Madrasah mode switching
 
 ## Technical Implementations
 - **Frontend**: React 19, React Router DOM, Axios, Context API.

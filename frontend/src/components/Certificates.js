@@ -4,6 +4,7 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { toast } from 'sonner';
+import { useInstitution } from '../context/InstitutionContext';
 import { 
   Award,
   FileText,
@@ -25,10 +26,16 @@ import {
   School,
   MapPin,
   X,
-  ArrowLeft
+  ArrowLeft,
+  Heart,
+  Star
 } from 'lucide-react';
 
 const Certificates = () => {
+  // Institution Context for Madrasah mode detection
+  const { institutionSettings, loading: institutionLoading } = useInstitution();
+  const isMadrasah = institutionSettings?.institution_type === 'madrasah';
+
   const [totalIssued, setTotalIssued] = useState(0);
   const [pending, setPending] = useState(0);
 
@@ -38,8 +45,50 @@ const Certificates = () => {
   const [certificateStudents, setCertificateStudents] = useState([]);
   const [allCertificates, setAllCertificates] = useState([]);
 
-  // Main Tab State
+  // Main Tab State - Default to 'appreciation' for Madrasah, 'course' for School
   const [activeTab, setActiveTab] = useState('course');
+
+  // Madrasah-specific certificate states
+  const [appreciationRecords, setAppreciationRecords] = useState([]);
+  const [characterRecords, setCharacterRecords] = useState([]);
+  const [appreciationView, setAppreciationView] = useState('list');
+  const [characterView, setCharacterView] = useState('list');
+  const [appreciationLoading, setAppreciationLoading] = useState(false);
+  const [characterLoading, setCharacterLoading] = useState(false);
+  const [selectedAppreciationStudent, setSelectedAppreciationStudent] = useState(null);
+  const [selectedCharacterStudent, setSelectedCharacterStudent] = useState(null);
+  const [showAppreciationModal, setShowAppreciationModal] = useState(false);
+  const [showCharacterModal, setShowCharacterModal] = useState(false);
+  const [showAppreciationPreview, setShowAppreciationPreview] = useState(false);
+  const [showCharacterPreview, setShowCharacterPreview] = useState(false);
+  const [selectedAppreciationCert, setSelectedAppreciationCert] = useState(null);
+  const [selectedCharacterCert, setSelectedCharacterCert] = useState(null);
+
+  // Madrasah Form Data
+  const [appreciationFormData, setAppreciationFormData] = useState({
+    student_id: '',
+    student_name: '',
+    admission_no: '',
+    class_name: '',
+    section: '',
+    achievement: '',
+    remarks: '',
+    issue_date: new Date().toISOString().split('T')[0],
+    status: 'issued'
+  });
+
+  const [characterFormData, setCharacterFormData] = useState({
+    student_id: '',
+    student_name: '',
+    admission_no: '',
+    father_name: '',
+    class_name: '',
+    section: '',
+    conduct: 'excellent',
+    remarks: '',
+    issue_date: new Date().toISOString().split('T')[0],
+    status: 'issued'
+  });
   
   // Course Certificate States
   const [ccView, setCcView] = useState('list'); // 'list' or 'form'
@@ -220,6 +269,13 @@ const Certificates = () => {
       localStorage.setItem('generatedIdCards', JSON.stringify(generatedIdCards));
     }
   }, [generatedIdCards]);
+
+  // Set default tab based on institution type
+  useEffect(() => {
+    if (!institutionLoading && isMadrasah) {
+      setActiveTab('appreciation');
+    }
+  }, [institutionLoading, isMadrasah]);
 
   useEffect(() => {
     fetchCertificatesData();
@@ -2359,34 +2415,42 @@ const Certificates = () => {
 
   return (
     <div className="p-3 sm:p-4 lg:p-6 space-y-3 sm:space-y-4 lg:space-y-6 fade-in">
-      {/* Header */}
+      {/* Header - Bengali for Madrasah */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 truncate">Certificates</h1>
-          <p className="text-xs sm:text-sm text-gray-600 mt-1">Generate and manage various academic certificates</p>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 truncate">
+            {isMadrasah ? 'সনদপত্র ব্যবস্থাপনা' : 'Certificates'}
+          </h1>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">
+            {isMadrasah ? 'বিভিন্ন ধরনের সনদপত্র তৈরি ও পরিচালনা করুন' : 'Generate and manage various academic certificates'}
+          </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <Button variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm h-8 sm:h-9">
-            <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-            Templates
-          </Button>
-          <Button 
-            onClick={handleGenerateCertificate}
-            className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600 text-xs sm:text-sm h-8 sm:h-9"
-          >
-            <Award className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-            Generate
-          </Button>
-        </div>
+        {!isMadrasah && (
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <Button variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm h-8 sm:h-9">
+              <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              Templates
+            </Button>
+            <Button 
+              onClick={handleGenerateCertificate}
+              className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600 text-xs sm:text-sm h-8 sm:h-9"
+            >
+              <Award className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              Generate
+            </Button>
+          </div>
+        )}
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats Cards - Bengali for Madrasah */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
         <Card className="card-hover">
           <CardContent className="p-3 sm:p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs sm:text-sm font-medium text-gray-600">Total Issued</p>
+                <p className="text-xs sm:text-sm font-medium text-gray-600">
+                  {isMadrasah ? 'মোট প্রদান' : 'Total Issued'}
+                </p>
                 <p className="text-lg sm:text-2xl md:text-3xl font-bold text-gray-900">{totalIssued}</p>
               </div>
               <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-emerald-500" />
@@ -2397,7 +2461,9 @@ const Certificates = () => {
           <CardContent className="p-3 sm:p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs sm:text-sm font-medium text-gray-600">Pending</p>
+                <p className="text-xs sm:text-sm font-medium text-gray-600">
+                  {isMadrasah ? 'অপেক্ষমাণ' : 'Pending'}
+                </p>
                 <p className="text-lg sm:text-2xl md:text-3xl font-bold text-orange-600">{pending}</p>
               </div>
               <Clock className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-orange-500" />
@@ -2408,7 +2474,9 @@ const Certificates = () => {
           <CardContent className="p-3 sm:p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs sm:text-sm font-medium text-gray-600">This Month</p>
+                <p className="text-xs sm:text-sm font-medium text-gray-600">
+                  {isMadrasah ? 'এই মাসে' : 'This Month'}
+                </p>
                 <p className="text-lg sm:text-2xl md:text-3xl font-bold text-blue-600">45</p>
               </div>
               <Award className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-blue-500" />
@@ -2419,7 +2487,9 @@ const Certificates = () => {
           <CardContent className="p-3 sm:p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs sm:text-sm font-medium text-gray-600">Templates</p>
+                <p className="text-xs sm:text-sm font-medium text-gray-600">
+                  {isMadrasah ? 'টেমপ্লেট' : 'Templates'}
+                </p>
                 <p className="text-lg sm:text-2xl md:text-3xl font-bold text-purple-600">8</p>
               </div>
               <FileText className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-purple-500" />
@@ -2428,17 +2498,38 @@ const Certificates = () => {
         </Card>
       </div>
 
-      {/* Certificate Types Tabs */}
+      {/* Certificate Types Tabs - Madrasah shows simplified Bengali tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="overflow-x-auto">
-          <TabsList className="inline-flex w-auto min-w-full lg:grid lg:w-full lg:grid-cols-6 h-auto">
-            <TabsTrigger value="course" className="text-[10px] sm:text-xs lg:text-sm py-2 px-2 sm:px-3 whitespace-nowrap">Course</TabsTrigger>
-            <TabsTrigger value="transfer" className="text-[10px] sm:text-xs lg:text-sm py-2 px-2 sm:px-3 whitespace-nowrap">Transfer</TabsTrigger>
-            <TabsTrigger value="progress" className="text-[10px] sm:text-xs lg:text-sm py-2 px-2 sm:px-3 whitespace-nowrap">Progress</TabsTrigger>
-            <TabsTrigger value="adhar" className="text-[10px] sm:text-xs lg:text-sm py-2 px-2 sm:px-3 whitespace-nowrap">Adhar</TabsTrigger>
-            <TabsTrigger value="bonafide" className="text-[10px] sm:text-xs lg:text-sm py-2 px-2 sm:px-3 whitespace-nowrap">Bonafide</TabsTrigger>
-            <TabsTrigger value="id-cards" className="text-[10px] sm:text-xs lg:text-sm py-2 px-2 sm:px-3 whitespace-nowrap">ID Cards</TabsTrigger>
-          </TabsList>
+          {isMadrasah ? (
+            <TabsList className="inline-flex w-auto min-w-full lg:grid lg:w-full lg:grid-cols-4 h-auto">
+              <TabsTrigger value="appreciation" className="text-sm lg:text-base py-3 px-4 whitespace-nowrap font-medium">
+                <Star className="h-4 w-4 mr-2" />
+                প্রশংসাপত্র
+              </TabsTrigger>
+              <TabsTrigger value="character" className="text-sm lg:text-base py-3 px-4 whitespace-nowrap font-medium">
+                <Heart className="h-4 w-4 mr-2" />
+                চরিত্র সনদ
+              </TabsTrigger>
+              <TabsTrigger value="transfer" className="text-sm lg:text-base py-3 px-4 whitespace-nowrap font-medium">
+                <FileText className="h-4 w-4 mr-2" />
+                স্থানান্তর সনদ
+              </TabsTrigger>
+              <TabsTrigger value="id-cards" className="text-sm lg:text-base py-3 px-4 whitespace-nowrap font-medium">
+                <CreditCard className="h-4 w-4 mr-2" />
+                পরিচয়পত্র
+              </TabsTrigger>
+            </TabsList>
+          ) : (
+            <TabsList className="inline-flex w-auto min-w-full lg:grid lg:w-full lg:grid-cols-6 h-auto">
+              <TabsTrigger value="course" className="text-[10px] sm:text-xs lg:text-sm py-2 px-2 sm:px-3 whitespace-nowrap">Course</TabsTrigger>
+              <TabsTrigger value="transfer" className="text-[10px] sm:text-xs lg:text-sm py-2 px-2 sm:px-3 whitespace-nowrap">Transfer</TabsTrigger>
+              <TabsTrigger value="progress" className="text-[10px] sm:text-xs lg:text-sm py-2 px-2 sm:px-3 whitespace-nowrap">Progress</TabsTrigger>
+              <TabsTrigger value="adhar" className="text-[10px] sm:text-xs lg:text-sm py-2 px-2 sm:px-3 whitespace-nowrap">Adhar</TabsTrigger>
+              <TabsTrigger value="bonafide" className="text-[10px] sm:text-xs lg:text-sm py-2 px-2 sm:px-3 whitespace-nowrap">Bonafide</TabsTrigger>
+              <TabsTrigger value="id-cards" className="text-[10px] sm:text-xs lg:text-sm py-2 px-2 sm:px-3 whitespace-nowrap">ID Cards</TabsTrigger>
+            </TabsList>
+          )}
         </div>
 
         <TabsContent value="course" className="space-y-4">
@@ -2742,32 +2833,37 @@ const Certificates = () => {
             // TC Records List View
             <>
               <Card>
-                <CardHeader>
+                <CardHeader className={isMadrasah ? "bg-gradient-to-r from-blue-50 to-indigo-50 border-b" : ""}>
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle>Transfer Certificates</CardTitle>
-                      <p className="text-sm text-gray-600 mt-1">Manage and issue transfer certificates</p>
+                      <CardTitle className={isMadrasah ? "flex items-center gap-2 text-blue-800" : ""}>
+                        {isMadrasah && <FileText className="h-6 w-6" />}
+                        {isMadrasah ? 'স্থানান্তর সনদ' : 'Transfer Certificates'}
+                      </CardTitle>
+                      <p className={`text-sm mt-1 ${isMadrasah ? 'text-blue-700' : 'text-gray-600'}`}>
+                        {isMadrasah ? 'ছাত্রদের স্থানান্তর সনদপত্র প্রদান করুন' : 'Manage and issue transfer certificates'}
+                      </p>
                     </div>
                     <Button 
                       onClick={() => {
                         setTcView('form');
-                        toast.success('Transfer Certificate form is ready! Select a student to begin.');
+                        toast.success(isMadrasah ? 'স্থানান্তর সনদ ফর্ম প্রস্তুত! ছাত্র নির্বাচন করুন।' : 'Transfer Certificate form is ready! Select a student to begin.');
                       }}
-                      className="bg-emerald-500 hover:bg-emerald-600"
+                      className={isMadrasah ? "bg-blue-500 hover:bg-blue-600" : "bg-emerald-500 hover:bg-emerald-600"}
                     >
                       <Plus className="h-4 w-4 mr-2" />
-                      Generate TC
+                      {isMadrasah ? 'নতুন স্থানান্তর সনদ' : 'Generate TC'}
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-6">
                   {/* Search and Filters */}
                   <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-6">
                     <div className="relative flex-1 min-w-0">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                       <input
                         type="text"
-                        placeholder="Search by student name or admission number..."
+                        placeholder={isMadrasah ? "ছাত্রের নাম বা ভর্তি নম্বর দিয়ে খুঁজুন..." : "Search by student name or admission number..."}
                         className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm sm:text-base"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -2778,27 +2874,32 @@ const Certificates = () => {
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
                     >
-                      <option value="all">All Status</option>
-                      <option value="draft">Draft</option>
-                      <option value="pending_approval">Pending Approval</option>
-                      <option value="issued">Issued</option>
-                      <option value="cancelled">Cancelled</option>
+                      <option value="all">{isMadrasah ? 'সব অবস্থা' : 'All Status'}</option>
+                      <option value="draft">{isMadrasah ? 'খসড়া' : 'Draft'}</option>
+                      <option value="pending_approval">{isMadrasah ? 'অনুমোদনের অপেক্ষায়' : 'Pending Approval'}</option>
+                      <option value="issued">{isMadrasah ? 'প্রদান করা হয়েছে' : 'Issued'}</option>
+                      <option value="cancelled">{isMadrasah ? 'বাতিল' : 'Cancelled'}</option>
                     </select>
                   </div>
 
                   {/* TC Records Table */}
                   {filteredTCRecords.length === 0 ? (
-                    <div className="text-center py-12">
-                      <FileText className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">No Transfer Certificates Found</h3>
-                      <p className="text-gray-600 mb-4">
-                        {searchTerm ? 'No records match your search criteria.' : 'No transfer certificates have been generated yet.'}
+                    <div className="text-center py-12 bg-blue-50 rounded-lg">
+                      <FileText className="h-16 w-16 mx-auto text-blue-300 mb-4" />
+                      <h3 className="text-lg font-medium text-gray-700 mb-2">
+                        {isMadrasah ? 'কোন স্থানান্তর সনদ নেই' : 'No Transfer Certificates Found'}
+                      </h3>
+                      <p className="text-gray-500 mb-4">
+                        {searchTerm 
+                          ? (isMadrasah ? 'আপনার অনুসন্ধানের সাথে কোন রেকর্ড মেলে না।' : 'No records match your search criteria.')
+                          : (isMadrasah ? 'এখনো কোন স্থানান্তর সনদ তৈরি হয়নি।' : 'No transfer certificates have been generated yet.')
+                        }
                       </p>
                       <Button 
                         onClick={() => setTcView('form')}
-                        className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600"
+                        className={`w-full sm:w-auto ${isMadrasah ? 'bg-blue-500 hover:bg-blue-600' : 'bg-emerald-500 hover:bg-emerald-600'}`}
                       >
-                        Generate First TC
+                        {isMadrasah ? 'প্রথম স্থানান্তর সনদ তৈরি করুন' : 'Generate First TC'}
                       </Button>
                     </div>
                   ) : (
@@ -4533,7 +4634,674 @@ const Certificates = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* MADRASAH: Appreciation Certificate Tab - প্রশংসাপত্র */}
+        <TabsContent value="appreciation" className="space-y-4">
+          <Card>
+            <CardHeader className="bg-gradient-to-r from-amber-50 to-yellow-50 border-b">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-amber-800">
+                    <Star className="h-6 w-6" />
+                    প্রশংসাপত্র
+                  </CardTitle>
+                  <p className="text-sm text-amber-700 mt-1">ছাত্রদের বিশেষ অর্জনের জন্য প্রশংসাপত্র প্রদান করুন</p>
+                </div>
+                <Button 
+                  onClick={() => {
+                    setAppreciationView('form');
+                    setAppreciationFormData({
+                      student_id: '',
+                      student_name: '',
+                      admission_no: '',
+                      class_name: '',
+                      section: '',
+                      achievement: '',
+                      remarks: '',
+                      issue_date: new Date().toISOString().split('T')[0],
+                      status: 'issued'
+                    });
+                  }}
+                  className="bg-amber-500 hover:bg-amber-600 text-white"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  নতুন প্রশংসাপত্র
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6">
+              {appreciationView === 'list' ? (
+                <div className="space-y-4">
+                  <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                      <input
+                        type="text"
+                        placeholder="ছাত্রের নাম বা ভর্তি নম্বর দিয়ে খুঁজুন..."
+                        className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                      />
+                    </div>
+                  </div>
+
+                  {appreciationRecords.length === 0 ? (
+                    <div className="text-center py-12 bg-amber-50 rounded-lg">
+                      <Star className="h-16 w-16 mx-auto text-amber-300 mb-4" />
+                      <h3 className="text-lg font-medium text-gray-700 mb-2">কোন প্রশংসাপত্র নেই</h3>
+                      <p className="text-gray-500 mb-4">ছাত্রদের বিশেষ অর্জনের জন্য প্রশংসাপত্র তৈরি করুন</p>
+                      <Button 
+                        onClick={() => setAppreciationView('form')}
+                        className="bg-amber-500 hover:bg-amber-600"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        প্রথম প্রশংসাপত্র তৈরি করুন
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {appreciationRecords.map((cert, index) => (
+                        <div key={index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-amber-50">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
+                              <Star className="h-6 w-6 text-amber-600" />
+                            </div>
+                            <div>
+                              <h4 className="font-medium text-gray-900">{cert.student_name}</h4>
+                              <p className="text-sm text-gray-500">{cert.achievement}</p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button variant="outline" size="sm">
+                              <Printer className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="max-w-2xl mx-auto space-y-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setAppreciationView('list')}
+                    >
+                      <ArrowLeft className="h-4 w-4 mr-1" />
+                      ফিরে যান
+                    </Button>
+                    <h3 className="text-lg font-semibold">নতুন প্রশংসাপত্র তৈরি করুন</h3>
+                  </div>
+
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <h4 className="font-medium text-amber-800 mb-3">ছাত্র নির্বাচন করুন</h4>
+                    <Button 
+                      variant="outline"
+                      className="w-full justify-start h-12 border-dashed border-amber-300 hover:bg-amber-100"
+                      onClick={() => setShowAppreciationModal(true)}
+                    >
+                      <UserPlus className="h-5 w-5 mr-2 text-amber-600" />
+                      {appreciationFormData.student_name || 'ছাত্র নির্বাচন করতে ক্লিক করুন'}
+                    </Button>
+                  </div>
+
+                  {appreciationFormData.student_id && (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">ছাত্রের নাম</label>
+                          <input
+                            type="text"
+                            value={appreciationFormData.student_name}
+                            readOnly
+                            className="w-full px-3 py-2 border rounded-lg bg-gray-50"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">ভর্তি নম্বর</label>
+                          <input
+                            type="text"
+                            value={appreciationFormData.admission_no}
+                            readOnly
+                            className="w-full px-3 py-2 border rounded-lg bg-gray-50"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">মারহালা / শ্রেণি</label>
+                          <input
+                            type="text"
+                            value={appreciationFormData.class_name}
+                            readOnly
+                            className="w-full px-3 py-2 border rounded-lg bg-gray-50"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">শাখা</label>
+                          <input
+                            type="text"
+                            value={appreciationFormData.section}
+                            readOnly
+                            className="w-full px-3 py-2 border rounded-lg bg-gray-50"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">অর্জন / কৃতিত্ব *</label>
+                        <input
+                          type="text"
+                          placeholder="যেমন: কুরআন হিফজ সম্পন্ন, প্রথম স্থান অর্জন..."
+                          value={appreciationFormData.achievement}
+                          onChange={(e) => setAppreciationFormData({...appreciationFormData, achievement: e.target.value})}
+                          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">মন্তব্য (ঐচ্ছিক)</label>
+                        <textarea
+                          rows={3}
+                          placeholder="অতিরিক্ত মন্তব্য..."
+                          value={appreciationFormData.remarks}
+                          onChange={(e) => setAppreciationFormData({...appreciationFormData, remarks: e.target.value})}
+                          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">ইস্যু তারিখ</label>
+                        <input
+                          type="date"
+                          value={appreciationFormData.issue_date}
+                          onChange={(e) => setAppreciationFormData({...appreciationFormData, issue_date: e.target.value})}
+                          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500"
+                        />
+                      </div>
+
+                      <div className="flex gap-3 pt-4">
+                        <Button 
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => setAppreciationView('list')}
+                        >
+                          বাতিল
+                        </Button>
+                        <Button 
+                          className="flex-1 bg-amber-500 hover:bg-amber-600"
+                          onClick={() => {
+                            toast.success('প্রশংসাপত্র সফলভাবে তৈরি হয়েছে!');
+                            setShowAppreciationPreview(true);
+                          }}
+                          disabled={!appreciationFormData.achievement}
+                        >
+                          <Printer className="h-4 w-4 mr-2" />
+                          প্রশংসাপত্র তৈরি ও প্রিন্ট করুন
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* MADRASAH: Character Certificate Tab - চরিত্র সনদ */}
+        <TabsContent value="character" className="space-y-4">
+          <Card>
+            <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-emerald-800">
+                    <Heart className="h-6 w-6" />
+                    চরিত্র সনদ
+                  </CardTitle>
+                  <p className="text-sm text-emerald-700 mt-1">ছাত্রদের চরিত্র সনদপত্র প্রদান করুন</p>
+                </div>
+                <Button 
+                  onClick={() => {
+                    setCharacterView('form');
+                    setCharacterFormData({
+                      student_id: '',
+                      student_name: '',
+                      admission_no: '',
+                      father_name: '',
+                      class_name: '',
+                      section: '',
+                      conduct: 'excellent',
+                      remarks: '',
+                      issue_date: new Date().toISOString().split('T')[0],
+                      status: 'issued'
+                    });
+                  }}
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  নতুন চরিত্র সনদ
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6">
+              {characterView === 'list' ? (
+                <div className="space-y-4">
+                  <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                      <input
+                        type="text"
+                        placeholder="ছাত্রের নাম বা ভর্তি নম্বর দিয়ে খুঁজুন..."
+                        className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      />
+                    </div>
+                  </div>
+
+                  {characterRecords.length === 0 ? (
+                    <div className="text-center py-12 bg-emerald-50 rounded-lg">
+                      <Heart className="h-16 w-16 mx-auto text-emerald-300 mb-4" />
+                      <h3 className="text-lg font-medium text-gray-700 mb-2">কোন চরিত্র সনদ নেই</h3>
+                      <p className="text-gray-500 mb-4">ছাত্রদের চরিত্র সনদপত্র তৈরি করুন</p>
+                      <Button 
+                        onClick={() => setCharacterView('form')}
+                        className="bg-emerald-500 hover:bg-emerald-600"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        প্রথম চরিত্র সনদ তৈরি করুন
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {characterRecords.map((cert, index) => (
+                        <div key={index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-emerald-50">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
+                              <Heart className="h-6 w-6 text-emerald-600" />
+                            </div>
+                            <div>
+                              <h4 className="font-medium text-gray-900">{cert.student_name}</h4>
+                              <p className="text-sm text-gray-500">চরিত্র: {cert.conduct}</p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button variant="outline" size="sm">
+                              <Printer className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="max-w-2xl mx-auto space-y-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setCharacterView('list')}
+                    >
+                      <ArrowLeft className="h-4 w-4 mr-1" />
+                      ফিরে যান
+                    </Button>
+                    <h3 className="text-lg font-semibold">নতুন চরিত্র সনদ তৈরি করুন</h3>
+                  </div>
+
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                    <h4 className="font-medium text-emerald-800 mb-3">ছাত্র নির্বাচন করুন</h4>
+                    <Button 
+                      variant="outline"
+                      className="w-full justify-start h-12 border-dashed border-emerald-300 hover:bg-emerald-100"
+                      onClick={() => setShowCharacterModal(true)}
+                    >
+                      <UserPlus className="h-5 w-5 mr-2 text-emerald-600" />
+                      {characterFormData.student_name || 'ছাত্র নির্বাচন করতে ক্লিক করুন'}
+                    </Button>
+                  </div>
+
+                  {characterFormData.student_id && (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">ছাত্রের নাম</label>
+                          <input
+                            type="text"
+                            value={characterFormData.student_name}
+                            readOnly
+                            className="w-full px-3 py-2 border rounded-lg bg-gray-50"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">পিতার নাম</label>
+                          <input
+                            type="text"
+                            value={characterFormData.father_name}
+                            readOnly
+                            className="w-full px-3 py-2 border rounded-lg bg-gray-50"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">মারহালা / শ্রেণি</label>
+                          <input
+                            type="text"
+                            value={characterFormData.class_name}
+                            readOnly
+                            className="w-full px-3 py-2 border rounded-lg bg-gray-50"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">শাখা</label>
+                          <input
+                            type="text"
+                            value={characterFormData.section}
+                            readOnly
+                            className="w-full px-3 py-2 border rounded-lg bg-gray-50"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">চরিত্র মূল্যায়ন *</label>
+                        <select
+                          value={characterFormData.conduct}
+                          onChange={(e) => setCharacterFormData({...characterFormData, conduct: e.target.value})}
+                          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500"
+                        >
+                          <option value="excellent">অতি উত্তম (Excellent)</option>
+                          <option value="very_good">উত্তম (Very Good)</option>
+                          <option value="good">ভালো (Good)</option>
+                          <option value="average">মধ্যম (Average)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">বিশেষ মন্তব্য (ঐচ্ছিক)</label>
+                        <textarea
+                          rows={3}
+                          placeholder="ছাত্র সম্পর্কে বিশেষ মন্তব্য..."
+                          value={characterFormData.remarks}
+                          onChange={(e) => setCharacterFormData({...characterFormData, remarks: e.target.value})}
+                          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">ইস্যু তারিখ</label>
+                        <input
+                          type="date"
+                          value={characterFormData.issue_date}
+                          onChange={(e) => setCharacterFormData({...characterFormData, issue_date: e.target.value})}
+                          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500"
+                        />
+                      </div>
+
+                      <div className="flex gap-3 pt-4">
+                        <Button 
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => setCharacterView('list')}
+                        >
+                          বাতিল
+                        </Button>
+                        <Button 
+                          className="flex-1 bg-emerald-500 hover:bg-emerald-600"
+                          onClick={() => {
+                            toast.success('চরিত্র সনদ সফলভাবে তৈরি হয়েছে!');
+                            setShowCharacterPreview(true);
+                          }}
+                        >
+                          <Printer className="h-4 w-4 mr-2" />
+                          চরিত্র সনদ তৈরি ও প্রিন্ট করুন
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+
+      {/* Madrasah Student Selection Modal for Appreciation */}
+      {showAppreciationModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-lg max-h-[80vh] overflow-hidden">
+            <div className="p-4 border-b bg-amber-50 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-amber-800">ছাত্র নির্বাচন করুন</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowAppreciationModal(false)}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            <div className="p-4">
+              <div className="relative mb-4">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <input
+                  type="text"
+                  placeholder="ছাত্রের নাম খুঁজুন..."
+                  className="w-full pl-10 pr-4 py-2 border rounded-lg"
+                />
+              </div>
+              <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+                {availableStudents.slice(0, 20).map((student) => (
+                  <div 
+                    key={student.id}
+                    className="p-3 border rounded-lg hover:bg-amber-50 cursor-pointer"
+                    onClick={() => {
+                      setAppreciationFormData({
+                        ...appreciationFormData,
+                        student_id: student.id,
+                        student_name: student.name || student.student_name,
+                        admission_no: student.admission_no || student.admission_number,
+                        class_name: getClassName(student.class_id),
+                        section: student.section || ''
+                      });
+                      setShowAppreciationModal(false);
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                        <User className="h-5 w-5 text-amber-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{student.name || student.student_name}</p>
+                        <p className="text-sm text-gray-500">ভর্তি নং: {student.admission_no || student.admission_number}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Madrasah Student Selection Modal for Character Certificate */}
+      {showCharacterModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-lg max-h-[80vh] overflow-hidden">
+            <div className="p-4 border-b bg-emerald-50 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-emerald-800">ছাত্র নির্বাচন করুন</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowCharacterModal(false)}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            <div className="p-4">
+              <div className="relative mb-4">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <input
+                  type="text"
+                  placeholder="ছাত্রের নাম খুঁজুন..."
+                  className="w-full pl-10 pr-4 py-2 border rounded-lg"
+                />
+              </div>
+              <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+                {availableStudents.slice(0, 20).map((student) => (
+                  <div 
+                    key={student.id}
+                    className="p-3 border rounded-lg hover:bg-emerald-50 cursor-pointer"
+                    onClick={() => {
+                      setCharacterFormData({
+                        ...characterFormData,
+                        student_id: student.id,
+                        student_name: student.name || student.student_name,
+                        admission_no: student.admission_no || student.admission_number,
+                        father_name: student.father_name || '',
+                        class_name: getClassName(student.class_id),
+                        section: student.section || ''
+                      });
+                      setShowCharacterModal(false);
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
+                        <User className="h-5 w-5 text-emerald-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{student.name || student.student_name}</p>
+                        <p className="text-sm text-gray-500">ভর্তি নং: {student.admission_no || student.admission_number}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Appreciation Certificate Print Preview */}
+      {showAppreciationPreview && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-hidden">
+            <div className="p-4 border-b flex items-center justify-between">
+              <h3 className="text-lg font-semibold">প্রশংসাপত্র প্রিন্ট প্রিভিউ</h3>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => window.print()}>
+                  <Printer className="h-4 w-4 mr-1" />
+                  প্রিন্ট
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => {
+                  setShowAppreciationPreview(false);
+                  setAppreciationView('list');
+                }}>
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+            <div className="p-8 print:p-4" id="appreciation-cert-print">
+              <div className="border-4 border-amber-500 p-8 text-center">
+                <div className="mb-6">
+                  {schoolBranding.logo && (
+                    <img src={schoolBranding.logo} alt="Logo" className="h-20 mx-auto mb-2" />
+                  )}
+                  <h1 className="text-2xl font-bold text-amber-800">{schoolBranding.name}</h1>
+                  <p className="text-gray-600">{schoolBranding.address}</p>
+                </div>
+                <div className="my-8">
+                  <h2 className="text-3xl font-bold text-amber-600 mb-2">প্রশংসাপত্র</h2>
+                  <p className="text-lg">এই মর্মে প্রত্যয়ন করা যাচ্ছে যে,</p>
+                </div>
+                <div className="my-6 text-lg">
+                  <p><strong>{appreciationFormData.student_name}</strong></p>
+                  <p>ভর্তি নং: {appreciationFormData.admission_no}</p>
+                  <p>শ্রেণি: {appreciationFormData.class_name}, শাখা: {appreciationFormData.section}</p>
+                </div>
+                <div className="my-8 bg-amber-50 p-4 rounded-lg">
+                  <p className="text-xl">{appreciationFormData.achievement}</p>
+                  {appreciationFormData.remarks && (
+                    <p className="text-gray-600 mt-2">{appreciationFormData.remarks}</p>
+                  )}
+                </div>
+                <div className="mt-12 flex justify-between px-8">
+                  <div className="text-center">
+                    <div className="border-t border-gray-400 pt-2 px-8">প্রধান শিক্ষক</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="border-t border-gray-400 pt-2 px-8">মোহতামিম</div>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-500 mt-8">ইস্যু তারিখ: {new Date(appreciationFormData.issue_date).toLocaleDateString('bn-BD')}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Character Certificate Print Preview */}
+      {showCharacterPreview && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-hidden">
+            <div className="p-4 border-b flex items-center justify-between">
+              <h3 className="text-lg font-semibold">চরিত্র সনদ প্রিন্ট প্রিভিউ</h3>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => window.print()}>
+                  <Printer className="h-4 w-4 mr-1" />
+                  প্রিন্ট
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => {
+                  setShowCharacterPreview(false);
+                  setCharacterView('list');
+                }}>
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+            <div className="p-8 print:p-4" id="character-cert-print">
+              <div className="border-4 border-emerald-500 p-8 text-center">
+                <div className="mb-6">
+                  {schoolBranding.logo && (
+                    <img src={schoolBranding.logo} alt="Logo" className="h-20 mx-auto mb-2" />
+                  )}
+                  <h1 className="text-2xl font-bold text-emerald-800">{schoolBranding.name}</h1>
+                  <p className="text-gray-600">{schoolBranding.address}</p>
+                </div>
+                <div className="my-8">
+                  <h2 className="text-3xl font-bold text-emerald-600 mb-2">চরিত্র সনদ</h2>
+                  <p className="text-lg">এই মর্মে প্রত্যয়ন করা যাচ্ছে যে,</p>
+                </div>
+                <div className="my-6 text-lg space-y-1">
+                  <p><strong>{characterFormData.student_name}</strong></p>
+                  <p>পিতা: {characterFormData.father_name}</p>
+                  <p>ভর্তি নং: {characterFormData.admission_no}</p>
+                  <p>শ্রেণি: {characterFormData.class_name}, শাখা: {characterFormData.section}</p>
+                </div>
+                <div className="my-8 bg-emerald-50 p-4 rounded-lg">
+                  <p className="text-xl">
+                    চরিত্র মূল্যায়ন: <strong>
+                      {characterFormData.conduct === 'excellent' ? 'অতি উত্তম' :
+                       characterFormData.conduct === 'very_good' ? 'উত্তম' :
+                       characterFormData.conduct === 'good' ? 'ভালো' : 'মধ্যম'}
+                    </strong>
+                  </p>
+                  {characterFormData.remarks && (
+                    <p className="text-gray-600 mt-2">{characterFormData.remarks}</p>
+                  )}
+                </div>
+                <p className="text-gray-700 my-6">
+                  উক্ত ছাত্রের চরিত্র সম্পর্কে আমাদের কোন অভিযোগ নেই। তার ভবিষ্যৎ উজ্জ্বল কামনা করি।
+                </p>
+                <div className="mt-12 flex justify-between px-8">
+                  <div className="text-center">
+                    <div className="border-t border-gray-400 pt-2 px-8">শ্রেণি শিক্ষক</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="border-t border-gray-400 pt-2 px-8">প্রধান শিক্ষক</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="border-t border-gray-400 pt-2 px-8">মোহতামিম</div>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-500 mt-8">ইস্যু তারিখ: {new Date(characterFormData.issue_date).toLocaleDateString('bn-BD')}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Certificate Generation Modal */}
       {showCertificateModal && (
