@@ -4645,6 +4645,7 @@ async def get_staff(current_user: User = Depends(get_current_user)):
     query = {"tenant_id": current_user.tenant_id, "is_active": True}
     staff = await db.staff.find(query).to_list(1000)
     return [Staff(**member) for member in staff]
+    logging.info(f"DEBUG get_staff: tenant_id={current_user.tenant_id}, found {len(staff)} staff")
 
 @api_router.post("/staff", response_model=Staff)
 async def create_staff(staff_data: StaffCreate, current_user: User = Depends(get_current_user)):
