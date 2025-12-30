@@ -110,7 +110,7 @@ const StudentIDCard = () => {
     }
   };
 
-  const previewIDCard = async (studentId) => {
+  const previewIDCard = async (studentId, printAfterLoad = false) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(`${API}/id-cards/student/${studentId}`, {
@@ -120,9 +120,19 @@ const StudentIDCard = () => {
       
       const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
-      window.open(url, '_blank');
+      const previewWindow = window.open(url, '_blank');
+      
+      if (printAfterLoad && previewWindow) {
+        previewWindow.onload = () => {
+          previewWindow.focus();
+          previewWindow.print();
+        };
+      }
+      
+      return previewWindow;
     } catch (error) {
       console.error('Failed to preview ID card:', error);
+      return null;
     }
   };
 
@@ -315,10 +325,7 @@ const StudentIDCard = () => {
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => {
-                              previewIDCard(student.id);
-                              setTimeout(() => window.print(), 1000);
-                            }}
+                            onClick={() => previewIDCard(student.id, true)}
                             title={t('common.print') || 'Print'}
                             className="text-purple-600 hover:text-purple-700 dark:text-purple-400"
                           >
