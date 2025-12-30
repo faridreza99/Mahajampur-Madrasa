@@ -73,15 +73,32 @@ def use_font(c, size, bold=False):
 
 
 def get_pil_font(size, bold=False):
-    """Get PIL font for Bengali text rendering"""
+    """Get PIL font for Bengali text rendering with proper fallback chain"""
     font_dir = Path(__file__).parent / "fonts"
-    font_file = "NotoSansBengali-Bold.ttf" if bold else "NotoSansBengali-Regular.ttf"
-    font_path = font_dir / font_file
+    
+    # Try bold font first if requested
+    if bold:
+        bold_path = font_dir / "NotoSansBengali-Bold.ttf"
+        try:
+            if bold_path.exists():
+                font = ImageFont.truetype(str(bold_path), size)
+                logging.debug(f"Loaded bold Bengali font at size {size}")
+                return font
+        except Exception as e:
+            logging.warning(f"Could not load bold font, trying regular: {e}")
+    
+    # Fall back to regular font (supports Bengali)
+    regular_path = font_dir / "NotoSansBengali-Regular.ttf"
     try:
-        if font_path.exists():
-            return ImageFont.truetype(str(font_path), size)
+        if regular_path.exists():
+            font = ImageFont.truetype(str(regular_path), size)
+            logging.debug(f"Loaded regular Bengali font at size {size}")
+            return font
     except Exception as e:
-        logging.warning(f"Could not load PIL font: {e}")
+        logging.error(f"Could not load regular Bengali font: {e}")
+    
+    # Last resort - this won't support Bengali but prevents crashes
+    logging.error("CRITICAL: No Bengali font loaded - text will show as boxes!")
     return ImageFont.load_default()
 
 
