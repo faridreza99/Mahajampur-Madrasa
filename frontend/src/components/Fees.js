@@ -135,6 +135,17 @@ const Fees = () => {
   const [madrasahWizardStep, setMadrasahWizardStep] = useState(1); // 1=ছাত্র নির্বাচন, 2=বেতন আদায়, 3=রসিদ
   const [lastReceipt, setLastReceipt] = useState(null); // For receipt printing
   
+  // School Branding for Receipt
+  const [schoolBranding, setSchoolBranding] = useState({
+    school_name: '',
+    school_name_bn: '',
+    logo_url: '',
+    address: '',
+    phone: '',
+    email: '',
+    primary_color: '#059669'
+  });
+  
   // Modal states for new functionality
   const [showFeeConfigModal, setShowFeeConfigModal] = useState(false);
   const [currentFeeType, setCurrentFeeType] = useState('');
@@ -170,7 +181,32 @@ const Fees = () => {
   useEffect(() => {
     loadFeeDataFromBackend();
     fetchStudentsData();
+    fetchSchoolBranding();
   }, []);
+  
+  // Fetch school branding for receipt
+  const fetchSchoolBranding = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      const response = await axios.get(`${API}/school-branding`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.data) {
+        setSchoolBranding({
+          school_name: response.data.school_name || '',
+          school_name_bn: response.data.school_name_bn || response.data.school_name || '',
+          logo_url: response.data.logo_url || '',
+          address: response.data.address || '',
+          phone: response.data.phone || '',
+          email: response.data.email || '',
+          primary_color: response.data.primary_color || '#059669'
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching school branding:', error);
+    }
+  };
   
   // Calculate collection stats when recent payments change
   useEffect(() => {
@@ -1750,11 +1786,18 @@ const Fees = () => {
                         }, {
                           headers: { Authorization: `Bearer ${token}` }
                         });
+                        // Use backend response data, only add fallbacks for UI-specific fields
                         setLastReceipt({
-                          ...response.data,
                           student: selectedStudent,
                           amount: parseFloat(collectionForm.amount),
-                          date: new Date().toLocaleDateString('bn-BD')
+                          date: new Date().toLocaleDateString('bn-BD'),
+                          // Fallbacks only used if backend doesn't provide these
+                          fee_type: 'Tuition Fees',
+                          payment_mode: 'Cash',
+                          remarks: collectionForm.remarks || 'মাসিক বেতন',
+                          status: 'Paid',
+                          // Backend response takes priority (spread after fallbacks)
+                          ...response.data
                         });
                         setMadrasahWizardStep(3);
                         toast.success('✅ বেতন সফলভাবে আদায় হয়েছে!');
@@ -1775,7 +1818,7 @@ const Fees = () => {
             </Card>
           )}
 
-          {/* STEP 3: Receipt */}
+          {/* STEP 3: Receipt - Professional Madrasah Receipt */}
           {madrasahWizardStep === 3 && lastReceipt && (
             <Card className="border-2 border-emerald-200">
               <CardHeader className="bg-emerald-50 p-4 sm:p-6">
@@ -1785,39 +1828,160 @@ const Fees = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 sm:p-6">
-                {/* Receipt Preview */}
-                <div className="bg-white border-2 border-dashed border-gray-300 rounded-lg p-6 max-w-md mx-auto mb-6" id="receipt-print">
-                  <div className="text-center mb-4">
-                    <h3 className="font-bold text-lg">বেতন রসিদ</h3>
-                    <p className="text-sm text-gray-600">{lastReceipt.date}</p>
+                {/* Professional Receipt Preview - A5/A6 Print Ready */}
+                <div 
+                  className="bg-white border-2 border-gray-400 rounded-lg max-w-lg mx-auto mb-6 shadow-lg print:shadow-none print:border-black" 
+                  id="receipt-print"
+                  style={{ fontFamily: "'Noto Sans Bengali', 'Kalpurush', sans-serif" }}
+                >
+                  {/* Receipt Header with Institution Branding */}
+                  <div 
+                    className="text-center py-4 px-4 border-b-2 border-gray-300"
+                    style={{ backgroundColor: schoolBranding.primary_color || '#059669' }}
+                  >
+                    <div className="flex items-center justify-center gap-3 mb-2">
+                      {schoolBranding.logo_url && (
+                        <img 
+                          src={schoolBranding.logo_url} 
+                          alt="Logo" 
+                          className="h-14 w-14 rounded-full bg-white p-1 object-contain"
+                        />
+                      )}
+                      <div className="text-white">
+                        <h2 className="text-xl font-bold leading-tight">
+                          {schoolBranding.school_name_bn || schoolBranding.school_name || 'মাদরাসার নাম'}
+                        </h2>
+                        {schoolBranding.address && (
+                          <p className="text-xs opacity-90">{schoolBranding.address}</p>
+                        )}
+                        {schoolBranding.phone && (
+                          <p className="text-xs opacity-90">ফোন: {schoolBranding.phone}</p>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">ছাত্রের নাম:</span>
-                      <span className="font-medium">{lastReceipt.student?.name || lastReceipt.student?.student_name}</span>
+
+                  {/* Receipt Title & Info */}
+                  <div className="text-center py-3 border-b border-gray-200 bg-gray-50">
+                    <h3 className="text-lg font-bold text-gray-800">বেতন রসিদ</h3>
+                    <p className="text-xs text-gray-500">Fee Receipt / Money Receipt</p>
+                  </div>
+
+                  {/* Receipt Details */}
+                  <div className="p-4 space-y-3 text-sm">
+                    {/* Receipt Info Row */}
+                    <div className="flex justify-between items-center pb-2 border-b border-dashed border-gray-300">
+                      <div>
+                        <span className="text-gray-500 text-xs">রসিদ নং:</span>
+                        <p className="font-bold text-gray-800">{lastReceipt.receipt_no || lastReceipt.id || `${Date.now().toString().slice(-8)}`}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-gray-500 text-xs">তারিখ:</span>
+                        <p className="font-bold text-gray-800">{lastReceipt.date || new Date().toLocaleDateString('bn-BD')}</p>
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">শ্রেণি:</span>
-                      <span className="font-medium">{getClassName(lastReceipt.student?.class_id)}</span>
+
+                    {/* Academic Context */}
+                    <div className="flex justify-between items-center pb-2 border-b border-dashed border-gray-300">
+                      <div>
+                        <span className="text-gray-500 text-xs">মাস:</span>
+                        <p className="font-medium text-gray-800">{lastReceipt.month || lastReceipt.remarks || new Date().toLocaleDateString('bn-BD', { month: 'long', year: 'numeric' })}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-gray-500 text-xs">শিক্ষাবর্ষ:</span>
+                        <p className="font-medium text-gray-800">{lastReceipt.academic_year || `${new Date().getFullYear()} খ্রি.`}</p>
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">রোল:</span>
-                      <span className="font-medium">{lastReceipt.student?.roll_no || lastReceipt.student?.roll || '-'}</span>
+
+                    {/* Student Info */}
+                    <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                      <h4 className="font-bold text-gray-700 text-xs uppercase border-b pb-1">ছাত্র তথ্য</h4>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <span className="text-gray-500 text-xs">ছাত্রের নাম:</span>
+                          <p className="font-bold text-gray-900">{lastReceipt.student?.name || lastReceipt.student?.student_name || 'অজ্ঞাত'}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 text-xs">রোল নং:</span>
+                          <p className="font-bold text-gray-900">{lastReceipt.student?.roll_no || lastReceipt.student?.roll || '-'}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 text-xs">শ্রেণি / মারহালা:</span>
+                          <p className="font-bold text-gray-900">{getClassName(lastReceipt.student?.class_id)}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 text-xs">ভর্তি নং:</span>
+                          <p className="font-bold text-gray-900">{lastReceipt.student?.admission_no || '-'}</p>
+                        </div>
+                      </div>
                     </div>
-                    <hr className="my-2" />
-                    <div className="flex justify-between text-lg font-bold">
-                      <span>পরিশোধিত:</span>
-                      <span className="text-emerald-600">{formatCurrency(lastReceipt.amount)}</span>
+
+                    {/* Payment Info */}
+                    <div className="bg-emerald-50 rounded-lg p-3 space-y-2">
+                      <h4 className="font-bold text-emerald-700 text-xs uppercase border-b border-emerald-200 pb-1">বেতন তথ্য</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">বেতন ধরন:</span>
+                          <span className="font-medium text-gray-800">
+                            {lastReceipt.fee_type === 'Tuition Fees' ? 'মাসিক বেতন' : 
+                             lastReceipt.fee_type === 'Transport Fees' ? 'পরিবহন ফি' :
+                             lastReceipt.fee_type === 'Admission Fees' ? 'ভর্তি ফি' :
+                             lastReceipt.fee_type || 'মাসিক বেতন'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">পরিশোধ পদ্ধতি:</span>
+                          <span className="font-medium text-gray-800">
+                            {lastReceipt.payment_mode === 'Cash' ? 'নগদ' :
+                             lastReceipt.payment_mode === 'bKash' ? 'বিকাশ' :
+                             lastReceipt.payment_mode === 'Nagad' ? 'নগদ' :
+                             lastReceipt.payment_mode === 'Rocket' ? 'রকেট' :
+                             lastReceipt.payment_mode === 'Bank' ? 'ব্যাংক' :
+                             lastReceipt.payment_mode || 'নগদ'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center pt-2 border-t border-emerald-200">
+                          <span className="font-bold text-gray-700">পরিশোধিত পরিমাণ:</span>
+                          <span className="text-xl font-bold text-emerald-600">{formatCurrency(lastReceipt.amount)}</span>
+                        </div>
+                        <div className="flex justify-center pt-1">
+                          <Badge className="bg-green-100 text-green-700 px-4 py-1">
+                            {lastReceipt.status === 'Pending' ? '⏳ বকেয়া' : '✓ পরিশোধিত'}
+                          </Badge>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex justify-between text-xs text-gray-500">
-                      <span>রসিদ নং:</span>
-                      <span>{lastReceipt.receipt_no || `রসিদ-${Date.now().toString().slice(-6)}`}</span>
+                  </div>
+
+                  {/* Receipt Footer */}
+                  <div className="text-center py-3 px-4 border-t-2 border-gray-300 bg-gray-100">
+                    <p className="text-xs text-gray-500 mb-1">এই রসিদটি কম্পিউটার জেনারেটেড এবং অফিস কপি হিসেবে বৈধ।</p>
+                    <p className="text-[10px] text-gray-400">Office Copy | Computer Generated Receipt</p>
+                    <div className="mt-2 pt-2 border-t border-gray-300 flex justify-between text-[10px] text-gray-400">
+                      <span>আদায়কারী স্বাক্ষর: ___________</span>
+                      <span>অফিস সিল</span>
                     </div>
                   </div>
                 </div>
 
+                {/* Print Styles (inline for component) */}
+                <style>{`
+                  @media print {
+                    body * { visibility: hidden; }
+                    #receipt-print, #receipt-print * { visibility: visible; }
+                    #receipt-print { 
+                      position: absolute; 
+                      left: 0; 
+                      top: 0; 
+                      width: 148mm; /* A5 width */
+                      padding: 10mm;
+                      margin: 0;
+                    }
+                  }
+                `}</style>
+
                 {/* Actions */}
-                <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+                <div className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto">
                   <Button 
                     className="flex-1 h-12 bg-emerald-500 hover:bg-emerald-600 font-bold"
                     onClick={() => {

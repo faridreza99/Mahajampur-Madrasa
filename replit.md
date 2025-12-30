@@ -29,13 +29,22 @@ Preferred communication style: Simple, everyday language.
 - **Madrasah Simple Fee Wizard (December 30, 2025)**: Complete redesign of Madrasah fee collection interface replacing the 3-tab structure with a linear 3-step wizard:
     - **Step 1 - ছাত্র নির্বাচন (Student Selection)**: Marhala/Section dropdowns, simplified student cards showing only name, roll number, "বকেয়া আছে/নেই" badge, and large "বেতন নিন" button. Includes Marhala Fee Overview Panel showing configured monthly fees per class with active status.
     - **Step 2 - বেতন আদায় (Fee Collection)**: Streamlined form with only amount input + optional remarks, auto-populated student info
-    - **Step 3 - রসিদ প্রিন্ট (Receipt Printing)**: Bengali receipt preview with print button, option to collect from another student
+    - **Step 3 - রসিদ প্রিন্ট (Receipt Printing)**: Professional print-ready receipt with school branding
     - 100% Bengali language throughout (no English visible)
     - Wizard step indicator with Bengali numerals (১, ২, ৩)
     - State management: `madrasahWizardStep` and `lastReceipt` states for wizard flow
     - Sidebar hides: Fee Structure, Fee Reports, Accounts, Payroll (keeps only Fees)
     - Bengali fallback for missing student names: "ছাত্র #..." (no "Unknown Student")
     - InstitutionContext with loading guard prevents UI flash
+- **Professional Madrasah Receipt (December 30, 2025)**: Standard print-ready receipt for Madrasah fee collection:
+    - **Header**: Institution name (Bengali), logo, address, phone from school branding settings
+    - **Receipt Info**: Receipt number, date, month, academic year
+    - **Student Info**: Name, roll number, class/marhala, admission number
+    - **Payment Info**: Fee type (মাসিক বেতন), payment method (Cash), amount, paid status
+    - **Footer**: "Office Copy / Computer Generated Receipt" text, signature and seal placeholders
+    - A5/A6 print-friendly layout with proper @media print CSS
+    - Auto-loads institution settings from `/api/school-branding` endpoint
+    - Bengali text throughout for Madrasah mode
 
 ## Technical Implementations
 - **Frontend**: React 19, React Router DOM, Axios, Context API.
