@@ -127,6 +127,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     {
       key: "home",
       title: "Dashboard",
+      madrasahTitle: "ড্যাশবোর্ড",
       icon: Home,
       path: "/dashboard",
       roles: ["super_admin", "admin", "teacher", "parent"],
@@ -134,41 +135,49 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     {
       key: "student_portal",
       title: "My Portal",
+      madrasahTitle: "আমার পোর্টাল",
       icon: User,
       roles: ["student"],
       subItems: [
         {
           title: "Dashboard",
+          madrasahTitle: "ড্যাশবোর্ড",
           path: "/student/dashboard",
           roles: ["student"],
         },
         {
           title: "My Profile",
+          madrasahTitle: "আমার প্রোফাইল",
           path: "/student/profile",
           roles: ["student"],
         },
         {
           title: "My Fees",
+          madrasahTitle: "আমার ফি",
           path: "/student/fees",
           roles: ["student"],
         },
         {
           title: "Admit Card",
+          madrasahTitle: "প্রবেশপত্র",
           path: "/student/admit-card",
           roles: ["student"],
         },
         {
           title: "My Results",
+          madrasahTitle: "আমার ফলাফল",
           path: "/student-results",
           roles: ["student"],
         },
         {
           title: "My Attendance",
+          madrasahTitle: "আমার হাজিরা",
           path: "/student/attendance",
           roles: ["student"],
         },
         {
           title: "Calendar",
+          madrasahTitle: "ক্যালেন্ডার",
           path: "/calendar",
           roles: ["student"],
         },
@@ -177,21 +186,25 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     {
       key: "teacher-portal",
       title: "My Work",
+      madrasahTitle: "আমার কাজ",
       icon: ClipboardList,
       roles: ["teacher"],
       subItems: [
         {
           title: "My Dashboard",
+          madrasahTitle: "আমার ড্যাশবোর্ড",
           path: "/teacher/dashboard",
           roles: ["teacher"],
         },
         {
           title: "Homework",
+          madrasahTitle: "হোমওয়ার্ক",
           path: "/homework",
           roles: ["teacher"],
         },
         {
           title: "Lesson Plans",
+          madrasahTitle: "পাঠ পরিকল্পনা",
           path: "/lesson-plans",
           roles: ["teacher"],
         },
@@ -200,18 +213,23 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     {
       key: "academic",
       title: "Academic",
+      madrasahTitle: "একাডেমিক",
       icon: GraduationCap,
       roles: ["super_admin", "admin", "teacher", "parent", "principal"],
       subItems: [
         {
           title: "Results",
+          madrasahTitle: "ফলাফল",
           path: "/results",
           roles: ["super_admin", "admin", "principal", "teacher", "parent"],
+          hideInMadrasah: true,
         },
         {
           title: "TimeTable",
+          madrasahTitle: "টাইমটেবিল",
           path: "/settings/timetable",
           roles: ["super_admin", "admin", "teacher"],
+          hideInMadrasah: true,
         },
         {
           title: "সহজ ফলাফল",
@@ -242,26 +260,31 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     {
       key: "students",
       title: "Students",
+      madrasahTitle: "ছাত্র",
       icon: Users,
       roles: ["super_admin", "admin", "teacher"],
       subItems: [
         {
           title: "Student List",
+          madrasahTitle: "ছাত্র তালিকা",
           path: "/students",
           roles: ["super_admin", "admin", "teacher"],
         },
         {
           title: "Student Attendance",
+          madrasahTitle: "ছাত্র হাজিরা",
           path: "/students/attendance",
           roles: ["super_admin", "admin", "teacher"],
         },
         {
           title: "Student ID Cards",
+          madrasahTitle: "ছাত্র আইডি কার্ড",
           path: "/students/id-cards",
           roles: ["super_admin", "admin", "teacher"],
         },
         {
           title: "Admission Summary",
+          madrasahTitle: "ভর্তি সারাংশ",
           path: "/admission-summary",
           roles: ["super_admin", "admin"],
         },
@@ -270,26 +293,31 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     {
       key: "staff",
       title: "Staff",
+      madrasahTitle: "শিক্ষক / স্টাফ",
       icon: UserCheck,
       roles: ["super_admin", "admin", "teacher"],
       subItems: [
         {
           title: "Staff List",
+          madrasahTitle: "শিক্ষক তালিকা",
           path: "/staff",
           roles: ["super_admin", "admin", "teacher"],
         },
         {
           title: "Staff Attendance",
+          madrasahTitle: "শিক্ষক হাজিরা",
           path: "/attendance",
           roles: ["super_admin", "admin"],
         },
         {
           title: "Staff ID Cards",
+          madrasahTitle: "শিক্ষক আইডি কার্ড",
           path: "/staff/id-cards",
           roles: ["super_admin", "admin"],
         },
         {
           title: "Add Staff",
+          madrasahTitle: "নতুন শিক্ষক",
           path: "/staff/add",
           roles: ["super_admin", "admin"],
         },
@@ -298,36 +326,43 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     {
       key: "finance",
       title: "Finance",
+      madrasahTitle: "আর্থিক",
       icon: DollarSign,
       roles: ["super_admin", "admin"],
       subItems: [
         {
           title: "Fees",
+          madrasahTitle: "ফি আদায়",
           path: "/fees/collection",
           roles: ["super_admin", "admin"],
         },
         {
           title: "Fee Structure",
+          madrasahTitle: "ফি কাঠামো",
           path: "/fees/structure",
           roles: ["super_admin", "admin"],
         },
         {
           title: "Fee Reports",
+          madrasahTitle: "ফি রিপোর্ট",
           path: "/fees/reports",
           roles: ["super_admin", "admin"],
         },
         {
           title: "Accounts",
+          madrasahTitle: "হিসাব",
           path: "/accounts",
           roles: ["super_admin", "admin"],
         },
         {
           title: "Payroll",
+          madrasahTitle: "বেতন",
           path: "/payroll",
           roles: ["super_admin", "admin", "accountant"],
         },
         {
           title: "Certificates",
+          madrasahTitle: "সনদ",
           path: "/certificates",
           roles: ["super_admin", "admin"],
         },
@@ -336,16 +371,19 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     {
       key: "content",
       title: "Content",
+      madrasahTitle: "কন্টেন্ট",
       icon: BookOpen,
       roles: ["super_admin", "admin", "teacher"],
       subItems: [
         {
           title: "Academic CMS",
+          madrasahTitle: "একাডেমিক সিএমএস",
           path: "/cms",
           roles: ["super_admin", "admin"],
         },
         {
           title: "View Content",
+          madrasahTitle: "কন্টেন্ট দেখুন",
           path: "/cms/view",
           roles: ["teacher"],
         },
@@ -354,21 +392,25 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     {
       key: "ai-tools",
       title: "AI Tools",
+      madrasahTitle: "এআই টুলস",
       icon: Sparkles,
       roles: ["super_admin", "admin", "teacher", "student"],
       subItems: [
         {
           title: "AI Assistant",
+          madrasahTitle: "এআই সহকারী",
           path: "/ai-assistant",
           roles: ["super_admin", "admin", "teacher", "student"],
         },
         {
           title: "Quiz Tool",
+          madrasahTitle: "কুইজ টুল",
           path: "/quiz-tool",
           roles: ["super_admin", "admin", "teacher", "student"],
         },
         {
           title: "Test Generator",
+          madrasahTitle: "পরীক্ষা তৈরি",
           path: "/test-generator",
           roles: ["super_admin", "admin", "teacher"],
         },
@@ -379,16 +421,19 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         },
         {
           title: "AI Summary",
+          madrasahTitle: "এআই সারাংশ",
           path: "/ai-summary",
           roles: ["super_admin", "admin", "teacher", "student"],
         },
         {
           title: "AI Notes",
+          madrasahTitle: "এআই নোটস",
           path: "/ai-notes",
           roles: ["super_admin", "admin", "teacher", "student"],
         },
         {
           title: "AI Activity Logs",
+          madrasahTitle: "এআই লগ",
           path: "/ai-assistant/logs",
           roles: ["super_admin", "admin"],
         },
@@ -397,6 +442,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     {
       key: "reports",
       title: "Reports",
+      madrasahTitle: "রিপোর্ট",
       icon: BarChart3,
       path: "/reports",
       roles: ["super_admin", "admin"],
@@ -404,16 +450,19 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     {
       key: "communication",
       title: "Communication",
+      madrasahTitle: "যোগাযোগ",
       icon: MessageSquare,
       roles: ["super_admin", "admin", "teacher", "student"],
       subItems: [
         {
           title: "Notifications",
+          madrasahTitle: "নোটিফিকেশন",
           path: "/notifications",
           roles: ["super_admin", "admin", "teacher", "student"],
         },
         {
           title: "Rating & Reviews",
+          madrasahTitle: "রেটিং ও রিভিউ",
           path: "/rating-surveys",
           roles: ["super_admin", "admin"],
         },
@@ -422,13 +471,22 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     {
       key: "settings",
       title: "Settings",
+      madrasahTitle: "সেটিংস",
       icon: Settings,
       roles: ["super_admin", "admin"],
       subItems: [
         {
+          title: "Simple Settings",
+          madrasahTitle: "সহজ সেটিংস",
+          path: "/madrasah/simple-settings",
+          roles: ["super_admin", "admin"],
+          madrasahOnly: true,
+        },
+        {
           title: "School Settings",
           path: "/settings",
           roles: ["super_admin", "admin"],
+          hideInMadrasah: true,
         },
         {
           title: "Tenant Management",
@@ -442,8 +500,10 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         },
         {
           title: "My Subscription",
+          madrasahTitle: "সাবস্ক্রিপশন",
           path: "/subscription-history",
           roles: ["admin"],
+          hideInMadrasah: true,
         },
         {
           title: "System Settings",
@@ -452,28 +512,34 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         },
         {
           title: "School Branding",
+          madrasahTitle: "ব্র্যান্ডিং",
           path: "/school-branding",
           roles: ["super_admin", "admin"],
+          hideInMadrasah: true,
         },
         {
           title: "Vehicle/Transport",
           path: "/transport/routes",
           roles: ["super_admin", "admin"],
+          hideInMadrasah: true,
         },
         {
           title: "Biometric Devices",
           path: "/biometric",
           roles: ["super_admin", "admin"],
+          hideInMadrasah: true,
         },
         {
           title: "Online Admission",
           path: "/online-admission",
           roles: ["super_admin", "admin"],
+          hideInMadrasah: true,
         },
         {
           title: "HSS Module",
           path: "/hss/students",
           roles: ["super_admin", "admin"],
+          hideInMadrasah: true,
         },
       ],
     },
@@ -636,7 +702,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                     >
                       <div className="flex items-center space-x-3">
                         <Icon className="h-5 w-5" />
-                        <span className="font-medium">{item.title}</span>
+                        <span className="font-medium">{isMadrasahSimpleUI && item.madrasahTitle ? item.madrasahTitle : item.title}</span>
                       </div>
                       {isOpen ? (
                         <ChevronDown className="h-4 w-4" />
@@ -652,7 +718,8 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                           (!subItem.roles || subItem.roles.includes(user?.role)) &&
                           isSubItemAllowed(subItem.path) &&
                           !(isMadrasahSimpleUI && ['/fees/structure', '/fees/reports', '/accounts', '/payroll', '/results', '/settings/timetable'].includes(subItem.path)) &&
-                          (subItem.madrasahOnly ? isMadrasahSimpleUI : true),
+                          (subItem.madrasahOnly ? isMadrasahSimpleUI : true) &&
+                          !(isMadrasahSimpleUI && subItem.hideInMadrasah),
                       )
                       .map((subItem, index) => (
                         <button
