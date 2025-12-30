@@ -33,8 +33,7 @@ import {
 
 const Certificates = () => {
   // Institution Context for Madrasah mode detection
-  const { institutionSettings, loading: institutionLoading } = useInstitution();
-  const isMadrasah = institutionSettings?.institution_type === 'madrasah';
+  const { isMadrasah, loading: institutionLoading } = useInstitution();
 
   const [totalIssued, setTotalIssued] = useState(0);
   const [pending, setPending] = useState(0);
