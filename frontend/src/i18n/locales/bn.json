@@ -51,7 +51,19 @@
     "total": "মোট",
     "language": "ভাষা",
     "english": "English",
-    "bangla": "বাংলা"
+    "bangla": "বাংলা",
+    "class": "মারহালা",
+    "section": "শাখা",
+    "rollNo": "রোল নম্বর",
+    "refresh": "রিফ্রেশ",
+    "name": "নাম",
+    "fatherName": "পিতার নাম",
+    "phone": "মোবাইল",
+    "address": "ঠিকানা",
+    "photo": "ছবি",
+    "allClasses": "সকল মারহালা",
+    "allSections": "সকল শাখা",
+    "preview": "দেখুন"
   },
   "auth": {
     "welcomeBack": "স্বাগতম",
