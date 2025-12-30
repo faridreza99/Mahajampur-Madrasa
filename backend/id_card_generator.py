@@ -36,21 +36,12 @@ MAROON = colors.HexColor("#800000")
 
 
 def register_fonts():
-    """Register Bengali fonts - Siyam Rupali (preferred) + Noto Sans Bengali (fallback)"""
+    """Register Bengali fonts - Noto Sans Bengali for proper Unicode rendering"""
     font_dir = Path(__file__).parent / "fonts"
-    siyam_rupali = font_dir / "SiyamRupali.ttf"
     bengali_regular = font_dir / "NotoSansBengali-Regular.ttf"
     bengali_bold = font_dir / "NotoSansBengali-Bold.ttf"
     
     try:
-        # Try Siyam Rupali first (best Bengali rendering)
-        if siyam_rupali.exists():
-            if "SiyamRupali" not in pdfmetrics.getRegisteredFontNames():
-                pdfmetrics.registerFont(TTFont("SiyamRupali", str(siyam_rupali)))
-            if "SiyamRupali-Bold" not in pdfmetrics.getRegisteredFontNames():
-                pdfmetrics.registerFont(TTFont("SiyamRupali-Bold", str(siyam_rupali)))
-        
-        # Also register Noto Sans Bengali as fallback
         if bengali_regular.exists() and "NotoSansBengali" not in pdfmetrics.getRegisteredFontNames():
             pdfmetrics.registerFont(TTFont("NotoSansBengali", str(bengali_regular)))
         if bengali_bold.exists() and "NotoSansBengali-Bold" not in pdfmetrics.getRegisteredFontNames():
@@ -62,18 +53,12 @@ def register_fonts():
 
 
 def use_font(c, size, bold=False):
-    """Set font with fallback: SiyamRupali > NotoSansBengali > Helvetica"""
-    if bold:
-        font_priority = ["SiyamRupali-Bold", "NotoSansBengali-Bold", "Helvetica-Bold"]
+    """Set font with fallback: NotoSansBengali > Helvetica"""
+    font_name = "NotoSansBengali-Bold" if bold else "NotoSansBengali"
+    if font_name in pdfmetrics.getRegisteredFontNames():
+        c.setFont(font_name, size)
     else:
-        font_priority = ["SiyamRupali", "NotoSansBengali", "Helvetica"]
-    
-    registered_fonts = pdfmetrics.getRegisteredFontNames()
-    for font_name in font_priority:
-        if font_name in registered_fonts:
-            c.setFont(font_name, size)
-            return
-    c.setFont("Helvetica-Bold" if bold else "Helvetica", size)
+        c.setFont("Helvetica-Bold" if bold else "Helvetica", size)
 
 
 def draw_curved_header(c, width, height, header_height):
