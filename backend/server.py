@@ -11,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 from pathlib import Path
 from id_card_pdf import generate_student_id_card_pdf
-from id_card_pdf import generate_staff_id_card_pdf
+from id_card_generator import generate_staff_id_card_pdf
 
 
 # Performance optimization modules
