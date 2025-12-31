@@ -15,6 +15,7 @@ This Cloud School ERP is a **Single Madrasah** management system (fixed tenant: 
 - **ID Card Dynamic Institution Names**: Removed all hardcoded text, names now come 100% from School Branding/Settings
 - **Bengali Font Improvements**: Added Noto Sans Bengali font for proper Unicode Bengali text rendering in PDFs
 - **Bulk ID Card Generation**: Added checkbox-based bulk selection for both Student and Staff ID cards with ZIP download, progress tracking, and sequential PDF generation via JSZip
+- **Madrasah Dashboard**: Beautiful visual dashboard with gradient summary cards (students, fees, attendance), Recharts-based area/bar/pie charts for fee collection trends, weekly attendance, class-wise distribution, and recent payments widget with Bengali labels
 
 # User Preferences
 

@@ -51,6 +51,7 @@ import MadrasahSimpleResult from "./components/MadrasahSimpleResult";
 import MadrasahSimpleRoutine from "./components/MadrasahSimpleRoutine";
 import MadrasahReportPage from "./components/MadrasahReportPage";
 import MadrasahSimpleSettings from "./components/MadrasahSimpleSettings";
+import MadrasahDashboard from "./components/MadrasahDashboard";
 import ResultConfiguration from "./components/ResultConfiguration";
 import TenantManagement from "./components/TenantManagement";
 import SubscriptionManagement from "./components/SubscriptionManagement";
@@ -71,6 +72,7 @@ import Header from "./components/Header";
 import Search from "./components/Search";
 import SubscriptionPopup from "./components/SubscriptionPopup";
 import { Toaster } from "./components/ui/sonner";
+import { useInstitution } from "./context/InstitutionContext";
 
 const API = process.env.REACT_APP_API_URL || "/api";
 console.log("API URL - ", API);
@@ -326,6 +328,11 @@ const Layout = ({ children }) => {
   );
 };
 
+const DashboardWrapper = () => {
+  const { isMadrasahSimpleUI } = useInstitution();
+  return isMadrasahSimpleUI ? <MadrasahDashboard /> : <Dashboard />;
+};
+
 function App() {
   return (
     <CurrencyProvider>
@@ -340,7 +347,7 @@ function App() {
                   path="/"
                   element={
                     <ProtectedRoute>
-                      <Dashboard />
+                      <DashboardWrapper />
                     </ProtectedRoute>
                   }
                 />
@@ -348,7 +355,7 @@ function App() {
                   path="/dashboard"
                   element={
                     <ProtectedRoute>
-                      <Dashboard />
+                      <DashboardWrapper />
                     </ProtectedRoute>
                   }
                 />
