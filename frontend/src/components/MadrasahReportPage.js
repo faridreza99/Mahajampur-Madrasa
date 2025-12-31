@@ -571,7 +571,7 @@ const MadrasahReportPage = () => {
                                   <tr key={idx} className="hover:bg-gray-50">
                                     <td className="border p-2 text-center">{idx + 1}</td>
                                     <td className="border p-2">{result.student_name || result.name}</td>
-                                    <td className="border p-2 text-center">{result.roll_no || result.roll || result.student_roll || '-'}</td>
+                                    <td className="border p-2 text-center">{result.student_roll_number || result.roll_no || result.roll || '-'}</td>
                                     <td className="border p-2 text-center">{result.class_name || getClassName(result.class_id)}</td>
                                     <td className="border p-2 text-center">
                                       <Badge className={
