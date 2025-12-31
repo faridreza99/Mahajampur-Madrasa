@@ -83,7 +83,7 @@ const MadrasahSimpleResult = () => {
       const response = await axios.get('/api/institution');
       if (response.data) {
         setSchoolBranding({
-          name: response.data.name || '',
+          name: response.data.school_name || response.data.name || '',
           address: response.data.address || '',
           logo_url: response.data.logo_url || ''
         });
