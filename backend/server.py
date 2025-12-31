@@ -161,6 +161,18 @@ DEFAULT_SCHOOL_ID = "mham5678-school"
 app = FastAPI(title="School ERP API", version="1.0.0")
 api_router = APIRouter(prefix="/api")
 
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    import logging
+    logging.error(f"Validation error for {request.url}: {exc.errors()}")
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors()}
+    )
+
 # Root route redirect to help users find the frontend
 @app.get("/")
 async def root():
