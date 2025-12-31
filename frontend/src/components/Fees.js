@@ -1631,7 +1631,13 @@ const Fees = () => {
                         (selectedClass === 'all' || s.class === selectedClass || s.class_name === selectedClass || getClassName(s.class_id) === selectedClass) &&
                         (selectedSection === 'all' || s.section === selectedSection || s.section_name === selectedSection || s.section_id === selectedSection)
                       ).map((student) => {
-                        const studentDue = dueFees.find(f => f.student_id === student.id);
+                        // Aggregate ALL fee records for this student (not just first one)
+                        const studentFeeRecords = dueFees.filter(f => f.student_id === student.id);
+                        const studentDue = studentFeeRecords.length > 0 ? {
+                          paid_amount: studentFeeRecords.reduce((sum, f) => sum + (f.paid_amount || 0), 0),
+                          pending_amount: studentFeeRecords.reduce((sum, f) => sum + (f.pending_amount || 0), 0),
+                          overdue_amount: studentFeeRecords.reduce((sum, f) => sum + (f.overdue_amount || 0), 0)
+                        } : null;
                         const hasDue = studentDue && (studentDue.pending_amount > 0 || studentDue.overdue_amount > 0);
                         return (
                           <div 
