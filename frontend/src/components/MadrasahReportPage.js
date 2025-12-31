@@ -477,7 +477,7 @@ const MadrasahReportPage = () => {
                                 {currentData.slice(0, 50).map((att, idx) => (
                                   <tr key={idx} className="hover:bg-gray-50">
                                     <td className="border p-2 text-center">{att.date}</td>
-                                    <td className="border p-2">{att.student_name || att.staff_name || att.name || att.employee_name || '-'}</td>
+                                    <td className="border p-2">{att.person_name || att.staff_name || att.student_name || att.name || att.employee_name || '-'}</td>
                                     <td className="border p-2 text-center">
                                       <Badge className={
                                         att.status === 'present' ? 'bg-green-100 text-green-700' :
