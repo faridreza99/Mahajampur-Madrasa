@@ -296,7 +296,7 @@ const MarkStudentAttendance = () => {
                       <div className="flex items-center gap-4">
                         <div>
                           <p className="font-medium">{student.name}</p>
-                          <p className="text-sm text-gray-500">Roll: {student.roll_number || student.id}</p>
+                          <p className="text-sm text-gray-500">Roll: {student.roll_no || '-'}</p>
                         </div>
                       </div>
                       <div className="flex gap-2 flex-wrap">
