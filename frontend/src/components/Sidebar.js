@@ -750,7 +750,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                 }`}
               >
                 <Icon className="h-5 w-5" />
-                <span className="font-medium">{item.title}</span>
+                <span className="font-medium">{isMadrasahSimpleUI && item.madrasahTitle ? item.madrasahTitle : item.title}</span>
               </button>
             );
           })}
