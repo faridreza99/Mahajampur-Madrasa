@@ -82,8 +82,8 @@ const MadrasahSimpleSettings = () => {
       
       if (institutionRes.data) {
         setInstitutionData({
-          name: institutionRes.data.name || '',
-          logo: institutionRes.data.logo || '',
+          name: institutionRes.data.name || institutionRes.data.school_name || '',
+          logo: institutionRes.data.logo_url || institutionRes.data.logo || '',
           address: institutionRes.data.address || '',
           mobile: institutionRes.data.phone || institutionRes.data.mobile || '',
           muhtamimName: institutionRes.data.principal_name || institutionRes.data.muhtamim_name || '',
@@ -136,16 +136,41 @@ const MadrasahSimpleSettings = () => {
     setSaving(true);
     try {
       await axios.put(`${API_BASE_URL}/institution`, {
-        name: institutionData.name,
+        school_name: institutionData.name,
         address: institutionData.address,
         phone: institutionData.mobile,
         principal_name: institutionData.muhtamimName
       });
       toast.success('প্রতিষ্ঠান তথ্য সংরক্ষিত হয়েছে');
+      fetchData();
     } catch (error) {
       toast.error('সংরক্ষণ করতে সমস্যা হয়েছে');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', 'logo');
+
+    try {
+      const response = await axios.post(`${API_BASE_URL}/school-branding/upload-logo`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      const logoUrl = response.data.url || response.data.logo_url;
+      
+      await axios.put(`${API_BASE_URL}/institution`, { logo_url: logoUrl });
+      
+      setInstitutionData(prev => ({ ...prev, logo: logoUrl }));
+      toast.success('লোগো আপলোড হয়েছে');
+      fetchData();
+    } catch (error) {
+      toast.error('লোগো আপলোড করতে সমস্যা হয়েছে');
     }
   };
 
@@ -372,7 +397,18 @@ const MadrasahSimpleSettings = () => {
                         <Building2 className="h-8 w-8 text-gray-400" />
                       </div>
                     )}
-                    <Button variant="outline" size="sm">
+                    <input 
+                      type="file" 
+                      id="logo-upload" 
+                      accept="image/*" 
+                      onChange={handleLogoUpload} 
+                      className="hidden" 
+                    />
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => document.getElementById('logo-upload').click()}
+                    >
                       <Upload className="h-4 w-4 mr-2" />
                       আপলোড
                     </Button>
