@@ -1,13 +1,25 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
-import { 
+import React, { useState, useEffect, useCallback } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "./ui/dialog";
+import {
   Building2,
   GraduationCap,
   Clock,
@@ -22,107 +34,121 @@ import {
   Calendar,
   Phone,
   MapPin,
-  User
-} from 'lucide-react';
-import axios from 'axios';
-import { toast } from 'sonner';
+  User,
+} from "lucide-react";
+import axios from "axios";
+import { toast } from "sonner";
 
 const MadrasahSimpleSettings = () => {
-  const [activeTab, setActiveTab] = useState('institution');
+  const [activeTab, setActiveTab] = useState("institution");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  
-  const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
-  
+
+  const API_BASE_URL = process.env.REACT_APP_API_URL || "/api";
+
   const [institutionData, setInstitutionData] = useState({
-    name: '',
-    logo: '',
-    address: '',
-    mobile: '',
-    muhtamimName: '',
-    signature: ''
+    name: "",
+    logo: "",
+    address: "",
+    mobile: "",
+    muhtamimName: "",
+    signature: "",
   });
-  
+
   const [academicData, setAcademicData] = useState({
     currentYear: new Date().getFullYear().toString(),
     classes: [],
-    sections: []
+    sections: [],
   });
-  
+
   const [attendanceSettings, setAttendanceSettings] = useState({
-    method: 'manual',
-    startTime: '08:00',
-    endTime: '14:00',
-    lateThreshold: 15
+    method: "manual",
+    startTime: "08:00",
+    endTime: "14:00",
+    lateThreshold: 15,
   });
-  
+
   const [users, setUsers] = useState([]);
   const [subscription, setSubscription] = useState(null);
-  
+
   const [isAddClassModalOpen, setIsAddClassModalOpen] = useState(false);
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
-  const [newClassName, setNewClassName] = useState('');
+  const [newClassName, setNewClassName] = useState("");
   const [newUserData, setNewUserData] = useState({
-    name: '',
-    username: '',
-    password: '',
-    role: 'teacher'
+    name: "",
+    username: "",
+    password: "",
+    role: "teacher",
   });
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [institutionRes, classesRes, usersRes, subscriptionRes, settingsRes] = await Promise.all([
+      const [
+        institutionRes,
+        classesRes,
+        usersRes,
+        subscriptionRes,
+        settingsRes,
+      ] = await Promise.all([
         axios.get(`${API_BASE_URL}/institution`).catch(() => ({ data: {} })),
         axios.get(`${API_BASE_URL}/classes`).catch(() => ({ data: [] })),
         axios.get(`${API_BASE_URL}/users`).catch(() => ({ data: [] })),
-        axios.get(`${API_BASE_URL}/subscriptions/current`).catch(() => ({ data: null })),
-        axios.get(`${API_BASE_URL}/institution/settings`).catch(() => ({ data: {} }))
+        axios
+          .get(`${API_BASE_URL}/subscriptions/current`)
+          .catch(() => ({ data: null })),
+        axios
+          .get(`${API_BASE_URL}/institution/settings`)
+          .catch(() => ({ data: {} })),
       ]);
-      
+
       if (institutionRes.data) {
         setInstitutionData({
-          name: institutionRes.data.name || institutionRes.data.school_name || '',
-          logo: institutionRes.data.logo_url || institutionRes.data.logo || '',
-          address: institutionRes.data.address || '',
-          mobile: institutionRes.data.phone || institutionRes.data.mobile || '',
-          muhtamimName: institutionRes.data.principal_name || institutionRes.data.muhtamim_name || '',
-          signature: institutionRes.data.principal_signature || ''
+          name:
+            institutionRes.data.name || institutionRes.data.school_name || "",
+          logo: institutionRes.data.logo_url || institutionRes.data.logo || "",
+          address: institutionRes.data.address || "",
+          mobile: institutionRes.data.phone || institutionRes.data.mobile || "",
+          muhtamimName:
+            institutionRes.data.principal_name ||
+            institutionRes.data.muhtamim_name ||
+            "",
+          signature: institutionRes.data.principal_signature || "",
         });
       }
-      
+
       if (classesRes.data) {
-        setAcademicData(prev => ({
+        setAcademicData((prev) => ({
           ...prev,
-          classes: Array.isArray(classesRes.data) ? classesRes.data : []
+          classes: Array.isArray(classesRes.data) ? classesRes.data : [],
         }));
       }
-      
+
       if (usersRes.data) {
         setUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
       }
-      
+
       if (subscriptionRes.data) {
         setSubscription(subscriptionRes.data);
       }
-      
+
       if (settingsRes.data) {
-        setAttendanceSettings(prev => ({
+        setAttendanceSettings((prev) => ({
           ...prev,
-          method: settingsRes.data.attendance_method || 'manual',
-          startTime: settingsRes.data.attendance_start_time || '08:00',
-          endTime: settingsRes.data.attendance_end_time || '14:00'
+          method: settingsRes.data.attendance_method || "manual",
+          startTime: settingsRes.data.attendance_start_time || "08:00",
+          endTime: settingsRes.data.attendance_end_time || "14:00",
         }));
-        
+
         if (settingsRes.data.current_academic_year) {
-          setAcademicData(prev => ({
+          setAcademicData((prev) => ({
             ...prev,
-            currentYear: settingsRes.data.current_academic_year
+            currentYear: settingsRes.data.current_academic_year,
           }));
         }
       }
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
     }
@@ -139,12 +165,12 @@ const MadrasahSimpleSettings = () => {
         school_name: institutionData.name,
         address: institutionData.address,
         phone: institutionData.mobile,
-        principal_name: institutionData.muhtamimName
+        principal_name: institutionData.muhtamimName,
       });
-      toast.success('প্রতিষ্ঠান তথ্য সংরক্ষিত হয়েছে');
+      toast.success("প্রতিষ্ঠান তথ্য সংরক্ষিত হয়েছে");
       fetchData();
     } catch (error) {
-      toast.error('সংরক্ষণ করতে সমস্যা হয়েছে');
+      toast.error("সংরক্ষণ করতে সমস্যা হয়েছে");
     } finally {
       setSaving(false);
     }
@@ -155,22 +181,26 @@ const MadrasahSimpleSettings = () => {
     if (!file) return;
 
     const formData = new FormData();
-    formData.append('file', file);
-    formData.append('type', 'logo');
+    formData.append("file", file);
+    formData.append("type", "logo");
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/school-branding/upload-logo`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const response = await axios.post(
+        `${API_BASE_URL}/school-branding/upload-logo`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        },
+      );
       const logoUrl = response.data.url || response.data.logo_url;
-      
+
       await axios.put(`${API_BASE_URL}/institution`, { logo_url: logoUrl });
-      
-      setInstitutionData(prev => ({ ...prev, logo: logoUrl }));
-      toast.success('লোগো আপলোড হয়েছে');
+
+      setInstitutionData((prev) => ({ ...prev, logo: logoUrl }));
+      toast.success("লোগো আপলোড হয়েছে");
       fetchData();
     } catch (error) {
-      toast.error('লোগো আপলোড করতে সমস্যা হয়েছে');
+      toast.error("লোগো আপলোড করতে সমস্যা হয়েছে");
     }
   };
 
@@ -178,11 +208,11 @@ const MadrasahSimpleSettings = () => {
     setSaving(true);
     try {
       await axios.put(`${API_BASE_URL}/institution/settings`, {
-        current_academic_year: academicData.currentYear
+        current_academic_year: academicData.currentYear,
       });
-      toast.success('শিক্ষাবর্ষ সংরক্ষিত হয়েছে');
+      toast.success("শিক্ষাবর্ষ সংরক্ষিত হয়েছে");
     } catch (error) {
-      toast.error('সংরক্ষণ করতে সমস্যা হয়েছে');
+      toast.error("সংরক্ষণ করতে সমস্যা হয়েছে");
     } finally {
       setSaving(false);
     }
@@ -195,11 +225,11 @@ const MadrasahSimpleSettings = () => {
         attendance_method: attendanceSettings.method,
         attendance_start_time: attendanceSettings.startTime,
         attendance_end_time: attendanceSettings.endTime,
-        late_threshold_minutes: attendanceSettings.lateThreshold
+        late_threshold_minutes: attendanceSettings.lateThreshold,
       });
-      toast.success('হাজিরা সেটিং সংরক্ষিত হয়েছে');
+      toast.success("হাজিরা সেটিং সংরক্ষিত হয়েছে");
     } catch (error) {
-      toast.error('সংরক্ষণ করতে সমস্যা হয়েছে');
+      toast.error("সংরক্ষণ করতে সমস্যা হয়েছে");
     } finally {
       setSaving(false);
     }
@@ -207,7 +237,7 @@ const MadrasahSimpleSettings = () => {
 
   const handleAddClass = async () => {
     if (!newClassName.trim()) {
-      toast.error('মারহালার নাম দিন');
+      toast.error("মারহালার নাম দিন");
       return;
     }
     try {
@@ -217,70 +247,79 @@ const MadrasahSimpleSettings = () => {
         standard: `Class ${classNumber}`,
         display_name: newClassName,
         internal_standard: classNumber,
-        institution_type: 'madrasah'
+        institution_type: "madrasah",
       });
-      toast.success('মারহালা যোগ হয়েছে');
-      setNewClassName('');
+      toast.success("মারহালা যোগ হয়েছে");
+      setNewClassName("");
       setIsAddClassModalOpen(false);
       fetchData();
     } catch (error) {
-      toast.error('মারহালা যোগ করতে সমস্যা হয়েছে');
+      toast.error("মারহালা যোগ করতে সমস্যা হয়েছে");
     }
   };
 
   const handleDeleteClass = async (classId) => {
-    if (!window.confirm('এই মারহালা মুছে ফেলতে চান?')) return;
+    if (!window.confirm("এই মারহালা মুছে ফেলতে চান?")) return;
     try {
       await axios.delete(`${API_BASE_URL}/classes/${classId}`);
-      toast.success('মারহালা মুছে ফেলা হয়েছে');
+      toast.success("মারহালা মুছে ফেলা হয়েছে");
       fetchData();
     } catch (error) {
-      toast.error('মুছতে সমস্যা হয়েছে');
+      toast.error("মুছতে সমস্যা হয়েছে");
     }
   };
 
   const handleAddUser = async () => {
     if (!newUserData.name || !newUserData.username || !newUserData.password) {
-      toast.error('সব তথ্য দিন');
+      toast.error("সব তথ্য দিন");
       return;
     }
     try {
       await axios.post(`${API_BASE_URL}/users`, newUserData);
-      toast.success('ব্যবহারকারী যোগ হয়েছে');
-      setNewUserData({ name: '', username: '', password: '', role: 'teacher' });
+      toast.success("ব্যবহারকারী যোগ হয়েছে");
+      setNewUserData({ name: "", username: "", password: "", role: "teacher" });
       setIsAddUserModalOpen(false);
       fetchData();
     } catch (error) {
-      toast.error('ব্যবহারকারী যোগ করতে সমস্যা হয়েছে');
+      toast.error("ব্যবহারকারী যোগ করতে সমস্যা হয়েছে");
     }
   };
 
   const getRoleBadgeColor = (role) => {
     switch (role) {
-      case 'admin': return 'bg-emerald-100 text-emerald-800';
-      case 'teacher': return 'bg-blue-100 text-blue-800';
-      case 'office': return 'bg-orange-100 text-orange-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "admin":
+        return "bg-emerald-100 text-emerald-800";
+      case "teacher":
+        return "bg-blue-100 text-blue-800";
+      case "office":
+        return "bg-orange-100 text-orange-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const getRoleLabel = (role) => {
     switch (role) {
-      case 'admin': return 'মুহতামিম';
-      case 'teacher': return 'উস্তাদ';
-      case 'office': return 'অফিস';
-      case 'super_admin': return 'সুপার এডমিন';
-      default: return role;
+      case "admin":
+        return "মুহতামিম";
+      case "teacher":
+        return "উস্তাদ";
+      case "office":
+        return "অফিস";
+      case "super_admin":
+        return "সুপার এডমিন";
+      default:
+        return role;
     }
   };
 
   const formatDate = (dateStr) => {
-    if (!dateStr) return '-';
+    if (!dateStr) return "-";
     try {
-      return new Date(dateStr).toLocaleDateString('bn-BD', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
+      return new Date(dateStr).toLocaleDateString("bn-BD", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
       });
     } catch {
       return dateStr;
@@ -299,30 +338,49 @@ const MadrasahSimpleSettings = () => {
     <div className="p-4 md:p-6 space-y-6 max-w-6xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">সেটিংস</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">মাদ্রাসার সেটিংস পরিবর্তন করুন</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
+            সেটিংস
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            মাদ্রাসার সেটিংস পরিবর্তন করুন
+          </p>
         </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 gap-1 h-auto p-1">
-          <TabsTrigger value="institution" className="flex items-center gap-2 py-3 text-sm">
+          <TabsTrigger
+            value="institution"
+            className="flex items-center gap-2 py-3 text-sm"
+          >
             <Building2 className="h-4 w-4" />
             <span className="hidden sm:inline">প্রতিষ্ঠান তথ্য</span>
           </TabsTrigger>
-          <TabsTrigger value="academic" className="flex items-center gap-2 py-3 text-sm">
+          <TabsTrigger
+            value="academic"
+            className="flex items-center gap-2 py-3 text-sm"
+          >
             <GraduationCap className="h-4 w-4" />
             <span className="hidden sm:inline">শিক্ষাবর্ষ ও মারহালা</span>
           </TabsTrigger>
-          <TabsTrigger value="attendance" className="flex items-center gap-2 py-3 text-sm">
+          <TabsTrigger
+            value="attendance"
+            className="flex items-center gap-2 py-3 text-sm"
+          >
             <Clock className="h-4 w-4" />
             <span className="hidden sm:inline">হাজিরা সেটিং</span>
           </TabsTrigger>
-          <TabsTrigger value="users" className="flex items-center gap-2 py-3 text-sm">
+          <TabsTrigger
+            value="users"
+            className="flex items-center gap-2 py-3 text-sm"
+          >
             <Users className="h-4 w-4" />
             <span className="hidden sm:inline">ব্যবহারকারী ব্যবস্থাপনা</span>
           </TabsTrigger>
-          <TabsTrigger value="subscription" className="flex items-center gap-2 py-3 text-sm">
+          <TabsTrigger
+            value="subscription"
+            className="flex items-center gap-2 py-3 text-sm"
+          >
             <CreditCard className="h-4 w-4" />
             <span className="hidden sm:inline">সাবস্ক্রিপশন তথ্য</span>
           </TabsTrigger>
@@ -339,15 +397,22 @@ const MadrasahSimpleSettings = () => {
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label className="text-base font-medium">মাদ্রাসার নাম *</Label>
+                  <Label className="text-base font-medium">
+                    মাদ্রাসার নাম *
+                  </Label>
                   <Input
                     value={institutionData.name}
-                    onChange={(e) => setInstitutionData({...institutionData, name: e.target.value})}
+                    onChange={(e) =>
+                      setInstitutionData({
+                        ...institutionData,
+                        name: e.target.value,
+                      })
+                    }
                     placeholder="মাদ্রাসার নাম লিখুন"
                     className="text-lg py-3"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label className="text-base font-medium flex items-center gap-2">
                     <Phone className="h-4 w-4" />
@@ -355,12 +420,17 @@ const MadrasahSimpleSettings = () => {
                   </Label>
                   <Input
                     value={institutionData.mobile}
-                    onChange={(e) => setInstitutionData({...institutionData, mobile: e.target.value})}
+                    onChange={(e) =>
+                      setInstitutionData({
+                        ...institutionData,
+                        mobile: e.target.value,
+                      })
+                    }
                     placeholder="০১৭xxxxxxxx"
                     className="text-lg py-3"
                   />
                 </div>
-                
+
                 <div className="space-y-2 md:col-span-2">
                   <Label className="text-base font-medium flex items-center gap-2">
                     <MapPin className="h-4 w-4" />
@@ -368,12 +438,17 @@ const MadrasahSimpleSettings = () => {
                   </Label>
                   <Input
                     value={institutionData.address}
-                    onChange={(e) => setInstitutionData({...institutionData, address: e.target.value})}
+                    onChange={(e) =>
+                      setInstitutionData({
+                        ...institutionData,
+                        address: e.target.value,
+                      })
+                    }
                     placeholder="পূর্ণ ঠিকানা লিখুন"
                     className="text-lg py-3"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label className="text-base font-medium flex items-center gap-2">
                     <User className="h-4 w-4" />
@@ -381,33 +456,44 @@ const MadrasahSimpleSettings = () => {
                   </Label>
                   <Input
                     value={institutionData.muhtamimName}
-                    onChange={(e) => setInstitutionData({...institutionData, muhtamimName: e.target.value})}
+                    onChange={(e) =>
+                      setInstitutionData({
+                        ...institutionData,
+                        muhtamimName: e.target.value,
+                      })
+                    }
                     placeholder="মুহতামিমের পূর্ণ নাম"
                     className="text-lg py-3"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label className="text-base font-medium">লোগো</Label>
                   <div className="flex items-center gap-4">
                     {institutionData.logo ? (
-                      <img src={institutionData.logo} alt="Logo" className="h-16 w-16 object-contain border rounded" />
+                      <img
+                        src={institutionData.logo}
+                        alt="Logo"
+                        className="h-16 w-16 object-contain border rounded"
+                      />
                     ) : (
                       <div className="h-16 w-16 bg-gray-100 dark:bg-gray-800 rounded flex items-center justify-center">
                         <Building2 className="h-8 w-8 text-gray-400" />
                       </div>
                     )}
-                    <input 
-                      type="file" 
-                      id="logo-upload" 
-                      accept="image/*" 
-                      onChange={handleLogoUpload} 
-                      className="hidden" 
+                    <input
+                      type="file"
+                      id="logo-upload"
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                      className="hidden"
                     />
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => document.getElementById('logo-upload').click()}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        document.getElementById("logo-upload").click()
+                      }
                     >
                       <Upload className="h-4 w-4 mr-2" />
                       আপলোড
@@ -415,11 +501,16 @@ const MadrasahSimpleSettings = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="flex justify-end pt-4 border-t">
-                <Button onClick={handleSaveInstitution} disabled={saving} size="lg" className="px-8">
+                <Button
+                  onClick={handleSaveInstitution}
+                  disabled={saving}
+                  size="lg"
+                  className="px-8"
+                >
                   <Save className="h-5 w-5 mr-2" />
-                  {saving ? 'সংরক্ষণ হচ্ছে...' : 'সংরক্ষণ করুন'}
+                  {saving ? "সংরক্ষণ হচ্ছে..." : "সংরক্ষণ করুন"}
                 </Button>
               </div>
             </CardContent>
@@ -441,9 +532,11 @@ const MadrasahSimpleSettings = () => {
                     <Calendar className="h-4 w-4" />
                     বর্তমান শিক্ষাবর্ষ
                   </Label>
-                  <Select 
-                    value={academicData.currentYear} 
-                    onValueChange={(value) => setAcademicData({...academicData, currentYear: value})}
+                  <Select
+                    value={academicData.currentYear || new Date().getFullYear().toString()}
+                    onValueChange={(value) =>
+                      setAcademicData({ ...academicData, currentYear: value })
+                    }
                   >
                     <SelectTrigger className="text-lg py-3">
                       <SelectValue placeholder="শিক্ষাবর্ষ নির্বাচন করুন" />
@@ -456,29 +549,41 @@ const MadrasahSimpleSettings = () => {
                   </Select>
                 </div>
               </div>
-              
+
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <Label className="text-base font-medium">মারহালা তালিকা</Label>
-                  <Button onClick={() => setIsAddClassModalOpen(true)} size="sm">
+                  <Label className="text-base font-medium">
+                    মারহালা তালিকা
+                  </Label>
+                  <Button
+                    onClick={() => setIsAddClassModalOpen(true)}
+                    size="sm"
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     নতুন মারহালা
                   </Button>
                 </div>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   {academicData.classes.map((cls) => (
-                    <div key={cls.id || cls.class_id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border">
+                    <div
+                      key={cls.id || cls.class_id}
+                      className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border"
+                    >
                       <div>
                         <p className="font-medium">{cls.name}</p>
                         {cls.sections && cls.sections.length > 0 && (
-                          <p className="text-sm text-gray-500">শাখা: {cls.sections.join(', ')}</p>
+                          <p className="text-sm text-gray-500">
+                            শাখা: {cls.sections.join(", ")}
+                          </p>
                         )}
                       </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => handleDeleteClass(cls.id || cls.class_id)}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          handleDeleteClass(cls.id || cls.class_id)
+                        }
                         className="text-red-500 hover:text-red-700"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -486,15 +591,22 @@ const MadrasahSimpleSettings = () => {
                     </div>
                   ))}
                   {academicData.classes.length === 0 && (
-                    <p className="text-gray-500 col-span-full text-center py-8">কোনো মারহালা নেই</p>
+                    <p className="text-gray-500 col-span-full text-center py-8">
+                      কোনো মারহালা নেই
+                    </p>
                   )}
                 </div>
               </div>
-              
+
               <div className="flex justify-end pt-4 border-t">
-                <Button onClick={handleSaveAcademic} disabled={saving} size="lg" className="px-8">
+                <Button
+                  onClick={handleSaveAcademic}
+                  disabled={saving}
+                  size="lg"
+                  className="px-8"
+                >
                   <Save className="h-5 w-5 mr-2" />
-                  {saving ? 'সংরক্ষণ হচ্ছে...' : 'সংরক্ষণ করুন'}
+                  {saving ? "সংরক্ষণ হচ্ছে..." : "সংরক্ষণ করুন"}
                 </Button>
               </div>
             </CardContent>
@@ -513,25 +625,39 @@ const MadrasahSimpleSettings = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label className="text-base font-medium">হাজিরা পদ্ধতি</Label>
-                  <Select 
-                    value={attendanceSettings.method} 
-                    onValueChange={(value) => setAttendanceSettings({...attendanceSettings, method: value})}
+                  <Select
+                    value={attendanceSettings.method || "manual"}
+                    onValueChange={(value) =>
+                      setAttendanceSettings({
+                        ...attendanceSettings,
+                        method: value,
+                      })
+                    }
                   >
                     <SelectTrigger className="text-lg py-3">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="manual">ম্যানুয়াল (হাতে)</SelectItem>
-                      <SelectItem value="biometric">বায়োমেট্রিক (ফিঙ্গারপ্রিন্ট)</SelectItem>
+                      <SelectItem value="biometric">
+                        বায়োমেট্রিক (ফিঙ্গারপ্রিন্ট)
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
-                  <Label className="text-base font-medium">দেরি গণনা (মিনিট)</Label>
-                  <Select 
-                    value={attendanceSettings.lateThreshold.toString()} 
-                    onValueChange={(value) => setAttendanceSettings({...attendanceSettings, lateThreshold: parseInt(value)})}
+                  <Label className="text-base font-medium">
+                    দেরি গণনা (মিনিট)
+                  </Label>
+                  <Select
+                    value={(attendanceSettings.lateThreshold || 15).toString()}
+                    onValueChange={(value) =>
+                      setAttendanceSettings({
+                        ...attendanceSettings,
+                        lateThreshold: parseInt(value),
+                      })
+                    }
                   >
                     <SelectTrigger className="text-lg py-3">
                       <SelectValue />
@@ -544,32 +670,51 @@ const MadrasahSimpleSettings = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
-                  <Label className="text-base font-medium">হাজিরা শুরুর সময়</Label>
+                  <Label className="text-base font-medium">
+                    হাজিরা শুরুর সময়
+                  </Label>
                   <Input
                     type="time"
                     value={attendanceSettings.startTime}
-                    onChange={(e) => setAttendanceSettings({...attendanceSettings, startTime: e.target.value})}
+                    onChange={(e) =>
+                      setAttendanceSettings({
+                        ...attendanceSettings,
+                        startTime: e.target.value,
+                      })
+                    }
                     className="text-lg py-3"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
-                  <Label className="text-base font-medium">হাজিরা শেষের সময়</Label>
+                  <Label className="text-base font-medium">
+                    হাজিরা শেষের সময়
+                  </Label>
                   <Input
                     type="time"
                     value={attendanceSettings.endTime}
-                    onChange={(e) => setAttendanceSettings({...attendanceSettings, endTime: e.target.value})}
+                    onChange={(e) =>
+                      setAttendanceSettings({
+                        ...attendanceSettings,
+                        endTime: e.target.value,
+                      })
+                    }
                     className="text-lg py-3"
                   />
                 </div>
               </div>
-              
+
               <div className="flex justify-end pt-4 border-t">
-                <Button onClick={handleSaveAttendance} disabled={saving} size="lg" className="px-8">
+                <Button
+                  onClick={handleSaveAttendance}
+                  disabled={saving}
+                  size="lg"
+                  className="px-8"
+                >
                   <Save className="h-5 w-5 mr-2" />
-                  {saving ? 'সংরক্ষণ হচ্ছে...' : 'সংরক্ষণ করুন'}
+                  {saving ? "সংরক্ষণ হচ্ছে..." : "সংরক্ষণ করুন"}
                 </Button>
               </div>
             </CardContent>
@@ -591,14 +736,21 @@ const MadrasahSimpleSettings = () => {
             <CardContent>
               <div className="space-y-3">
                 {users.map((user) => (
-                  <div key={user.id || user.user_id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border">
+                  <div
+                    key={user.id || user.user_id}
+                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border"
+                  >
                     <div className="flex items-center gap-4">
                       <div className="h-12 w-12 bg-emerald-100 dark:bg-emerald-900 rounded-full flex items-center justify-center">
                         <User className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
                       </div>
                       <div>
-                        <p className="font-medium text-lg">{user.name || user.full_name}</p>
-                        <p className="text-sm text-gray-500">{user.username || user.email}</p>
+                        <p className="font-medium text-lg">
+                          {user.name || user.full_name}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {user.username || user.email}
+                        </p>
                       </div>
                     </div>
                     <Badge className={getRoleBadgeColor(user.role)}>
@@ -607,7 +759,9 @@ const MadrasahSimpleSettings = () => {
                   </div>
                 ))}
                 {users.length === 0 && (
-                  <p className="text-gray-500 text-center py-8">কোনো ব্যবহারকারী নেই</p>
+                  <p className="text-gray-500 text-center py-8">
+                    কোনো ব্যবহারকারী নেই
+                  </p>
                 )}
               </div>
             </CardContent>
@@ -627,47 +781,66 @@ const MadrasahSimpleSettings = () => {
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                      <p className="text-sm text-gray-600 dark:text-gray-400">প্ল্যান</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        প্ল্যান
+                      </p>
                       <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-                        {subscription.plan_name || subscription.plan || 'Basic Plan'}
+                        {subscription.plan_name ||
+                          subscription.plan ||
+                          "Basic Plan"}
                       </p>
                     </div>
-                    
+
                     <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                      <p className="text-sm text-gray-600 dark:text-gray-400">স্ট্যাটাস</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        স্ট্যাটাস
+                      </p>
                       <div className="flex items-center gap-2">
                         <Check className="h-5 w-5 text-blue-600" />
                         <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                          {subscription.status === 'active' ? 'সক্রিয়' : subscription.status}
+                          {subscription.status === "active"
+                            ? "সক্রিয়"
+                            : subscription.status}
                         </p>
                       </div>
                     </div>
-                    
+
                     <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
-                      <p className="text-sm text-gray-600 dark:text-gray-400">শুরু হয়েছে</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        শুরু হয়েছে
+                      </p>
                       <p className="text-xl font-bold text-orange-600 dark:text-orange-400">
-                        {formatDate(subscription.start_date || subscription.started_at)}
+                        {formatDate(
+                          subscription.start_date || subscription.started_at,
+                        )}
                       </p>
                     </div>
-                    
+
                     <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                      <p className="text-sm text-gray-600 dark:text-gray-400">মেয়াদ শেষ</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        মেয়াদ শেষ
+                      </p>
                       <p className="text-xl font-bold text-purple-600 dark:text-purple-400">
-                        {formatDate(subscription.end_date || subscription.expires_at)}
+                        {formatDate(
+                          subscription.end_date || subscription.expires_at,
+                        )}
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border">
                     <p className="text-sm text-gray-500">
-                      সাবস্ক্রিপশন সংক্রান্ত যেকোনো সমস্যায় যোগাযোগ করুন: support@cloudschoolerp.com
+                      সাবস্ক্রিপশন সংক্রান্ত যেকোনো সমস্যায় যোগাযোগ করুন:
+                      info@maxtechbd.com
                     </p>
                   </div>
                 </div>
               ) : (
                 <div className="text-center py-12">
                   <CreditCard className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500">সাবস্ক্রিপশন তথ্য পাওয়া যায়নি</p>
+                  <p className="text-gray-500">
+                    সাবস্ক্রিপশন তথ্য পাওয়া যায়নি
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -695,7 +868,12 @@ const MadrasahSimpleSettings = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddClassModalOpen(false)}>বাতিল</Button>
+            <Button
+              variant="outline"
+              onClick={() => setIsAddClassModalOpen(false)}
+            >
+              বাতিল
+            </Button>
             <Button onClick={handleAddClass}>
               <Plus className="h-4 w-4 mr-2" />
               যোগ করুন
@@ -717,7 +895,9 @@ const MadrasahSimpleSettings = () => {
               <Label>নাম</Label>
               <Input
                 value={newUserData.name}
-                onChange={(e) => setNewUserData({...newUserData, name: e.target.value})}
+                onChange={(e) =>
+                  setNewUserData({ ...newUserData, name: e.target.value })
+                }
                 placeholder="পূর্ণ নাম"
                 className="text-lg py-3"
               />
@@ -726,7 +906,9 @@ const MadrasahSimpleSettings = () => {
               <Label>ইউজারনেম</Label>
               <Input
                 value={newUserData.username}
-                onChange={(e) => setNewUserData({...newUserData, username: e.target.value})}
+                onChange={(e) =>
+                  setNewUserData({ ...newUserData, username: e.target.value })
+                }
                 placeholder="লগইন আইডি"
                 className="text-lg py-3"
               />
@@ -736,16 +918,20 @@ const MadrasahSimpleSettings = () => {
               <Input
                 type="password"
                 value={newUserData.password}
-                onChange={(e) => setNewUserData({...newUserData, password: e.target.value})}
+                onChange={(e) =>
+                  setNewUserData({ ...newUserData, password: e.target.value })
+                }
                 placeholder="পাসওয়ার্ড"
                 className="text-lg py-3"
               />
             </div>
             <div className="space-y-2">
               <Label>ভূমিকা</Label>
-              <Select 
-                value={newUserData.role} 
-                onValueChange={(value) => setNewUserData({...newUserData, role: value})}
+              <Select
+                value={newUserData.role || "teacher"}
+                onValueChange={(value) =>
+                  setNewUserData({ ...newUserData, role: value })
+                }
               >
                 <SelectTrigger className="text-lg py-3">
                   <SelectValue />
@@ -759,7 +945,12 @@ const MadrasahSimpleSettings = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddUserModalOpen(false)}>বাতিল</Button>
+            <Button
+              variant="outline"
+              onClick={() => setIsAddUserModalOpen(false)}
+            >
+              বাতিল
+            </Button>
             <Button onClick={handleAddUser}>
               <Plus className="h-4 w-4 mr-2" />
               যোগ করুন
