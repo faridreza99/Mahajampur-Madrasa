@@ -331,7 +331,9 @@ def generate_front_side(c, student, institution, class_name=""):
     
     position_y = name_y - 5*mm
     if position:
-        draw_bengali_text(c, 0, position_y, f"পদের নাম: {position}", 4.5, color=(139, 0, 0), bold=True, centered=True, width=CARD_WIDTH)
+        is_student = student.get("roll_no") or student.get("admission_no") or student.get("class_id")
+        label = "শ্রেণী" if is_student else "পদের নাম"
+        draw_bengali_text(c, 0, position_y, f"{label}: {position}", 4.5, color=(139, 0, 0), bold=True, centered=True, width=CARD_WIDTH)
     
     details_start_y = position_y - 5*mm
     line_height = 3.8*mm
