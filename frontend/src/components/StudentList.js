@@ -224,6 +224,17 @@ const StudentList = () => {
     }
   };
 
+  const fetchNextAdmissionNumber = async () => {
+    try {
+      const response = await axios.get(`${API}/students/next-admission`);
+      setFormData(prev => ({ ...prev, admission_no: response.data.next_admission }));
+      return response.data.next_admission;
+    } catch (error) {
+      console.error('Failed to fetch next admission number:', error);
+      return null;
+    }
+  };
+
   const checkRollDuplicate = async (classId, rollNo, sectionId) => {
     if (!classId || !rollNo) {
       setRollDuplicateWarning(null);
@@ -1207,7 +1218,7 @@ const StudentList = () => {
             <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             Export
           </Button>
-          <Button className="bg-emerald-500 hover:bg-emerald-600 text-xs sm:text-sm h-8 sm:h-9" onClick={() => setIsAddStudentModalOpen(true)}>
+          <Button className="bg-emerald-500 hover:bg-emerald-600 text-xs sm:text-sm h-8 sm:h-9" onClick={() => { resetForm(); fetchNextAdmissionNumber(); setIsAddStudentModalOpen(true); }}>
             <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             Add
           </Button>

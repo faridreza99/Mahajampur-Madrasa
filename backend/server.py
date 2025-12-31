@@ -3614,6 +3614,58 @@ async def get_next_roll_number(
         logging.error(f"Error getting next roll number: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to get next roll number")
 
+@api_router.get("/students/next-admission")
+async def get_next_admission_number(
+    current_user: User = Depends(get_current_user)
+):
+    """Get the next available admission number for the tenant"""
+    if current_user.role not in ["super_admin", "admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    try:
+        # Get school code for prefix
+        schools = await db.schools.find({
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        }).to_list(1)
+        school_code = schools[0].get("school_code", "STU") if schools else "STU"
+        
+        # Get current year
+        current_year = datetime.utcnow().year
+        year_suffix = str(current_year)[-2:]  # Last 2 digits of year
+        
+        # Find all students and get max admission number with this year prefix
+        students = await db.students.find({
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        }).to_list(None)
+        
+        max_num = 0
+        prefix = f"{school_code.upper()}{year_suffix}"
+        
+        for student in students:
+            admission_no = student.get("admission_no", "")
+            if admission_no.upper().startswith(prefix):
+                try:
+                    num_part = admission_no[len(prefix):]
+                    num = int(num_part)
+                    if num > max_num:
+                        max_num = num
+                except (ValueError, TypeError):
+                    continue
+        
+        next_num = max_num + 1
+        next_admission = f"{prefix}{str(next_num).zfill(4)}"
+        
+        return {
+            "next_admission": next_admission,
+            "prefix": prefix,
+            "total_students": len(students)
+        }
+    except Exception as e:
+        logging.error(f"Error getting next admission number: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to get next admission number")
+
 @api_router.get("/students/check-roll-duplicate")
 async def check_roll_duplicate(
     class_id: str,
