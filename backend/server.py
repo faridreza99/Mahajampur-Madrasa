@@ -7653,7 +7653,11 @@ async def delete_class(class_id: str, current_user: User = Depends(get_current_u
     )
     
     logging.info(f"Class deleted: {existing_class.get('name', 'Unknown')} (ID: {class_id}) by {current_user.full_name}")
+    
+    # Invalidate cache after deleting class
+    await invalidate_tenant_cache(current_user.tenant_id)
     return {"message": "Class deleted successfully", "class_id": class_id}
+    
 
 
 # ==================== MADRASAH / INSTITUTION CLASS DEFAULTS ====================
