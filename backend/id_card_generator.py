@@ -391,7 +391,7 @@ def generate_back_side(c, student, institution):
                          centered=True, width=CARD_WIDTH)
         y_pos -= 5*mm
     
-    if name_en:
+    if name_en and name_en.strip() and all(ord(ch) < 128 for ch in name_en):
         c.setFillColor(DARK_GREEN)
         c.setFont("Helvetica-Bold", 4)
         name_width = c.stringWidth(name_en[:42], "Helvetica-Bold", 4)
