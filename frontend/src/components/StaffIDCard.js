@@ -25,16 +25,22 @@ const StaffIDCard = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      let url = `${API}/id-cards/staff/list`;
-      if (selectedDepartment && selectedDepartment !== 'all') {
-        url += `?department=${encodeURIComponent(selectedDepartment)}`;
-      }
-      const response = await axios.get(url, {
+      const response = await axios.get(`${API}/staff`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setStaff(response.data || []);
       
-      const depts = [...new Set(response.data.map(s => s.department).filter(Boolean))];
+      let staffData = response.data || [];
+      
+      // Filter by department if selected
+      if (selectedDepartment && selectedDepartment !== 'all') {
+        staffData = staffData.filter(s => s.department === selectedDepartment);
+      }
+      
+      setStaff(staffData);
+      
+      // Extract unique departments from full staff list
+      const allStaff = response.data || [];
+      const depts = [...new Set(allStaff.map(s => s.department).filter(Boolean))];
       setDepartments(depts);
     } catch (error) {
       console.error('Failed to fetch staff:', error);
