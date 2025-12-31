@@ -99,11 +99,14 @@ const MarkAttendance = () => {
     try {
       const token = localStorage.getItem('token');
       
-      // Prepare attendance records
+      // Prepare attendance records with proper field names
       const records = staff.map(member => ({
-        staff_id: member.id,
+        employee_id: member.employee_id || member.id,
+        staff_name: member.name || member.full_name || '',
+        department: member.department || '',
         status: attendance[member.id] || 'absent',
-        date: selectedDate
+        date: selectedDate,
+        type: 'staff'
       }));
 
       await axios.post(`${API}/attendance/bulk`, {

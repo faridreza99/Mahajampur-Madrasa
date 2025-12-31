@@ -5940,12 +5940,12 @@ async def get_attendance(
             date_type_name = date_value.__class__.__name__ if date_value else 'None'
             logging.info(f"[ATTENDANCE-GET] Sample record - date={date_value}, date_type={date_type_name}, employee={sample.get('employee_id')}, status={sample.get('status')}")
         
-        # Collect all student_ids and employee_ids for bulk lookup
-        student_ids = set()
+        # Collect all person_ids and employee_ids for bulk lookup
+        person_ids = set()
         employee_ids = set()
         for record in attendance_records:
-            if record.get("student_id"):
-                student_ids.add(record["student_id"])
+            if record.get("person_id"):
+                person_ids.add(record["person_id"])
             if record.get("employee_id"):
                 employee_ids.add(record["employee_id"])
         
@@ -5953,8 +5953,8 @@ async def get_attendance(
         students_map = {}
         staff_map = {}
         
-        if student_ids:
-            students = await db.students.find({"id": {"$in": list(student_ids)}, "tenant_id": current_user.tenant_id}).to_list(1000)
+        if person_ids:
+            students = await db.students.find({"id": {"$in": list(person_ids)}, "tenant_id": current_user.tenant_id}).to_list(1000)
             students_map = {s["id"]: s.get("name") or s.get("name_bn") or s.get("name_en", "") for s in students}
         
         if employee_ids:
@@ -5964,10 +5964,11 @@ async def get_attendance(
         # Convert ObjectIds to strings and add names
         for record in attendance_records:
             record["_id"] = str(record["_id"])
-            # Add student/staff name for display
-            if record.get("student_id"):
-                record["student_name"] = students_map.get(record["student_id"], "")
-            if record.get("employee_id"):
+            # Add student name for display (use existing person_name or lookup from students)
+            if not record.get("person_name") and record.get("person_id"):
+                record["person_name"] = students_map.get(record["person_id"], "")
+            # Add staff name for display (use existing staff_name or lookup from staff)
+            if not record.get("staff_name") and record.get("employee_id"):
                 record["staff_name"] = staff_map.get(record["employee_id"], "")
         
         return attendance_records
