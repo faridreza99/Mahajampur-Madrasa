@@ -56,6 +56,7 @@ main {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -71,6 +72,7 @@ main {
     opacity: 0;
     transform: translateX(-20px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -164,9 +166,20 @@ main {
 }
 
 @keyframes loadingDots {
-  0%, 20% { content: '.'; }
-  40% { content: '..'; }
-  60%, 100% { content: '...'; }
+
+  0%,
+  20% {
+    content: '.';
+  }
+
+  40% {
+    content: '..';
+  }
+
+  60%,
+  100% {
+    content: '...';
+  }
 }
 
 /* Form enhancements */
@@ -185,7 +198,7 @@ main {
   .sidebar-mobile-hidden {
     display: none;
   }
-  
+
   .main-content-mobile {
     margin-left: 0;
   }
@@ -226,27 +239,27 @@ main {
   .responsive-text-xs {
     font-size: 0.65rem;
   }
-  
+
   .responsive-text-sm {
     font-size: 0.75rem;
   }
-  
+
   .responsive-text-base {
     font-size: 0.875rem;
   }
-  
+
   .responsive-text-lg {
     font-size: 1rem;
   }
-  
+
   .responsive-text-xl {
     font-size: 1.125rem;
   }
-  
+
   .responsive-text-2xl {
     font-size: 1.25rem;
   }
-  
+
   .responsive-text-3xl {
     font-size: 1.5rem;
   }
@@ -266,11 +279,11 @@ main {
     margin-right: -1rem;
     border-radius: 0;
   }
-  
+
   .stats-card {
     padding: 16px;
   }
-  
+
   .stats-card p.text-4xl {
     font-size: 1.75rem;
   }
@@ -307,7 +320,7 @@ main {
     padding-left: 0.75rem;
     padding-right: 0.75rem;
   }
-  
+
   .py-responsive {
     padding-top: 0.75rem;
     padding-bottom: 0.75rem;
@@ -340,15 +353,15 @@ main {
   .flex-col-mobile {
     flex-direction: column;
   }
-  
+
   .items-start-mobile {
     align-items: flex-start;
   }
-  
+
   .gap-2-mobile {
     gap: 0.5rem;
   }
-  
+
   .w-full-mobile {
     width: 100%;
   }
@@ -359,11 +372,11 @@ main {
   .table-card-mobile {
     display: block;
   }
-  
+
   .table-card-mobile thead {
     display: none;
   }
-  
+
   .table-card-mobile tbody tr {
     display: block;
     margin-bottom: 1rem;
@@ -372,7 +385,7 @@ main {
     border-radius: 0.5rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
-  
+
   .table-card-mobile tbody td {
     display: flex;
     justify-content: space-between;
@@ -380,11 +393,11 @@ main {
     padding: 0.5rem 0;
     border-bottom: 1px solid #f1f5f9;
   }
-  
+
   .table-card-mobile tbody td:last-child {
     border-bottom: none;
   }
-  
+
   .table-card-mobile tbody td::before {
     content: attr(data-label);
     font-weight: 600;
@@ -402,8 +415,8 @@ main {
     gap: 0.5rem;
     width: 100%;
   }
-  
-  .btn-group-responsive > button {
+
+  .btn-group-responsive>button {
     width: 100%;
   }
 }
@@ -422,20 +435,21 @@ main {
   .form-grid-responsive {
     grid-template-columns: 1fr !important;
   }
-  
+
   .form-row-responsive {
     flex-direction: column;
     gap: 0.5rem;
   }
-  
-  .form-row-responsive > * {
+
+  .form-row-responsive>* {
     width: 100%;
   }
 }
 
 /* Touch-friendly buttons and inputs */
 @media (max-width: 768px) {
-  button, 
+
+  button,
   .btn,
   input[type="text"],
   input[type="email"],
@@ -466,12 +480,12 @@ main {
 }
 
 /* Responsive spacing */
-.space-y-responsive > * + * {
+.space-y-responsive>*+* {
   margin-top: 1rem;
 }
 
 @media (max-width: 640px) {
-  .space-y-responsive > * + * {
+  .space-y-responsive>*+* {
     margin-top: 0.75rem;
   }
 }
@@ -481,7 +495,7 @@ main {
   .overflow-hidden-mobile {
     overflow: hidden;
   }
-  
+
   .text-truncate-mobile {
     white-space: nowrap;
     overflow: hidden;
@@ -495,7 +509,7 @@ main {
   .header-search {
     display: none;
   }
-  
+
   .header-user-info {
     display: none;
   }
@@ -547,13 +561,13 @@ main {
     padding: 1rem;
     border-bottom: 1px solid #e5e7eb;
   }
-  
+
   .mobile-card-view .table-cell {
     display: flex;
     justify-content: space-between;
     padding: 0.25rem 0;
   }
-  
+
   .mobile-card-view .table-cell::before {
     content: attr(data-label);
     font-weight: 600;
@@ -602,11 +616,11 @@ main {
   .form-grid {
     grid-template-columns: 1fr !important;
   }
-  
+
   .form-actions {
     flex-direction: column;
   }
-  
+
   .form-actions button {
     width: 100%;
   }
@@ -664,4 +678,25 @@ main {
     background: rgba(30, 41, 59, 0.8);
     color: #f1f5f9;
   }
+}
+
+/* Bangla Safe Global */
+.bn-safe {
+  font-family: 'Noto Sans Bengali', system-ui, sans-serif !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+  white-space: nowrap;
+  letter-spacing: 0;
+  line-height: 1.35;
+  unicode-bidi: plaintext;
+  text-rendering: optimizeLegibility;
+}
+
+/* For multiline Bangla (rules section only) */
+.bn-safe-multiline {
+  font-family: 'Noto Sans Bengali', system-ui, sans-serif !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+  white-space: normal;
+  line-height: 1.35;
 }

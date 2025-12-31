@@ -1,86 +1,156 @@
-"""
-Bengali text rendering helper using PIL for proper complex script shaping
-"""
-from PIL import Image, ImageDraw, ImageFont
+# bengali_text_helper.py
+# ---------------------------------------------
+# Bangla-safe PDF text rendering helper
+# Works with ReportLab (Unicode + conjunct safe)
+# ---------------------------------------------
+
 import os
-import io
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.platypus import Paragraph
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.enums import TA_LEFT, TA_CENTER
 
-def get_bengali_font_path():
-    """Get the path to the Bengali font file"""
-    return os.path.join(os.path.dirname(__file__), "fonts", "NotoSansBengali-Regular.ttf")
+# ------------------------------------------------
+# FONT REGISTRATION
+# ------------------------------------------------
 
-def render_bengali_text_to_image(text, font_size=16, color=(255, 255, 255)):
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FONT_DIR = os.path.join(BASE_DIR, "fonts")
+
+REGULAR_FONT_PATH = os.path.join(FONT_DIR, "NotoSansBengali-Regular.ttf")
+BOLD_FONT_PATH = os.path.join(FONT_DIR, "NotoSansBengali-Bold.ttf")
+
+_FONTS_REGISTERED = False
+
+
+def register_bengali_fonts():
     """
-    Render Bengali text to a PIL Image with proper text shaping
-    
+    Register Bangla Unicode fonts for ReportLab.
+    Must be called BEFORE drawing any Bangla text.
+    """
+    global _FONTS_REGISTERED
+
+    if _FONTS_REGISTERED:
+        return
+
+    if not os.path.exists(REGULAR_FONT_PATH):
+        raise FileNotFoundError(f"Bangla font not found: {REGULAR_FONT_PATH}")
+
+    if not os.path.exists(BOLD_FONT_PATH):
+        raise FileNotFoundError(f"Bangla font not found: {BOLD_FONT_PATH}")
+
+    pdfmetrics.registerFont(TTFont("BN", REGULAR_FONT_PATH))
+    pdfmetrics.registerFont(TTFont("BN-Bold", BOLD_FONT_PATH))
+
+    _FONTS_REGISTERED = True
+
+
+# ------------------------------------------------
+# INTERNAL STYLE FACTORY
+# ------------------------------------------------
+
+
+def _get_bn_style(font_size=9, bold=False, align="left"):
+    alignment = TA_LEFT if align == "left" else TA_CENTER
+
+    return ParagraphStyle(name="BanglaStyle",
+                          fontName="BN-Bold" if bold else "BN",
+                          fontSize=font_size,
+                          leading=font_size + 2,
+                          alignment=alignment,
+                          wordWrap="LTR",
+                          splitLongWords=False,
+                          spaceBefore=0,
+                          spaceAfter=0)
+
+
+# ------------------------------------------------
+# MAIN TEXT DRAW FUNCTION (USE THIS EVERYWHERE)
+# ------------------------------------------------
+
+
+def draw_bn_text(canvas,
+                 text,
+                 x,
+                 y,
+                 width=200,
+                 font_size=9,
+                 bold=False,
+                 align="left"):
+    """
+    Draw Bangla text safely on ReportLab canvas.
+
     Args:
-        text: Bengali/Unicode text to render
-        font_size: Font size in points
-        color: RGB tuple for text color (default white)
-    
-    Returns:
-        PIL Image object with rendered text
+        canvas      : ReportLab canvas
+        text        : Bangla text (string)
+        x, y        : Position (bottom-left)
+        width       : Max width (points)
+        font_size   : Font size
+        bold        : Boolean
+        align       : "left" or "center"
     """
-    font_path = get_bengali_font_path()
-    
-    # Try to load the Bengali font, fallback to default if not available
-    try:
-        font = ImageFont.truetype(font_path, font_size)
-    except Exception:
-        font = ImageFont.load_default()
-    
-    # Calculate text size using textbbox for newer PIL versions
-    try:
-        dummy_img = Image.new('RGBA', (1, 1), (0, 0, 0, 0))
-        dummy_draw = ImageDraw.Draw(dummy_img)
-        bbox = dummy_draw.textbbox((0, 0), text, font=font)
-        text_width = bbox[2] - bbox[0] + 10
-        text_height = bbox[3] - bbox[1] + 10
-    except Exception:
-        # Fallback for older PIL versions
-        text_width = len(text) * font_size
-        text_height = font_size + 10
-    
-    # Create image with transparent background
-    img = Image.new('RGBA', (text_width, text_height), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(img)
-    
-    # Draw text with proper shaping
-    draw.text((5, 2), text, font=font, fill=(*color, 255))
-    
-    return img
 
-def save_bengali_text_image(text, output_path, font_size=16, color=(255, 255, 255)):
-    """
-    Save Bengali text as a PNG image
-    
-    Args:
-        text: Bengali/Unicode text to render  
-        output_path: Path to save the image
-        font_size: Font size in points
-        color: RGB tuple for text color
-    
-    Returns:
-        Path to the saved image
-    """
-    img = render_bengali_text_to_image(text, font_size, color)
-    img.save(output_path, 'PNG')
-    return output_path
+    if not text:
+        return
 
-def get_bengali_text_image_bytes(text, font_size=16, color=(255, 255, 255)):
+    register_bengali_fonts()
+
+    style = _get_bn_style(font_size=font_size, bold=bold, align=align)
+
+    # Convert to string safely
+    text = str(text)
+
+    paragraph = Paragraph(text, style)
+    paragraph.wrapOn(canvas, width, 100)
+    paragraph.drawOn(canvas, x, y)
+
+
+# ------------------------------------------------
+# MULTI-LINE BANGLA BLOCK (RULES / NOTES)
+# ------------------------------------------------
+
+
+def draw_bn_multiline(canvas,
+                      text,
+                      x,
+                      y,
+                      width=200,
+                      font_size=8,
+                      align="left"):
     """
-    Get Bengali text as PNG bytes for embedding in PDF
-    
-    Args:
-        text: Bengali/Unicode text to render
-        font_size: Font size in points
-        color: RGB tuple for text color
-    
-    Returns:
-        Bytes object containing PNG image data
+    Draw multi-line Bangla paragraph safely.
+    Use ONLY when wrapping is required.
     """
-    img = render_bengali_text_to_image(text, font_size, color)
-    buffer = io.BytesIO()
-    img.save(buffer, format='PNG')
-    buffer.seek(0)
-    return buffer.getvalue()
+
+    if not text:
+        return
+
+    register_bengali_fonts()
+
+    style = ParagraphStyle(name="BanglaMultiline",
+                           fontName="BN",
+                           fontSize=font_size,
+                           leading=font_size + 3,
+                           alignment=TA_LEFT if align == "left" else TA_CENTER,
+                           wordWrap="LTR")
+
+    paragraph = Paragraph(text, style)
+    w, h = paragraph.wrap(width, 500)
+    paragraph.drawOn(canvas, x, y - h)
+
+
+# ------------------------------------------------
+# SAFE TRUNCATION (OPTIONAL)
+# ------------------------------------------------
+
+
+def truncate_text(text, max_length=30):
+    """
+    Truncate text safely (no Bangla break).
+    """
+    if not text:
+        return ""
+
+    text = str(text)
+    return text if len(text) <= max_length else text[:max_length] + "…"

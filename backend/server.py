@@ -10,6 +10,9 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 from pathlib import Path
+from id_card_pdf import generate_student_id_card_pdf
+from id_card_pdf import generate_staff_id_card_pdf
+
 
 # Performance optimization modules
 from db_indexes import create_performance_indexes
@@ -30402,158 +30405,31 @@ async def generate_staff_id_card(
     staff_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Generate PDF ID card for a staff member"""
-    from reportlab.lib.units import inch, mm
-    from reportlab.lib.pagesizes import letter
-    from reportlab.pdfgen import canvas as pdf_canvas
-    from reportlab.lib import colors
-    import qrcode
-    from io import BytesIO
-    import tempfile
-    
+    """Generate PDF ID card for a staff member using unified generator"""
     if current_user.role not in ["super_admin", "admin"]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    try:
-        # Fetch staff
-        staff = await db.staff.find_one({
-            "id": staff_id,
-            "tenant_id": current_user.tenant_id
-        })
-        if not staff:
-            raise HTTPException(status_code=404, detail="Staff not found")
-        
-        # Get school branding
-        branding = await get_school_branding_for_reports(current_user.tenant_id)
-        
-        # Create PDF buffer
-        buffer = BytesIO()
-        
-        # ID card size
-        card_width = 3.375 * inch
-        card_height = 2.125 * inch
-        
-        c = pdf_canvas.Canvas(buffer, pagesize=(card_width, card_height))
-        
-        # Background gradient effect
-        primary_color = branding.get("primary_color", "#10B981")
-        try:
-            from reportlab.lib.colors import HexColor
-            bg_color = HexColor(primary_color)
-        except:
-            bg_color = colors.HexColor("#10B981")
-        
-        # Draw header background
-        c.setFillColor(bg_color)
-        c.rect(0, card_height - 0.5*inch, card_width, 0.5*inch, fill=True, stroke=False)
-        
-        # School name in header
-        c.setFillColor(colors.white)
-        c.setFont("Helvetica-Bold", 10)
-        school_name = branding.get("school_name", "School ERP")
-        c.drawCentredString(card_width/2, card_height - 0.35*inch, school_name[:30])
-        
-        # Staff photo placeholder
-        photo_x = 0.15*inch
-        photo_y = card_height - 1.4*inch
-        photo_size = 0.7*inch
-        
-        c.setStrokeColor(colors.HexColor("#d1d5db"))
-        c.setFillColor(colors.HexColor("#f3f4f6"))
-        c.rect(photo_x, photo_y, photo_size, photo_size, fill=True, stroke=True)
-        
-        # If staff has photo
-        if staff.get("photo_url"):
-            try:
-                from PIL import Image as PILImage
-                import base64
-                photo_url = staff.get("photo_url")
-                if photo_url.startswith("data:image"):
-                    header, encoded = photo_url.split(",", 1)
-                    photo_data = base64.b64decode(encoded)
-                    temp_photo = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-                    temp_photo.write(photo_data)
-                    temp_photo.close()
-                    c.drawImage(temp_photo.name, photo_x, photo_y, photo_size, photo_size, preserveAspectRatio=True, mask='auto')
-                    os.unlink(temp_photo.name)
-            except Exception as e:
-                logging.warning(f"Could not add staff photo: {e}")
-                c.setFillColor(colors.HexColor("#9ca3af"))
-                c.setFont("Helvetica", 8)
-                c.drawCentredString(photo_x + photo_size/2, photo_y + photo_size/2, "Photo")
-        else:
-            c.setFillColor(colors.HexColor("#9ca3af"))
-            c.setFont("Helvetica", 8)
-            c.drawCentredString(photo_x + photo_size/2, photo_y + photo_size/2, "Photo")
-        
-        # Staff details
-        details_x = photo_x + photo_size + 0.15*inch
-        details_y = card_height - 0.65*inch
-        line_height = 0.18*inch
-        
-        c.setFillColor(colors.black)
-        
-        # Name
-        c.setFont("Helvetica-Bold", 9)
-        staff_name = staff.get("name", "")[:25]
-        c.drawString(details_x, details_y, staff_name)
-        details_y -= line_height
-        
-        # Designation
-        c.setFont("Helvetica", 7)
-        designation = staff.get("designation", staff.get("role", "Staff"))[:30]
-        c.drawString(details_x, details_y, f"Designation: {designation}")
-        details_y -= line_height
-        
-        # Department (if available)
-        department = staff.get("department", "")
-        if department:
-            c.drawString(details_x, details_y, f"Dept: {department[:25]}")
-            details_y -= line_height
-        
-        # Employee ID
-        emp_id = staff.get("employee_id", staff_id[:10])
-        c.drawString(details_x, details_y, f"Emp ID: {emp_id}")
-        
-        # QR Code
-        try:
-            qr = qrcode.QRCode(version=1, box_size=2, border=1)
-            qr_data = f"{school_name}|{staff_name}|{staff_id}"
-            qr.add_data(qr_data)
-            qr.make(fit=True)
-            qr_img = qr.make_image(fill_color="black", back_color="white")
-            
-            qr_temp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-            qr_img.save(qr_temp.name)
-            qr_temp.close()
-            
-            qr_size = 0.5*inch
-            c.drawImage(qr_temp.name, card_width - qr_size - 0.1*inch, 0.1*inch, qr_size, qr_size)
-            os.unlink(qr_temp.name)
-        except Exception as e:
-            logging.warning(f"Could not generate QR code: {e}")
-        
-        # Footer
-        c.setFont("Helvetica", 6)
-        c.setFillColor(colors.HexColor("#6b7280"))
-        c.drawString(0.15*inch, 0.1*inch, f"ID: {staff_id[:15]}...")
-        
-        c.save()
-        buffer.seek(0)
-        
-        return StreamingResponse(
-            buffer,
-            media_type="application/pdf",
-            headers={
-                "Content-Disposition": f"attachment; filename=StaffID-{staff.get('name', 'staff').replace(' ', '_')}.pdf"
-            }
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logging.error(f"Failed to generate staff ID card: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to generate ID card: {str(e)}")
+    staff = await db.staff.find_one({
+        "id": staff_id,
+        "tenant_id": current_user.tenant_id
+    })
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff not found")
+    
+    institution = await db.institutions.find_one({
+        "tenant_id": current_user.tenant_id
+    })
+    
+    pdf_buffer = generate_staff_id_card_pdf(staff, institution or {})
+    
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename=StaffID-{staff_id}.pdf"
+        }
+    )
+
 
 
 @api_router.get("/id-cards/students/list")
