@@ -5940,9 +5940,35 @@ async def get_attendance(
             date_type_name = date_value.__class__.__name__ if date_value else 'None'
             logging.info(f"[ATTENDANCE-GET] Sample record - date={date_value}, date_type={date_type_name}, employee={sample.get('employee_id')}, status={sample.get('status')}")
         
-        # Convert ObjectIds to strings
+        # Collect all student_ids and employee_ids for bulk lookup
+        student_ids = set()
+        employee_ids = set()
+        for record in attendance_records:
+            if record.get("student_id"):
+                student_ids.add(record["student_id"])
+            if record.get("employee_id"):
+                employee_ids.add(record["employee_id"])
+        
+        # Bulk fetch students and staff for name enrichment
+        students_map = {}
+        staff_map = {}
+        
+        if student_ids:
+            students = await db.students.find({"id": {"$in": list(student_ids)}, "tenant_id": current_user.tenant_id}).to_list(1000)
+            students_map = {s["id"]: s.get("name") or s.get("name_bn") or s.get("name_en", "") for s in students}
+        
+        if employee_ids:
+            staff_list = await db.staff.find({"employee_id": {"$in": list(employee_ids)}, "tenant_id": current_user.tenant_id}).to_list(1000)
+            staff_map = {s["employee_id"]: s.get("name") or s.get("name_bn") or s.get("name_en", "") for s in staff_list}
+        
+        # Convert ObjectIds to strings and add names
         for record in attendance_records:
             record["_id"] = str(record["_id"])
+            # Add student/staff name for display
+            if record.get("student_id"):
+                record["student_name"] = students_map.get(record["student_id"], "")
+            if record.get("employee_id"):
+                record["staff_name"] = staff_map.get(record["employee_id"], "")
         
         return attendance_records
     except Exception as e:
