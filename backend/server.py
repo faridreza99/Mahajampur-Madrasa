@@ -30642,6 +30642,19 @@ async def get_madrasah_simple_results(
     
     results = await db.madrasah_simple_results.find(query).to_list(1000)
     results = sanitize_mongo_data(results)
+    
+    # Enrich results with student roll numbers
+    student_ids = list(set(r.get("student_id") for r in results if r.get("student_id")))
+    if student_ids:
+        students = await db.students.find({
+            "tenant_id": current_user.tenant_id,
+            "id": {"$in": student_ids}
+        }).to_list(len(student_ids))
+        student_map = {s["id"]: s for s in students}
+        for result in results:
+            student = student_map.get(result.get("student_id"), {})
+            result["roll_no"] = student.get("roll_no") or student.get("roll") or student.get("student_roll_number") or ""
+    
     return results
 
 @api_router.post("/madrasah/simple-results")

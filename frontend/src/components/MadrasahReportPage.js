@@ -525,6 +525,7 @@ const MadrasahReportPage = () => {
                       'jayyid': 'জায়্যিদ',
                       'maqbul': 'মাকবুল',
                       'raseb': 'রাসেব',
+                      'rasib': 'রাসেব',
                       'মুমতাজ': 'মুমতাজ',
                       'জায়্যিদ জিদ্দান': 'জায়্যিদ জিদ্দান',
                       'জায়্যিদ': 'জায়্যিদ',
@@ -532,7 +533,7 @@ const MadrasahReportPage = () => {
                       'রাসেব': 'রাসেব'
                     };
                     const getBengaliGrade = (grade) => gradeMap[grade] || grade || '-';
-                    const gradeKeys = ['mumtaz', 'jayyid_jiddan', 'jayyid', 'maqbul', 'raseb'];
+                    const gradeKeys = [['mumtaz'], ['jayyid_jiddan'], ['jayyid'], ['maqbul'], ['raseb', 'rasib']];
                     const gradeLabels = ['মুমতাজ', 'জায়্যিদ জিদ্দান', 'জায়্যিদ', 'মাকবুল', 'রাসেব'];
                     
                     return (
@@ -546,7 +547,7 @@ const MadrasahReportPage = () => {
                               idx === 3 ? 'bg-yellow-50' : 'bg-red-50'
                             }`}>
                               <p className="text-xl font-bold">
-                                {resultData.filter(r => r.grade === gradeKeys[idx] || r.grade === label).length}
+                                {resultData.filter(r => gradeKeys[idx].includes(r.grade) || r.grade === label).length}
                               </p>
                               <p className="text-sm">{label}</p>
                             </div>
