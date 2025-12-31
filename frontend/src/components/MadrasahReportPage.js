@@ -128,9 +128,9 @@ const MadrasahReportPage = () => {
   const fetchResultReport = useCallback(async () => {
     setLoading(true);
     try {
-      let url = '/api/results?';
+      let url = '/api/madrasah/simple-results?';
       if (selectedClass !== 'all') url += `class_id=${selectedClass}&`;
-      url += `session=${selectedSession}&`;
+      url += `session=${selectedSession}`;
       const response = await axios.get(url);
       setResultData(response.data || []);
     } catch (error) {
