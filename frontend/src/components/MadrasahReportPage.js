@@ -652,30 +652,30 @@ const MadrasahReportPage = () => {
                     <div className="bg-green-50 p-4 rounded-lg text-center">
                       <TrendingUp className="h-8 w-8 text-green-600 mx-auto mb-2" />
                       <p className="text-2xl font-bold text-green-600">
-                        ৳{(paymentSummary.totalCollected || 0).toLocaleString()}
+                        ৳{(paymentSummary.collected || 0).toLocaleString()}
                       </p>
                       <p className="text-sm text-gray-600">মোট আদায়</p>
                     </div>
                     <div className="bg-yellow-50 p-4 rounded-lg text-center">
                       <Clock className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
                       <p className="text-2xl font-bold text-yellow-600">
-                        ৳{(paymentSummary.totalPending || 0).toLocaleString()}
+                        ৳{(paymentSummary.pending || 0).toLocaleString()}
                       </p>
                       <p className="text-sm text-gray-600">বকেয়া</p>
                     </div>
                     <div className="bg-red-50 p-4 rounded-lg text-center">
                       <XCircle className="h-8 w-8 text-red-600 mx-auto mb-2" />
                       <p className="text-2xl font-bold text-red-600">
-                        ৳{(paymentSummary.totalOverdue || 0).toLocaleString()}
+                        ৳{(paymentSummary.overdue || 0).toLocaleString()}
                       </p>
                       <p className="text-sm text-gray-600">অতিরিক্ত বকেয়া</p>
                     </div>
                     <div className="bg-blue-50 p-4 rounded-lg text-center">
                       <CreditCard className="h-8 w-8 text-blue-600 mx-auto mb-2" />
                       <p className="text-2xl font-bold text-blue-600">
-                        ৳{(paymentSummary.todaysCollection || 0).toLocaleString()}
+                        ৳{(paymentSummary.todays_collection || 0).toLocaleString()}
                       </p>
-                      <p className="text-sm text-gray-600">আজকের আদায় ({paymentSummary.paymentsToday || 0}টি)</p>
+                      <p className="text-sm text-gray-600">আজকের আদায় ({paymentSummary.payments_today || 0}টি)</p>
                     </div>
                   </div>
 
@@ -732,21 +732,21 @@ const MadrasahReportPage = () => {
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-center">
                       <div>
                         <p className="text-sm text-gray-600">মোট ফি</p>
-                        <p className="text-xl font-bold">৳{(paymentSummary.totalFees || 0).toLocaleString()}</p>
+                        <p className="text-xl font-bold">৳{(paymentSummary.total_fees || 0).toLocaleString()}</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-600">আদায় শতাংশ</p>
                         <p className="text-xl font-bold text-emerald-600">
-                          {paymentSummary.totalFees > 0 
-                            ? Math.round((paymentSummary.totalCollected / paymentSummary.totalFees) * 100) 
+                          {paymentSummary.total_fees > 0 
+                            ? Math.round((paymentSummary.collected / paymentSummary.total_fees) * 100) 
                             : 0}%
                         </p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-600">বকেয়া শতাংশ</p>
                         <p className="text-xl font-bold text-red-600">
-                          {paymentSummary.totalFees > 0 
-                            ? Math.round((paymentSummary.totalPending / paymentSummary.totalFees) * 100) 
+                          {paymentSummary.total_fees > 0 
+                            ? Math.round((paymentSummary.pending / paymentSummary.total_fees) * 100) 
                             : 0}%
                         </p>
                       </div>
