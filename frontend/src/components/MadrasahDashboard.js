@@ -47,6 +47,8 @@ const MadrasahDashboard = () => {
     attendance: { present: 0, absent: 0, late: 0, total: 0 },
     classes: [],
     recentPayments: [],
+    monthlyFees: [],
+    weeklyAttendance: [],
   });
   const [schoolBranding, setSchoolBranding] = useState({});
 
@@ -102,6 +104,8 @@ const MadrasahDashboard = () => {
         },
         classes: classWiseStudents,
         recentPayments: recentPayments,
+        monthlyFees: fees.monthly_collection || [],
+        weeklyAttendance: attendance.weekly || [],
       });
 
       setSchoolBranding(brandingRes.data || {});
@@ -117,32 +121,13 @@ const MadrasahDashboard = () => {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  const { students, fees, attendance, classes, recentPayments } = dashboardData;
+  const { students, fees, attendance, classes, recentPayments, monthlyFees, weeklyAttendance } = dashboardData;
 
-  const feeCollectionData = [
-    { name: 'জানু', collected: 45000, target: 50000 },
-    { name: 'ফেব্রু', collected: 52000, target: 50000 },
-    { name: 'মার্চ', collected: 48000, target: 50000 },
-    { name: 'এপ্রিল', collected: 55000, target: 50000 },
-    { name: 'মে', collected: 42000, target: 50000 },
-    { name: 'জুন', collected: fees.collected || 15200, target: 50000 },
-  ];
-
-  const attendancePieData = [
-    { name: 'উপস্থিত', value: attendance.present || 85, color: '#10B981' },
-    { name: 'অনুপস্থিত', value: attendance.absent || 10, color: '#EF4444' },
-    { name: 'বিলম্বে', value: attendance.late || 5, color: '#F59E0B' },
-  ];
-
-  const weeklyAttendanceData = [
-    { day: 'শনি', present: 92, absent: 8 },
-    { day: 'রবি', present: 88, absent: 12 },
-    { day: 'সোম', present: 95, absent: 5 },
-    { day: 'মঙ্গল', present: 90, absent: 10 },
-    { day: 'বুধ', present: 87, absent: 13 },
-    { day: 'বৃহ', present: 93, absent: 7 },
-    { day: 'শুক্র', present: 0, absent: 0 },
-  ];
+  const attendancePieData = attendance.total > 0 ? [
+    { name: 'উপস্থিত', value: attendance.present, color: '#10B981' },
+    { name: 'অনুপস্থিত', value: attendance.absent, color: '#EF4444' },
+    { name: 'বিলম্বে', value: attendance.late, color: '#F59E0B' },
+  ].filter(d => d.value > 0) : [];
 
   const collectionPercentage = fees.total > 0 ? Math.round((fees.collected / fees.total) * 100) : 0;
 
@@ -257,25 +242,32 @@ const MadrasahDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={280}>
-              <AreaChart data={feeCollectionData}>
-                <defs>
-                  <linearGradient id="colorCollected" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#10B981" stopOpacity={0.1}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                <XAxis dataKey="name" tick={{ fill: '#6B7280', fontSize: 12 }} />
-                <YAxis tick={{ fill: '#6B7280', fontSize: 12 }} tickFormatter={(v) => `৳${v/1000}k`} />
-                <Tooltip 
-                  formatter={(value) => [`৳${value.toLocaleString()}`, 'আদায়']}
-                  contentStyle={{ borderRadius: '8px', border: '1px solid #E5E7EB' }}
-                />
-                <Area type="monotone" dataKey="collected" stroke="#10B981" strokeWidth={3} fill="url(#colorCollected)" />
-                <Line type="monotone" dataKey="target" stroke="#9CA3AF" strokeDasharray="5 5" strokeWidth={2} dot={false} />
-              </AreaChart>
-            </ResponsiveContainer>
+            {monthlyFees.length > 0 ? (
+              <ResponsiveContainer width="100%" height={280}>
+                <AreaChart data={monthlyFees}>
+                  <defs>
+                    <linearGradient id="colorCollected" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#10B981" stopOpacity={0.1}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                  <XAxis dataKey="name" tick={{ fill: '#6B7280', fontSize: 12 }} />
+                  <YAxis tick={{ fill: '#6B7280', fontSize: 12 }} tickFormatter={(v) => `৳${v/1000}k`} />
+                  <Tooltip 
+                    formatter={(value) => [`৳${value.toLocaleString()}`, 'আদায়']}
+                    contentStyle={{ borderRadius: '8px', border: '1px solid #E5E7EB' }}
+                  />
+                  <Area type="monotone" dataKey="collected" stroke="#10B981" strokeWidth={3} fill="url(#colorCollected)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-[280px] text-gray-500">
+                <TrendingUp className="h-12 w-12 mb-3 text-gray-300" />
+                <p>মাসিক আদায় ডাটা নেই</p>
+                <p className="text-xs mt-1">পেমেন্ট রেকর্ড যোগ করলে এখানে দেখাবে</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -287,18 +279,26 @@ const MadrasahDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={weeklyAttendanceData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                <XAxis dataKey="day" tick={{ fill: '#6B7280', fontSize: 12 }} />
-                <YAxis tick={{ fill: '#6B7280', fontSize: 12 }} />
-                <Tooltip 
-                  contentStyle={{ borderRadius: '8px', border: '1px solid #E5E7EB' }}
-                />
-                <Bar dataKey="present" name="উপস্থিত" fill="#10B981" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="absent" name="অনুপস্থিত" fill="#EF4444" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {weeklyAttendance.length > 0 ? (
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={weeklyAttendance}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                  <XAxis dataKey="day" tick={{ fill: '#6B7280', fontSize: 12 }} />
+                  <YAxis tick={{ fill: '#6B7280', fontSize: 12 }} />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '8px', border: '1px solid #E5E7EB' }}
+                  />
+                  <Bar dataKey="present" name="উপস্থিত" fill="#10B981" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="absent" name="অনুপস্থিত" fill="#EF4444" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-[280px] text-gray-500">
+                <Calendar className="h-12 w-12 mb-3 text-gray-300" />
+                <p>সাপ্তাহিক হাজিরা ডাটা নেই</p>
+                <p className="text-xs mt-1">হাজিরা রেকর্ড যোগ করলে এখানে দেখাবে</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -338,26 +338,34 @@ const MadrasahDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={attendancePieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={90}
-                  paddingAngle={5}
-                  dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  labelLine={false}
-                >
-                  {attendancePieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            {attendancePieData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie
+                    data={attendancePieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={90}
+                    paddingAngle={5}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    labelLine={false}
+                  >
+                    {attendancePieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-[250px] text-gray-500">
+                <UserCheck className="h-12 w-12 mb-3 text-gray-300" />
+                <p>হাজিরা ডাটা নেই</p>
+                <p className="text-xs mt-1">হাজিরা রেকর্ড যোগ করলে এখানে দেখাবে</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
