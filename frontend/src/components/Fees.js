@@ -1653,6 +1653,16 @@ const Fees = () => {
                               </div>
                             </div>
                             <div className="flex items-center gap-3">
+                              {studentDue && (
+                                <div className="text-right text-sm">
+                                  {studentDue.paid_amount > 0 && (
+                                    <p className="text-green-600">পেইড: ৳{studentDue.paid_amount?.toLocaleString() || 0}</p>
+                                  )}
+                                  {hasDue && (
+                                    <p className="text-red-600 font-medium">বকেয়া: ৳{((studentDue.pending_amount || 0) + (studentDue.overdue_amount || 0)).toLocaleString()}</p>
+                                  )}
+                                </div>
+                              )}
                               <Badge className={`text-sm px-3 py-1 ${hasDue ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
                                 {hasDue ? 'বকেয়া আছে' : 'বকেয়া নেই'}
                               </Badge>
