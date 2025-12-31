@@ -6130,6 +6130,34 @@ async def get_attendance_summary(
         else:
             summary["attendance_rate"] = 0
         
+        # Get weekly attendance data (last 7 days)
+        bengali_days = ['রবি', 'সোম', 'মঙ্গল', 'বুধ', 'বৃহ', 'শুক্র', 'শনি']
+        weekly = []
+        today = datetime.utcnow()
+        for i in range(6, -1, -1):
+            day_date = today - timedelta(days=i)
+            day_str = day_date.strftime("%Y-%m-%d")
+            day_records = await db.attendance.find({
+                "tenant_id": current_user.tenant_id,
+                "type": type,
+                "$or": [
+                    {"date": day_str},
+                    {"date": {"$regex": f"^{day_str}"}},
+                    {"date": day_date.replace(hour=0, minute=0, second=0, microsecond=0)}
+                ]
+            }).to_list(1000)
+            
+            present_count = sum(1 for r in day_records if r.get("status") == "present")
+            absent_count = sum(1 for r in day_records if r.get("status") == "absent")
+            
+            weekly.append({
+                "day": bengali_days[day_date.weekday() + 1 if day_date.weekday() < 6 else 0],
+                "present": present_count,
+                "absent": absent_count
+            })
+        
+        summary["weekly"] = weekly
+        
         return summary
         
     except Exception as e:
@@ -15280,6 +15308,7 @@ class FeeDashboard(BaseModel):
     todays_collection: float
     pending_approvals: int
     monthly_target: float
+    monthly_collection: List[dict] = []
 
 # ===== ACCOUNTS & TRANSACTIONS =====
 class Transaction(BaseModel):
@@ -17058,6 +17087,32 @@ async def get_fee_dashboard(current_user: User = Depends(get_current_user)):
             elif config.get("frequency") == "yearly":
                 monthly_target += (config.get("amount", 0) / 12) * 10
         
+        # Get monthly collection data for the last 6 months
+        bengali_months = ['জানু', 'ফেব্রু', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই', 'আগস্ট', 'সেপ্টে', 'অক্টো', 'নভে', 'ডিসে']
+        monthly_collection = []
+        current_date = datetime.utcnow()
+        for i in range(5, -1, -1):
+            month_date = current_date - timedelta(days=i*30)
+            month_start = datetime(month_date.year, month_date.month, 1)
+            if month_date.month == 12:
+                month_end = datetime(month_date.year + 1, 1, 1)
+            else:
+                month_end = datetime(month_date.year, month_date.month + 1, 1)
+            
+            month_pipeline = [
+                {"$match": {
+                    "tenant_id": current_user.tenant_id,
+                    "payment_date": {"$gte": month_start, "$lt": month_end}
+                }},
+                {"$group": {"_id": None, "total": {"$sum": "$amount"}}}
+            ]
+            month_result = await db.payments.aggregate(month_pipeline).to_list(1)
+            month_collected = month_result[0].get("total", 0) if month_result else 0
+            monthly_collection.append({
+                "name": bengali_months[month_date.month - 1],
+                "collected": month_collected
+            })
+        
         return FeeDashboard(
             total_fees=total_fees,
             collected=collected,
@@ -17067,7 +17122,8 @@ async def get_fee_dashboard(current_user: User = Depends(get_current_user)):
             payments_today=payments_today,
             todays_collection=todays_collection,
             pending_approvals=pending_approvals,
-            monthly_target=monthly_target
+            monthly_target=monthly_target,
+            monthly_collection=monthly_collection
         )
         
     except Exception as e:
