@@ -151,6 +151,22 @@ const MadrasahReportPage = () => {
     setLoading(false);
   }, [selectedClass, selectedSession]);
 
+  const fetchPaymentReport = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [dashboardRes, paymentsRes] = await Promise.all([
+        axios.get('/api/fees/dashboard'),
+        axios.get('/api/fees/payments/recent?limit=50')
+      ]);
+      setPaymentSummary(dashboardRes.data || {});
+      setPaymentData(paymentsRes.data || []);
+    } catch (error) {
+      console.error('Error fetching payment data:', error);
+      toast.error('বেতন তথ্য লোড করতে সমস্যা হয়েছে');
+    }
+    setLoading(false);
+  }, []);
+
   useEffect(() => {
     if (activeReport === 'student') fetchStudentReport();
     if (activeReport === 'attendance') fetchAttendanceReport();
