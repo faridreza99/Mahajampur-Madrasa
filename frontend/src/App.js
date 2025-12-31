@@ -461,14 +461,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <MadrasahSimpleSettings />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route
                   path="/madrasah/reports"
                   element={
                     <ProtectedRoute>
                       <MadrasahReportPage />
-                    </ProtectedRoute>
-                  }
-                />
                     </ProtectedRoute>
                   }
                 />
