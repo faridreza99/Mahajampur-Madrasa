@@ -186,9 +186,13 @@ const MadrasahSimpleSettings = () => {
       return;
     }
     try {
+      const classNumber = academicData.classes.length + 1;
       await axios.post(`${API_BASE_URL}/classes`, {
         name: newClassName,
-        standard: academicData.classes.length + 1
+        standard: `Class ${classNumber}`,
+        display_name: newClassName,
+        internal_standard: classNumber,
+        institution_type: 'madrasah'
       });
       toast.success('মারহালা যোগ হয়েছে');
       setNewClassName('');
