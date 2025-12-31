@@ -391,12 +391,10 @@ def generate_back_side(c, student, institution):
                          centered=True, width=CARD_WIDTH)
         y_pos -= 5*mm
     
-    if name_en and name_en.strip() and all(ord(ch) < 128 for ch in name_en):
-        c.setFillColor(DARK_GREEN)
-        c.setFont("Helvetica-Bold", 4)
-        name_width = c.stringWidth(name_en[:42], "Helvetica-Bold", 4)
-        c.drawString((CARD_WIDTH - name_width) / 2, y_pos, name_en[:42])
-        y_pos -= 6*mm
+    if name_en and name_en.strip():
+        draw_bengali_text(c, 0, y_pos, name_en[:42], 4, color=(0, 100, 0), bold=True, 
+                         centered=True, width=CARD_WIDTH)
+        y_pos -= 5*mm
     
     seal_size = 16 * mm
     seal_x = (CARD_WIDTH - seal_size) / 2
