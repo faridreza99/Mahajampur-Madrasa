@@ -329,32 +329,36 @@ def generate_front_side(c, student, institution, class_name=""):
     name_y = photo_y - 4*mm
     draw_bengali_text(c, 0, name_y, f"নাম: {name}", 7, color=(0, 0, 0), bold=True, centered=True, width=CARD_WIDTH)
     
+    is_student = student.get("roll_no") or student.get("admission_no") or student.get("class_id")
+    
     position_y = name_y - 5*mm
     if position:
-        is_student = student.get("roll_no") or student.get("admission_no") or student.get("class_id")
         label = "শ্রেণী" if is_student else "পদের নাম"
         draw_bengali_text(c, 0, position_y, f"{label}: {position}", 4.5, color=(139, 0, 0), bold=True, centered=True, width=CARD_WIDTH)
     
     details_start_y = position_y - 5*mm
     line_height = 3.8*mm
     
-    details = [
-        ("ঠিকানা", student_address[:25] if student_address else ""),
-        ("মোবাইল", mobile),
-    ]
+    guardian_mobile = student.get("guardian_phone") or student.get("guardian_mobile") or student.get("parent_phone") or ""
+    
+    if is_student:
+        details = [
+            ("ঠিকানা", student_address[:25] if student_address else ""),
+            ("জন্ম তারিখ", dob),
+            ("মোবাইল", guardian_mobile or mobile),
+        ]
+    else:
+        details = [
+            ("যোগদানের তারিখ", joining_date),
+            ("ঠিকানা", student_address[:25] if student_address else ""),
+            ("মোবাইল", mobile),
+        ]
     
     current_y = details_start_y
     for label, value in details:
         if value:
             detail_text = f"{label}: {value}"
-            if any(ord(ch) > 127 for ch in str(value)):
-                draw_bengali_text(c, 0, current_y, detail_text, 4, color=(51, 51, 51), centered=True, width=CARD_WIDTH)
-            else:
-                draw_bengali_text(c, 0, current_y, f"{label}: ", 4, color=(0, 0, 0), bold=True, centered=True, width=CARD_WIDTH)
-                c.setFont("Helvetica", 4.5)
-                c.setFillColor(colors.black)
-                label_w = c.stringWidth(f"{label}: ", "Helvetica", 4.5)
-                c.drawCentredString(CARD_WIDTH/2 + label_w/2, current_y - 1*mm, str(value))
+            draw_bengali_text(c, 0, current_y, detail_text, 4, color=(51, 51, 51), centered=True, width=CARD_WIDTH)
             current_y -= line_height
     
     sig_y = 10*mm
