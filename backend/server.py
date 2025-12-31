@@ -1898,6 +1898,22 @@ async def log_admin_action(
     await db.audit_logs.insert_one(audit_log.dict())
     logging.info(f"Audit Log: {admin_name} performed {action} on user {target_user_name or 'N/A'}")
 
+
+# Simple /users endpoint for Madrasah Simple Settings
+@api_router.get("/users")
+async def get_users_simple(current_user: User = Depends(get_current_user)):
+    """Get all users for the tenant (simplified endpoint for Madrasah settings)"""
+    if current_user.role not in ["super_admin", "admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    users = await db.users.find({"tenant_id": current_user.tenant_id}).to_list(1000)
+    
+    for user in users:
+        user.pop("password_hash", None)
+        user.pop("_id", None)
+    
+    return users
+
 @api_router.get("/admin/users")
 async def get_all_users(current_user: User = Depends(get_current_user)):
     """Get all users in the system (System Admin and Admin only)"""
