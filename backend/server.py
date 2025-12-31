@@ -17250,11 +17250,13 @@ async def get_student_fees(
 ):
     """Get student fees records with due/overdue amounts"""
     try:
-        # ⚠️ CRITICAL: is_active filter MUST be True to avoid returning deleted records
-        # Removing this filter will show all records including inactive/deleted ones
+        # Query for active student fees - support old records without is_active field
         query_filter = {
             "tenant_id": current_user.tenant_id,
-            "is_active": True  # 🔒 PROTECTED - DO NOT REMOVE
+            "$or": [
+                {"is_active": True},
+                {"is_active": {"$exists": False}}
+            ]
         }
         
         if student_id:
@@ -17308,6 +17310,38 @@ async def get_student_fees(
     except Exception as e:
         logging.error(f"Failed to get student fees: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to retrieve student fees")
+
+
+
+@api_router.post("/fees/migrate-is-active")
+async def migrate_student_fees_is_active(
+    current_user: User = Depends(get_current_user)
+):
+    """One-time migration to add is_active=True to old student_fees records"""
+    if current_user.role not in ["super_admin", "admin"]:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    try:
+        # Find all records without is_active field
+        result = await db.student_fees.update_many(
+            {
+                "tenant_id": current_user.tenant_id,
+                "is_active": {"$exists": False}
+            },
+            {"$set": {"is_active": True}}
+        )
+        
+        logging.info(f"Migration: Updated {result.modified_count} student_fees records with is_active=True")
+        
+        return {
+            "success": True,
+            "message": f"Updated {result.modified_count} records with is_active=True",
+            "modified_count": result.modified_count
+        }
+        
+    except Exception as e:
+        logging.error(f"Migration failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Migration failed: {str(e)}")
 
 @api_router.post("/fees/payments", response_model=Payment)
 async def create_payment(
@@ -18180,14 +18214,16 @@ async def create_student_fees_from_config(fee_config: FeeConfiguration, current_
 async def apply_payment_to_student_fees(payment: Payment, current_user: User):
     """Apply payment to student fees using ERP logic (overdue -> pending -> advance)"""
     try:
-        # ⚠️ CRITICAL: is_active filter MUST be True to update correct records
-        # Removing this filter will update inactive/deleted records instead of active ones
-        # Result: Payments will succeed but Fee Due tab won't update
+        # Find student fees - support both old records (without is_active) and new ones
+        # Query matches: is_active=True OR is_active field doesn't exist (backward compat)
         student_fees = await db.student_fees.find({
             "student_id": payment.student_id,
             "fee_type": payment.fee_type,
             "tenant_id": current_user.tenant_id,
-            "is_active": True  # 🔒 PROTECTED - DO NOT REMOVE
+            "$or": [
+                {"is_active": True},
+                {"is_active": {"$exists": False}}
+            ]
         }).to_list(100)
         
         # If no student_fee exists, create one on-the-fly (payment-first scenario)
@@ -27721,6 +27757,17 @@ async def startup_db_client():
         # Ensure seed data exists
         await ensure_seed_data()
         logger.info("Seed data initialization completed")
+        
+        # Auto-migration: Add is_active=True to old student_fees records
+        try:
+            result = await db.student_fees.update_many(
+                {"is_active": {"$exists": False}},
+                {"$set": {"is_active": True}}
+            )
+            if result.modified_count > 0:
+                logger.info(f"Migration: Added is_active=True to {result.modified_count} student_fees records")
+        except Exception as me:
+            logger.warning(f"Auto-migration for student_fees skipped: {me}")
         
     except Exception as e:
         logger.error(f"Database startup error: {e}")
