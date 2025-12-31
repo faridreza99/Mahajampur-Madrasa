@@ -18261,6 +18261,10 @@ async def apply_payment_to_student_fees(payment: Payment, current_user: User):
         
         remaining_amount = payment.amount
         
+        # Sort fees: prioritize ones with overdue/pending amounts FIRST
+        # This ensures payment goes to fees that actually need it
+        student_fees = sorted(student_fees, key=lambda f: -(f.get("overdue_amount", 0) + f.get("pending_amount", 0)))
+        
         for fee in student_fees:
             if remaining_amount <= 0:
                 break
