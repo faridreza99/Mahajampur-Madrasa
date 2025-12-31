@@ -202,7 +202,7 @@ const MadrasahSimpleResult = () => {
                 <tr>
                   <td>${index + 1}</td>
                   <td style="text-align: left;">${student.name}</td>
-                  <td>${student.roll_number || '-'}</td>
+                  <td>${student.roll_no || '-'}</td>
                   <td class="grade-${result?.grade || ''}">${gradeInfo?.label || 'মূল্যায়ন হয়নি'}</td>
                 </tr>
               `;
@@ -227,7 +227,7 @@ const MadrasahSimpleResult = () => {
 
   const filteredStudents = students.filter(student =>
     student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.roll_number?.toString().includes(searchTerm)
+    student.roll_no?.toString().includes(searchTerm)
   );
 
   const sessionOptions = [];
@@ -371,7 +371,7 @@ const MadrasahSimpleResult = () => {
                             </div>
                           </td>
                           <td className="px-4 py-4 text-center text-sm text-gray-600 dark:text-gray-400">
-                            {student.roll_number || '-'}
+                            {student.roll_no || '-'}
                           </td>
                           <td className="px-4 py-4">
                             {canEdit ? (
