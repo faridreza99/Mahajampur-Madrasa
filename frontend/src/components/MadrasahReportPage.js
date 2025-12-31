@@ -29,9 +29,11 @@ const MadrasahReportPage = () => {
   const [selectedSession, setSelectedSession] = useState('2025');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [attendanceType, setAttendanceType] = useState('student');
   
   const [students, setStudents] = useState([]);
   const [attendanceData, setAttendanceData] = useState([]);
+  const [staffAttendanceData, setStaffAttendanceData] = useState([]);
   const [resultData, setResultData] = useState([]);
   const [schoolBranding, setSchoolBranding] = useState({});
   
@@ -95,12 +97,27 @@ const MadrasahReportPage = () => {
   const fetchAttendanceReport = useCallback(async () => {
     setLoading(true);
     try {
-      let url = '/api/attendance?type=student&';
-      if (selectedClass !== 'all') url += `class_id=${selectedClass}&`;
-      if (dateFrom) url += `date_from=${dateFrom}&`;
-      if (dateTo) url += `date_to=${dateTo}&`;
-      const response = await axios.get(url);
-      setAttendanceData(response.data || []);
+      let studentUrl = '/api/attendance?type=student&';
+      let staffUrl = '/api/attendance?type=staff&';
+      if (selectedClass !== 'all') {
+        studentUrl += `class_id=${selectedClass}&`;
+      }
+      if (dateFrom) {
+        studentUrl += `date_from=${dateFrom}&`;
+        staffUrl += `date_from=${dateFrom}&`;
+      }
+      if (dateTo) {
+        studentUrl += `date_to=${dateTo}&`;
+        staffUrl += `date_to=${dateTo}&`;
+      }
+      
+      const [studentRes, staffRes] = await Promise.all([
+        axios.get(studentUrl),
+        axios.get(staffUrl)
+      ]);
+      
+      setAttendanceData(studentRes.data || []);
+      setStaffAttendanceData(staffRes.data || []);
     } catch (error) {
       console.error('Error fetching attendance:', error);
       toast.error('হাজিরা তথ্য লোড করতে সমস্যা হয়েছে');
@@ -375,9 +392,29 @@ const MadrasahReportPage = () => {
         {activeReport === 'attendance' && (
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
-                হাজিরা প্রতিবেদন
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  হাজিরা প্রতিবেদন
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant={attendanceType === 'student' ? 'default' : 'outline'}
+                    onClick={() => setAttendanceType('student')}
+                    className={attendanceType === 'student' ? 'bg-emerald-600' : ''}
+                  >
+                    ছাত্র হাজিরা
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={attendanceType === 'staff' ? 'default' : 'outline'}
+                    onClick={() => setAttendanceType('staff')}
+                    className={attendanceType === 'staff' ? 'bg-emerald-600' : ''}
+                  >
+                    স্টাফ হাজিরা
+                  </Button>
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -385,74 +422,81 @@ const MadrasahReportPage = () => {
                 <div className="text-center py-8 text-gray-500">লোড হচ্ছে...</div>
               ) : (
                 <>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                    <div className="bg-green-50 p-4 rounded-lg text-center">
-                      <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                      <p className="text-2xl font-bold text-green-600">
-                        {attendanceData.filter(a => a.status === 'present').length}
-                      </p>
-                      <p className="text-sm text-gray-600">উপস্থিত</p>
-                    </div>
-                    <div className="bg-red-50 p-4 rounded-lg text-center">
-                      <XCircle className="h-8 w-8 text-red-600 mx-auto mb-2" />
-                      <p className="text-2xl font-bold text-red-600">
-                        {attendanceData.filter(a => a.status === 'absent').length}
-                      </p>
-                      <p className="text-sm text-gray-600">অনুপস্থিত</p>
-                    </div>
-                    <div className="bg-yellow-50 p-4 rounded-lg text-center">
-                      <Clock className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
-                      <p className="text-2xl font-bold text-yellow-600">
-                        {attendanceData.filter(a => a.status === 'late').length}
-                      </p>
-                      <p className="text-sm text-gray-600">দেরিতে</p>
-                    </div>
-                    <div className="bg-blue-50 p-4 rounded-lg text-center">
-                      <BarChart3 className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                      <p className="text-2xl font-bold text-blue-600">
-                        {attendanceData.length > 0 
-                          ? Math.round((attendanceData.filter(a => a.status === 'present').length / attendanceData.length) * 100) 
-                          : 0}%
-                      </p>
-                      <p className="text-sm text-gray-600">উপস্থিতি হার</p>
-                    </div>
-                  </div>
-                  
-                  {attendanceData.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      তারিখ নির্বাচন করে হাজিরা দেখুন
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full border-collapse">
-                        <thead>
-                          <tr className="bg-emerald-600 text-white">
-                            <th className="border p-2">তারিখ</th>
-                            <th className="border p-2">ছাত্রের নাম</th>
-                            <th className="border p-2">অবস্থা</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {attendanceData.slice(0, 50).map((att, idx) => (
-                            <tr key={idx} className="hover:bg-gray-50">
-                              <td className="border p-2 text-center">{att.date}</td>
-                              <td className="border p-2">{att.student_name || att.name}</td>
-                              <td className="border p-2 text-center">
-                                <Badge className={
-                                  att.status === 'present' ? 'bg-green-100 text-green-700' :
-                                  att.status === 'absent' ? 'bg-red-100 text-red-700' :
-                                  'bg-yellow-100 text-yellow-700'
-                                }>
-                                  {att.status === 'present' ? 'উপস্থিত' : 
-                                   att.status === 'absent' ? 'অনুপস্থিত' : 'দেরি'}
-                                </Badge>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+                  {(() => {
+                    const currentData = attendanceType === 'student' ? attendanceData : staffAttendanceData;
+                    return (
+                      <>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                          <div className="bg-green-50 p-4 rounded-lg text-center">
+                            <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                            <p className="text-2xl font-bold text-green-600">
+                              {currentData.filter(a => a.status === 'present').length}
+                            </p>
+                            <p className="text-sm text-gray-600">উপস্থিত</p>
+                          </div>
+                          <div className="bg-red-50 p-4 rounded-lg text-center">
+                            <XCircle className="h-8 w-8 text-red-600 mx-auto mb-2" />
+                            <p className="text-2xl font-bold text-red-600">
+                              {currentData.filter(a => a.status === 'absent').length}
+                            </p>
+                            <p className="text-sm text-gray-600">অনুপস্থিত</p>
+                          </div>
+                          <div className="bg-yellow-50 p-4 rounded-lg text-center">
+                            <Clock className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
+                            <p className="text-2xl font-bold text-yellow-600">
+                              {currentData.filter(a => a.status === 'late').length}
+                            </p>
+                            <p className="text-sm text-gray-600">দেরিতে</p>
+                          </div>
+                          <div className="bg-blue-50 p-4 rounded-lg text-center">
+                            <BarChart3 className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                            <p className="text-2xl font-bold text-blue-600">
+                              {currentData.length > 0 
+                                ? Math.round((currentData.filter(a => a.status === 'present').length / currentData.length) * 100) 
+                                : 0}%
+                            </p>
+                            <p className="text-sm text-gray-600">উপস্থিতি হার</p>
+                          </div>
+                        </div>
+                        
+                        {currentData.length === 0 ? (
+                          <div className="text-center py-8 text-gray-500">
+                            তারিখ নির্বাচন করে হাজিরা দেখুন
+                          </div>
+                        ) : (
+                          <div className="overflow-x-auto">
+                            <table className="w-full border-collapse">
+                              <thead>
+                                <tr className="bg-emerald-600 text-white">
+                                  <th className="border p-2">তারিখ</th>
+                                  <th className="border p-2">{attendanceType === 'student' ? 'ছাত্রের নাম' : 'স্টাফের নাম'}</th>
+                                  <th className="border p-2">অবস্থা</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {currentData.slice(0, 50).map((att, idx) => (
+                                  <tr key={idx} className="hover:bg-gray-50">
+                                    <td className="border p-2 text-center">{att.date}</td>
+                                    <td className="border p-2">{att.student_name || att.staff_name || att.name || att.employee_name || '-'}</td>
+                                    <td className="border p-2 text-center">
+                                      <Badge className={
+                                        att.status === 'present' ? 'bg-green-100 text-green-700' :
+                                        att.status === 'absent' ? 'bg-red-100 text-red-700' :
+                                        'bg-yellow-100 text-yellow-700'
+                                      }>
+                                        {att.status === 'present' ? 'উপস্থিত' : 
+                                         att.status === 'absent' ? 'অনুপস্থিত' : 'দেরি'}
+                                      </Badge>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </>
               )}
             </CardContent>
