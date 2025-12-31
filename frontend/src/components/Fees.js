@@ -1452,10 +1452,7 @@ const Fees = () => {
               Export
             </Button>
           )}
-          <Button className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600 text-sm sm:text-base h-8 sm:h-9" onClick={handleCollectPayment}>
-            <CreditCard className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-            {isMadrasahSimpleUI ? 'বেতন আদায়' : 'Collect'}
-          </Button>
+{/* Removed: বেতন আদায় button - use Reports page for payment analytics */}
         </div>
       </div>
 

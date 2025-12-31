@@ -11,6 +11,9 @@ import {
   FileText, 
   Printer, 
   Download,
+  DollarSign,
+  TrendingUp,
+  CreditCard,
   ArrowLeft,
   BarChart3,
   CheckCircle,
@@ -36,6 +39,14 @@ const MadrasahReportPage = () => {
   const [staffAttendanceData, setStaffAttendanceData] = useState([]);
   const [resultData, setResultData] = useState([]);
   const [schoolBranding, setSchoolBranding] = useState({});
+  const [paymentData, setPaymentData] = useState([]);
+  const [paymentSummary, setPaymentSummary] = useState({
+    totalCollected: 0,
+    totalPending: 0,
+    totalOverdue: 0,
+    paymentsToday: 0,
+    todaysCollection: 0
+  });
   
   const printRef = useRef();
 
@@ -144,7 +155,8 @@ const MadrasahReportPage = () => {
     if (activeReport === 'student') fetchStudentReport();
     if (activeReport === 'attendance') fetchAttendanceReport();
     if (activeReport === 'result') fetchResultReport();
-  }, [activeReport, fetchStudentReport, fetchAttendanceReport, fetchResultReport]);
+    if (activeReport === 'payment') fetchPaymentReport();
+  }, [activeReport, fetchStudentReport, fetchAttendanceReport, fetchResultReport, fetchPaymentReport]);
 
   const handlePrint = () => {
     const printContent = printRef.current;
@@ -208,6 +220,13 @@ const MadrasahReportPage = () => {
       icon: Award,
       description: 'পরীক্ষার ফলাফল ও গ্রেড',
       color: 'bg-purple-500'
+    },
+    {
+      id: 'payment',
+      title: 'বেতন রিপোর্ট',
+      icon: DollarSign,
+      description: 'বেতন আদায় ও হিসাব বিশ্লেষণ',
+      color: 'bg-yellow-500'
     }
   ];
 
@@ -594,6 +613,129 @@ const MadrasahReportPage = () => {
                       </>
                     );
                   })()}
+                </>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {activeReport === 'payment' && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5" />
+                বেতন রিপোর্ট ও আদায় বিশ্লেষণ
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="text-center py-8 text-gray-500">লোড হচ্ছে...</div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-green-50 p-4 rounded-lg text-center">
+                      <TrendingUp className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                      <p className="text-2xl font-bold text-green-600">
+                        ৳{(paymentSummary.totalCollected || 0).toLocaleString()}
+                      </p>
+                      <p className="text-sm text-gray-600">মোট আদায়</p>
+                    </div>
+                    <div className="bg-yellow-50 p-4 rounded-lg text-center">
+                      <Clock className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
+                      <p className="text-2xl font-bold text-yellow-600">
+                        ৳{(paymentSummary.totalPending || 0).toLocaleString()}
+                      </p>
+                      <p className="text-sm text-gray-600">বকেয়া</p>
+                    </div>
+                    <div className="bg-red-50 p-4 rounded-lg text-center">
+                      <XCircle className="h-8 w-8 text-red-600 mx-auto mb-2" />
+                      <p className="text-2xl font-bold text-red-600">
+                        ৳{(paymentSummary.totalOverdue || 0).toLocaleString()}
+                      </p>
+                      <p className="text-sm text-gray-600">অতিরিক্ত বকেয়া</p>
+                    </div>
+                    <div className="bg-blue-50 p-4 rounded-lg text-center">
+                      <CreditCard className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                      <p className="text-2xl font-bold text-blue-600">
+                        ৳{(paymentSummary.todaysCollection || 0).toLocaleString()}
+                      </p>
+                      <p className="text-sm text-gray-600">আজকের আদায় ({paymentSummary.paymentsToday || 0}টি)</p>
+                    </div>
+                  </div>
+
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-gray-900">সাম্প্রতিক পেমেন্ট ইতিহাস</h3>
+                    <Badge className="bg-emerald-500">{paymentData.length}টি পেমেন্ট</Badge>
+                  </div>
+
+                  {paymentData.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      কোনো পেমেন্ট রেকর্ড পাওয়া যায়নি
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse">
+                        <thead>
+                          <tr className="bg-emerald-600 text-white">
+                            <th className="border p-2">ক্রম</th>
+                            <th className="border p-2">তারিখ</th>
+                            <th className="border p-2">ছাত্রের নাম</th>
+                            <th className="border p-2">রসিদ নম্বর</th>
+                            <th className="border p-2">পরিমাণ</th>
+                            <th className="border p-2">পদ্ধতি</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {paymentData.slice(0, 50).map((payment, idx) => (
+                            <tr key={idx} className="hover:bg-gray-50">
+                              <td className="border p-2 text-center">{idx + 1}</td>
+                              <td className="border p-2 text-center">
+                                {payment.payment_date ? new Date(payment.payment_date).toLocaleDateString('bn-BD') : payment.created_at ? new Date(payment.created_at).toLocaleDateString('bn-BD') : '-'}
+                              </td>
+                              <td className="border p-2">{payment.student_name || '-'}</td>
+                              <td className="border p-2 text-center font-mono text-sm">{payment.receipt_no || '-'}</td>
+                              <td className="border p-2 text-center font-bold text-green-600">
+                                ৳{(payment.amount || 0).toLocaleString()}
+                              </td>
+                              <td className="border p-2 text-center">
+                                <Badge className="bg-gray-100 text-gray-700">
+                                  {payment.payment_mode === 'Cash' ? 'নগদ' : 
+                                   payment.payment_mode === 'Bank' ? 'ব্যাংক' :
+                                   payment.payment_mode === 'bKash' ? 'বিকাশ' :
+                                   payment.payment_mode || 'নগদ'}
+                                </Badge>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-center">
+                      <div>
+                        <p className="text-sm text-gray-600">মোট ফি</p>
+                        <p className="text-xl font-bold">৳{(paymentSummary.totalFees || 0).toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">আদায় শতাংশ</p>
+                        <p className="text-xl font-bold text-emerald-600">
+                          {paymentSummary.totalFees > 0 
+                            ? Math.round((paymentSummary.totalCollected / paymentSummary.totalFees) * 100) 
+                            : 0}%
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">বকেয়া শতাংশ</p>
+                        <p className="text-xl font-bold text-red-600">
+                          {paymentSummary.totalFees > 0 
+                            ? Math.round((paymentSummary.totalPending / paymentSummary.totalFees) * 100) 
+                            : 0}%
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </>
               )}
             </CardContent>
