@@ -30641,7 +30641,9 @@ async def generate_staff_id_card(
         "tenant_id": current_user.tenant_id
     })
     
-    pdf_buffer = generate_staff_id_card_pdf(staff, institution or {})
+    pdf_bytes = generate_staff_id_card_pdf(staff, institution or {})
+    from io import BytesIO
+    pdf_buffer = BytesIO(pdf_bytes)
     
     return StreamingResponse(
         pdf_buffer,
