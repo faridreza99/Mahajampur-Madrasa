@@ -3333,9 +3333,9 @@ async def update_institution(
         raise HTTPException(status_code=403, detail="Not authorized")
     
     # Find existing institution
+    # Find existing institution (same logic as GET endpoint - no school_id required)
     existing_institution = await db.institutions.find_one({
         "tenant_id": current_user.tenant_id,
-        "school_id": current_user.school_id,
         "is_active": True
     })
     
@@ -3356,7 +3356,6 @@ async def update_institution(
     await db.institutions.update_one(
         {
             "tenant_id": current_user.tenant_id,
-            "school_id": current_user.school_id,
             "is_active": True
         },
         {"$set": update_data}
