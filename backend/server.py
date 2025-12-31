@@ -30596,7 +30596,8 @@ async def generate_student_id_card(
                 class_name = class_doc.get("display_name") or class_doc.get("name", "")
         
         # Generate the ID card PDF using the new generator
-        pdf_buffer = generate_student_id_card_pdf(student, institution, class_name)
+        pdf_bytes = generate_student_id_card_pdf(student, institution, class_name)
+        pdf_buffer = BytesIO(pdf_bytes)
         
         # Return PDF response - use roll number/ID for filename to avoid encoding issues
         from urllib.parse import quote
