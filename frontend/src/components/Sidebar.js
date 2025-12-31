@@ -244,12 +244,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           madrasahOnly: true,
         },
         {
-          title: "রিপোর্ট",
-          path: "/madrasah/reports",
-          roles: ["super_admin", "admin", "principal", "teacher"],
-          madrasahOnly: true,
-        },
-        {
           title: "Calendar",
           madrasahTitle: "ক্যালেন্ডার",
           path: "/calendar",
@@ -450,7 +444,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       title: "Reports",
       madrasahTitle: "রিপোর্ট",
       icon: BarChart3,
-      path: "/reports",
+      path: "/madrasah/reports",
       roles: ["super_admin", "admin"],
     },
     {
