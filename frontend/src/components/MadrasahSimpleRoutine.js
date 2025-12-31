@@ -139,7 +139,7 @@ const MadrasahSimpleRoutine = () => {
     setFormData({
       day: '',
       subject: '',
-      teacher_id: '',
+      teacher_id: 'none',
       start_time: '',
       end_time: ''
     });
@@ -152,7 +152,7 @@ const MadrasahSimpleRoutine = () => {
       setFormData({
         day: routine.day,
         subject: routine.subject,
-        teacher_id: routine.teacher_id || '',
+        teacher_id: routine.teacher_id || 'none',
         start_time: routine.start_time,
         end_time: routine.end_time
       });
@@ -170,9 +170,11 @@ const MadrasahSimpleRoutine = () => {
 
     setSaving(true);
     try {
-      const teacher = teachers.find(t => t.id === formData.teacher_id);
+      const actualTeacherId = formData.teacher_id === 'none' ? '' : formData.teacher_id;
+      const teacher = teachers.find(t => t.id === actualTeacherId);
       const payload = {
         ...formData,
+        teacher_id: actualTeacherId,
         class_id: selectedClass,
         class_name: classes.find(c => c.id === selectedClass)?.display_name || classes.find(c => c.id === selectedClass)?.name,
         teacher_name: teacher?.name || ''
@@ -312,7 +314,7 @@ const MadrasahSimpleRoutine = () => {
                   <SelectValue placeholder="মারহালা বাছাই করুন" />
                 </SelectTrigger>
                 <SelectContent>
-                  {classes.map(cls => (
+                  {classes.filter(cls => cls.id).map(cls => (
                     <SelectItem key={cls.id} value={cls.id} className="text-base py-3">
                       {cls.display_name || cls.name}
                     </SelectItem>
@@ -468,7 +470,7 @@ const MadrasahSimpleRoutine = () => {
                   <SelectValue placeholder="বিষয় বাছুন" />
                 </SelectTrigger>
                 <SelectContent>
-                  {subjects.map(subject => (
+                  {subjects.filter(s => s.subject_name).map(subject => (
                     <SelectItem key={subject.id} value={subject.subject_name} className="py-2">
                       {subject.subject_name}
                     </SelectItem>
@@ -491,9 +493,9 @@ const MadrasahSimpleRoutine = () => {
                   <SelectValue placeholder="শিক্ষক বাছুন" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="" className="py-2">কেউ না</SelectItem>
+                  <SelectItem value="none" className="py-2">কেউ না</SelectItem>
                   {teachers.map(teacher => (
-                    <SelectItem key={teacher.id} value={teacher.id} className="py-2">
+                    <SelectItem key={teacher.id} value={teacher.id || `teacher-${teacher.name}`} className="py-2">
                       {teacher.name}
                     </SelectItem>
                   ))}
