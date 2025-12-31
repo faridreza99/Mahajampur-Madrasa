@@ -1809,9 +1809,10 @@ const Fees = () => {
                           // Backend response takes priority (spread after fallbacks)
                           ...response.data
                         });
+                        // Refresh fee data immediately to update the student list
+                        await loadFeeDataFromBackend();
                         setMadrasahWizardStep(3);
                         toast.success('✅ বেতন সফলভাবে আদায় হয়েছে!');
-                        loadFeeDataFromBackend();
                       } catch (error) {
                         console.error('Payment failed:', error);
                         toast.error('বেতন আদায় ব্যর্থ হয়েছে');
