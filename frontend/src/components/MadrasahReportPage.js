@@ -518,54 +518,81 @@ const MadrasahReportPage = () => {
                 <div className="text-center py-8 text-gray-500">কোনো ফলাফল পাওয়া যায়নি</div>
               ) : (
                 <>
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-                    {['মুমতাজ', 'জায়্যিদ জিদ্দান', 'জায়্যিদ', 'মাকবুল', 'রাসেব'].map((grade, idx) => (
-                      <div key={grade} className={`p-4 rounded-lg text-center ${
-                        idx === 0 ? 'bg-green-50' : 
-                        idx === 1 ? 'bg-blue-50' : 
-                        idx === 2 ? 'bg-cyan-50' : 
-                        idx === 3 ? 'bg-yellow-50' : 'bg-red-50'
-                      }`}>
-                        <p className="text-xl font-bold">{resultData.filter(r => r.grade === grade).length}</p>
-                        <p className="text-sm">{grade}</p>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse">
-                      <thead>
-                        <tr className="bg-emerald-600 text-white">
-                          <th className="border p-2">ক্রম</th>
-                          <th className="border p-2">ছাত্রের নাম</th>
-                          <th className="border p-2">রোল</th>
-                          <th className="border p-2">মারহালা</th>
-                          <th className="border p-2">ফলাফল</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {resultData.map((result, idx) => (
-                          <tr key={idx} className="hover:bg-gray-50">
-                            <td className="border p-2 text-center">{idx + 1}</td>
-                            <td className="border p-2">{result.student_name || result.name}</td>
-                            <td className="border p-2 text-center">{result.roll_no || '-'}</td>
-                            <td className="border p-2 text-center">{result.class_name || getClassName(result.class_id)}</td>
-                            <td className="border p-2 text-center">
-                              <Badge className={
-                                result.grade === 'মুমতাজ' ? 'bg-green-500 text-white' :
-                                result.grade === 'জায়্যিদ জিদ্দান' ? 'bg-blue-500 text-white' :
-                                result.grade === 'জায়্যিদ' ? 'bg-cyan-500 text-white' :
-                                result.grade === 'মাকবুল' ? 'bg-yellow-500 text-white' :
-                                'bg-red-500 text-white'
-                              }>
-                                {result.grade || '-'}
-                              </Badge>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  {(() => {
+                    const gradeMap = {
+                      'mumtaz': 'মুমতাজ',
+                      'jayyid_jiddan': 'জায়্যিদ জিদ্দান',
+                      'jayyid': 'জায়্যিদ',
+                      'maqbul': 'মাকবুল',
+                      'raseb': 'রাসেব',
+                      'মুমতাজ': 'মুমতাজ',
+                      'জায়্যিদ জিদ্দান': 'জায়্যিদ জিদ্দান',
+                      'জায়্যিদ': 'জায়্যিদ',
+                      'মাকবুল': 'মাকবুল',
+                      'রাসেব': 'রাসেব'
+                    };
+                    const getBengaliGrade = (grade) => gradeMap[grade] || grade || '-';
+                    const gradeKeys = ['mumtaz', 'jayyid_jiddan', 'jayyid', 'maqbul', 'raseb'];
+                    const gradeLabels = ['মুমতাজ', 'জায়্যিদ জিদ্দান', 'জায়্যিদ', 'মাকবুল', 'রাসেব'];
+                    
+                    return (
+                      <>
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+                          {gradeLabels.map((label, idx) => (
+                            <div key={label} className={`p-4 rounded-lg text-center ${
+                              idx === 0 ? 'bg-green-50' : 
+                              idx === 1 ? 'bg-blue-50' : 
+                              idx === 2 ? 'bg-cyan-50' : 
+                              idx === 3 ? 'bg-yellow-50' : 'bg-red-50'
+                            }`}>
+                              <p className="text-xl font-bold">
+                                {resultData.filter(r => r.grade === gradeKeys[idx] || r.grade === label).length}
+                              </p>
+                              <p className="text-sm">{label}</p>
+                            </div>
+                          ))}
+                        </div>
+                        
+                        <div className="overflow-x-auto">
+                          <table className="w-full border-collapse">
+                            <thead>
+                              <tr className="bg-emerald-600 text-white">
+                                <th className="border p-2">ক্রম</th>
+                                <th className="border p-2">ছাত্রের নাম</th>
+                                <th className="border p-2">রোল</th>
+                                <th className="border p-2">মারহালা</th>
+                                <th className="border p-2">ফলাফল</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {resultData.map((result, idx) => {
+                                const bengaliGrade = getBengaliGrade(result.grade);
+                                return (
+                                  <tr key={idx} className="hover:bg-gray-50">
+                                    <td className="border p-2 text-center">{idx + 1}</td>
+                                    <td className="border p-2">{result.student_name || result.name}</td>
+                                    <td className="border p-2 text-center">{result.roll_no || result.roll || result.student_roll || '-'}</td>
+                                    <td className="border p-2 text-center">{result.class_name || getClassName(result.class_id)}</td>
+                                    <td className="border p-2 text-center">
+                                      <Badge className={
+                                        bengaliGrade === 'মুমতাজ' ? 'bg-green-500 text-white' :
+                                        bengaliGrade === 'জায়্যিদ জিদ্দান' ? 'bg-blue-500 text-white' :
+                                        bengaliGrade === 'জায়্যিদ' ? 'bg-cyan-500 text-white' :
+                                        bengaliGrade === 'মাকবুল' ? 'bg-yellow-500 text-white' :
+                                        'bg-red-500 text-white'
+                                      }>
+                                        {bengaliGrade}
+                                      </Badge>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </>
               )}
             </CardContent>
