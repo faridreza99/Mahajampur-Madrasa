@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Download, Printer, Search, CreditCard, Users, Eye, RefreshCw } from 'lucide-react';
+import { Download, Printer, Search, CreditCard, Users, Eye, RefreshCw, CheckSquare, Square, FileDown } from 'lucide-react';
+import JSZip from 'jszip';
 
 const API = process.env.REACT_APP_API_URL || '/api';
 
@@ -18,6 +19,9 @@ const StudentIDCard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState({});
+  const [selectedStudents, setSelectedStudents] = useState(new Set());
+  const [bulkGenerating, setBulkGenerating] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
 
   const fetchClasses = useCallback(async () => {
     try {
@@ -143,6 +147,78 @@ const StudentIDCard = () => {
     student.admission_no?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const toggleStudentSelection = (studentId) => {
+    setSelectedStudents(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(studentId)) {
+        newSet.delete(studentId);
+      } else {
+        newSet.add(studentId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedStudents.size === filteredStudents.length) {
+      setSelectedStudents(new Set());
+    } else {
+      setSelectedStudents(new Set(filteredStudents.map(s => s.id)));
+    }
+  };
+
+  const generateBulkIDCards = async () => {
+    if (selectedStudents.size === 0) {
+      alert(t('idCard.selectStudents') || 'Please select at least one student');
+      return;
+    }
+
+    setBulkGenerating(true);
+    setBulkProgress({ current: 0, total: selectedStudents.size });
+    
+    try {
+      const token = localStorage.getItem('token');
+      const zip = new JSZip();
+      const selectedArray = Array.from(selectedStudents);
+      
+      for (let i = 0; i < selectedArray.length; i++) {
+        const studentId = selectedArray[i];
+        const student = students.find(s => s.id === studentId);
+        
+        try {
+          const response = await axios.get(`${API}/id-cards/student/${studentId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+            responseType: 'arraybuffer'
+          });
+          
+          const filename = `ID_${student?.name?.replace(/\s+/g, '_') || studentId}.pdf`;
+          zip.file(filename, response.data);
+          setBulkProgress({ current: i + 1, total: selectedStudents.size });
+        } catch (error) {
+          console.error(`Failed to generate ID for ${studentId}:`, error);
+        }
+      }
+      
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const url = window.URL.createObjectURL(zipBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Student_ID_Cards_${new Date().toISOString().split('T')[0]}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      setSelectedStudents(new Set());
+    } catch (error) {
+      console.error('Bulk generation failed:', error);
+      alert(t('idCard.bulkError') || 'Bulk generation failed');
+    } finally {
+      setBulkGenerating(false);
+      setBulkProgress({ current: 0, total: 0 });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
       <Card className="dark:bg-gray-800 dark:border-gray-700">
@@ -222,11 +298,37 @@ const StudentIDCard = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 mb-4 text-sm text-gray-600 dark:text-gray-400">
-            <Users className="h-4 w-4" />
-            <span>
-              {t('idCard.totalStudents') || 'Total Students'}: {filteredStudents.length}
-            </span>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+              <Users className="h-4 w-4" />
+              <span>
+                {t('idCard.totalStudents') || 'Total Students'}: {filteredStudents.length}
+                {selectedStudents.size > 0 && (
+                  <span className="ml-2 text-emerald-600 dark:text-emerald-400 font-medium">
+                    ({selectedStudents.size} {t('common.selected') || 'selected'})
+                  </span>
+                )}
+              </span>
+            </div>
+            {selectedStudents.size > 0 && (
+              <Button
+                onClick={generateBulkIDCards}
+                disabled={bulkGenerating}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                {bulkGenerating ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    {bulkProgress.current}/{bulkProgress.total}
+                  </>
+                ) : (
+                  <>
+                    <FileDown className="h-4 w-4 mr-2" />
+                    {t('idCard.downloadSelected') || 'Download Selected'} ({selectedStudents.size})
+                  </>
+                )}
+              </Button>
+            )}
           </div>
 
           {loading ? (
@@ -243,6 +345,18 @@ const StudentIDCard = () => {
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-gray-100 dark:bg-gray-700">
+                    <th className="text-center px-4 py-3 w-12">
+                      <button
+                        onClick={toggleSelectAll}
+                        className="text-gray-600 dark:text-gray-300 hover:text-emerald-600"
+                      >
+                        {selectedStudents.size === filteredStudents.length && filteredStudents.length > 0 ? (
+                          <CheckSquare className="h-5 w-5 text-emerald-600" />
+                        ) : (
+                          <Square className="h-5 w-5" />
+                        )}
+                      </button>
+                    </th>
                     <th className="text-left px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">
                       {t('common.photo') || 'Photo'}
                     </th>
@@ -268,7 +382,19 @@ const StudentIDCard = () => {
                 </thead>
                 <tbody className="divide-y dark:divide-gray-700">
                   {filteredStudents.map(student => (
-                    <tr key={student.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <tr key={student.id} className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 ${selectedStudents.has(student.id) ? 'bg-emerald-50 dark:bg-emerald-900/20' : ''}`}>
+                      <td className="text-center px-4 py-3">
+                        <button
+                          onClick={() => toggleStudentSelection(student.id)}
+                          className="text-gray-600 dark:text-gray-300 hover:text-emerald-600"
+                        >
+                          {selectedStudents.has(student.id) ? (
+                            <CheckSquare className="h-5 w-5 text-emerald-600" />
+                          ) : (
+                            <Square className="h-5 w-5" />
+                          )}
+                        </button>
+                      </td>
                       <td className="px-4 py-3">
                         {student.photo_url ? (
                           <img 

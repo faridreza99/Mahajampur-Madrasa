@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Download, Printer, Search, CreditCard, Users, Eye, RefreshCw, UserCheck } from 'lucide-react';
+import { Download, Printer, Search, CreditCard, Users, Eye, RefreshCw, UserCheck, CheckSquare, Square, FileDown } from 'lucide-react';
+import JSZip from 'jszip';
 
 const API = process.env.REACT_APP_API_URL || '/api';
 
@@ -16,6 +17,9 @@ const StaffIDCard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState({});
+  const [selectedStaff, setSelectedStaff] = useState(new Set());
+  const [bulkGenerating, setBulkGenerating] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
 
   const fetchStaff = useCallback(async () => {
     setLoading(true);
@@ -92,6 +96,78 @@ const StaffIDCard = () => {
     s.department?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const toggleStaffSelection = (staffId) => {
+    setSelectedStaff(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(staffId)) {
+        newSet.delete(staffId);
+      } else {
+        newSet.add(staffId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedStaff.size === filteredStaff.length) {
+      setSelectedStaff(new Set());
+    } else {
+      setSelectedStaff(new Set(filteredStaff.map(s => s.id)));
+    }
+  };
+
+  const generateBulkIDCards = async () => {
+    if (selectedStaff.size === 0) {
+      alert(t('idCard.selectStaff') || 'Please select at least one staff member');
+      return;
+    }
+
+    setBulkGenerating(true);
+    setBulkProgress({ current: 0, total: selectedStaff.size });
+    
+    try {
+      const token = localStorage.getItem('token');
+      const zip = new JSZip();
+      const selectedArray = Array.from(selectedStaff);
+      
+      for (let i = 0; i < selectedArray.length; i++) {
+        const staffId = selectedArray[i];
+        const member = staff.find(s => s.id === staffId);
+        
+        try {
+          const response = await axios.get(`${API}/id-cards/staff/${staffId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+            responseType: 'arraybuffer'
+          });
+          
+          const filename = `ID_${member?.name?.replace(/\s+/g, '_') || staffId}.pdf`;
+          zip.file(filename, response.data);
+          setBulkProgress({ current: i + 1, total: selectedStaff.size });
+        } catch (error) {
+          console.error(`Failed to generate ID for ${staffId}:`, error);
+        }
+      }
+      
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const url = window.URL.createObjectURL(zipBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Staff_ID_Cards_${new Date().toISOString().split('T')[0]}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      setSelectedStaff(new Set());
+    } catch (error) {
+      console.error('Bulk generation failed:', error);
+      alert(t('idCard.bulkError') || 'Bulk generation failed');
+    } finally {
+      setBulkGenerating(false);
+      setBulkProgress({ current: 0, total: 0 });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
       <Card className="dark:bg-gray-800 dark:border-gray-700">
@@ -147,11 +223,37 @@ const StaffIDCard = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 mb-4 text-sm text-gray-600 dark:text-gray-400">
-            <UserCheck className="h-4 w-4" />
-            <span>
-              {t('idCard.totalStaff') || 'Total Staff'}: {filteredStaff.length}
-            </span>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+              <UserCheck className="h-4 w-4" />
+              <span>
+                {t('idCard.totalStaff') || 'Total Staff'}: {filteredStaff.length}
+                {selectedStaff.size > 0 && (
+                  <span className="ml-2 text-blue-600 dark:text-blue-400 font-medium">
+                    ({selectedStaff.size} {t('common.selected') || 'selected'})
+                  </span>
+                )}
+              </span>
+            </div>
+            {selectedStaff.size > 0 && (
+              <Button
+                onClick={generateBulkIDCards}
+                disabled={bulkGenerating}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {bulkGenerating ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    {bulkProgress.current}/{bulkProgress.total}
+                  </>
+                ) : (
+                  <>
+                    <FileDown className="h-4 w-4 mr-2" />
+                    {t('idCard.downloadSelected') || 'Download Selected'} ({selectedStaff.size})
+                  </>
+                )}
+              </Button>
+            )}
           </div>
 
           {loading ? (
@@ -168,6 +270,18 @@ const StaffIDCard = () => {
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-gray-100 dark:bg-gray-700">
+                    <th className="text-center px-4 py-3 w-12">
+                      <button
+                        onClick={toggleSelectAll}
+                        className="text-gray-600 dark:text-gray-300 hover:text-blue-600"
+                      >
+                        {selectedStaff.size === filteredStaff.length && filteredStaff.length > 0 ? (
+                          <CheckSquare className="h-5 w-5 text-blue-600" />
+                        ) : (
+                          <Square className="h-5 w-5" />
+                        )}
+                      </button>
+                    </th>
                     <th className="text-left px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">
                       {t('common.photo') || 'Photo'}
                     </th>
@@ -190,7 +304,19 @@ const StaffIDCard = () => {
                 </thead>
                 <tbody className="divide-y dark:divide-gray-700">
                   {filteredStaff.map(member => (
-                    <tr key={member.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <tr key={member.id} className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 ${selectedStaff.has(member.id) ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}>
+                      <td className="text-center px-4 py-3">
+                        <button
+                          onClick={() => toggleStaffSelection(member.id)}
+                          className="text-gray-600 dark:text-gray-300 hover:text-blue-600"
+                        >
+                          {selectedStaff.has(member.id) ? (
+                            <CheckSquare className="h-5 w-5 text-blue-600" />
+                          ) : (
+                            <Square className="h-5 w-5" />
+                          )}
+                        </button>
+                      </td>
                       <td className="px-4 py-3">
                         {member.photo_url ? (
                           <img 
