@@ -1,8 +1,9 @@
 """
-Professional Madrasah Student ID Card Generator
-Matches the exact sample design with:
-- Front: Green curved header, circular photo, student details, signature area, red footer
-- Back: Warning text, logo, madrasah info, validity dates
+Professional Madrasah ID Card Generator - Matching Exact Sample Design
+Features:
+- Tech circuit pattern background
+- Front: Logo, institution names, photo with red border, info table, signature, red footer
+- Back: Institution seal, message, QR code, contact info
 Uses PIL for proper Bengali text rendering with HarfBuzz-style shaping.
 """
 
@@ -19,231 +20,144 @@ from reportlab.pdfgen import canvas as pdf_canvas
 from reportlab.lib import colors
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.graphics.shapes import Drawing, Polygon
 import qrcode
 import requests as http_requests
 from PIL import Image, ImageDraw, ImageFont
 
-# Card dimensions - PORTRAIT orientation (standard ID card: 54mm x 86mm)
-# Portrait: Width < Height (vertical card)
-CARD_WIDTH = 54 * mm   # ~2.125 inches
-CARD_HEIGHT = 86 * mm  # ~3.375 inches
+CARD_WIDTH = 54 * mm
+CARD_HEIGHT = 86 * mm
 
-# Colors
-GREEN_HEADER = colors.HexColor("#006400")
-LIGHT_GREEN = colors.HexColor("#228B22")
-LIGHT_BLUE = colors.HexColor("#87CEEB")
-DARK_BLUE = colors.HexColor("#1E3A5F")
-RED_FOOTER = colors.HexColor("#8B0000")
-MAROON = colors.HexColor("#800000")
+LIGHT_GRAY_BG = colors.HexColor("#F5F5F5")
+DARK_RED = colors.HexColor("#C41E3A")
+RED_FOOTER = colors.HexColor("#DC143C")
+DARK_TEXT = colors.HexColor("#333333")
 
 
 def register_fonts():
-    """Register Bengali fonts - Noto Sans Bengali for proper Unicode rendering"""
+    """Register Bengali fonts"""
     font_dir = Path(__file__).parent / "fonts"
     bengali_regular = font_dir / "NotoSansBengali-Regular.ttf"
     bengali_bold = font_dir / "NotoSansBengali-Bold.ttf"
     
-    logging.info(f"Font registration - font_dir: {font_dir}, exists: {font_dir.exists()}")
-    logging.info(f"Regular font: {bengali_regular}, exists: {bengali_regular.exists()}")
-    
     try:
         if bengali_regular.exists() and "NotoSansBengali" not in pdfmetrics.getRegisteredFontNames():
             pdfmetrics.registerFont(TTFont("NotoSansBengali", str(bengali_regular)))
-            logging.info("Registered NotoSansBengali font")
         if bengali_bold.exists() and "NotoSansBengali-Bold" not in pdfmetrics.getRegisteredFontNames():
             pdfmetrics.registerFont(TTFont("NotoSansBengali-Bold", str(bengali_bold)))
-            logging.info("Registered NotoSansBengali-Bold font")
-        logging.info(f"Registered fonts: {pdfmetrics.getRegisteredFontNames()}")
         return True
     except Exception as e:
         logging.warning(f"Could not register Bengali fonts: {e}")
-        import traceback
-        logging.warning(traceback.format_exc())
         return False
 
 
-def use_font(c, size, bold=False):
-    """Set font with fallback: NotoSansBengali > Helvetica"""
-    font_name = "NotoSansBengali-Bold" if bold else "NotoSansBengali"
-    if font_name in pdfmetrics.getRegisteredFontNames():
-        c.setFont(font_name, size)
-    else:
-        c.setFont("Helvetica-Bold" if bold else "Helvetica", size)
-
-
 def get_pil_font(size, bold=False):
-    """Get PIL font for Bengali text rendering with proper fallback chain"""
+    """Get PIL font for Bengali text rendering"""
     font_dir = Path(__file__).parent / "fonts"
     
-    # Try bold font first if requested
     if bold:
         bold_path = font_dir / "NotoSansBengali-Bold.ttf"
         try:
             if bold_path.exists():
-                font = ImageFont.truetype(str(bold_path), size)
-                logging.debug(f"Loaded bold Bengali font at size {size}")
-                return font
-        except Exception as e:
-            logging.warning(f"Could not load bold font, trying regular: {e}")
+                return ImageFont.truetype(str(bold_path), size)
+        except:
+            pass
     
-    # Fall back to regular font (supports Bengali)
     regular_path = font_dir / "NotoSansBengali-Regular.ttf"
     try:
         if regular_path.exists():
-            font = ImageFont.truetype(str(regular_path), size)
-            logging.debug(f"Loaded regular Bengali font at size {size}")
-            return font
-    except Exception as e:
-        logging.error(f"Could not load regular Bengali font: {e}")
+            return ImageFont.truetype(str(regular_path), size)
+    except:
+        pass
     
-    # Last resort - this won't support Bengali but prevents crashes
-    logging.error("CRITICAL: No Bengali font loaded - text will show as boxes!")
     return ImageFont.load_default()
 
 
-def draw_bengali_text(c, x, y, text, font_size, color=(0, 0, 0), bold=False, centered=False, width=None, bg_color=None):
-    """Render Bengali text using PIL for proper complex script shaping, then embed as image in PDF
-    
-    Args:
-        bg_color: Optional tuple (R,G,B) for background. If None, uses white for dark text, transparent for light text.
-    """
+def draw_bengali_text(c, x, y, text, font_size, color=(0, 0, 0), bold=False, centered=False, width=None):
+    """Render Bengali text using PIL then embed as image in PDF"""
     if not text or not text.strip():
-        return
+        return 0
     
     try:
-        # Create PIL image for text with higher DPI for quality
-        dpi_scale = 4  # Higher resolution for crisp text
+        dpi_scale = 4
         pil_font_size = int(font_size * dpi_scale)
         font = get_pil_font(pil_font_size, bold)
         
-        # Text rendering features for proper Bengali shaping
-        text_features = {
-            'language': 'bn',  # Bengali language for proper shaping
-        }
+        text_features = {'language': 'bn'}
         
-        # Calculate text size with language-aware shaping
         try:
             bbox = font.getbbox(text, **text_features)
             text_width = bbox[2] - bbox[0]
             text_height = bbox[3] - bbox[1]
             x_offset = bbox[0]
             y_offset = bbox[1]
-        except Exception:
-            bbox = None
-            text_width = 0
-            text_height = 0
-            x_offset = 0
-            y_offset = 0
-        
-        # Fallback if getbbox returns zero/invalid dimensions
-        if text_width <= 0 or text_height <= 0:
-            try:
-                text_width = int(font.getlength(text, **text_features))
-            except Exception:
-                text_width = int(len(text) * pil_font_size * 0.6)
+        except:
+            text_width = int(len(text) * pil_font_size * 0.6)
             text_height = int(pil_font_size * 1.5)
             x_offset = 0
             y_offset = 0
         
-        # Ensure minimum dimensions
         text_width = max(text_width, pil_font_size)
         text_height = max(text_height, pil_font_size)
         
-        # Create image with padding
         padding = 4 * dpi_scale
         img_width = int(text_width + padding * 2)
         img_height = int(text_height + padding * 2)
         
-        # Determine background based on context
-        if bg_color:
-            img = Image.new('RGB', (img_width, img_height), bg_color)
-            draw = ImageDraw.Draw(img)
-            draw.text((padding - x_offset, padding - y_offset), text, font=font, fill=color, **text_features)
-            use_mask = False
-        else:
-            img = Image.new('RGBA', (img_width, img_height), (255, 255, 255, 0))
-            draw = ImageDraw.Draw(img)
-            fill_color = color + (255,) if len(color) == 3 else color
-            draw.text((padding - x_offset, padding - y_offset), text, font=font, fill=fill_color, **text_features)
-            use_mask = True
+        img = Image.new('RGBA', (img_width, img_height), (255, 255, 255, 0))
+        draw = ImageDraw.Draw(img)
+        fill_color = color + (255,) if len(color) == 3 else color
+        draw.text((padding - x_offset, padding - y_offset), text, font=font, fill=fill_color, **text_features)
         
-        # Scale down for PDF embedding
         final_width = img_width / dpi_scale
         final_height = img_height / dpi_scale
         
-        # Save to temp file
         temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
         img.save(temp_file.name, 'PNG')
         temp_file.close()
         
-        # Calculate x position for centering
         if centered and width:
             x = x + (width - final_width) / 2
         
-        # Draw on canvas - use mask only for transparent images
-        if use_mask:
-            c.drawImage(temp_file.name, x, y - final_height + font_size * 0.3, 
-                        final_width, final_height, mask='auto')
-        else:
-            c.drawImage(temp_file.name, x, y - final_height + font_size * 0.3, 
-                        final_width, final_height)
+        c.drawImage(temp_file.name, x, y - final_height + font_size * 0.3, 
+                    final_width, final_height, mask='auto')
         
-        # Cleanup
         os.unlink(temp_file.name)
         return final_width
         
     except Exception as e:
-        logging.error(f"PIL Bengali text render failed: {e}")
-        import traceback
-        logging.error(traceback.format_exc())
-        # Fallback to direct text (won't render Bengali properly but prevents crash)
-        use_font(c, font_size, bold)
-        if isinstance(color, tuple) and len(color) >= 3:
-            c.setFillColor(colors.Color(color[0]/255, color[1]/255, color[2]/255))
-        if centered and width:
-            c.drawCentredString(x + width/2, y, text)
-        else:
-            c.drawString(x, y, text)
-        return font_size * len(text) * 0.6
+        logging.error(f"Bengali text render failed: {e}")
+        return 0
 
 
-def draw_curved_header(c, width, height, header_height):
-    """Draw green curved header background - optimized for portrait layout"""
-    c.setFillColor(GREEN_HEADER)
+def draw_circuit_pattern(c, width, height):
+    """Draw tech circuit pattern background"""
+    c.setFillColor(LIGHT_GRAY_BG)
+    c.rect(0, 0, width, height, fill=True, stroke=False)
     
-    # Draw curved header using path
-    p = c.beginPath()
-    p.moveTo(0, height)
-    p.lineTo(width, height)
-    p.lineTo(width, height - header_height + 3*mm)
+    c.setStrokeColor(colors.HexColor("#E0E0E0"))
+    c.setLineWidth(0.3)
     
-    # Gentle curve at bottom of header for portrait
-    p.curveTo(
-        width * 0.75, height - header_height - 2*mm,
-        width * 0.25, height - header_height + 4*mm,
-        0, height - header_height + 2*mm
-    )
-    p.lineTo(0, height)
-    p.close()
-    c.drawPath(p, fill=True, stroke=False)
+    for i in range(0, int(width), int(8*mm)):
+        c.line(i, 0, i, height)
+    for i in range(0, int(height), int(8*mm)):
+        c.line(0, i, width, i)
+    
+    c.setFillColor(colors.HexColor("#D0D0D0"))
+    for i in range(0, int(width), int(16*mm)):
+        for j in range(0, int(height), int(16*mm)):
+            c.circle(i + 4*mm, j + 4*mm, 1*mm, fill=True, stroke=False)
 
 
-def draw_photo_frame(c, x, y, size, photo_url=None):
-    """Draw circular photo frame with light blue border and circular clipping"""
-    border_width = 3
-    center_x = x + size/2
-    center_y = y + size/2
+def draw_photo_with_red_border(c, x, y, size, photo_url=None):
+    """Draw rectangular photo with red border"""
+    border_width = 2*mm
     
-    # Light blue circle border
-    c.setFillColor(LIGHT_BLUE)
-    c.circle(center_x, center_y, size/2 + border_width, fill=True, stroke=False)
+    c.setFillColor(DARK_RED)
+    c.rect(x - border_width, y - border_width, size + 2*border_width, size + 2*border_width, fill=True, stroke=False)
     
-    # White inner circle
     c.setFillColor(colors.white)
-    c.circle(center_x, center_y, size/2, fill=True, stroke=False)
+    c.rect(x, y, size, size, fill=True, stroke=False)
     
-    # Try to add photo with circular clipping
     if photo_url:
         try:
             temp_file = None
@@ -271,64 +185,24 @@ def draw_photo_frame(c, x, y, size, photo_url=None):
                     image_path = str(local_path)
             
             if image_path:
-                # Apply circular clipping mask using arc
-                c.saveState()
-                p = c.beginPath()
-                # Draw arc for circular clipping (x1, y1, x2, y2 are bounding box, angles in degrees)
-                radius = size/2 - 1
-                p.arc(center_x - radius, center_y - radius, center_x + radius, center_y + radius, 0, 360)
-                p.close()
-                c.clipPath(p, stroke=0, fill=0)
                 c.drawImage(image_path, x, y, size, size, preserveAspectRatio=True, mask='auto')
-                c.restoreState()
             
             if temp_file and os.path.exists(temp_file.name):
                 os.unlink(temp_file.name)
-            return
                 
         except Exception as e:
             logging.warning(f"Could not add photo: {e}")
-    
-    # Draw placeholder if no photo
-    c.setFillColor(colors.lightgrey)
-    c.circle(center_x, center_y, size/2 - 2, fill=True, stroke=False)
-
-
-def get_logo_url(institution):
-    """Get logo URL from institution data, checking multiple field names"""
-    if not institution:
-        return None
-    return institution.get("logo") or institution.get("logo_url") or institution.get("institution_logo") or None
-
-
-def get_institution_name(institution, lang="bn"):
-    """Get institution name dynamically from settings - checks all common field names"""
-    if not institution:
-        logging.warning("ID Card: No institution data provided")
-        return ""
-    
-    # Log available fields for debugging
-    logging.info(f"ID Card institution fields: {list(institution.keys())}")
-    
-    if lang == "bn":
-        result = (institution.get("name_bn") or institution.get("name") or 
-                institution.get("institution_name") or institution.get("school_name") or "")
-        logging.info(f"ID Card Bengali name: {result}")
-        return result
-    elif lang == "en":
-        name = (institution.get("name_en") or institution.get("english_name") or 
-                institution.get("institution_name_en") or institution.get("school_name") or 
-                institution.get("name") or "")
-        return name.upper() if name else ""
-    elif lang == "ar":
-        return (institution.get("name_ar") or institution.get("arabic_name") or 
-                institution.get("institution_name_ar") or "")
-    return institution.get("name", "") or institution.get("school_name", "")
+    else:
+        c.setFillColor(colors.lightgrey)
+        c.rect(x + 2, y + 2, size - 4, size - 4, fill=True, stroke=False)
 
 
 def draw_logo(c, x, y, size, logo_url=None):
     """Draw institution logo"""
     if not logo_url:
+        c.setStrokeColor(colors.HexColor("#666666"))
+        c.setLineWidth(0.5)
+        c.circle(x + size/2, y + size/2, size/2, fill=False, stroke=True)
         return False
     
     try:
@@ -362,217 +236,269 @@ def draw_logo(c, x, y, size, logo_url=None):
         return False
 
 
+def get_logo_url(institution):
+    """Get logo URL from institution data"""
+    if not institution:
+        return None
+    return institution.get("logo") or institution.get("logo_url") or institution.get("institution_logo") or None
+
+
+def get_institution_name(institution, lang="bn"):
+    """Get institution name dynamically from settings"""
+    if not institution:
+        return ""
+    
+    if lang == "bn":
+        return (institution.get("name_bn") or institution.get("name") or 
+                institution.get("institution_name") or institution.get("school_name") or "")
+    elif lang == "en":
+        name = (institution.get("name_en") or institution.get("english_name") or 
+                institution.get("institution_name_en") or institution.get("school_name") or 
+                institution.get("name") or "")
+        return name.upper() if name else ""
+    return institution.get("name", "") or institution.get("school_name", "")
+
+
+def draw_red_curved_footer(c, width, footer_height):
+    """Draw red curved footer at bottom"""
+    c.setFillColor(RED_FOOTER)
+    p = c.beginPath()
+    p.moveTo(0, 0)
+    p.lineTo(width, 0)
+    p.lineTo(width, footer_height - 2*mm)
+    p.curveTo(width * 0.75, footer_height + 2*mm, width * 0.25, footer_height - 1*mm, 0, footer_height + 1*mm)
+    p.lineTo(0, 0)
+    p.close()
+    c.drawPath(p, fill=True, stroke=False)
+
+
 def generate_front_side(c, student, institution, class_name=""):
-    """Generate front side of ID card - PORTRAIT orientation (54mm x 86mm)"""
-    margin = 2 * mm
-    header_height = 24 * mm  # Taller header for logo + text
-    footer_height = 5 * mm
+    """Generate front side of ID card matching exact sample design"""
+    margin = 3 * mm
     
-    # White background
-    c.setFillColor(colors.white)
-    c.rect(0, 0, CARD_WIDTH, CARD_HEIGHT, fill=True, stroke=False)
+    draw_circuit_pattern(c, CARD_WIDTH, CARD_HEIGHT)
     
-    # Draw curved green header at top
-    draw_curved_header(c, CARD_WIDTH, CARD_HEIGHT, header_height)
-    
-    # Institution logo centered at top of header
     logo_size = 10 * mm
-    logo_x = (CARD_WIDTH - logo_size) / 2
-    logo_y = CARD_HEIGHT - 11 * mm
+    logo_url = get_logo_url(institution)
+    draw_logo(c, margin, CARD_HEIGHT - margin - logo_size, logo_size, logo_url)
     
-    inst_logo = get_logo_url(institution)
-    draw_logo(c, logo_x, logo_y, logo_size, inst_logo)
+    name_bn = get_institution_name(institution, "bn")
+    name_en = get_institution_name(institution, "en")
+    eiin = institution.get("eiin_code") or institution.get("eiin") or ""
+    established = institution.get("established") or institution.get("established_year") or ""
+    address = institution.get("address") or institution.get("full_address") or ""
     
-    # Get institution names from School Branding
-    inst_name = get_institution_name(institution, "bn")
-    inst_name_en = get_institution_name(institution, "en")
+    text_x = margin + logo_size + 2*mm
+    text_width = CARD_WIDTH - text_x - margin
+    y_pos = CARD_HEIGHT - margin - 2*mm
     
-    # Institution name INSIDE header (YELLOW on GREEN background)
-    # Use opaque green background to avoid transparency issues
-    text_y = CARD_HEIGHT - 20 * mm
-    green_bg = (0, 100, 0)  # Dark green background color
-    if inst_name:
-        draw_bengali_text(c, 0, text_y, inst_name, 6, color=(255, 255, 0), bold=True, 
-                          centered=True, width=CARD_WIDTH, bg_color=green_bg)
+    if name_bn:
+        draw_bengali_text(c, text_x, y_pos, name_bn, 6, color=(0, 80, 0), bold=True)
+        y_pos -= 5*mm
     
-    # Student photo (circular with blue border) - centered
-    photo_size = 16 * mm
-    photo_x = (CARD_WIDTH - photo_size) / 2
-    photo_y = CARD_HEIGHT - header_height - photo_size - 2 * mm
+    if name_en:
+        c.setFillColor(colors.HexColor("#006400"))
+        c.setFont("Helvetica-Bold", 4)
+        c.drawString(text_x, y_pos, name_en[:35])
+        y_pos -= 3.5*mm
     
-    photo_url = student.get("photo", "") or student.get("photo_url", "")
-    draw_photo_frame(c, photo_x, photo_y, photo_size, photo_url)
+    if eiin:
+        c.setFillColor(colors.black)
+        c.setFont("Helvetica", 4)
+        c.drawString(text_x, y_pos, f"EIIN CODE: {eiin}")
+        y_pos -= 3*mm
     
-    # Student details below photo - use white background for black text
-    details_x = margin + 1 * mm
-    details_y = photo_y - 3 * mm
-    line_height = 3.2 * mm
-    white_bg = (255, 255, 255)
+    if established:
+        draw_bengali_text(c, text_x, y_pos, f"স্থাপিত: {established} ইং", 4, color=(0, 0, 0))
+        y_pos -= 4*mm
     
-    # Student name (centered, bold)
-    student_name = student.get("name", "")
-    draw_bengali_text(c, 0, details_y, student_name, 7, color=(0, 0, 0), bold=True,
-                      centered=True, width=CARD_WIDTH, bg_color=white_bg)
-    details_y -= line_height + 1 * mm
-    
-    # Father's name (always show, use placeholder if missing)
-    father_name = student.get("father_name", "") or student.get("guardian_name", "") or "N/A"
-    draw_bengali_text(c, details_x, details_y, f"পিতা: {father_name}", 5, color=(0, 0, 0), bg_color=white_bg)
-    details_y -= line_height
-    
-    # Class/Division
-    draw_bengali_text(c, details_x, details_y, f"শ্রেণি: {class_name}", 5, color=(0, 0, 0), bg_color=white_bg)
-    details_y -= line_height
-    
-    # ID/Roll No
-    admission_no = student.get("admission_no", "") or student.get("roll_no", "") or student.get("roll_number", "")
-    draw_bengali_text(c, details_x, details_y, f"আইডি: {admission_no}", 5, color=(0, 0, 0), bold=True, bg_color=white_bg)
-    details_y -= line_height
-    
-    # Mobile number
-    mobile = student.get("mobile", "") or student.get("guardian_phone", "") or student.get("phone", "")
-    if mobile:
-        draw_bengali_text(c, details_x, details_y, f"মোবাইল: {mobile}", 5, color=(0, 0, 0), bg_color=white_bg)
-        details_y -= line_height
-    
-    # Address (multi-line with proper wrapping for complete display)
-    address = student.get("address", "") or student.get("present_address", "") or ""
     if address:
-        # Calculate characters per line based on font size and available width
-        chars_per_line = 22  # Fits within card width at font size 4
-        addr_font_size = 4
-        
-        # First line with label
-        first_line_chars = chars_per_line - 6  # Account for "ঠিকানা: " label
-        if len(address) <= first_line_chars:
-            draw_bengali_text(c, details_x, details_y, f"ঠিকানা: {address}", addr_font_size, color=(0, 0, 0), bg_color=white_bg)
-        else:
-            # Multi-line address - wrap text
-            draw_bengali_text(c, details_x, details_y, f"ঠিকানা: {address[:first_line_chars]}", addr_font_size, color=(0, 0, 0), bg_color=white_bg)
-            remaining = address[first_line_chars:]
+        addr_short = address[:40] + "।" if len(address) > 40 else address
+        draw_bengali_text(c, margin, y_pos, addr_short, 4, color=(51, 51, 51))
+        y_pos -= 5*mm
+    
+    photo_size = 22 * mm
+    photo_x = margin
+    photo_y = y_pos - photo_size - 2*mm
+    photo_url = student.get("photo") or student.get("photo_url") or student.get("profile_image") or None
+    draw_photo_with_red_border(c, photo_x, photo_y, photo_size, photo_url)
+    
+    info_x = photo_x + photo_size + 4*mm
+    info_y = y_pos - 3*mm
+    
+    name = student.get("name") or student.get("full_name") or ""
+    position = student.get("designation") or student.get("position") or class_name or ""
+    father = student.get("father_name") or student.get("father") or ""
+    student_address = student.get("address") or student.get("permanent_address") or ""
+    joining_date = student.get("joining_date") or student.get("admission_date") or ""
+    dob = student.get("date_of_birth") or student.get("dob") or ""
+    blood_group = student.get("blood_group") or ""
+    mobile = student.get("phone") or student.get("mobile") or student.get("contact") or ""
+    
+    draw_bengali_text(c, margin, photo_y - 3*mm, f"নাম: {name}", 7, color=(0, 0, 0), bold=True)
+    
+    if position:
+        draw_bengali_text(c, margin, photo_y - 9*mm, f"পদের নাম: {position}", 5, color=(139, 0, 0), bold=True)
+    
+    details_y = photo_y - 15*mm
+    line_height = 4.5*mm
+    label_x = margin
+    value_x = margin + 18*mm
+    
+    details = [
+        ("পিতা", father),
+        ("ঠিকানা", student_address[:25] if student_address else ""),
+        ("যোগদানের তারিখ", joining_date),
+        ("জন্ম তারিখ", dob),
+        ("রক্তের গ্রুপ", blood_group),
+        ("মোবাইল", mobile),
+    ]
+    
+    for label, value in details:
+        if value:
+            draw_bengali_text(c, label_x, details_y, label, 4.5, color=(0, 0, 0), bold=True)
+            c.setFont("Helvetica", 4)
+            c.setFillColor(colors.black)
+            c.drawString(label_x + 16*mm, details_y - 1*mm, ":")
             
-            # Add additional lines as needed (max 3 lines total for space)
-            line_count = 0
-            while remaining and line_count < 2:
-                details_y -= 2.5 * mm
-                line_text = remaining[:chars_per_line]
-                remaining = remaining[chars_per_line:]
-                draw_bengali_text(c, details_x + 8 * mm, details_y, line_text, addr_font_size, color=(0, 0, 0), bg_color=white_bg)
-                line_count += 1
+            if any(ord(ch) > 127 for ch in str(value)):
+                draw_bengali_text(c, value_x, details_y, str(value), 4.5, color=(51, 51, 51))
+            else:
+                c.setFont("Helvetica", 5)
+                c.drawString(value_x, details_y - 1*mm, str(value))
+            
+            details_y -= line_height
     
-    # Signature area above footer
-    sig_y = footer_height + 6 * mm
-    sig_width = 20 * mm
-    sig_x = (CARD_WIDTH - sig_width) / 2
-    c.setStrokeColor(colors.black)
-    c.setLineWidth(0.5)
-    c.line(sig_x, sig_y, sig_x + sig_width, sig_y)
-    draw_bengali_text(c, 0, sig_y - 3 * mm, "মুহতামিমের স্বাক্ষর", 4, color=(0, 0, 0), 
-                      centered=True, width=CARD_WIDTH, bg_color=white_bg)
+    sig_y = 12*mm
+    c.setStrokeColor(colors.HexColor("#999999"))
+    c.setDash([1, 1])
+    c.line(margin, sig_y, CARD_WIDTH - margin, sig_y)
+    c.setDash([])
     
-    # Red footer
-    c.setFillColor(MAROON)
-    c.rect(0, 0, CARD_WIDTH, footer_height, fill=True, stroke=False)
+    draw_bengali_text(c, margin, sig_y - 5*mm, "প্রধান শিক্ষক", 5, color=(0, 0, 0), centered=True, width=CARD_WIDTH - 2*margin)
     
-    c.setFillColor(colors.white)
-    c.setFont("Helvetica-Bold", 6)
-    c.drawCentredString(CARD_WIDTH / 2, footer_height / 2 - 1 * mm, "STUDENT CARD")
+    draw_red_curved_footer(c, CARD_WIDTH, 4*mm)
 
 
 def generate_back_side(c, student, institution):
-    """Generate back side of ID card - PORTRAIT orientation with PIL Bengali rendering"""
-    margin = 2 * mm
-    white_bg = (255, 255, 255)
+    """Generate back side of ID card matching exact sample design"""
+    margin = 3 * mm
     
-    # White background
-    c.setFillColor(colors.white)
-    c.rect(0, 0, CARD_WIDTH, CARD_HEIGHT, fill=True, stroke=False)
+    draw_circuit_pattern(c, CARD_WIDTH, CARD_HEIGHT)
     
-    # Warning text at top - split into lines that fit
-    warning_line1 = "এই কার্ডটি ব্যবহারকারী ব্যতিত"
-    warning_line2 = "অন্য কেউ পেলে মাদরাসার ঠিকানায়"
-    warning_line3 = "পৌঁছে দেওয়ার অনুরোধ রইল।"
+    name_bn = get_institution_name(institution, "bn")
+    name_en = get_institution_name(institution, "en")
+    address = institution.get("address") or institution.get("full_address") or ""
+    phone = institution.get("phone") or institution.get("mobile") or institution.get("contact") or ""
     
-    y_pos = CARD_HEIGHT - 4 * mm
-    draw_bengali_text(c, 0, y_pos, warning_line1, 5, color=(0, 0, 0), centered=True, width=CARD_WIDTH, bg_color=white_bg)
-    y_pos -= 3.5 * mm
-    draw_bengali_text(c, 0, y_pos, warning_line2, 5, color=(0, 0, 0), centered=True, width=CARD_WIDTH, bg_color=white_bg)
-    y_pos -= 3.5 * mm
-    draw_bengali_text(c, 0, y_pos, warning_line3, 5, color=(0, 0, 0), centered=True, width=CARD_WIDTH, bg_color=white_bg)
+    y_pos = CARD_HEIGHT - margin - 2*mm
     
-    # Logo/Seal in center (acts as official seal)
-    logo_size = 15 * mm
-    logo_x = (CARD_WIDTH - logo_size) / 2
-    logo_y = CARD_HEIGHT / 2 + 2 * mm
+    if name_bn:
+        draw_bengali_text(c, 0, y_pos, name_bn, 6, color=(0, 80, 0), bold=True, centered=True, width=CARD_WIDTH)
+        y_pos -= 5*mm
     
-    inst_logo = get_logo_url(institution)
-    draw_logo(c, logo_x, logo_y, logo_size, inst_logo)
+    if name_en:
+        c.setFillColor(colors.HexColor("#006400"))
+        c.setFont("Helvetica-Bold", 4.5)
+        name_width = c.stringWidth(name_en[:40], "Helvetica-Bold", 4.5)
+        c.drawString((CARD_WIDTH - name_width) / 2, y_pos, name_en[:40])
+        y_pos -= 6*mm
     
-    # Institution name below logo
-    inst_name = get_institution_name(institution, "bn")
-    inst_address = institution.get("address", "") if institution else ""
-    inst_mobile = ""
-    if institution:
-        inst_mobile = institution.get("phone", "") or institution.get("mobile", "") or institution.get("contact_phone", "")
+    seal_size = 14 * mm
+    seal_x = (CARD_WIDTH - seal_size) / 2
+    seal_y = y_pos - seal_size - 2*mm
     
-    # Institution name
-    name_y = logo_y - 3 * mm
-    draw_bengali_text(c, 0, name_y, inst_name, 6, color=(0, 0, 0), bold=True, 
-                      centered=True, width=CARD_WIDTH, bg_color=white_bg)
+    logo_url = get_logo_url(institution)
+    if logo_url:
+        draw_logo(c, seal_x, seal_y, seal_size, logo_url)
+    else:
+        c.setStrokeColor(colors.HexColor("#006400"))
+        c.setLineWidth(1)
+        c.circle(seal_x + seal_size/2, seal_y + seal_size/2, seal_size/2, fill=False, stroke=True)
     
-    # Address below name
-    if inst_address:
-        address_short = inst_address[:25] + "..." if len(inst_address) > 25 else inst_address
-        draw_bengali_text(c, 0, name_y - 4 * mm, address_short, 5, color=(0, 0, 0), 
-                          centered=True, width=CARD_WIDTH, bg_color=white_bg)
+    y_pos = seal_y - 4*mm
     
-    # Mobile number
-    if inst_mobile:
-        draw_bengali_text(c, 0, name_y - 8 * mm, f"মোবা: {inst_mobile}", 5, color=(0, 0, 0), 
-                          centered=True, width=CARD_WIDTH, bg_color=white_bg)
+    message_lines = [
+        "এই কার্ডটি প্রতিষ্ঠানের নিজস্ব পরিচিতি।",
+        "ব্যবহারকারী ব্যতিত অন্য কোথাও পাওয়া",
+        "গেলে অনুগ্রহ করে বিদ্যালয়ের ঠিকানায়",
+        "পৌঁছে দেওয়ার জন্য অনুরোধ করা হলো।"
+    ]
     
-    # Terms text in light red box
-    box_y = 12 * mm
-    box_height = 8 * mm
-    box_margin = 2 * mm
-    light_red_bg = (255, 228, 225)  # Light pink/red
+    for line in message_lines:
+        draw_bengali_text(c, 0, y_pos, line, 4.5, color=(51, 51, 51), centered=True, width=CARD_WIDTH)
+        y_pos -= 4*mm
     
-    c.setFillColor(colors.HexColor("#FFE4E1"))
-    c.rect(box_margin, box_y, CARD_WIDTH - 2*box_margin, box_height, fill=True, stroke=False)
+    y_pos -= 2*mm
     
-    terms_line1 = "অধ্যয়নকালীন সময়ের জন্য"
-    terms_line2 = "প্রযোজ্য।"
-    draw_bengali_text(c, box_margin, box_y + 5 * mm, terms_line1, 5, 
-                      color=(128, 0, 0), centered=True, width=CARD_WIDTH - 2*box_margin, bg_color=light_red_bg)
-    draw_bengali_text(c, box_margin, box_y + 2 * mm, terms_line2, 5, 
-                      color=(128, 0, 0), centered=True, width=CARD_WIDTH - 2*box_margin, bg_color=light_red_bg)
+    qr_size = 22 * mm
+    qr_x = (CARD_WIDTH - qr_size) / 2
+    qr_y = y_pos - qr_size - 2*mm
     
-    # Issue and validity dates at bottom
-    issue_date = datetime.now()
-    validity_date = issue_date + timedelta(days=730)  # 2 years validity
+    student_id = student.get("id") or student.get("student_id") or student.get("admission_no") or ""
+    name = student.get("name") or student.get("full_name") or ""
+    qr_data = f"ID:{student_id}|Name:{name}|Institution:{name_en}"
     
-    issue_str = issue_date.strftime("%d/%m/%Y")
-    validity_str = validity_date.strftime("%d/%m/%Y")
+    try:
+        qr = qrcode.QRCode(version=1, box_size=10, border=1)
+        qr.add_data(qr_data)
+        qr.make(fit=True)
+        qr_img = qr.make_image(fill_color="black", back_color="white")
+        
+        qr_temp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+        qr_img.save(qr_temp.name)
+        qr_temp.close()
+        
+        c.drawImage(qr_temp.name, qr_x, qr_y, qr_size, qr_size)
+        os.unlink(qr_temp.name)
+    except Exception as e:
+        logging.warning(f"QR generation failed: {e}")
+        c.setStrokeColor(colors.black)
+        c.rect(qr_x, qr_y, qr_size, qr_size, fill=False, stroke=True)
     
-    draw_bengali_text(c, 0, 7 * mm, f"ইস্যু: {issue_str}", 5, color=(0, 0, 0), centered=True, width=CARD_WIDTH, bg_color=white_bg)
-    draw_bengali_text(c, 0, 3 * mm, f"মেয়াদ: {validity_str}", 5, color=(0, 0, 0), centered=True, width=CARD_WIDTH, bg_color=white_bg)
+    y_pos = qr_y - 4*mm
+    
+    if address:
+        addr_short = address[:45] + "।" if len(address) > 45 else address + "।"
+        draw_bengali_text(c, 0, y_pos, addr_short, 4, color=(51, 51, 51), centered=True, width=CARD_WIDTH)
+        y_pos -= 4*mm
+    
+    if phone:
+        draw_bengali_text(c, 0, y_pos, f"মোবাইল: {phone}", 4.5, color=(0, 0, 0), bold=True, centered=True, width=CARD_WIDTH)
 
 
-def generate_student_id_card_pdf(student: dict, institution: dict, class_name: str = "") -> BytesIO:
-    """Generate complete ID card PDF with front and back"""
+def generate_student_id_card_pdf(student: dict, institution: dict, class_name: str = "") -> bytes:
+    """Generate complete student ID card PDF with front and back sides"""
     register_fonts()
     
     buffer = BytesIO()
     c = pdf_canvas.Canvas(buffer, pagesize=(CARD_WIDTH, CARD_HEIGHT))
     
-    # Front side
     generate_front_side(c, student, institution, class_name)
     c.showPage()
     
-    # Back side
     generate_back_side(c, student, institution)
     c.showPage()
     
     c.save()
     buffer.seek(0)
-    return buffer
+    return buffer.getvalue()
+
+
+def generate_staff_id_card_pdf(staff: dict, institution: dict) -> bytes:
+    """Generate complete staff ID card PDF with front and back sides"""
+    register_fonts()
+    
+    buffer = BytesIO()
+    c = pdf_canvas.Canvas(buffer, pagesize=(CARD_WIDTH, CARD_HEIGHT))
+    
+    position = staff.get("designation") or staff.get("position") or staff.get("role") or ""
+    generate_front_side(c, staff, institution, position)
+    c.showPage()
+    
+    generate_back_side(c, staff, institution)
+    c.showPage()
+    
+    c.save()
+    buffer.seek(0)
+    return buffer.getvalue()
