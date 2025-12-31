@@ -437,7 +437,7 @@ const StudentList = () => {
             headers: { 'Content-Type': 'multipart/form-data' }
           }),
           8000
-        ).catch(photoError => {
+        ).then(() => { safeBackgroundRefresh(fetchData); }).catch(photoError => {
           console.error('Failed to upload photo:', photoError);
           toast.warning('Student saved but photo upload failed');
         });
