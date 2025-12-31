@@ -7467,7 +7467,7 @@ async def create_class(class_data: ClassCreate, current_user: User = Depends(get
     await db.classes.insert_one(cls.dict())
     
     # Invalidate cache after creating new class
-    await invalidate_tenant_cache(current_user.tenant_id, "classes")
+    await invalidate_tenant_cache(current_user.tenant_id)
     return cls
 
 @api_router.get("/sections", response_model=List[Section])
