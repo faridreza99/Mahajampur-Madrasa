@@ -3456,7 +3456,7 @@ async def upload_institution_favicon(
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user)
 ):
-    """Upload institution favicon"""
+    """Upload institution favicon using Cloudinary"""
     if current_user.role not in ["super_admin", "admin"]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
@@ -3464,21 +3464,21 @@ async def upload_institution_favicon(
     if file.content_type not in allowed_types:
         raise HTTPException(status_code=400, detail="Invalid file type. Only PNG or ICO files are allowed")
     
-    content = await file.read()
-    if len(content) > 500 * 1024:
+    file_content = await file.read()
+    if len(file_content) > 500 * 1024:
         raise HTTPException(status_code=400, detail="File size exceeds 500KB limit")
     
-    upload_dir = f"uploads/{current_user.tenant_id}/institution"
-    os.makedirs(upload_dir, exist_ok=True)
-    
-    file_ext = os.path.splitext(file.filename)[1] if file.filename else ".ico"
-    unique_filename = f"favicon_{current_user.tenant_id}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}{file_ext}"
-    file_path = os.path.join(upload_dir, unique_filename)
-    
-    with open(file_path, "wb") as f:
-        f.write(content)
-    
-    favicon_url = f"/uploads/{current_user.tenant_id}/institution/{unique_filename}"
+    try:
+        import io
+        upload_result = cloudinary.uploader.upload(
+            io.BytesIO(file_content),
+            folder=f"school_erp/{current_user.tenant_id}/favicon",
+            public_id=f"favicon_{current_user.tenant_id}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}",
+            resource_type="image"
+        )
+        favicon_url = upload_result.get("secure_url")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to upload favicon: {str(e)}")
     
     await db.institutions.update_one(
         {"tenant_id": current_user.tenant_id, "is_active": True},
