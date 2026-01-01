@@ -22,16 +22,11 @@ import * as XLSX from "xlsx";
 const API_BASE_URL =
   process.env.REACT_APP_API_URL || "/api";
 
-// Helper function to format API validation errors
 const formatErrorMessage = (error, fallbackMsg) => {
   const detail = error.response?.data?.detail;
-
-  // If detail is a string, return it
   if (typeof detail === "string") {
     return detail;
   }
-
-  // If detail is an array of validation errors (Pydantic format)
   if (Array.isArray(detail)) {
     const messages = detail.map((err) => {
       const field = err.loc ? err.loc.join(".") : "field";
@@ -39,20 +34,15 @@ const formatErrorMessage = (error, fallbackMsg) => {
     });
     return messages.join(", ");
   }
-
-  // If detail is an object with msg property
   if (detail && typeof detail === "object" && detail.msg) {
     return detail.msg;
   }
-
-  // Fallback to the provided message
   return fallbackMsg;
 };
 
-// --- Initial States ---
 const initialChapter = {
   chapter_number: 1,
-  title: "Chapter 1",
+  title: "অধ্যায় ১",
   file_url: "",
   file_name: "",
 };
@@ -62,7 +52,7 @@ const initialBookForm = {
   author: "",
   subject: "",
   class_standard: "",
-  board: "CBSE",
+  board: "মাদ্রাসা বোর্ড",
   prelims_file_url: "",
   prelims_file_name: "",
   chapters: [initialChapter],
@@ -74,9 +64,9 @@ const initialQAForm = {
   answer: "",
   subject: "",
   class_standard: "",
-  chapter: "", // Mapped to chapter_topic
-  question_type: "conceptual",
-  difficulty_level: "medium",
+  chapter: "",
+  question_type: "ধারণাগত",
+  difficulty_level: "মাঝারি",
   keywords: "",
 };
 
@@ -86,7 +76,7 @@ const initialPaperForm = {
   class_standard: "",
   chapter: "",
   exam_year: new Date().getFullYear().toString(),
-  paper_type: "Final Exam",
+  paper_type: "বার্ষিক পরীক্ষা",
   file_url: "",
 };
 
@@ -113,13 +103,11 @@ const AcademicCMS = () => {
 
   const [uploadingFile, setUploadingFile] = useState(false);
 
-  // Form states
   const [bookForm, setBookForm] = useState(initialBookForm);
   const [qaForm, setQaForm] = useState(initialQAForm);
   const [referenceBookForm, setReferenceBookForm] = useState(initialBookForm);
   const [paperForm, setPaperForm] = useState(initialPaperForm);
 
-  // Navigation states for hierarchical flow
   const [acadNavLevel, setAcadNavLevel] = useState({
     step: "class",
     class: "",
@@ -131,34 +119,28 @@ const AcademicCMS = () => {
     subject: "",
   });
 
-  // Chapter modal
   const [showChaptersModal, setShowChaptersModal] = useState(false);
   const [selectedBookForChapters, setSelectedBookForChapters] = useState(null);
   const [chapterViewIndex, setChapterViewIndex] = useState(0);
   const [chapterLoading, setChapterLoading] = useState(false);
 
-  // --- Helper Functions ---
-
-  // Handle file upload (Max 100MB)
   const handleFileUpload = useCallback(async (file, onSuccess) => {
     if (!file) return null;
 
-    // Validate file size (max 100MB)
     const maxSize = 100 * 1024 * 1024;
     if (file.size > maxSize) {
-      toast.error("File size must be less than 100MB");
+      toast.error("ফাইলের আকার ১০০MB এর কম হতে হবে");
       return null;
     }
 
-    // Validate file type
     const allowedTypes = [
       "application/pdf",
       "text/plain",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // DOCX
-      "application/msword", // DOC (legacy)
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/msword",
     ];
     if (!allowedTypes.includes(file.type)) {
-      toast.error("Only PDF, TXT, and DOCX/DOC files are allowed");
+      toast.error("শুধুমাত্র PDF, TXT, এবং DOCX/DOC ফাইল অনুমোদিত");
       return null;
     }
 
@@ -179,11 +161,11 @@ const AcademicCMS = () => {
         },
       );
 
-      toast.success("File uploaded successfully!");
+      toast.success("ফাইল সফলভাবে আপলোড হয়েছে!");
       if (onSuccess) onSuccess(response.data.file_url, file.name);
       return response.data.file_url;
     } catch (error) {
-      toast.error(formatErrorMessage(error, "File upload failed"));
+      toast.error(formatErrorMessage(error, "ফাইল আপলোড ব্যর্থ হয়েছে"));
       console.error(error);
       return null;
     } finally {
@@ -191,7 +173,6 @@ const AcademicCMS = () => {
     }
   }, []);
 
-  // Handle generic form field changes
   const handleFormChange = (formType, field, value) => {
     if (formType === "book") {
       setBookForm((prev) => ({ ...prev, [field]: value }));
@@ -204,7 +185,6 @@ const AcademicCMS = () => {
     }
   };
 
-  // Handle chapter changes (title, file upload)
   const handleChapterChange = (
     formType,
     index,
@@ -225,7 +205,6 @@ const AcademicCMS = () => {
         ...(fileName && { file_name: fileName }),
         ...(field === "file_url" && !value && { file_name: "" }),
       };
-      // Auto-populate title if empty and file is uploaded
       if (
         field === "file_url" &&
         value &&
@@ -238,7 +217,6 @@ const AcademicCMS = () => {
     });
   };
 
-  // Add a new empty chapter field
   const addChapterField = (formType) => {
     const setForm = formType === "book" ? setBookForm : setReferenceBookForm;
 
@@ -251,19 +229,18 @@ const AcademicCMS = () => {
             ...prev.chapters,
             {
               chapter_number: newIndex + 1,
-              title: `Chapter ${newIndex + 1}`,
+              title: `অধ্যায় ${newIndex + 1}`,
               file_url: "",
               file_name: "",
             },
           ],
         };
       }
-      toast.warning("Maximum of 20 chapters allowed.");
+      toast.warning("সর্বোচ্চ ২০টি অধ্যায় অনুমোদিত।");
       return prev;
     });
   };
 
-  // Remove a chapter field
   const removeChapterField = (formType, index) => {
     const setForm = formType === "book" ? setBookForm : setReferenceBookForm;
     setForm((prev) => {
@@ -271,15 +248,14 @@ const AcademicCMS = () => {
       const renumberedChapters = newChapters.map((chap, i) => ({
         ...chap,
         chapter_number: i + 1,
-        title: chap.title.startsWith("Chapter ")
-          ? `Chapter ${i + 1}`
+        title: chap.title.startsWith("অধ্যায় ")
+          ? `অধ্যায় ${i + 1}`
           : chap.title,
       }));
       return { ...prev, chapters: renumberedChapters };
     });
   };
 
-  // Reset Form to initial state
   const resetForm = (formType) => {
     if (formType === "book") {
       setBookForm(initialBookForm);
@@ -296,8 +272,6 @@ const AcademicCMS = () => {
     }
   };
 
-  // --- Fetch Functions ---
-
   const fetchBooks = useCallback(async () => {
     setLoading(true);
     try {
@@ -307,7 +281,7 @@ const AcademicCMS = () => {
       });
       setBooks(response.data || []);
     } catch (error) {
-      toast.error("Failed to load academic books");
+      toast.error("পাঠ্যপুস্তক লোড করতে ব্যর্থ");
       console.error(error);
     }
     setLoading(false);
@@ -322,7 +296,7 @@ const AcademicCMS = () => {
       });
       setReferenceBooks(response.data || []);
     } catch (error) {
-      toast.error("Failed to load reference books");
+      toast.error("সহায়ক পুস্তক লোড করতে ব্যর্থ");
       console.error(error);
     }
     setLoading(false);
@@ -340,7 +314,7 @@ const AcademicCMS = () => {
       );
       setQaPairs(response.data || []);
     } catch (error) {
-      toast.error("Failed to load Q&A pairs");
+      toast.error("প্রশ্ন-উত্তর লোড করতে ব্যর্থ");
       console.error(error);
     }
     setLoading(false);
@@ -358,13 +332,12 @@ const AcademicCMS = () => {
       );
       setPreviousPapers(response.data || []);
     } catch (error) {
-      toast.error("Failed to load previous year papers");
+      toast.error("বিগত বছরের প্রশ্নপত্র লোড করতে ব্যর্থ");
       console.error(error);
     }
     setLoading(false);
   }, []);
 
-  // Initial load / tab change
   useEffect(() => {
     if (activeTab === "books") {
       fetchBooks();
@@ -382,8 +355,6 @@ const AcademicCMS = () => {
     fetchQAPairs,
     fetchPreviousPapers,
   ]);
-
-  // --- CRUD Handlers for Academic Books ---
 
   const handleAddBook = async (e) => {
     e.preventDefault();
@@ -406,12 +377,12 @@ const AcademicCMS = () => {
         await axios.put(`${endpoint}/${editingBookId}`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast.success(`✅ Academic Book updated successfully!`);
+        toast.success(`পাঠ্যপুস্তক সফলভাবে আপডেট হয়েছে!`);
       } else {
         await axios.post(endpoint, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast.success(`✅ Academic Book added successfully!`);
+        toast.success(`পাঠ্যপুস্তক সফলভাবে যোগ হয়েছে!`);
       }
 
       setShowAddBook(false);
@@ -419,8 +390,8 @@ const AcademicCMS = () => {
       fetchBooks();
     } catch (error) {
       const errorMsg = isEditing
-        ? "Failed to update academic book"
-        : "Failed to add academic book";
+        ? "পাঠ্যপুস্তক আপডেট করতে ব্যর্থ"
+        : "পাঠ্যপুস্তক যোগ করতে ব্যর্থ";
       toast.error(formatErrorMessage(error, errorMsg));
       console.error(error);
     }
@@ -433,13 +404,13 @@ const AcademicCMS = () => {
       author: book.author || "",
       subject: book.subject || "",
       class_standard: book.class_standard || "",
-      board: book.board || "CBSE",
+      board: book.board || "মাদ্রাসা বোর্ড",
       prelims_file_url: book.pdf_url || book.prelims_file_url || "",
       prelims_file_name: book.prelims_file_name || "",
       chapters: (book.chapters || []).map((c, i) => ({
         chapter_number: c.chapter_number || i + 1,
         title:
-          c.title || c.chapter_title || `Chapter ${c.chapter_number || i + 1}`,
+          c.title || c.chapter_title || `অধ্যায় ${c.chapter_number || i + 1}`,
         file_url: c.file_url || "",
         file_name: c.file_name || "",
       })),
@@ -450,7 +421,7 @@ const AcademicCMS = () => {
 
   const handleDeleteBook = async (bookId) => {
     if (
-      !window.confirm("Are you sure you want to delete this Academic book?")
+      !window.confirm("আপনি কি নিশ্চিত যে এই পাঠ্যপুস্তকটি মুছতে চান?")
     ) {
       return;
     }
@@ -460,15 +431,13 @@ const AcademicCMS = () => {
       await axios.delete(`${API_BASE_URL}/cms/academic-books/${bookId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      toast.success("✅ Academic Book deleted successfully!");
+      toast.success("পাঠ্যপুস্তক সফলভাবে মুছে ফেলা হয়েছে!");
       fetchBooks();
     } catch (error) {
-      toast.error(formatErrorMessage(error, "Failed to delete academic book"));
+      toast.error(formatErrorMessage(error, "পাঠ্যপুস্তক মুছতে ব্যর্থ"));
       console.error(error);
     }
   };
-
-  // --- CRUD Handlers for Reference Books ---
 
   const handleAddReferenceBook = async (e) => {
     e.preventDefault();
@@ -490,12 +459,12 @@ const AcademicCMS = () => {
         await axios.put(`${endpoint}/${editingReferenceBookId}`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast.success("✅ Reference Book updated successfully!");
+        toast.success("সহায়ক পুস্তক সফলভাবে আপডেট হয়েছে!");
       } else {
         await axios.post(endpoint, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast.success("✅ Reference Book added successfully!");
+        toast.success("সহায়ক পুস্তক সফলভাবে যোগ হয়েছে!");
       }
 
       setShowAddReferenceBook(false);
@@ -503,8 +472,8 @@ const AcademicCMS = () => {
       fetchReferenceBooks();
     } catch (error) {
       const errorMsg = isEditing
-        ? "Failed to update reference book"
-        : "Failed to add reference book";
+        ? "সহায়ক পুস্তক আপডেট করতে ব্যর্থ"
+        : "সহায়ক পুস্তক যোগ করতে ব্যর্থ";
       toast.error(formatErrorMessage(error, errorMsg));
       console.error(error);
     }
@@ -517,13 +486,13 @@ const AcademicCMS = () => {
       author: book.author || "",
       subject: book.subject || "",
       class_standard: book.class_standard || "",
-      board: book.board || "CBSE",
+      board: book.board || "মাদ্রাসা বোর্ড",
       prelims_file_url: book.pdf_url || book.prelims_file_url || "",
       prelims_file_name: book.prelims_file_name || "",
       chapters: (book.chapters || []).map((c, i) => ({
         chapter_number: c.chapter_number || i + 1,
         title:
-          c.title || c.chapter_title || `Chapter ${c.chapter_number || i + 1}`,
+          c.title || c.chapter_title || `অধ্যায় ${c.chapter_number || i + 1}`,
         file_url: c.file_url || "",
         file_name: c.file_name || "",
       })),
@@ -534,7 +503,7 @@ const AcademicCMS = () => {
 
   const handleDeleteReferenceBook = async (bookId) => {
     if (
-      !window.confirm("Are you sure you want to delete this reference book?")
+      !window.confirm("আপনি কি নিশ্চিত যে এই সহায়ক পুস্তকটি মুছতে চান?")
     ) {
       return;
     }
@@ -544,15 +513,13 @@ const AcademicCMS = () => {
       await axios.delete(`${API_BASE_URL}/cms/reference-books/${bookId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      toast.success("✅ Reference book deleted successfully!");
+      toast.success("সহায়ক পুস্তক সফলভাবে মুছে ফেলা হয়েছে!");
       fetchReferenceBooks();
     } catch (error) {
-      toast.error(formatErrorMessage(error, "Failed to delete reference book"));
+      toast.error(formatErrorMessage(error, "সহায়ক পুস্তক মুছতে ব্যর্থ"));
       console.error(error);
     }
   };
-
-  // --- CRUD Handlers for Q&A ---
 
   const handleAddQA = async (e) => {
     e.preventDefault();
@@ -575,12 +542,12 @@ const AcademicCMS = () => {
         await axios.put(`${endpoint}/${editingQAId}`, qaData, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast.success("✅ Q&A pair updated successfully!");
+        toast.success("প্রশ্ন-উত্তর সফলভাবে আপডেট হয়েছে!");
       } else {
         await axios.post(endpoint, qaData, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast.success("✅ Q&A pair added successfully!");
+        toast.success("প্রশ্ন-উত্তর সফলভাবে যোগ হয়েছে!");
       }
 
       setShowAddQA(false);
@@ -588,8 +555,8 @@ const AcademicCMS = () => {
       fetchQAPairs();
     } catch (error) {
       const errorMsg = isEditing
-        ? "Failed to update Q&A pair"
-        : "Failed to add Q&A pair";
+        ? "প্রশ্ন-উত্তর আপডেট করতে ব্যর্থ"
+        : "প্রশ্ন-উত্তর যোগ করতে ব্যর্থ";
       toast.error(formatErrorMessage(error, errorMsg));
       console.error(error);
     }
@@ -602,8 +569,8 @@ const AcademicCMS = () => {
       answer: qa.answer,
       subject: qa.subject,
       class_standard: qa.class_standard,
-      question_type: qa.question_type || "conceptual",
-      difficulty_level: qa.difficulty_level || "medium",
+      question_type: qa.question_type || "ধারণাগত",
+      difficulty_level: qa.difficulty_level || "মাঝারি",
       keywords: Array.isArray(qa.keywords)
         ? qa.keywords.join(", ")
         : qa.keywords || "",
@@ -613,7 +580,7 @@ const AcademicCMS = () => {
   };
 
   const handleDeleteQA = async (qaId) => {
-    if (!window.confirm("Are you sure you want to delete this Q&A pair?")) {
+    if (!window.confirm("আপনি কি নিশ্চিত যে এই প্রশ্ন-উত্তরটি মুছতে চান?")) {
       return;
     }
 
@@ -622,18 +589,17 @@ const AcademicCMS = () => {
       await axios.delete(`${API_BASE_URL}/cms/qa-knowledge-base/${qaId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      toast.success("✅ Q&A pair deleted successfully!");
+      toast.success("প্রশ্ন-উত্তর সফলভাবে মুছে ফেলা হয়েছে!");
       fetchQAPairs();
     } catch (error) {
-      toast.error(formatErrorMessage(error, "Failed to delete Q&A pair"));
+      toast.error(formatErrorMessage(error, "প্রশ্ন-উত্তর মুছতে ব্যর্থ"));
       console.error(error);
     }
   };
 
-  // Bulk upload Q&A pairs
   const handleBulkUpload = async () => {
     if (!bulkUploadFile) {
-      toast.error("Please select a file to upload");
+      toast.error("অনুগ্রহ করে একটি ফাইল নির্বাচন করুন");
       return;
     }
 
@@ -656,50 +622,47 @@ const AcademicCMS = () => {
 
       setUploadSummary(response.data.summary);
       toast.success(
-        `✅ ${response.data.summary.successful} Q&A pairs uploaded successfully!`,
+        `${response.data.summary.successful}টি প্রশ্ন-উত্তর সফলভাবে আপলোড হয়েছে!`,
       );
       setBulkUploadFile(null);
       fetchQAPairs();
     } catch (error) {
-      toast.error(formatErrorMessage(error, "Bulk upload failed"));
+      toast.error(formatErrorMessage(error, "বাল্ক আপলোড ব্যর্থ হয়েছে"));
       console.error(error);
     }
     setLoading(false);
   };
 
-  // Download sample template
   const downloadSampleTemplate = () => {
     const sampleData = [
       {
-        question: "What is Newton's Second Law?",
-        answer: "Force = mass × acceleration (F = m × a)",
-        subject: "Physics",
-        class: "9",
-        chapter_topic: "Laws of Motion",
-        keywords: "newton, force, motion",
-        difficulty: "medium",
-        type: "conceptual",
+        question: "নিউটনের দ্বিতীয় সূত্র কি?",
+        answer: "বল = ভর × ত্বরণ (F = m × a)",
+        subject: "পদার্থবিজ্ঞান",
+        class: "৯",
+        chapter_topic: "গতিসূত্র",
+        keywords: "নিউটন, বল, গতি",
+        difficulty: "মাঝারি",
+        type: "ধারণাগত",
       },
       {
-        question: "Solve: 2x + 5 = 15",
+        question: "সমাধান করুন: 2x + 5 = 15",
         answer: "x = 5",
-        subject: "Math",
-        class: "9",
-        chapter_topic: "Linear Equations",
-        keywords: "algebra, equations",
-        difficulty: "easy",
-        type: "numerical",
+        subject: "গণিত",
+        class: "৯",
+        chapter_topic: "সরল সমীকরণ",
+        keywords: "বীজগণিত, সমীকরণ",
+        difficulty: "সহজ",
+        type: "সংখ্যাগত",
       },
     ];
 
     const worksheet = XLSX.utils.json_to_sheet(sampleData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Q&A Template");
+    XLSX.utils.book_append_sheet(workbook, worksheet, "প্রশ্ন-উত্তর টেমপ্লেট");
     XLSX.writeFile(workbook, "sample_qa_template.xlsx");
-    toast.success("📄 Sample template downloaded!");
+    toast.success("নমুনা টেমপ্লেট ডাউনলোড হয়েছে!");
   };
-
-  // --- CRUD Handlers for Papers ---
 
   const handleAddPaper = async (e) => {
     e.preventDefault();
@@ -713,12 +676,12 @@ const AcademicCMS = () => {
         await axios.put(`${endpoint}/${editingPaperId}`, paperForm, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast.success("✅ Previous year paper updated successfully!");
+        toast.success("প্রশ্নপত্র সফলভাবে আপডেট হয়েছে!");
       } else {
         await axios.post(endpoint, paperForm, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast.success("✅ Previous year paper added successfully!");
+        toast.success("প্রশ্নপত্র সফলভাবে যোগ হয়েছে!");
       }
 
       setShowAddPaper(false);
@@ -726,8 +689,8 @@ const AcademicCMS = () => {
       fetchPreviousPapers();
     } catch (error) {
       const errorMsg = isEditing
-        ? "Failed to update paper"
-        : "Failed to add paper";
+        ? "প্রশ্নপত্র আপডেট করতে ব্যর্থ"
+        : "প্রশ্নপত্র যোগ করতে ব্যর্থ";
       toast.error(formatErrorMessage(error, errorMsg));
       console.error(error);
     }
@@ -742,84 +705,56 @@ const AcademicCMS = () => {
       chapter: paper.chapter || "",
       exam_year: paper.exam_year,
       paper_type: paper.paper_type,
-      file_url: paper.file_url || paper.pdf_url || "",
+      file_url: paper.file_url || "",
     });
     setShowAddPaper(true);
   };
 
   const handleDeletePaper = async (paperId) => {
-    if (!window.confirm("Are you sure you want to delete this paper?")) {
+    if (!window.confirm("আপনি কি নিশ্চিত যে এই প্রশ্নপত্রটি মুছতে চান?")) {
       return;
     }
 
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(
-        `${API_BASE_URL}/cms/previous-year-papers/${paperId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-      toast.success("✅ Previous year paper deleted successfully!");
+      await axios.delete(`${API_BASE_URL}/cms/previous-year-papers/${paperId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      toast.success("প্রশ্নপত্র সফলভাবে মুছে ফেলা হয়েছে!");
       fetchPreviousPapers();
     } catch (error) {
-      toast.error(formatErrorMessage(error, "Failed to delete paper"));
+      toast.error(formatErrorMessage(error, "প্রশ্নপত্র মুছতে ব্যর্থ"));
       console.error(error);
     }
   };
 
-  // --- Open Chapters Modal (for Academic & Reference) ---
-
   const openChaptersModal = async (book, bookType) => {
-    try {
-      setChapterViewIndex(0);
+    setSelectedBookForChapters({ ...book, bookType });
+    setChapterViewIndex(0);
+    setShowChaptersModal(true);
+
+    if (!book.chapters || book.chapters.length === 0) {
       setChapterLoading(true);
-
-      const token = localStorage.getItem("token");
-
-      const response = await axios.get(
-        `${API_BASE_URL}/cms/books/${book.id}/chapters`,
-        {
-          params: { book_type: bookType },
+      try {
+        const token = localStorage.getItem("token");
+        const endpoint =
+          bookType === "academic"
+            ? `${API_BASE_URL}/cms/academic-books/${book.id}`
+            : `${API_BASE_URL}/cms/reference-books/${book.id}`;
+        const response = await axios.get(endpoint, {
           headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-
-      const apiChapters = response.data || [];
-      const chaptersSource =
-        apiChapters.length > 0 ? apiChapters : book.chapters || [];
-
-      if (!chaptersSource.length) {
-        toast.info("No chapters found for this book");
-        return;
+        });
+        setSelectedBookForChapters({
+          ...response.data,
+          bookType,
+        });
+      } catch (error) {
+        toast.error("অধ্যায় লোড করতে ব্যর্থ");
+        console.error(error);
       }
-
-      const normalized = chaptersSource.map((c, idx) => ({
-        chapter_number: c.chapter_number || idx + 1,
-        title:
-          c.title ||
-          c.chapter_title ||
-          `Chapter ${c.chapter_number || idx + 1}`,
-        file_url: c.file_url || "",
-        file_name: c.file_name || "",
-        content: c.content || "",
-      }));
-
-      setSelectedBookForChapters({
-        ...book,
-        bookType,
-        chapters: normalized,
-      });
-      setShowChaptersModal(true);
-    } catch (error) {
-      console.error("Error fetching book chapters:", error);
-      toast.error(formatErrorMessage(error, "Failed to load chapters"));
-    } finally {
       setChapterLoading(false);
     }
   };
-
-  // --- Common Book/Reference Book Modal Renderer ---
 
   const renderBookModal = (
     isReference,
@@ -827,163 +762,176 @@ const AcademicCMS = () => {
     setShowModal,
     formState,
     setFormState,
-    handleAddFunction,
+    handleSubmit,
     editingId,
     resetFormFn,
   ) => {
-    if (!showModal) return null;
-
     const formType = isReference ? "reference" : "book";
+    const title = isReference
+      ? editingId
+        ? "সহায়ক পুস্তক সম্পাদনা"
+        : "নতুন সহায়ক পুস্তক যোগ করুন"
+      : editingId
+        ? "পাঠ্যপুস্তক সম্পাদনা"
+        : "নতুন পাঠ্যপুস্তক যোগ করুন";
+
+    if (!showModal) return null;
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-              {editingId
-                ? `Edit ${isReference ? "Reference" : "Academic"} Book`
-                : `Add New ${isReference ? "Reference" : "Academic"} Book`}
-            </h3>
-            <button
-              onClick={() => {
-                setShowModal(false);
-                resetFormFn(formType);
-              }}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 dark:text-gray-400"
-            >
-              <X className="w-6 h-6" />
-            </button>
-          </div>
-
-          <form onSubmit={handleAddFunction} className="space-y-4">
-            {/* BOOK TITLE / AUTHOR */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+            {title}
+          </h3>
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <input
                 type="text"
-                placeholder="BOOK TITLE *"
+                placeholder="বইয়ের নাম *"
                 value={formState.title}
                 onChange={(e) =>
                   handleFormChange(formType, "title", e.target.value)
                 }
-                className="w-full px-3 py-2 border rounded-lg"
+                className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 required
               />
               <input
                 type="text"
-                placeholder="AUTHOR *"
+                placeholder="লেখক *"
                 value={formState.author}
                 onChange={(e) =>
                   handleFormChange(formType, "author", e.target.value)
                 }
-                className="w-full px-3 py-2 border rounded-lg"
+                className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 required
               />
             </div>
-
-            {/* SELECT CLASS / SUBJECTS */}
-            <div className="grid grid-cols-2 gap-4">
-              <select
-                value={formState.class_standard}
-                onChange={(e) =>
-                  handleFormChange(formType, "class_standard", e.target.value)
-                }
-                className="w-full px-3 py-2 border rounded-lg"
-                required
-              >
-                <option value="">SELECT CLASS (5-12) *</option>
-                {[5, 6, 7, 8, 9, 10, 11, 12].map((c) => (
-                  <option key={c} value={c}>
-                    Class {c}
-                  </option>
-                ))}
-              </select>
+            <div className="grid grid-cols-3 gap-4">
               <select
                 value={formState.subject}
                 onChange={(e) =>
                   handleFormChange(formType, "subject", e.target.value)
                 }
-                className="w-full px-3 py-2 border rounded-lg"
+                className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 required
               >
-                <option value="">SELECT SUBJECTS *</option>
-                {["Physics", "Chemistry", "Biology", "Math", "English"].map(
-                  (s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ),
-                )}
+                <option value="">বিষয় নির্বাচন করুন *</option>
+                {[
+                  "কুরআন",
+                  "হাদিস",
+                  "ফিকহ",
+                  "আরবি",
+                  "বাংলা",
+                  "ইংরেজি",
+                  "গণিত",
+                  "বিজ্ঞান",
+                  "সামাজিক বিজ্ঞান",
+                  "ইতিহাস",
+                ].map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={formState.class_standard}
+                onChange={(e) =>
+                  handleFormChange(formType, "class_standard", e.target.value)
+                }
+                className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                required
+              >
+                <option value="">মারহালা নির্বাচন করুন *</option>
+                {[
+                  "ইবতেদায়ী ১",
+                  "ইবতেদায়ী ২",
+                  "ইবতেদায়ী ৩",
+                  "ইবতেদায়ী ৪",
+                  "ইবতেদায়ী ৫",
+                  "মুতাওয়াসসিতা ১",
+                  "মুতাওয়াসসিতা ২",
+                  "মুতাওয়াসসিতা ৩",
+                  "সানাবিয়া ১",
+                  "সানাবিয়া ২",
+                ].map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={formState.board}
+                onChange={(e) =>
+                  handleFormChange(formType, "board", e.target.value)
+                }
+                className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              >
+                <option value="মাদ্রাসা বোর্ড">মাদ্রাসা বোর্ড</option>
+                <option value="কওমি বোর্ড">কওমি বোর্ড</option>
+                <option value="আলিয়া বোর্ড">আলিয়া বোর্ড</option>
               </select>
             </div>
 
-            {/* PRELIMS Upload */}
             <div className="border p-4 rounded-lg bg-gray-50 dark:bg-gray-700">
-              <label className="block text-xs font-medium mb-2 text-gray-600 dark:text-gray-400 flex justify-between items-center">
-                <span>
-                  PRELIMS / Full Book File (PDF, TXT, DOCX - Max 100MB Each)
-                </span>
-                {formState.prelims_file_url && (
+              <label className="block text-xs font-medium mb-2 text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                <File className="w-4 h-4" />
+                প্রিলিমস/মুখবন্ধ ফাইল (ঐচ্ছিক - সর্বোচ্চ ১০০MB)
+              </label>
+              <input
+                type="file"
+                accept=".pdf,.txt,.docx,.doc"
+                onChange={async (e) => {
+                  const file = e.target.files[0];
+                  if (file) {
+                    await handleFileUpload(file, (url, fileName) => {
+                      setFormState({
+                        ...formState,
+                        prelims_file_url: url,
+                        prelims_file_name: fileName,
+                      });
+                    });
+                  }
+                }}
+                className="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-600 dark:border-gray-500"
+                disabled={uploadingFile || formState.prelims_file_url}
+              />
+              {formState.prelims_file_name && (
+                <div className="flex items-center gap-2 mt-2 text-sm text-green-600">
+                  <File className="w-4 h-4" />
+                  <span>{formState.prelims_file_name}</span>
                   <button
                     type="button"
                     onClick={() =>
-                      handleFormChange(formType, "prelims_file_url", "")
+                      setFormState({
+                        ...formState,
+                        prelims_file_url: "",
+                        prelims_file_name: "",
+                      })
                     }
-                    className="text-red-500 hover:text-red-700 text-xs flex items-center gap-1"
+                    className="text-red-500 hover:text-red-700"
                   >
-                    <X className="w-3 h-3" /> Clear File
+                    <X className="w-4 h-4" />
                   </button>
-                )}
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="file"
-                  accept=".pdf,.txt,.docx,.doc"
-                  onChange={async (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                      await handleFileUpload(file, (url, fileName) => {
-                        handleFormChange(formType, "prelims_file_url", url);
-                        handleFormChange(
-                          formType,
-                          "prelims_file_name",
-                          fileName,
-                        );
-                      });
-                    }
-                  }}
-                  className="flex-1 text-sm border p-1 rounded"
-                  disabled={uploadingFile || formState.prelims_file_url}
-                />
-                <div className="text-xs w-1/4">
-                  {uploadingFile ? (
-                    <span className="text-blue-600">Uploading...</span>
-                  ) : formState.prelims_file_name ? (
-                    <span className="text-green-600 flex items-center gap-1">
-                      <File className="w-3 h-3" /> {formState.prelims_file_name}
-                    </span>
-                  ) : (
-                    <span className="text-gray-500 dark:text-gray-400">No file chosen</span>
-                  )}
                 </div>
-              </div>
+              )}
             </div>
 
-            {/* Dynamic Chapters Upload */}
-            <div className="space-y-3 p-4 border rounded-lg bg-white dark:bg-gray-800 shadow-inner">
-              <h4 className="text-base font-semibold text-gray-800 border-b pb-2 mb-3">
-                Chapters (1-{formState.chapters.length})
+            <div className="border p-4 rounded-lg space-y-3 bg-gray-50 dark:bg-gray-700">
+              <h4 className="font-medium flex items-center gap-2 text-gray-900 dark:text-white">
+                <BookOpen className="w-4 h-4" />
+                অধ্যায়সমূহ (PDF/TXT/DOCX - সর্বোচ্চ ১০০MB প্রতিটি)
               </h4>
               {formState.chapters.map((chapter, index) => (
                 <div
                   key={index}
-                  className="flex items-center gap-2 border p-3 rounded-lg bg-gray-50 dark:bg-gray-700"
+                  className="flex items-center gap-2 border p-3 rounded-lg bg-white dark:bg-gray-600"
                 >
                   <span className="font-bold text-gray-700 dark:text-gray-300 min-w-[85px] text-sm">
-                    CHAPTER {index + 1}:
+                    অধ্যায় {index + 1}:
                   </span>
                   <input
                     type="text"
-                    placeholder="Chapter Title"
+                    placeholder="অধ্যায়ের শিরোনাম"
                     value={chapter.title}
                     onChange={(e) =>
                       handleChapterChange(
@@ -993,7 +941,7 @@ const AcademicCMS = () => {
                         e.target.value,
                       )
                     }
-                    className="w-1/3 px-2 py-1 border rounded-lg text-sm"
+                    className="w-1/3 px-2 py-1 border rounded-lg text-sm dark:bg-gray-500 dark:border-gray-400"
                     required
                   />
 
@@ -1015,18 +963,18 @@ const AcademicCMS = () => {
                           });
                         }
                       }}
-                      className="text-sm flex-1"
+                      className="text-sm flex-1 dark:text-gray-300"
                       disabled={uploadingFile || chapter.file_url}
                     />
                   </div>
 
                   <div className="w-1/4 text-xs flex items-center justify-end gap-2">
                     {uploadingFile && (
-                      <span className="text-blue-600">Uploading...</span>
+                      <span className="text-blue-600">আপলোড হচ্ছে...</span>
                     )}
                     {chapter.file_name && (
                       <span className="text-green-600 flex items-center gap-1">
-                        <File className="w-3 h-3" /> File
+                        <File className="w-3 h-3" /> ফাইল
                       </span>
                     )}
                     {chapter.file_url && (
@@ -1036,7 +984,7 @@ const AcademicCMS = () => {
                           handleChapterChange(formType, index, "file_url", "")
                         }
                         className="text-red-500 hover:text-red-700 p-1"
-                        title="Clear Chapter File"
+                        title="ফাইল মুছুন"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -1046,7 +994,7 @@ const AcademicCMS = () => {
                         type="button"
                         onClick={() => removeChapterField(formType, index)}
                         className="text-red-600 hover:text-red-800 p-1 rounded-full"
-                        title="Remove Chapter"
+                        title="অধ্যায় মুছুন"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -1062,16 +1010,15 @@ const AcademicCMS = () => {
                   className="flex items-center gap-1 text-emerald-600 hover:text-emerald-700 mt-2 font-bold text-sm"
                 >
                   <Plus className="w-4 h-4" />
-                  CHAPTER ADD
+                  অধ্যায় যোগ করুন
                 </button>
               )}
             </div>
 
-            {/* BULK UPLOAD for Chapters */}
             <div className="border p-4 rounded-lg bg-gray-50 dark:bg-gray-700">
               <label className="block text-xs font-medium mb-2 text-gray-600 dark:text-gray-400 flex items-center gap-2">
                 <Upload className="w-4 h-4" />
-                BULK UPLOAD (All Chapters in One File - Max 100MB)
+                বাল্ক আপলোড (সম্পূর্ণ বই একটি ফাইলে - সর্বোচ্চ ১০০MB)
               </label>
               <input
                 type="file"
@@ -1082,24 +1029,23 @@ const AcademicCMS = () => {
                     bulk_upload_file: e.target.files[0],
                   })
                 }
-                className="w-full px-3 py-2 border rounded-lg text-sm"
+                className="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-600 dark:border-gray-500"
                 disabled={uploadingFile}
               />
               {formState.bulk_upload_file && (
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                  Selected: {formState.bulk_upload_file.name}
+                  নির্বাচিত: {formState.bulk_upload_file.name}
                 </p>
               )}
             </div>
 
-            {/* Action Buttons */}
             <div className="flex gap-2 pt-4">
               <button
                 type="submit"
                 className="flex-1 bg-emerald-600 text-white py-2 rounded-lg hover:bg-emerald-700 disabled:bg-gray-400"
                 disabled={uploadingFile}
               >
-                {editingId ? "Update Book" : "Add Book"}
+                {editingId ? "আপডেট করুন" : "যোগ করুন"}
               </button>
               <button
                 type="button"
@@ -1109,7 +1055,7 @@ const AcademicCMS = () => {
                 }}
                 className="flex-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500"
               >
-                Cancel
+                বাতিল
               </button>
             </div>
           </form>
@@ -1118,21 +1064,17 @@ const AcademicCMS = () => {
     );
   };
 
-  // --- Main Render ---
-
   return (
     <div className="p-3 sm:p-4 lg:p-6">
-      {/* Header */}
       <div className="mb-4 sm:mb-6">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-          Academic Content CMS
+          একাডেমিক কন্টেন্ট সিএমএস
         </h1>
         <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-          Manage academic books, reference books, previous papers & Q&A
+          পাঠ্যপুস্তক, সহায়ক পুস্তক, বিগত বছরের প্রশ্নপত্র ও প্রশ্ন-উত্তর ব্যবস্থাপনা
         </p>
       </div>
 
-      {/* Tabs - Scrollable on mobile */}
       <div className="border-b border-gray-200 dark:border-gray-600 mb-4 sm:mb-6">
         <nav className="-mb-px flex overflow-x-auto scrollbar-hide space-x-4 sm:space-x-8 pb-px">
           <button
@@ -1144,7 +1086,7 @@ const AcademicCMS = () => {
             } whitespace-nowrap py-3 sm:py-4 px-2 sm:px-3 border-b-2 font-medium text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 shrink-0`}
           >
             <Book className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            <span className="hidden xs:inline">Academic</span> Books
+            পাঠ্যপুস্তক
           </button>
           <button
             onClick={() => setActiveTab("reference")}
@@ -1155,7 +1097,7 @@ const AcademicCMS = () => {
             } whitespace-nowrap py-3 sm:py-4 px-2 sm:px-3 border-b-2 font-medium text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 shrink-0`}
           >
             <Book className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            Reference
+            সহায়ক পুস্তক
           </button>
           <button
             onClick={() => setActiveTab("papers")}
@@ -1166,7 +1108,7 @@ const AcademicCMS = () => {
             } whitespace-nowrap py-3 sm:py-4 px-2 sm:px-3 border-b-2 font-medium text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 shrink-0`}
           >
             <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            <span className="hidden xs:inline">Previous</span> Papers
+            প্রশ্নপত্র
           </button>
           <button
             onClick={() => setActiveTab("qa")}
@@ -1177,15 +1119,13 @@ const AcademicCMS = () => {
             } whitespace-nowrap py-3 sm:py-4 px-2 sm:px-3 border-b-2 font-medium text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 shrink-0`}
           >
             <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            Q&amp;A
+            প্রশ্ন-উত্তর
           </button>
         </nav>
       </div>
 
-      {/* Academic Books Tab (A) - Class → Subject → Books */}
       {activeTab === "books" && (
         <div>
-          {/* Breadcrumb Navigation */}
           {acadNavLevel.step !== "class" && (
             <div className="mb-4 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
               <button
@@ -1198,20 +1138,20 @@ const AcademicCMS = () => {
                 }
                 className="hover:text-emerald-600"
               >
-                Classes
+                মারহালা
               </button>
               {acadNavLevel.class && (
                 <>
                   <span>›</span>
                   <span className="font-medium">
-                    Class {acadNavLevel.class}
+                    {acadNavLevel.class}
                   </span>
                 </>
               )}
               {acadNavLevel.step === "subject" && (
                 <>
                   <span>›</span>
-                  <span>Select Subject</span>
+                  <span>বিষয় নির্বাচন করুন</span>
                 </>
               )}
               {acadNavLevel.step === "books" && (
@@ -1223,12 +1163,11 @@ const AcademicCMS = () => {
             </div>
           )}
 
-          {/* Step 1: Select Class */}
           {acadNavLevel.step === "class" && (
             <div>
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold">
-                  Academic Books – Select Class (5-12)
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  পাঠ্যপুস্তক – মারহালা নির্বাচন করুন
                 </h2>
                 <button
                   onClick={() => {
@@ -1238,26 +1177,26 @@ const AcademicCMS = () => {
                   className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700"
                 >
                   <Plus className="w-4 h-4" />
-                  Add Book
+                  বই যোগ করুন
                 </button>
               </div>
               {books.length === 0 ? (
                 <div className="text-center py-12 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-600 dark:text-gray-400 mb-4">
-                    No academic books added yet
+                    এখনও কোনো পাঠ্যপুস্তক যোগ করা হয়নি
                   </p>
                   <button
                     onClick={() => setShowAddBook(true)}
                     className="bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700"
                   >
-                    Add Your First Book
+                    প্রথম বই যোগ করুন
                   </button>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                   {[...new Set(books.map((book) => book.class_standard))]
-                    .sort((a, b) => Number(a) - Number(b))
+                    .sort()
                     .map((classNum) => (
                       <button
                         key={classNum}
@@ -1268,17 +1207,17 @@ const AcademicCMS = () => {
                             subject: "",
                           })
                         }
-                        className="border-2 border-gray-300 dark:border-gray-700 rounded-lg p-6 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-center"
+                        className="border-2 border-gray-300 dark:border-gray-700 rounded-lg p-6 hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all text-center"
                       >
-                        <div className="text-3xl font-bold text-gray-900 dark:text-white">
-                          Class {classNum}
+                        <div className="text-xl font-bold text-gray-900 dark:text-white">
+                          {classNum}
                         </div>
                         <div className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                           {
                             books.filter((b) => b.class_standard === classNum)
                               .length
                           }{" "}
-                          books
+                          বই
                         </div>
                       </button>
                     ))}
@@ -1287,12 +1226,11 @@ const AcademicCMS = () => {
             </div>
           )}
 
-          {/* Step 2: Select Subject */}
           {acadNavLevel.step === "subject" && (
             <div>
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold">
-                  Class {acadNavLevel.class} – Select Subject
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {acadNavLevel.class} – বিষয় নির্বাচন করুন
                 </h2>
                 <div className="flex gap-2">
                   <button
@@ -1303,9 +1241,9 @@ const AcademicCMS = () => {
                         subject: "",
                       })
                     }
-                    className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white"
+                    className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                   >
-                    ← Back to Classes
+                    ← মারহালায় ফিরুন
                   </button>
                 </div>
               </div>
@@ -1331,7 +1269,7 @@ const AcademicCMS = () => {
                           subject,
                         })
                       }
-                      className="border-2 border-gray-300 dark:border-gray-700 rounded-lg p-4 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left"
+                      className="border-2 border-gray-300 dark:border-gray-700 rounded-lg p-4 hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all text-left"
                     >
                       <div className="text-xl font-semibold text-gray-900 dark:text-white">
                         {subject}
@@ -1344,7 +1282,7 @@ const AcademicCMS = () => {
                               b.subject === subject,
                           ).length
                         }{" "}
-                        books
+                        বই
                       </div>
                     </button>
                   ))}
@@ -1352,13 +1290,11 @@ const AcademicCMS = () => {
             </div>
           )}
 
-          {/* Step 3: List Books */}
           {acadNavLevel.step === "books" && (
             <div>
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold">
-                  Academic Books – Class {acadNavLevel.class} –{" "}
-                  {acadNavLevel.subject}
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  পাঠ্যপুস্তক – {acadNavLevel.class} – {acadNavLevel.subject}
                 </h2>
                 <div className="flex gap-2">
                   <button
@@ -1369,9 +1305,9 @@ const AcademicCMS = () => {
                         subject: "",
                       })
                     }
-                    className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white"
+                    className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                   >
-                    ← Back to Subjects
+                    ← বিষয়ে ফিরুন
                   </button>
                   <button
                     onClick={() => {
@@ -1386,7 +1322,7 @@ const AcademicCMS = () => {
                     className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700"
                   >
                     <Plus className="w-4 h-4" />
-                    Add Book
+                    বই যোগ করুন
                   </button>
                 </div>
               </div>
@@ -1401,7 +1337,7 @@ const AcademicCMS = () => {
                   .map((book) => (
                     <div
                       key={book.id}
-                      className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                      className="border rounded-lg p-4 hover:shadow-md transition-shadow dark:border-gray-700"
                     >
                       <div className="flex justify-between items-start mb-2">
                         <h3 className="font-semibold text-gray-900 dark:text-white flex-1">
@@ -1411,35 +1347,35 @@ const AcademicCMS = () => {
                           <button
                             onClick={() => handleEditBook(book)}
                             className="text-blue-600 hover:text-blue-800 p-1"
-                            title="Edit Book"
+                            title="সম্পাদনা করুন"
                           >
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteBook(book.id)}
                             className="text-red-600 hover:text-red-800 p-1"
-                            title="Delete Book"
+                            title="মুছুন"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">by {book.author}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">লেখক: {book.author}</p>
                       <div className="mt-2 flex gap-2 flex-wrap">
-                        <span className="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">
-                          Class {book.class_standard}
+                        <span className="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded dark:bg-purple-900/30 dark:text-purple-300">
+                          {book.class_standard}
                         </span>
-                        <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                        <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded dark:bg-blue-900/30 dark:text-blue-300">
                           {book.subject}
                         </span>
                         {(book.chapter_count || book.chapters?.length || 0) > 0 && (
-                          <span className="inline-block bg-emerald-100 text-emerald-800 text-xs px-2 py-1 rounded">
-                            {book.chapter_count || book.chapters?.length} Chapters
+                          <span className="inline-block bg-emerald-100 text-emerald-800 text-xs px-2 py-1 rounded dark:bg-emerald-900/30 dark:text-emerald-300">
+                            {book.chapter_count || book.chapters?.length} অধ্যায়
                           </span>
                         )}
                         {book.pdf_url && !book.has_chapters && !(book.chapters?.length > 0) && (
-                          <span className="inline-block bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded">
-                            Full Book
+                          <span className="inline-block bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded dark:bg-orange-900/30 dark:text-orange-300">
+                            সম্পূর্ণ বই
                           </span>
                         )}
                       </div>
@@ -1452,7 +1388,7 @@ const AcademicCMS = () => {
                             className="inline-flex items-center gap-1 bg-orange-500 text-white text-xs px-3 py-1.5 rounded hover:bg-orange-600"
                           >
                             <BookOpen className="w-3 h-3" />
-                            Full Book
+                            সম্পূর্ণ বই
                           </a>
                         )}
                         {(book.has_chapters || (book.chapters && book.chapters.length > 0)) && (
@@ -1462,7 +1398,7 @@ const AcademicCMS = () => {
                             className="inline-flex items-center gap-1 bg-emerald-500 text-white text-xs px-3 py-1.5 rounded hover:bg-emerald-600"
                           >
                             <BookOpen className="w-3 h-3" />
-                            View Chapters ({book.chapter_count || book.chapters?.length})
+                            অধ্যায় দেখুন ({book.chapter_count || book.chapters?.length})
                           </button>
                         )}
                       </div>
@@ -1472,7 +1408,6 @@ const AcademicCMS = () => {
             </div>
           )}
 
-          {/* Add/Edit Academic Book Modal */}
           {renderBookModal(
             false,
             showAddBook,
@@ -1486,10 +1421,8 @@ const AcademicCMS = () => {
         </div>
       )}
 
-      {/* Reference Books Tab (B) – Class → Subject → Books */}
       {activeTab === "reference" && (
         <div>
-          {/* Breadcrumb Navigation */}
           {refNavLevel.step !== "class" && (
             <div className="mb-4 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
               <button
@@ -1502,18 +1435,18 @@ const AcademicCMS = () => {
                 }
                 className="hover:text-emerald-600"
               >
-                Classes
+                মারহালা
               </button>
               {refNavLevel.class && (
                 <>
                   <span>›</span>
-                  <span className="font-medium">Class {refNavLevel.class}</span>
+                  <span className="font-medium">{refNavLevel.class}</span>
                 </>
               )}
               {refNavLevel.step === "subject" && (
                 <>
                   <span>›</span>
-                  <span>Select Subject</span>
+                  <span>বিষয় নির্বাচন করুন</span>
                 </>
               )}
               {refNavLevel.step === "books" && (
@@ -1525,45 +1458,40 @@ const AcademicCMS = () => {
             </div>
           )}
 
-          {/* Step 1: Select Class */}
           {refNavLevel.step === "class" && (
             <div>
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold">
-                  Reference Books – Select Class (5-12)
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  সহায়ক পুস্তক – মারহালা নির্বাচন করুন
                 </h2>
                 <button
                   onClick={() => {
                     resetForm("reference");
                     setShowAddReferenceBook(true);
                   }}
-                  className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 flex items-center gap-2"
+                  className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700"
                 >
-                  <Plus className="h-4 w-4" />
-                  Add New Book
+                  <Plus className="w-4 h-4" />
+                  বই যোগ করুন
                 </button>
               </div>
               {referenceBooks.length === 0 ? (
                 <div className="text-center py-12 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-600 dark:text-gray-400 mb-4">
-                    No reference books added yet
+                    এখনও কোনো সহায়ক পুস্তক যোগ করা হয়নি
                   </p>
                   <button
                     onClick={() => setShowAddReferenceBook(true)}
                     className="bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700"
                   >
-                    Add Your First Book
+                    প্রথম বই যোগ করুন
                   </button>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                  {[
-                    ...new Set(
-                      referenceBooks.map((book) => book.class_standard),
-                    ),
-                  ]
-                    .sort((a, b) => Number(a) - Number(b))
+                  {[...new Set(referenceBooks.map((book) => book.class_standard))]
+                    .sort()
                     .map((classNum) => (
                       <button
                         key={classNum}
@@ -1574,18 +1502,17 @@ const AcademicCMS = () => {
                             subject: "",
                           })
                         }
-                        className="border-2 border-gray-300 dark:border-gray-700 rounded-lg p-6 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-center"
+                        className="border-2 border-gray-300 dark:border-gray-700 rounded-lg p-6 hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all text-center"
                       >
-                        <div className="text-3xl font-bold text-gray-900 dark:text-white">
-                          Class {classNum}
+                        <div className="text-xl font-bold text-gray-900 dark:text-white">
+                          {classNum}
                         </div>
                         <div className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                           {
-                            referenceBooks.filter(
-                              (b) => b.class_standard === classNum,
-                            ).length
+                            referenceBooks.filter((b) => b.class_standard === classNum)
+                              .length
                           }{" "}
-                          books
+                          বই
                         </div>
                       </button>
                     ))}
@@ -1594,12 +1521,11 @@ const AcademicCMS = () => {
             </div>
           )}
 
-          {/* Step 2: Select Subject */}
           {refNavLevel.step === "subject" && (
             <div>
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold">
-                  Class {refNavLevel.class} – Select Subject
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {refNavLevel.class} – বিষয় নির্বাচন করুন
                 </h2>
                 <div className="flex gap-2">
                   <button
@@ -1610,9 +1536,9 @@ const AcademicCMS = () => {
                         subject: "",
                       })
                     }
-                    className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white"
+                    className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                   >
-                    ← Back to Classes
+                    ← মারহালায় ফিরুন
                   </button>
                 </div>
               </div>
@@ -1638,7 +1564,7 @@ const AcademicCMS = () => {
                           subject,
                         })
                       }
-                      className="border-2 border-gray-300 dark:border-gray-700 rounded-lg p-4 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left"
+                      className="border-2 border-gray-300 dark:border-gray-700 rounded-lg p-4 hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all text-left"
                     >
                       <div className="text-xl font-semibold text-gray-900 dark:text-white">
                         {subject}
@@ -1651,7 +1577,7 @@ const AcademicCMS = () => {
                               b.subject === subject,
                           ).length
                         }{" "}
-                        books
+                        বই
                       </div>
                     </button>
                   ))}
@@ -1659,13 +1585,11 @@ const AcademicCMS = () => {
             </div>
           )}
 
-          {/* Step 3: List Reference Books */}
           {refNavLevel.step === "books" && (
             <div>
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold">
-                  Reference Books – Class {refNavLevel.class} –{" "}
-                  {refNavLevel.subject}
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  সহায়ক পুস্তক – {refNavLevel.class} – {refNavLevel.subject}
                 </h2>
                 <div className="flex gap-2">
                   <button
@@ -1676,9 +1600,9 @@ const AcademicCMS = () => {
                         subject: "",
                       })
                     }
-                    className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white"
+                    className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                   >
-                    ← Back to Subjects
+                    ← বিষয়ে ফিরুন
                   </button>
                   <button
                     onClick={() => {
@@ -1693,7 +1617,7 @@ const AcademicCMS = () => {
                     className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700"
                   >
                     <Plus className="w-4 h-4" />
-                    Add Book
+                    বই যোগ করুন
                   </button>
                 </div>
               </div>
@@ -1708,7 +1632,7 @@ const AcademicCMS = () => {
                   .map((book) => (
                     <div
                       key={book.id}
-                      className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                      className="border rounded-lg p-4 hover:shadow-md transition-shadow dark:border-gray-700"
                     >
                       <div className="flex justify-between items-start mb-2">
                         <h3 className="font-semibold text-gray-900 dark:text-white flex-1">
@@ -1718,35 +1642,30 @@ const AcademicCMS = () => {
                           <button
                             onClick={() => handleEditReferenceBook(book)}
                             className="text-blue-600 hover:text-blue-800 p-1"
-                            title="Edit Book"
+                            title="সম্পাদনা করুন"
                           >
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteReferenceBook(book.id)}
                             className="text-red-600 hover:text-red-800 p-1"
-                            title="Delete Book"
+                            title="মুছুন"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">by {book.author}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">লেখক: {book.author}</p>
                       <div className="mt-2 flex gap-2 flex-wrap">
-                        <span className="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">
-                          Class {book.class_standard}
+                        <span className="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded dark:bg-purple-900/30 dark:text-purple-300">
+                          {book.class_standard}
                         </span>
-                        <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                        <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded dark:bg-blue-900/30 dark:text-blue-300">
                           {book.subject}
                         </span>
                         {(book.chapter_count || book.chapters?.length || 0) > 0 && (
-                          <span className="inline-block bg-emerald-100 text-emerald-800 text-xs px-2 py-1 rounded">
-                            {book.chapter_count || book.chapters?.length} Chapters
-                          </span>
-                        )}
-                        {book.pdf_url && !book.has_chapters && !(book.chapters?.length > 0) && (
-                          <span className="inline-block bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded">
-                            Full Book
+                          <span className="inline-block bg-emerald-100 text-emerald-800 text-xs px-2 py-1 rounded dark:bg-emerald-900/30 dark:text-emerald-300">
+                            {book.chapter_count || book.chapters?.length} অধ্যায়
                           </span>
                         )}
                       </div>
@@ -1759,7 +1678,7 @@ const AcademicCMS = () => {
                             className="inline-flex items-center gap-1 bg-orange-500 text-white text-xs px-3 py-1.5 rounded hover:bg-orange-600"
                           >
                             <BookOpen className="w-3 h-3" />
-                            Full Book
+                            সম্পূর্ণ বই
                           </a>
                         )}
                         {(book.has_chapters || (book.chapters && book.chapters.length > 0)) && (
@@ -1769,7 +1688,7 @@ const AcademicCMS = () => {
                             className="inline-flex items-center gap-1 bg-emerald-500 text-white text-xs px-3 py-1.5 rounded hover:bg-emerald-600"
                           >
                             <BookOpen className="w-3 h-3" />
-                            View Chapters ({book.chapter_count || book.chapters?.length})
+                            অধ্যায় দেখুন ({book.chapter_count || book.chapters?.length})
                           </button>
                         )}
                       </div>
@@ -1779,7 +1698,6 @@ const AcademicCMS = () => {
             </div>
           )}
 
-          {/* Add/Edit Reference Book Modal */}
           {renderBookModal(
             true,
             showAddReferenceBook,
@@ -1793,12 +1711,11 @@ const AcademicCMS = () => {
         </div>
       )}
 
-      {/* Previous Years' Papers Tab (C) */}
       {activeTab === "papers" && (
         <div>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">
-              Previous Years&apos; Papers ({previousPapers.length}) (5-12)
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              বিগত বছরের প্রশ্নপত্র ({previousPapers.length})
             </h2>
             <button
               onClick={() => {
@@ -1808,81 +1725,95 @@ const AcademicCMS = () => {
               className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 flex items-center gap-2"
             >
               <Plus className="h-4 w-4" />
-              Add New Paper
+              নতুন প্রশ্নপত্র যোগ করুন
             </button>
           </div>
-          {/* Papers List */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {previousPapers.map((paper) => (
-              <div
-                key={paper.id}
-                className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+          
+          {previousPapers.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                এখনও কোনো প্রশ্নপত্র যোগ করা হয়নি
+              </p>
+              <button
+                onClick={() => setShowAddPaper(true)}
+                className="bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700"
               >
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-semibold text-gray-900 dark:text-white flex-1">
-                    {paper.title}
-                  </h3>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleEditPaper(paper)}
-                      className="text-blue-600 hover:text-blue-800 p-1"
-                      title="Edit Paper"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeletePaper(paper.id)}
-                      className="text-red-600 hover:text-red-800 p-1"
-                      title="Delete Paper"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                প্রথম প্রশ্নপত্র যোগ করুন
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {previousPapers.map((paper) => (
+                <div
+                  key={paper.id}
+                  className="border rounded-lg p-4 hover:shadow-md transition-shadow dark:border-gray-700"
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-semibold text-gray-900 dark:text-white flex-1">
+                      {paper.title}
+                    </h3>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleEditPaper(paper)}
+                        className="text-blue-600 hover:text-blue-800 p-1"
+                        title="সম্পাদনা করুন"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeletePaper(paper.id)}
+                        className="text-red-600 hover:text-red-800 p-1"
+                        title="মুছুন"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="mt-2 flex gap-2 flex-wrap">
+                    <span className="inline-block bg-pink-100 text-pink-800 text-xs px-2 py-1 rounded dark:bg-pink-900/30 dark:text-pink-300">
+                      {paper.class_standard}
+                    </span>
+                    <span className="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded dark:bg-purple-900/30 dark:text-purple-300">
+                      {paper.subject}
+                    </span>
+                    <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded dark:bg-green-900/30 dark:text-green-300">
+                      {paper.exam_year}
+                    </span>
+                    {paper.file_url && (
+                      <a
+                        href={paper.file_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-300"
+                      >
+                        <FileText className="w-3 h-3" />
+                        ফাইল দেখুন
+                      </a>
+                    )}
                   </div>
                 </div>
-                <div className="mt-2 flex gap-2 flex-wrap">
-                  <span className="inline-block bg-pink-100 text-pink-800 text-xs px-2 py-1 rounded">
-                    Class {paper.class_standard}
-                  </span>
-                  <span className="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">
-                    {paper.subject}
-                  </span>
-                  <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
-                    {paper.exam_year}
-                  </span>
-                  {paper.file_url && (
-                    <a
-                      href={paper.file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded hover:bg-orange-200"
-                    >
-                      <FileText className="w-3 h-3" />
-                      View File
-                    </a>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
-          {/* Add/Edit Paper Modal */}
           {showAddPaper && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
               <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                <h3 className="text-lg font-semibold mb-4">
+                <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
                   {editingPaperId
-                    ? "Edit Previous Year Paper"
-                    : "Add New Previous Year Paper"}
+                    ? "প্রশ্নপত্র সম্পাদনা করুন"
+                    : "নতুন প্রশ্নপত্র যোগ করুন"}
                 </h3>
                 <form onSubmit={handleAddPaper} className="space-y-4">
                   <input
                     type="text"
-                    placeholder="Paper Title *"
+                    placeholder="প্রশ্নপত্রের শিরোনাম *"
                     value={paperForm.title}
                     onChange={(e) =>
                       setPaperForm({ ...paperForm, title: e.target.value })
                     }
-                    className="w-full px-3 py-2 border rounded-lg"
+                    className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                     required
                   />
                   <div className="grid grid-cols-2 gap-4">
@@ -1894,16 +1825,19 @@ const AcademicCMS = () => {
                           subject: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 border rounded-lg"
+                      className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                       required
                     >
-                      <option value="">Select Subject *</option>
+                      <option value="">বিষয় নির্বাচন করুন *</option>
                       {[
-                        "Physics",
-                        "Chemistry",
-                        "Biology",
-                        "Math",
-                        "English",
+                        "কুরআন",
+                        "হাদিস",
+                        "ফিকহ",
+                        "আরবি",
+                        "বাংলা",
+                        "ইংরেজি",
+                        "গণিত",
+                        "বিজ্ঞান",
                       ].map((s) => (
                         <option key={s} value={s}>
                           {s}
@@ -1918,13 +1852,24 @@ const AcademicCMS = () => {
                           class_standard: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 border rounded-lg"
+                      className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                       required
                     >
-                      <option value="">Select Class *</option>
-                      {[5, 6, 7, 8, 9, 10, 11, 12].map((c) => (
+                      <option value="">মারহালা নির্বাচন করুন *</option>
+                      {[
+                        "ইবতেদায়ী ১",
+                        "ইবতেদায়ী ২",
+                        "ইবতেদায়ী ৩",
+                        "ইবতেদায়ী ৪",
+                        "ইবতেদায়ী ৫",
+                        "মুতাওয়াসসিতা ১",
+                        "মুতাওয়াসসিতা ২",
+                        "মুতাওয়াসসিতা ৩",
+                        "সানাবিয়া ১",
+                        "সানাবিয়া ২",
+                      ].map((c) => (
                         <option key={c} value={c}>
-                          Class {c}
+                          {c}
                         </option>
                       ))}
                     </select>
@@ -1932,7 +1877,7 @@ const AcademicCMS = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <input
                       type="number"
-                      placeholder="Exam Year *"
+                      placeholder="পরীক্ষার বছর *"
                       value={paperForm.exam_year}
                       onChange={(e) =>
                         setPaperForm({
@@ -1940,7 +1885,7 @@ const AcademicCMS = () => {
                           exam_year: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 border rounded-lg"
+                      className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                       min="2000"
                       max={new Date().getFullYear()}
                       required
@@ -1953,27 +1898,27 @@ const AcademicCMS = () => {
                           paper_type: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 border rounded-lg"
+                      className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                       required
                     >
-                      <option value="Final Exam">Final Exam</option>
-                      <option value="Mid-Term">Mid-Term</option>
-                      <option value="Practice Paper">Practice Paper</option>
-                      <option value="Sample Paper">Sample Paper</option>
+                      <option value="বার্ষিক পরীক্ষা">বার্ষিক পরীক্ষা</option>
+                      <option value="অর্ধ-বার্ষিক">অর্ধ-বার্ষিক</option>
+                      <option value="প্রাক-নির্বাচনী">প্রাক-নির্বাচনী</option>
+                      <option value="মডেল টেস্ট">মডেল টেস্ট</option>
                     </select>
                   </div>
                   <input
                     type="text"
-                    placeholder="Chapter (optional)"
+                    placeholder="অধ্যায় (ঐচ্ছিক)"
                     value={paperForm.chapter}
                     onChange={(e) =>
                       setPaperForm({ ...paperForm, chapter: e.target.value })
                     }
-                    className="w-full px-3 py-2 border rounded-lg"
+                    className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   />
                   <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Upload File (PDF, TXT, DOCX/DOC - Max 100MB)
+                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                      ফাইল আপলোড করুন (PDF, TXT, DOCX/DOC - সর্বোচ্চ ১০০MB)
                     </label>
                     <input
                       type="file"
@@ -1986,15 +1931,15 @@ const AcademicCMS = () => {
                           });
                         }
                       }}
-                      className="w-full px-3 py-2 border rounded-lg"
+                      className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                       disabled={uploadingFile}
                     />
                     {uploadingFile && (
-                      <p className="text-sm text-blue-600 mt-1">Uploading...</p>
+                      <p className="text-sm text-blue-600 mt-1">আপলোড হচ্ছে...</p>
                     )}
                     {paperForm.file_url && (
                       <p className="text-sm text-green-600 mt-1">
-                        ✓ File uploaded
+                        ✓ ফাইল আপলোড হয়েছে
                         <button
                           type="button"
                           onClick={() =>
@@ -2002,7 +1947,7 @@ const AcademicCMS = () => {
                           }
                           className="text-red-500 hover:text-red-700 ml-3"
                         >
-                          <X className="w-4 h-4 inline-block" /> Clear
+                          <X className="w-4 h-4 inline-block" /> মুছুন
                         </button>
                       </p>
                     )}
@@ -2013,7 +1958,7 @@ const AcademicCMS = () => {
                       className="flex-1 bg-emerald-600 text-white py-2 rounded-lg hover:bg-emerald-700"
                       disabled={uploadingFile}
                     >
-                      {editingPaperId ? "Update Paper" : "Add Paper"}
+                      {editingPaperId ? "আপডেট করুন" : "যোগ করুন"}
                     </button>
                     <button
                       type="button"
@@ -2023,7 +1968,7 @@ const AcademicCMS = () => {
                       }}
                       className="flex-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500"
                     >
-                      Cancel
+                      বাতিল
                     </button>
                   </div>
                 </form>
@@ -2033,12 +1978,11 @@ const AcademicCMS = () => {
         </div>
       )}
 
-      {/* Q&A Tab (D) */}
       {activeTab === "qa" && (
         <div>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">
-              Q&amp;A Knowledge Base ({qaPairs.length}) (5-12)
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              প্রশ্ন-উত্তর জ্ঞানভাণ্ডার ({qaPairs.length})
             </h2>
             <div className="flex gap-2">
               <button
@@ -2049,7 +1993,7 @@ const AcademicCMS = () => {
                 className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
               >
                 <Upload className="w-4 h-4" />
-                Bulk Upload
+                বাল্ক আপলোড
               </button>
               <button
                 onClick={() => {
@@ -2059,70 +2003,83 @@ const AcademicCMS = () => {
                 className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700"
               >
                 <Plus className="w-4 h-4" />
-                Add Q&amp;A
+                প্রশ্ন-উত্তর যোগ করুন
               </button>
             </div>
           </div>
 
-          {/* Q&A List */}
-          <div className="space-y-3">
-            {qaPairs.map((qa) => (
-              <div key={qa.id} className="border rounded-lg p-4">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900 dark:text-white">
-                      Q: {qa.question}
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">A: {qa.answer}</p>
-                    <div className="mt-2 flex gap-2 flex-wrap">
-                      <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
-                        {qa.subject}
-                      </span>
-                      <span className="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">
-                        Class {qa.class_standard}
-                      </span>
-                      {qa.chapter_topic && (
-                        <span className="inline-block bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">
-                          {qa.chapter_topic}
+          {qaPairs.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                এখনও কোনো প্রশ্ন-উত্তর যোগ করা হয়নি
+              </p>
+              <button
+                onClick={() => setShowAddQA(true)}
+                className="bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700"
+              >
+                প্রথম প্রশ্ন-উত্তর যোগ করুন
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {qaPairs.map((qa) => (
+                <div key={qa.id} className="border rounded-lg p-4 dark:border-gray-700">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        প্রশ্ন: {qa.question}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">উত্তর: {qa.answer}</p>
+                      <div className="mt-2 flex gap-2 flex-wrap">
+                        <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded dark:bg-blue-900/30 dark:text-blue-300">
+                          {qa.subject}
                         </span>
-                      )}
-                      <span className="inline-block bg-gray-100 dark:bg-gray-800 text-gray-800 text-xs px-2 py-1 rounded">
-                        {qa.difficulty_level}
-                      </span>
+                        <span className="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded dark:bg-purple-900/30 dark:text-purple-300">
+                          {qa.class_standard}
+                        </span>
+                        {qa.chapter_topic && (
+                          <span className="inline-block bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded dark:bg-yellow-900/30 dark:text-yellow-300">
+                            {qa.chapter_topic}
+                          </span>
+                        )}
+                        <span className="inline-block bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded dark:bg-gray-600 dark:text-gray-300">
+                          {qa.difficulty_level}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 ml-4">
+                      <button
+                        onClick={() => handleEditQA(qa)}
+                        className="text-blue-600 hover:text-blue-800 p-1"
+                        title="সম্পাদনা করুন"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteQA(qa.id)}
+                        className="text-red-600 hover:text-red-800 p-1"
+                        title="মুছুন"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
-                  <div className="flex gap-2 ml-4">
-                    <button
-                      onClick={() => handleEditQA(qa)}
-                      className="text-blue-600 hover:text-blue-800 p-1"
-                      title="Edit Q&A"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteQA(qa.id)}
-                      className="text-red-600 hover:text-red-800 p-1"
-                      title="Delete Q&A"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
-          {/* Add/Edit Q&A Modal */}
           {showAddQA && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
               <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                <h3 className="text-lg font-semibold mb-4">
-                  {editingQAId ? "Edit Q&A Pair" : "Add New Q&A Pair"}
+                <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+                  {editingQAId ? "প্রশ্ন-উত্তর সম্পাদনা করুন" : "নতুন প্রশ্ন-উত্তর যোগ করুন"}
                 </h3>
                 <form onSubmit={handleAddQA} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">
-                      Question
+                    <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                      প্রশ্ন
                     </label>
                     <input
                       type="text"
@@ -2130,28 +2087,28 @@ const AcademicCMS = () => {
                       onChange={(e) =>
                         handleFormChange("qa", "question", e.target.value)
                       }
-                      className="w-full px-3 py-2 border rounded-lg"
+                      className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">
-                      Answer
+                    <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                      উত্তর
                     </label>
                     <textarea
                       value={qaForm.answer}
                       onChange={(e) =>
                         handleFormChange("qa", "answer", e.target.value)
                       }
-                      className="w-full px-3 py-2 border rounded-lg"
+                      className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                       rows={4}
                       required
                     />
                   </div>
                   <div className="grid grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Subject
+                      <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                        বিষয়
                       </label>
                       <input
                         type="text"
@@ -2159,13 +2116,13 @@ const AcademicCMS = () => {
                         onChange={(e) =>
                           handleFormChange("qa", "subject", e.target.value)
                         }
-                        className="w-full px-3 py-2 border rounded-lg"
+                        className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Class
+                      <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                        মারহালা
                       </label>
                       <input
                         type="text"
@@ -2177,13 +2134,13 @@ const AcademicCMS = () => {
                             e.target.value,
                           )
                         }
-                        className="w-full px-3 py-2 border rounded-lg"
+                        className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Chapter/Topic
+                      <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                        অধ্যায়/টপিক
                       </label>
                       <input
                         type="text"
@@ -2191,15 +2148,15 @@ const AcademicCMS = () => {
                         onChange={(e) =>
                           handleFormChange("qa", "chapter", e.target.value)
                         }
-                        className="w-full px-3 py-2 border rounded-lg"
-                        placeholder="e.g. Thermodynamics"
+                        className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                        placeholder="যেমন: তাজবীদ"
                       />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Difficulty Level
+                      <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                        কঠিনতার স্তর
                       </label>
                       <select
                         value={qaForm.difficulty_level}
@@ -2210,16 +2167,16 @@ const AcademicCMS = () => {
                             e.target.value,
                           )
                         }
-                        className="w-full px-3 py-2 border rounded-lg"
+                        className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                       >
-                        <option value="easy">Easy</option>
-                        <option value="medium">Medium</option>
-                        <option value="hard">Hard</option>
+                        <option value="সহজ">সহজ</option>
+                        <option value="মাঝারি">মাঝারি</option>
+                        <option value="কঠিন">কঠিন</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Question Type
+                      <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                        প্রশ্নের ধরন
                       </label>
                       <select
                         value={qaForm.question_type}
@@ -2230,18 +2187,18 @@ const AcademicCMS = () => {
                             e.target.value,
                           )
                         }
-                        className="w-full px-3 py-2 border rounded-lg"
+                        className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                       >
-                        <option value="conceptual">Conceptual</option>
-                        <option value="numerical">Numerical</option>
-                        <option value="theoretical">Theoretical</option>
-                        <option value="application">Application</option>
+                        <option value="ধারণাগত">ধারণাগত</option>
+                        <option value="সংখ্যাগত">সংখ্যাগত</option>
+                        <option value="তাত্ত্বিক">তাত্ত্বিক</option>
+                        <option value="প্রয়োগমূলক">প্রয়োগমূলক</option>
                       </select>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">
-                      Keywords (comma-separated)
+                    <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                      কিওয়ার্ড (কমা দিয়ে আলাদা করুন)
                     </label>
                     <input
                       type="text"
@@ -2249,8 +2206,8 @@ const AcademicCMS = () => {
                       onChange={(e) =>
                         handleFormChange("qa", "keywords", e.target.value)
                       }
-                      className="w-full px-3 py-2 border rounded-lg"
-                      placeholder="newton, force, motion"
+                      className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      placeholder="নামাজ, রোজা, হজ্জ"
                     />
                   </div>
                   <div className="flex gap-2">
@@ -2258,7 +2215,7 @@ const AcademicCMS = () => {
                       type="submit"
                       className="flex-1 bg-emerald-600 text-white py-2 rounded-lg hover:bg-emerald-700"
                     >
-                      {editingQAId ? "Update Q&A" : "Add Q&A"}
+                      {editingQAId ? "আপডেট করুন" : "যোগ করুন"}
                     </button>
                     <button
                       type="button"
@@ -2268,7 +2225,7 @@ const AcademicCMS = () => {
                       }}
                       className="flex-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500"
                     >
-                      Cancel
+                      বাতিল
                     </button>
                   </div>
                 </form>
@@ -2276,51 +2233,48 @@ const AcademicCMS = () => {
             </div>
           )}
 
-          {/* Bulk Upload Modal */}
           {showBulkUpload && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
               <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full">
-                <h3 className="text-lg font-semibold mb-4">
-                  Bulk Upload Q&amp;A Pairs
+                <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+                  বাল্ক আপলোড প্রশ্ন-উত্তর
                 </h3>
 
                 <div className="space-y-4">
-                  {/* File Format Info */}
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h4 className="font-medium text-blue-900 mb-2">
-                      📋 File Requirements
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                    <h4 className="font-medium text-blue-900 dark:text-blue-300 mb-2">
+                      ফাইলের প্রয়োজনীয়তা
                     </h4>
-                    <p className="text-sm text-blue-700 mb-2">
-                      Upload Excel (.xlsx) or CSV (.csv) file with these
-                      columns:
+                    <p className="text-sm text-blue-700 dark:text-blue-400 mb-2">
+                      Excel (.xlsx) বা CSV (.csv) ফাইল আপলোড করুন এই কলামগুলি সহ:
                     </p>
-                    <ul className="text-sm text-blue-600 list-disc list-inside space-y-1">
+                    <ul className="text-sm text-blue-600 dark:text-blue-400 list-disc list-inside space-y-1">
                       <li>
-                        <strong>question</strong> (required)
+                        <strong>question</strong> (আবশ্যক)
                       </li>
                       <li>
-                        <strong>answer</strong> (required)
+                        <strong>answer</strong> (আবশ্যক)
                       </li>
                       <li>
-                        <strong>subject</strong> (optional)
+                        <strong>subject</strong> (ঐচ্ছিক)
                       </li>
                       <li>
-                        <strong>class</strong> or{" "}
-                        <strong>class_standard</strong> (optional)
+                        <strong>class</strong> বা{" "}
+                        <strong>class_standard</strong> (ঐচ্ছিক)
                       </li>
                       <li>
-                        <strong>chapter_topic</strong> (optional)
+                        <strong>chapter_topic</strong> (ঐচ্ছিক)
                       </li>
                       <li>
-                        <strong>keywords</strong> (optional)
+                        <strong>keywords</strong> (ঐচ্ছিক)
                       </li>
                       <li>
-                        <strong>difficulty</strong> or{" "}
-                        <strong>difficulty_level</strong> (optional)
+                        <strong>difficulty</strong> বা{" "}
+                        <strong>difficulty_level</strong> (ঐচ্ছিক)
                       </li>
                       <li>
-                        <strong>type</strong> or <strong>question_type</strong>{" "}
-                        (optional)
+                        <strong>type</strong> বা <strong>question_type</strong>{" "}
+                        (ঐচ্ছিক)
                       </li>
                     </ul>
 
@@ -2328,69 +2282,50 @@ const AcademicCMS = () => {
                       onClick={downloadSampleTemplate}
                       className="mt-3 w-full bg-emerald-600 text-white py-2 px-4 rounded-lg hover:bg-emerald-700 flex items-center justify-center gap-2"
                     >
-                      <Download size={18} />
-                      📄 Download Sample Template
+                      <Download className="w-4 h-4" />
+                      নমুনা টেমপ্লেট ডাউনলোড করুন
                     </button>
                   </div>
 
-                  {/* File Upload */}
                   <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Select File
+                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                      ফাইল নির্বাচন করুন
                     </label>
                     <input
                       type="file"
                       accept=".xlsx,.csv"
                       onChange={(e) => setBulkUploadFile(e.target.files[0])}
-                      className="w-full px-3 py-2 border rounded-lg"
+                      className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                     />
-                    {bulkUploadFile && (
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                        Selected: {bulkUploadFile.name}
-                      </p>
-                    )}
                   </div>
 
-                  {/* Upload Summary */}
                   {uploadSummary && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                      <h4 className="font-medium text-green-900 mb-2">
-                        ✅ Upload Summary
+                    <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                      <h4 className="font-medium text-green-900 dark:text-green-300 mb-2">
+                        আপলোড সারসংক্ষেপ
                       </h4>
-                      <div className="text-sm text-green-700 space-y-1">
-                        <p>Total rows: {uploadSummary.total_rows}</p>
-                        <p>✅ Successful: {uploadSummary.successful}</p>
-                        <p>⚠️ Skipped: {uploadSummary.skipped}</p>
-                        {uploadSummary.skipped_details &&
-                          uploadSummary.skipped_details.length > 0 && (
-                            <div className="mt-2">
-                              <p className="font-medium">Skipped rows:</p>
-                              <ul className="list-disc list-inside">
-                                {uploadSummary.skipped_details.map(
-                                  (detail, index) => (
-                                    <li key={index} className="text-xs">
-                                      {detail}
-                                    </li>
-                                  ),
-                                )}
-                              </ul>
-                            </div>
-                          )}
-                      </div>
+                      <p className="text-sm text-green-700 dark:text-green-400">
+                        সফল: {uploadSummary.successful} | ব্যর্থ: {uploadSummary.failed}
+                      </p>
                     </div>
                   )}
 
-                  {/* Action Buttons */}
                   <div className="flex gap-2">
                     <button
                       onClick={handleBulkUpload}
                       disabled={!bulkUploadFile || loading}
-                      className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                      className="flex-1 bg-emerald-600 text-white py-2 rounded-lg hover:bg-emerald-700 disabled:bg-gray-400 flex items-center justify-center gap-2"
                     >
-                      {loading ? "Uploading..." : "Upload Q&A Pairs"}
+                      {loading ? (
+                        "আপলোড হচ্ছে..."
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4" />
+                          আপলোড করুন
+                        </>
+                      )}
                     </button>
                     <button
-                      type="button"
                       onClick={() => {
                         setShowBulkUpload(false);
                         setBulkUploadFile(null);
@@ -2398,7 +2333,7 @@ const AcademicCMS = () => {
                       }}
                       className="flex-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500"
                     >
-                      Close
+                      বন্ধ করুন
                     </button>
                   </div>
                 </div>
@@ -2408,105 +2343,57 @@ const AcademicCMS = () => {
         </div>
       )}
 
-      {/* Chapters Viewer Modal (both Academic & Reference) */}
       {showChaptersModal && selectedBookForChapters && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4 border-b pb-4">
-              <div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                  <BookOpen className="w-5 h-5 text-emerald-600" />
-                  {selectedBookForChapters.title}
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  {selectedBookForChapters.subject} – Class{" "}
-                  {selectedBookForChapters.class_standard} • 
-                  <span className={`ml-1 ${selectedBookForChapters.bookType === "academic" ? "text-purple-600" : "text-blue-600"}`}>
-                    {selectedBookForChapters.bookType === "academic"
-                      ? "Academic Book"
-                      : "Reference Book"}
-                  </span>
-                </p>
-              </div>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {selectedBookForChapters.title} - অধ্যায়সমূহ
+              </h3>
               <button
                 onClick={() => {
                   setShowChaptersModal(false);
                   setSelectedBookForChapters(null);
-                  setChapterViewIndex(0);
                 }}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 dark:text-gray-400 p-1 hover:bg-gray-100 dark:bg-gray-800 rounded"
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               >
                 <X className="w-6 h-6" />
               </button>
             </div>
 
             {chapterLoading ? (
-              <div className="py-12 text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto mb-3"></div>
-                <p className="text-gray-600 dark:text-gray-400">Loading chapters...</p>
-              </div>
-            ) : !selectedBookForChapters.chapters ||
-              selectedBookForChapters.chapters.length === 0 ? (
-              <div className="py-12 text-center text-gray-600 dark:text-gray-400">
-                <BookOpen className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                <p>No chapters found for this book.</p>
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto"></div>
+                <p className="mt-2 text-gray-600 dark:text-gray-400">অধ্যায় লোড হচ্ছে...</p>
               </div>
             ) : (
               <div className="space-y-3">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    All Chapters ({selectedBookForChapters.chapters.length})
-                  </h4>
-                </div>
-                {selectedBookForChapters.chapters.map((chap, index) => {
-                  const title = chap.title || chap.chapter_title || `Chapter ${chap.chapter_number}`;
-                  const fileUrl = chap.file_url;
-                  const fileName = chap.file_name;
-                  
-                  return (
-                    <div 
-                      key={chap.id || index} 
-                      className="border rounded-lg p-4 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:bg-gray-800 transition-colors"
-                    >
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-3">
-                          <span className="flex items-center justify-center w-8 h-8 bg-emerald-100 text-emerald-700 rounded-full text-sm font-semibold">
-                            {chap.chapter_number || index + 1}
-                          </span>
-                          <div>
-                            <h5 className="font-medium text-gray-900 dark:text-white">{title}</h5>
-                            {fileName && (
-                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{fileName}</p>
-                            )}
-                          </div>
-                        </div>
-                        {fileUrl ? (
-                          <a
-                            href={fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 bg-emerald-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-emerald-600 transition-colors"
-                          >
-                            <Eye className="w-4 h-4" />
-                            Open
-                          </a>
-                        ) : chap.content ? (
-                          <button
-                            onClick={() => setChapterViewIndex(index)}
-                            className="inline-flex items-center gap-1.5 bg-blue-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
-                          >
-                            <Eye className="w-4 h-4" />
-                            View Content
-                          </button>
-                        ) : (
-                          <span className="text-xs text-gray-400 bg-gray-200 dark:bg-gray-600 px-3 py-1.5 rounded">
-                            No file
-                          </span>
-                        )}
-                      </div>
+                {(selectedBookForChapters.chapters || []).map((chapter, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-3 border rounded-lg dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="bg-emerald-100 text-emerald-800 text-sm font-medium px-3 py-1 rounded dark:bg-emerald-900/30 dark:text-emerald-300">
+                        অধ্যায় {chapter.chapter_number || index + 1}
+                      </span>
+                      <span className="text-gray-900 dark:text-white">
+                        {chapter.title || chapter.chapter_title}
+                      </span>
                     </div>
-                  );
-                })}
+                    {chapter.file_url && (
+                      <a
+                        href={chapter.file_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 bg-blue-500 text-white text-xs px-3 py-1.5 rounded hover:bg-blue-600"
+                      >
+                        <Eye className="w-3 h-3" />
+                        দেখুন
+                      </a>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>
