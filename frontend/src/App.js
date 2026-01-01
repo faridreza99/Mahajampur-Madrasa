@@ -279,11 +279,11 @@ const Layout = ({ children }) => {
           ref={mainRef}
           className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-950 px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8"
         >
-          <div className="min-h-[calc(100vh-100px)] pb-16 sm:pb-24 max-w-full overflow-x-hidden">
+          <div className="pb-6 max-w-full overflow-x-hidden">
             {children}
           </div>
-          <footer className="py-4 text-center border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+          <footer className="py-3 text-center border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 mt-auto">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               Developed By Maxtechbd.com
             </p>
           </footer>
