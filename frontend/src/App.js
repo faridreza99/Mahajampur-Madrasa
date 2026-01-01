@@ -93,11 +93,17 @@ const useDynamicBranding = () => {
     const fetchBranding = async () => {
       try {
         const token = localStorage.getItem("token");
-        if (!token) return;
+        let response;
         
-        const response = await axios.get(`${API}/institution`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        if (token) {
+          response = await axios.get(`${API}/institution`, {
+            headers: { Authorization: `Bearer ${token}`, skipLoader: 'true' }
+          });
+        } else {
+          response = await axios.get(`${API}/institution/public/mham5678`, {
+            headers: { skipLoader: 'true' }
+          });
+        }
         
         if (response.data) {
           if (response.data.site_title) {

@@ -167,6 +167,7 @@ from fastapi.responses import JSONResponse
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request, exc):
     import logging
+    logging.info("ENDPOINT: get_institution_public called!")
     logging.error(f"Validation error for {request.url}: {exc.errors()}")
     return JSONResponse(
         status_code=422,
@@ -3248,6 +3249,33 @@ async def create_school(school_data: SchoolCreate, current_user: User = Depends(
 
 # ==================== INSTITUTION MANAGEMENT ====================
 
+
+@api_router.get("/institution/public/{tenant_id}")
+async def get_institution_public(tenant_id: str):
+    """Get public institution branding (site_title, favicon) without authentication"""
+    import logging
+    logging.info(f"PUBLIC INSTITUTION ENDPOINT: tenant_id={tenant_id}")
+    
+    institution = await db.institutions.find_one({
+        "tenant_id": tenant_id.lower(),
+        "is_active": True
+    })
+    
+    logging.info(f"Query result: {institution}")
+    
+    if institution:
+        result = {
+            "site_title": institution.get("site_title"),
+            "favicon_url": institution.get("favicon_url"),
+            "school_name": institution.get("school_name"),
+            "logo_url": institution.get("logo_url")
+        }
+        logging.info(f"Returning: {result}")
+        return result
+    
+    logging.info("No institution found, returning nulls")
+    return {"site_title": None, "favicon_url": None, "school_name": None, "logo_url": None}
+
 @api_router.get("/institution", response_model=Institution)
 async def get_institution(current_user: User = Depends(get_current_user)):
     """Get institution details for the current tenant/school"""
@@ -3295,6 +3323,7 @@ async def get_institution(current_user: User = Depends(get_current_user)):
 @api_router.get("/institution/settings")
 async def get_institution_settings(current_user: User = Depends(get_current_user)):
     import logging
+    logging.info("ENDPOINT: get_institution_public called!")
     logging.info(f"DEBUG institution/settings: tenant_id={current_user.tenant_id}")
     
     # Try to find existing institution record
