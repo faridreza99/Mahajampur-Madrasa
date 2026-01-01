@@ -7467,7 +7467,9 @@ async def download_hss_transfer_certificate_pdf(
 # ==================== FILE UPLOAD MANAGEMENT ====================
 
 # Create uploads directory if it doesn't exist
-UPLOAD_DIR = Path("uploads")
+# Use absolute path for VPS compatibility
+BASE_DIR = Path(__file__).resolve().parent
+UPLOAD_DIR = BASE_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
 
 @api_router.post("/files/upload")
