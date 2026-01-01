@@ -103,8 +103,11 @@ const Dashboard = () => {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);
-      setClasses(classesRes.data || []);
-      setSubjects(subjectsRes.data || []);
+      // Handle various API response formats - ensure arrays
+      const classData = classesRes.data;
+      const subjData = subjectsRes.data;
+      setClasses(Array.isArray(classData) ? classData : (classData?.classes || classData?.data || []));
+      setSubjects(Array.isArray(subjData) ? subjData : (subjData?.subjects || subjData?.data || []));
     } catch (error) {
       console.error("Failed to fetch classes/subjects:", error);
     }
