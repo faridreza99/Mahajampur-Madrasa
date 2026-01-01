@@ -292,22 +292,40 @@ const Certificates = () => {
   const fetchSchoolBranding = async () => {
     try {
       const API = process.env.REACT_APP_API_URL;
+      
+      // Try institution endpoint first
       const response = await fetch(`${API}/institution`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
       
+      // Also fetch school-branding for complete data
+      const brandingResponse = await fetch(`${API}/school-branding`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      let institutionData = {};
+      let brandingData = {};
+      
       if (response.ok) {
-        const data = await response.json();
-        setSchoolBranding({
-          name: data.name || data.institution_name || '',
-          logo: data.logo_url || data.logo || null,
-          address: data.address || '',
-          phone: data.phone || data.contact_phone || '',
-          email: data.email || data.contact_email || ''
-        });
+        institutionData = await response.json();
       }
+      
+      if (brandingResponse.ok) {
+        brandingData = await brandingResponse.json();
+      }
+      
+      // Merge data - prioritize school_name from branding
+      setSchoolBranding({
+        name: brandingData.school_name || institutionData.name || institutionData.institution_name || '',
+        logo: brandingData.logo_url || institutionData.logo_url || institutionData.logo || null,
+        address: institutionData.address || brandingData.address || '',
+        phone: institutionData.phone || institutionData.contact_phone || '',
+        email: institutionData.email || institutionData.contact_email || ''
+      });
     } catch (error) {
       console.error('Error fetching school branding:', error);
     }
