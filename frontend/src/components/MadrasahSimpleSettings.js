@@ -38,6 +38,8 @@ import {
   KeyRound,
   Eye,
   EyeOff,
+  Globe,
+  Image,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
@@ -56,6 +58,8 @@ const MadrasahSimpleSettings = () => {
     mobile: "",
     muhtamimName: "",
     signature: "",
+    siteTitle: "",
+    faviconUrl: "",
   });
 
   const [academicData, setAcademicData] = useState({
@@ -123,6 +127,8 @@ const MadrasahSimpleSettings = () => {
             institutionRes.data.muhtamim_name ||
             "",
           signature: institutionRes.data.principal_signature || "",
+          siteTitle: institutionRes.data.site_title || "",
+          faviconUrl: institutionRes.data.favicon_url || "",
         });
       }
 
@@ -175,7 +181,21 @@ const MadrasahSimpleSettings = () => {
         address: institutionData.address,
         phone: institutionData.mobile,
         principal_name: institutionData.muhtamimName,
+        site_title: institutionData.siteTitle,
+        favicon_url: institutionData.faviconUrl,
       });
+      
+      if (institutionData.siteTitle) {
+        document.title = institutionData.siteTitle;
+      }
+      if (institutionData.faviconUrl) {
+        const link = document.querySelector("link[rel~='icon']") || document.createElement('link');
+        link.type = 'image/x-icon';
+        link.rel = 'icon';
+        link.href = institutionData.faviconUrl;
+        document.head.appendChild(link);
+      }
+      
       toast.success("প্রতিষ্ঠান তথ্য সংরক্ষিত হয়েছে");
       fetchData();
     } catch (error) {
@@ -549,6 +569,44 @@ const MadrasahSimpleSettings = () => {
                       আপলোড
                     </Button>
                   </div>
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label className="text-base font-medium flex items-center gap-2">
+                    <Globe className="h-4 w-4" />
+                    সাইট টাইটেল (ব্রাউজার ট্যাব)
+                  </Label>
+                  <Input
+                    value={institutionData.siteTitle}
+                    onChange={(e) =>
+                      setInstitutionData({
+                        ...institutionData,
+                        siteTitle: e.target.value,
+                      })
+                    }
+                    placeholder="যেমন: মহাজামপুর দরবার শরীফ হাফিজিয়া মাদ্রাসা"
+                    className="text-lg py-3"
+                  />
+                  <p className="text-xs text-gray-500">ব্রাউজার ট্যাবে এই নাম দেখাবে</p>
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label className="text-base font-medium flex items-center gap-2">
+                    <Image className="h-4 w-4" />
+                    ফেভিকন URL (ব্রাউজার আইকন)
+                  </Label>
+                  <Input
+                    value={institutionData.faviconUrl}
+                    onChange={(e) =>
+                      setInstitutionData({
+                        ...institutionData,
+                        faviconUrl: e.target.value,
+                      })
+                    }
+                    placeholder="https://example.com/favicon.ico"
+                    className="text-lg py-3"
+                  />
+                  <p className="text-xs text-gray-500">ব্রাউজার ট্যাবে ছোট আইকন হিসেবে দেখাবে (PNG বা ICO ফরম্যাট)</p>
                 </div>
               </div>
 

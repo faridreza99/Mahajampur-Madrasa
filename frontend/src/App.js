@@ -84,6 +84,42 @@ const LoadingSpinner = () => (
 
 const API = process.env.REACT_APP_API_URL || "/api";
 console.log("API URL - ", API);
+
+// Dynamic Title and Favicon Hook
+const useDynamicBranding = () => {
+  useEffect(() => {
+    const fetchBranding = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+        
+        const response = await axios.get(`${API}/institution`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        if (response.data) {
+          if (response.data.site_title) {
+            document.title = response.data.site_title;
+          }
+          if (response.data.favicon_url) {
+            let link = document.querySelector("link[rel~='icon']");
+            if (!link) {
+              link = document.createElement('link');
+              link.rel = 'icon';
+              document.head.appendChild(link);
+            }
+            link.href = response.data.favicon_url;
+          }
+        }
+      } catch (error) {
+        console.log("Could not load branding settings");
+      }
+    };
+    
+    fetchBranding();
+  }, []);
+};
+
 // Auth Context
 const AuthContext = createContext();
 
@@ -298,12 +334,18 @@ const DashboardWrapper = () => {
   return isMadrasahSimpleUI ? <MadrasahDashboard /> : <Dashboard />;
 };
 
+const BrandingLoader = () => {
+  useDynamicBranding();
+  return null;
+};
+
 function App() {
   return (
     <CurrencyProvider>
       <AuthProvider>
       <InstitutionProvider>
         <Router>
+          <BrandingLoader />
           <div className="App">
             <Layout>
               <Suspense fallback={<LoadingSpinner />}>

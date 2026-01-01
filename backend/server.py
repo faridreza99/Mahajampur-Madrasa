@@ -391,6 +391,8 @@ class InstitutionUpdate(BaseModel):
     vision: Optional[str] = None
     currency: Optional[str] = None
     social_links: Optional[Dict[str, str]] = None
+    site_title: Optional[str] = None
+    favicon_url: Optional[str] = None
 
 class Student(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
