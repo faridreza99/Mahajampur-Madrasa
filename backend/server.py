@@ -3379,9 +3379,26 @@ async def update_institution(
     
     updated_institution = await db.institutions.find_one({
         "tenant_id": current_user.tenant_id,
-        "school_id": current_user.school_id,
         "is_active": True
     })
+    
+    # Sync to school_branding collection for sidebar/dashboard
+    if updated_institution:
+        branding_update = {
+            "school_name": updated_institution.get("name", ""),
+            "school_name_bn": updated_institution.get("name", ""),
+            "school_address": updated_institution.get("address", ""),
+            "school_phone": updated_institution.get("phone", ""),
+            "school_email": updated_institution.get("email", ""),
+            "logo_url": updated_institution.get("logo_url", ""),
+            "muhtamim_name": updated_institution.get("principal_name", ""),
+            "updated_at": datetime.utcnow()
+        }
+        await db.school_branding.update_one(
+            {"tenant_id": current_user.tenant_id},
+            {"$set": branding_update},
+            upsert=True
+        )
     
     return Institution(**updated_institution)
 
