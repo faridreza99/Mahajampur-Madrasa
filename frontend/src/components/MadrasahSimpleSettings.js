@@ -209,8 +209,9 @@ const MadrasahSimpleSettings = () => {
 
     setResettingPassword(true);
     try {
+      const userId = selectedUserForReset.id || selectedUserForReset.user_id;
       await axios.post(
-        `${API_BASE_URL}/admin/users/${selectedUserForReset.id}/reset-password`,
+        `${API_BASE_URL}/admin/users/${userId}/reset-password`,
         { new_password: newPassword }
       );
       toast.success(`${selectedUserForReset.name || selectedUserForReset.username} এর পাসওয়ার্ড রিসেট হয়েছে`);
@@ -581,14 +582,14 @@ const MadrasahSimpleSettings = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   {users.map((user) => (
                     <div
-                      key={user.id}
+                      key={user.id || user.user_id}
                       className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border"
                     >
                       <div className="min-w-0 flex-1">
                         <p className="font-medium truncate">{user.name || user.username}</p>
                         <p className="text-xs text-gray-500 truncate">@{user.username}</p>
                         <Badge variant="outline" className="mt-1 text-xs">
-                          {user.role === "admin" ? "অ্যাডমিন" : user.role === "teacher" ? "শিক্ষক" : user.role}
+                          {user.role === "admin" ? "অ্যাডমিন" : user.role === "teacher" ? "শিক্ষক" : user.role === "office" ? "অফিস" : user.role}
                         </Badge>
                       </div>
                       <Button
