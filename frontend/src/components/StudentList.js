@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { useInstitution } from '../context/InstitutionContext';
+import { useDebounce } from '../hooks/useDebounce';
 import * as XLSX from 'xlsx';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -835,17 +836,21 @@ const StudentList = () => {
     }
   };
 
-  const filteredStudents = students.filter(student => {
-    const matchesSearch = !searchTerm || 
-      student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.admission_no.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.roll_no.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesClass = selectedClass === 'all_classes' || student.class_id === selectedClass;
-    const matchesSection = selectedSection === 'all_sections' || student.section_id === selectedSection;
-    
-    return matchesSearch && matchesClass && matchesSection;
-  });
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  const filteredStudents = useMemo(() => {
+    return students.filter(student => {
+      const matchesSearch = !debouncedSearchTerm || 
+        student.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        student.admission_no.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        student.roll_no.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
+      
+      const matchesClass = selectedClass === 'all_classes' || student.class_id === selectedClass;
+      const matchesSection = selectedSection === 'all_sections' || student.section_id === selectedSection;
+      
+      return matchesSearch && matchesClass && matchesSection;
+    });
+  }, [students, debouncedSearchTerm, selectedClass, selectedSection]);
 
   const getClassName = (classId) => {
     const cls = classes.find(c => c.id === classId);

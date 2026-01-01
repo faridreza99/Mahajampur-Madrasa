@@ -376,67 +376,70 @@ const Payroll = () => {
   };
 
   return (
-    <div className="p-6 space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
-      <div className="flex justify-between items-center">
+    <div className="p-3 sm:p-4 lg:p-6 space-y-3 sm:space-y-4 lg:space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <Wallet className="h-8 w-8 text-emerald-600" />
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <Wallet className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 text-emerald-600" />
             বেতন ব্যবস্থাপনা
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
             কর্মচারীদের বেতন, বোনাস ও পেমেন্ট ব্যবস্থাপনা
           </p>
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid grid-cols-7 gap-2 bg-white dark:bg-gray-800 p-1 rounded-lg">
-          <TabsTrigger value="dashboard" className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
-            ড্যাশবোর্ড
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3 sm:space-y-4">
+        <TabsList className="flex flex-wrap sm:grid sm:grid-cols-4 lg:grid-cols-7 gap-1 sm:gap-2 bg-white dark:bg-gray-800 p-1 rounded-lg overflow-x-auto">
+          <TabsTrigger value="dashboard" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 whitespace-nowrap">
+            <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">ড্যাশবোর্ড</span>
+            <span className="sm:hidden">ড্যাশ</span>
           </TabsTrigger>
-          <TabsTrigger value="payrolls" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            বেতন তালিকা
+          <TabsTrigger value="payrolls" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 whitespace-nowrap">
+            <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">বেতন তালিকা</span>
+            <span className="sm:hidden">তালিকা</span>
           </TabsTrigger>
-          <TabsTrigger value="salary-structures" className="flex items-center gap-2">
-            <DollarSign className="h-4 w-4" />
-            বেতন কাঠামো
+          <TabsTrigger value="salary-structures" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 whitespace-nowrap">
+            <DollarSign className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">বেতন কাঠামো</span>
+            <span className="sm:hidden">কাঠামো</span>
           </TabsTrigger>
-          <TabsTrigger value="bonuses" className="flex items-center gap-2">
-            <Gift className="h-4 w-4" />
+          <TabsTrigger value="bonuses" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 whitespace-nowrap">
+            <Gift className="h-3 w-3 sm:h-4 sm:w-4" />
             বোনাস
           </TabsTrigger>
-          <TabsTrigger value="advances" className="flex items-center gap-2">
-            <PiggyBank className="h-4 w-4" />
+          <TabsTrigger value="advances" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 whitespace-nowrap">
+            <PiggyBank className="h-3 w-3 sm:h-4 sm:w-4" />
             অগ্রিম
           </TabsTrigger>
-          <TabsTrigger value="payments" className="flex items-center gap-2">
-            <CreditCard className="h-4 w-4" />
+          <TabsTrigger value="payments" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 whitespace-nowrap">
+            <CreditCard className="h-3 w-3 sm:h-4 sm:w-4" />
             পেমেন্ট
           </TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
+          <TabsTrigger value="settings" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 whitespace-nowrap">
+            <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
             সেটিংস
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 mb-4 sm:mb-6">
             <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/40 dark:to-emerald-800/40 border-emerald-200 dark:border-emerald-700">
-              <CardContent className="p-6">
+              <CardContent className="p-3 sm:p-4 lg:p-6">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">চলতি মাসের বেতন</p>
-                    <p className="text-2xl font-bold text-emerald-800 dark:text-emerald-200">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs sm:text-sm font-medium text-emerald-700 dark:text-emerald-300 truncate">চলতি মাসের বেতন</p>
+                    <p className="text-lg sm:text-xl lg:text-2xl font-bold text-emerald-800 dark:text-emerald-200 truncate">
                       {formatCurrency(dashboard?.current_month?.total_net || 0)}
                     </p>
-                    <p className="text-sm text-emerald-600 dark:text-emerald-400">
+                    <p className="text-xs sm:text-sm text-emerald-600 dark:text-emerald-400 truncate">
                       {dashboard?.current_month?.month_name} {dashboard?.current_month?.year}
                     </p>
                   </div>
-                  <div className="h-12 w-12 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                    <Wallet className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+                  <div className="h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0 ml-2">
+                    <Wallet className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-emerald-600 dark:text-emerald-400" />
                   </div>
                 </div>
                 <div className="mt-2">
@@ -446,53 +449,53 @@ const Payroll = () => {
             </Card>
 
             <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/40 dark:to-blue-800/40 border-blue-200 dark:border-blue-700">
-              <CardContent className="p-6">
+              <CardContent className="p-3 sm:p-4 lg:p-6">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-blue-700 dark:text-blue-300">সক্রিয় কর্মচারী</p>
-                    <p className="text-2xl font-bold text-blue-800 dark:text-blue-200">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs sm:text-sm font-medium text-blue-700 dark:text-blue-300 truncate">সক্রিয় কর্মচারী</p>
+                    <p className="text-lg sm:text-xl lg:text-2xl font-bold text-blue-800 dark:text-blue-200">
                       {dashboard?.active_employees || 0}
                     </p>
-                    <p className="text-sm text-blue-600 dark:text-blue-400">জন</p>
+                    <p className="text-xs sm:text-sm text-blue-600 dark:text-blue-400">জন</p>
                   </div>
-                  <div className="h-12 w-12 rounded-full bg-blue-500/20 flex items-center justify-center">
-                    <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                  <div className="h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0 ml-2">
+                    <Users className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-blue-600 dark:text-blue-400" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/40 dark:to-purple-800/40 border-purple-200 dark:border-purple-700">
-              <CardContent className="p-6">
+              <CardContent className="p-3 sm:p-4 lg:p-6">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-purple-700 dark:text-purple-300">বছর পর্যন্ত মোট</p>
-                    <p className="text-2xl font-bold text-purple-800 dark:text-purple-200">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs sm:text-sm font-medium text-purple-700 dark:text-purple-300 truncate">বছর পর্যন্ত মোট</p>
+                    <p className="text-lg sm:text-xl lg:text-2xl font-bold text-purple-800 dark:text-purple-200 truncate">
                       {formatCurrency(dashboard?.year_to_date_total || 0)}
                     </p>
-                    <p className="text-sm text-purple-600 dark:text-purple-400">
+                    <p className="text-xs sm:text-sm text-purple-600 dark:text-purple-400 truncate">
                       {dashboard?.processed_months || 0} মাস প্রক্রিয়াকৃত
                     </p>
                   </div>
-                  <div className="h-12 w-12 rounded-full bg-purple-500/20 flex items-center justify-center">
-                    <TrendingUp className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                  <div className="h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0 ml-2">
+                    <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-purple-600 dark:text-purple-400" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/40 dark:to-orange-800/40 border-orange-200 dark:border-orange-700">
-              <CardContent className="p-6">
+              <CardContent className="p-3 sm:p-4 lg:p-6">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-orange-700 dark:text-orange-300">বকেয়া অগ্রিম</p>
-                    <p className="text-2xl font-bold text-orange-800 dark:text-orange-200">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs sm:text-sm font-medium text-orange-700 dark:text-orange-300 truncate">বকেয়া অগ্রিম</p>
+                    <p className="text-lg sm:text-xl lg:text-2xl font-bold text-orange-800 dark:text-orange-200">
                       {dashboard?.pending_advances || 0}
                     </p>
-                    <p className="text-sm text-orange-600 dark:text-orange-400">টি সক্রিয়</p>
+                    <p className="text-xs sm:text-sm text-orange-600 dark:text-orange-400">টি সক্রিয়</p>
                   </div>
-                  <div className="h-12 w-12 rounded-full bg-orange-500/20 flex items-center justify-center">
-                    <AlertCircle className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                  <div className="h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0 ml-2">
+                    <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-orange-600 dark:text-orange-400" />
                   </div>
                 </div>
               </CardContent>
