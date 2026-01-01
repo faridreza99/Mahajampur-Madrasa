@@ -264,7 +264,7 @@ const StudentList = () => {
     e.preventDefault();
     
     if (!formData.class_id) {
-      toast.error('Please select a class first');
+      toast.error('প্রথমে মারহালা নির্বাচন করুন');
       return;
     }
 
@@ -854,12 +854,12 @@ const StudentList = () => {
 
   const getClassName = (classId) => {
     const cls = classes.find(c => c.id === classId);
-    return cls ? cls.name : 'Unknown';
+    return cls ? cls.name : 'অজানা';
   };
 
   const getSectionName = (sectionId) => {
     const section = sections.find(s => s.id === sectionId);
-    return section ? section.name : 'Unknown';
+    return section ? section.name : 'অজানা';
   };
 
   if (loading && students.length === 0) {
@@ -881,11 +881,11 @@ const StudentList = () => {
           <div className="flex items-center space-x-4">
             <Button variant="outline" size="sm" onClick={() => navigate('/students')}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to List
+              তালিকায় ফিরে যান
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Add New Student</h1>
-              <p className="text-gray-600 mt-1">Fill in student information below</p>
+              <h1 className="text-3xl font-bold text-gray-900">নতুন ছাত্র যোগ করুন</h1>
+              <p className="text-gray-600 mt-1">নিচে ছাত্রের তথ্য পূরণ করুন</p>
             </div>
           </div>
         </div>
@@ -894,7 +894,7 @@ const StudentList = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="admission_no">Admission Number *</Label>
+                  <Label htmlFor="admission_no">ভর্তি নম্বর *</Label>
                   <Input
                     id="admission_no"
                     value={formData.admission_no}
@@ -903,7 +903,7 @@ const StudentList = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="roll_no">Roll Number *</Label>
+                  <Label htmlFor="roll_no">রোল নম্বর *</Label>
                   <Input
                     id="roll_no"
                     value={formData.roll_no}
@@ -912,7 +912,7 @@ const StudentList = () => {
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <Label htmlFor="name">Full Name *</Label>
+                  <Label htmlFor="name">পূর্ণ নাম *</Label>
                   <Input
                     id="name"
                     value={formData.name}
@@ -921,7 +921,7 @@ const StudentList = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="father_name">Father's Name *</Label>
+                  <Label htmlFor="father_name">পিতার নাম *</Label>
                   <Input
                     id="father_name"
                     value={formData.father_name}
@@ -930,7 +930,7 @@ const StudentList = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="mother_name">Mother's Name *</Label>
+                  <Label htmlFor="mother_name">মাতার নাম *</Label>
                   <Input
                     id="mother_name"
                     value={formData.mother_name}
@@ -939,7 +939,7 @@ const StudentList = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="date_of_birth">Date of Birth *</Label>
+                  <Label htmlFor="date_of_birth">জন্ম তারিখ *</Label>
                   <Input
                     id="date_of_birth"
                     type="date"
@@ -949,20 +949,20 @@ const StudentList = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="gender">Gender *</Label>
+                  <Label htmlFor="gender">লিঙ্গ *</Label>
                   <Select value={formData.gender} onValueChange={(value) => setFormData({...formData, gender: value})}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select gender" />
+                      <SelectValue placeholder="লিঙ্গ নির্বাচন করুন" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Male">Male</SelectItem>
-                      <SelectItem value="Female">Female</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
+                      <SelectItem value="Male">পুরুষ</SelectItem>
+                      <SelectItem value="Female">মহিলা</SelectItem>
+                      <SelectItem value="Other">অন্যান্য</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="class_id">Class *</Label>
+                  <Label htmlFor="class_id">মারহালা *</Label>
                   <Select 
                     value={formData.class_id} 
                     onValueChange={(value) => {
@@ -971,7 +971,7 @@ const StudentList = () => {
                     }}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select class" />
+                      <SelectValue placeholder="মারহালা নির্বাচন করুন" />
                     </SelectTrigger>
                     <SelectContent>
                       {classes.map((cls) => (
@@ -983,10 +983,10 @@ const StudentList = () => {
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="section_id">Section *</Label>
+                  <Label htmlFor="section_id">শাখা *</Label>
                   <Select value={formData.section_id} onValueChange={(value) => setFormData({...formData, section_id: value})}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select section" />
+                      <SelectValue placeholder="শাখা নির্বাচন করুন" />
                     </SelectTrigger>
                     <SelectContent>
                       {sections.map((section) => (
@@ -998,7 +998,7 @@ const StudentList = () => {
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="phone">Phone Number *</Label>
+                  <Label htmlFor="phone">ফোন নম্বর *</Label>
                   <Input
                     id="phone"
                     value={formData.phone}
@@ -1007,7 +1007,7 @@ const StudentList = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">ইমেইল</Label>
                   <Input
                     id="email"
                     type="email"
@@ -1016,7 +1016,7 @@ const StudentList = () => {
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <Label htmlFor="address">Address *</Label>
+                  <Label htmlFor="address">ঠিকানা *</Label>
                   <Input
                     id="address"
                     value={formData.address}
@@ -1025,7 +1025,7 @@ const StudentList = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="guardian_name">Guardian Name *</Label>
+                  <Label htmlFor="guardian_name">অভিভাবকের নাম *</Label>
                   <Input
                     id="guardian_name"
                     value={formData.guardian_name}
@@ -1034,7 +1034,7 @@ const StudentList = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="guardian_phone">Guardian Phone *</Label>
+                  <Label htmlFor="guardian_phone">অভিভাবকের ফোন *</Label>
                   <Input
                     id="guardian_phone"
                     value={formData.guardian_phone}
@@ -1045,10 +1045,10 @@ const StudentList = () => {
               </div>
               <div className="flex justify-end space-x-3">
                 <Button type="button" variant="outline" onClick={() => navigate('/students')}>
-                  Cancel
+                  বাতিল
                 </Button>
                 <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600" disabled={loading}>
-                  {loading ? 'Saving...' : 'Add Student'}
+                  {loading ? 'সংরক্ষণ হচ্ছে...' : 'ছাত্র যোগ করুন'}
                 </Button>
               </div>
             </form>
@@ -1066,11 +1066,11 @@ const StudentList = () => {
           <div className="flex items-center space-x-4">
             <Button variant="outline" size="sm" onClick={() => navigate('/students')}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to List
+              তালিকায় ফিরে যান
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Bulk Import Students</h1>
-              <p className="text-gray-600 mt-1">Import multiple students from CSV or Excel file</p>
+              <h1 className="text-3xl font-bold text-gray-900">বাল্ক ছাত্র আমদানি</h1>
+              <p className="text-gray-600 mt-1">CSV বা Excel ফাইল থেকে একাধিক ছাত্র আমদানি করুন</p>
             </div>
           </div>
         </div>
@@ -1078,14 +1078,14 @@ const StudentList = () => {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <FileUp className="h-5 w-5 text-emerald-500" />
-              <span>Upload Student Data</span>
+              <span>ছাত্র ডাটা আপলোড</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
               <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Upload your file</h3>
-              <p className="text-gray-600 mb-4">Drag and drop your CSV or Excel file here, or click to browse</p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">আপনার ফাইল আপলোড করুন</h3>
+              <p className="text-gray-600 mb-4">এখানে CSV বা Excel ফাইল টেনে আনুন, বা ব্রাউজ করতে ক্লিক করুন</p>
               <Input 
                 type="file" 
                 accept=".csv,.xlsx,.xls" 
@@ -1099,24 +1099,24 @@ const StudentList = () => {
               )}
             </div>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-medium text-blue-900 mb-2">File Format Requirements:</h4>
+              <h4 className="font-medium text-blue-900 mb-2">ফাইল ফরম্যাট প্রয়োজনীয়তা:</h4>
               <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-                <li>File must be in CSV or Excel format (.csv, .xlsx, .xls)</li>
-                <li>First row should contain column headers</li>
-                <li>Required columns: admission_no, roll_no, name, father_name, mother_name, date_of_birth, gender, class_id, section_id, phone, email, address, guardian_name, guardian_phone</li>
-                <li>Date format should be YYYY-MM-DD (e.g., 2008-05-15)</li>
-                <li>Gender values: Male or Female</li>
+                <li>ফাইল CSV বা Excel ফরম্যাটে হতে হবে (.csv, .xlsx, .xls)</li>
+                <li>প্রথম সারিতে কলাম হেডার থাকতে হবে</li>
+                <li>প্রয়োজনীয় কলাম: admission_no, roll_no, name, father_name, mother_name, date_of_birth, gender, class_id, section_id, phone, email, address, guardian_name, guardian_phone</li>
+                <li>তারিখ ফরম্যাট YYYY-MM-DD হতে হবে (যেমন: 2008-05-15)</li>
+                <li>লিঙ্গ মান: Male বা Female</li>
               </ul>
             </div>
             <div className="flex justify-between items-center">
               <div className="flex space-x-2">
                 <Button variant="outline" onClick={() => downloadSampleTemplate('excel')}>
                   <Download className="h-4 w-4 mr-2" />
-                  Download Excel Template
+                  Excel টেমপ্লেট ডাউনলোড
                 </Button>
                 <Button variant="outline" onClick={() => downloadSampleTemplate('csv')}>
                   <Download className="h-4 w-4 mr-2" />
-                  Download CSV Template
+                  CSV টেমপ্লেট ডাউনলোড
                 </Button>
               </div>
               <Button 
@@ -1125,7 +1125,7 @@ const StudentList = () => {
                 disabled={loading || !importFile}
               >
                 <Upload className="h-4 w-4 mr-2" />
-                {uploadProgress || 'Start Import'}
+                {uploadProgress || 'আমদানি শুরু করুন'}
               </Button>
             </div>
           </CardContent>
@@ -1142,11 +1142,11 @@ const StudentList = () => {
           <div className="flex items-center space-x-4">
             <Button variant="outline" size="sm" onClick={() => navigate('/students')}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to List
+              তালিকায় ফিরে যান
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Student Photo Upload</h1>
-              <p className="text-gray-600 mt-1">Upload photos for students in bulk</p>
+              <h1 className="text-3xl font-bold text-gray-900">ছাত্র ছবি আপলোড</h1>
+              <p className="text-gray-600 mt-1">বাল্ক ছাত্রদের ছবি আপলোড করুন</p>
             </div>
           </div>
         </div>
@@ -1154,14 +1154,14 @@ const StudentList = () => {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Camera className="h-5 w-5 text-emerald-500" />
-              <span>Bulk Photo Upload</span>
+              <span>বাল্ক ছবি আপলোড</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
               <Image className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Upload student photos</h3>
-              <p className="text-gray-600 mb-4">Select multiple photos to upload. Files should be named with admission numbers.</p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">ছাত্রদের ছবি আপলোড করুন</h3>
+              <p className="text-gray-600 mb-4">আপলোড করতে একাধিক ছবি নির্বাচন করুন। ফাইলের নাম ভর্তি নম্বর হওয়া উচিত।</p>
               <Input 
                 type="file" 
                 accept="image/*" 
@@ -1192,7 +1192,7 @@ const StudentList = () => {
                 disabled={loading || selectedFiles.length === 0}
               >
                 <Camera className="h-4 w-4 mr-2" />
-                {uploadProgress || 'Upload Photos'}
+                {uploadProgress || 'ছবি আপলোড করুন'}
               </Button>
             </div>
           </CardContent>
@@ -1207,25 +1207,25 @@ const StudentList = () => {
       {/* Header */}
       <div className="flex flex-col gap-3 sm:gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">Students</h1>
-          <p className="text-xs sm:text-sm text-gray-600 mt-1">Manage student information and records</p>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">ছাত্র তালিকা</h1>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">ছাত্রদের তথ্য এবং রেকর্ড পরিচালনা করুন</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <Button variant="outline" size="sm" className="text-xs sm:text-sm h-8 sm:h-9" onClick={() => setIsPhotoUploadModalOpen(true)}>
             <Camera className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-            <span className="hidden xs:inline">Bulk </span>Photo
+            <span className="hidden xs:inline">বাল্ক </span>ছবি
           </Button>
           <Button variant="outline" size="sm" className="text-xs sm:text-sm h-8 sm:h-9" onClick={() => setIsImportModalOpen(true)}>
             <Upload className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-            Import
+            আমদানি
           </Button>
           <Button variant="outline" size="sm" className="text-xs sm:text-sm h-8 sm:h-9" onClick={() => setIsExportModalOpen(true)}>
             <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-            Export
+            রপ্তানি
           </Button>
           <Button className="bg-emerald-500 hover:bg-emerald-600 text-xs sm:text-sm h-8 sm:h-9" onClick={() => { resetForm(); fetchNextAdmissionNumber(); setIsAddStudentModalOpen(true); }}>
             <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-            Add
+            যোগ করুন
           </Button>
         </div>
       </div>
@@ -1238,7 +1238,7 @@ const StudentList = () => {
               <div className="relative">
                 <Search className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Search students..."
+                  placeholder="ছাত্র খুঁজুন..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-8 sm:pl-10 text-sm"
@@ -1248,10 +1248,10 @@ const StudentList = () => {
             <div className="grid grid-cols-2 gap-2 sm:gap-4 sm:flex sm:flex-row">
               <Select value={selectedClass} onValueChange={setSelectedClass}>
                 <SelectTrigger className="w-full sm:w-40 md:w-48 text-xs sm:text-sm">
-                  <SelectValue placeholder="All Classes" />
+                  <SelectValue placeholder="সকল মারহালা" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all_classes">All Classes</SelectItem>
+                  <SelectItem value="all_classes">সকল মারহালা</SelectItem>
                   {classes.map((cls) => (
                     <SelectItem key={cls.id} value={cls.id}>
                       {cls.name} ({cls.standard})
@@ -1261,10 +1261,10 @@ const StudentList = () => {
               </Select>
               <Select value={selectedSection} onValueChange={setSelectedSection} disabled={!selectedClass}>
                 <SelectTrigger className="w-full sm:w-40 md:w-48 text-xs sm:text-sm">
-                  <SelectValue placeholder="All Sections" />
+                  <SelectValue placeholder="সকল শাখা" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all_sections">All Sections</SelectItem>
+                  <SelectItem value="all_sections">সকল শাখা</SelectItem>
                   {sections.map((section) => (
                     <SelectItem key={section.id} value={section.id}>
                       {section.name}
@@ -1283,8 +1283,8 @@ const StudentList = () => {
           <CardTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center space-x-2">
               <Users className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500" />
-              <span className="text-base sm:text-lg">Student List</span>
-              <Badge variant="secondary" className="text-xs">{filteredStudents.length} students</Badge>
+              <span className="text-base sm:text-lg">ছাত্র তালিকা</span>
+              <Badge variant="secondary" className="text-xs">{filteredStudents.length} ছাত্র</Badge>
             </div>
           </CardTitle>
         </CardHeader>
@@ -1294,13 +1294,13 @@ const StudentList = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-10 sm:w-12 px-2 sm:px-4">#</TableHead>
-                  <TableHead className="px-2 sm:px-4">Student</TableHead>
-                  <TableHead className="px-2 sm:px-4 hidden sm:table-cell">Admission No</TableHead>
-                  <TableHead className="px-2 sm:px-4 hidden md:table-cell">Roll No</TableHead>
-                  <TableHead className="px-2 sm:px-4">Class</TableHead>
-                  <TableHead className="px-2 sm:px-4 hidden lg:table-cell">Guardian</TableHead>
-                  <TableHead className="px-2 sm:px-4 hidden md:table-cell">Contact</TableHead>
-                  <TableHead className="px-2 sm:px-4">Actions</TableHead>
+                  <TableHead className="px-2 sm:px-4">ছাত্র</TableHead>
+                  <TableHead className="px-2 sm:px-4 hidden sm:table-cell">ভর্তি নম্বর</TableHead>
+                  <TableHead className="px-2 sm:px-4 hidden md:table-cell">রোল নম্বর</TableHead>
+                  <TableHead className="px-2 sm:px-4">মারহালা</TableHead>
+                  <TableHead className="px-2 sm:px-4 hidden lg:table-cell">অভিভাবক</TableHead>
+                  <TableHead className="px-2 sm:px-4 hidden md:table-cell">যোগাযোগ</TableHead>
+                  <TableHead className="px-2 sm:px-4">কার্যক্রম</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1308,8 +1308,8 @@ const StudentList = () => {
                   <TableRow>
                     <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                       {searchTerm || selectedClass || selectedSection 
-                        ? 'No students found matching your search criteria'
-                        : 'No students added yet'
+                        ? 'আপনার অনুসন্ধান অনুযায়ী কোনো ছাত্র পাওয়া যায়নি'
+                        : 'এখনো কোনো ছাত্র যোগ করা হয়নি'
                       }
                     </TableCell>
                   </TableRow>
@@ -1376,7 +1376,7 @@ const StudentList = () => {
                               setViewingStudent(student);
                               setIsViewModalOpen(true);
                             }}
-                            title="View Details"
+                            title="দেখুন"
                           >
                             <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
                           </Button>
@@ -1385,7 +1385,7 @@ const StudentList = () => {
                             size="sm"
                             className="h-7 w-7 sm:h-8 sm:w-8 p-0"
                             onClick={() => handleEdit(student)}
-                            title="Edit"
+                            title="সম্পাদনা"
                           >
                             <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
                           </Button>
@@ -1394,7 +1394,7 @@ const StudentList = () => {
                             size="sm" 
                             className="text-red-600 hover:text-red-700 h-7 w-7 sm:h-8 sm:w-8 p-0"
                             onClick={() => handleDeleteClick(student)}
-                            title="Delete"
+                            title="মুছুন"
                           >
                             <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                           </Button>
@@ -1415,15 +1415,15 @@ const StudentList = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
               <Camera className="h-5 w-5 text-emerald-500" />
-              <span>Bulk Photo Upload</span>
+              <span>বাল্ক ছবি আপলোড</span>
             </DialogTitle>
             <DialogDescription>
-              Upload multiple student photos at once. File names should match student admission numbers.
+              একসাথে একাধিক ছাত্রের ছবি আপলোড করুন। ফাইলের নাম ছাত্রের ভর্তি নম্বরের সাথে মিল থাকতে হবে।
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="photo-files">Select Photos</Label>
+              <Label htmlFor="photo-files">ছবি নির্বাচন করুন</Label>
               <Input
                 id="photo-files"
                 type="file"
@@ -1434,17 +1434,17 @@ const StudentList = () => {
               />
               {selectedFiles && selectedFiles.length > 0 && (
                 <p className="text-sm text-gray-600 mt-2">
-                  {selectedFiles.length} file(s) selected
+                  {selectedFiles.length}টি ফাইল নির্বাচিত
                 </p>
               )}
             </div>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <h4 className="font-medium text-blue-900 text-sm mb-2">Guidelines:</h4>
+              <h4 className="font-medium text-blue-900 text-sm mb-2">নির্দেশিকা:</h4>
               <ul className="text-xs text-blue-800 space-y-1 list-disc list-inside">
-                <li>Formats: JPG, PNG</li>
-                <li>File name = Admission Number (e.g., ADM001.jpg)</li>
-                <li>Max size: 2MB per photo</li>
-                <li>Recommended: 300x400 pixels</li>
+                <li>ফরম্যাট: JPG, PNG</li>
+                <li>ফাইলের নাম = ভর্তি নম্বর (যেমন: ADM001.jpg)</li>
+                <li>সর্বোচ্চ আকার: প্রতি ছবি 2MB</li>
+                <li>প্রস্তাবিত: 300x400 পিক্সেল</li>
               </ul>
             </div>
           </div>
@@ -1456,14 +1456,14 @@ const StudentList = () => {
                 setSelectedFiles([]);
               }}
             >
-              Cancel
+              বাতিল
             </Button>
             <Button
               className="bg-emerald-500 hover:bg-emerald-600"
               onClick={handleBulkPhotoUpload}
               disabled={loading || !selectedFiles || selectedFiles.length === 0}
             >
-              {uploadProgress || 'Upload Photos'}
+              {uploadProgress || 'ছবি আপলোড করুন'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1482,14 +1482,14 @@ const StudentList = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
               <Upload className="h-5 w-5 text-emerald-500" />
-              <span>Import Students</span>
+              <span>ছাত্র আমদানি</span>
             </DialogTitle>
             <DialogDescription>
-              Import student data from CSV or Excel file.
+              CSV বা Excel ফাইল থেকে ছাত্রের তথ্য আমদানি করুন।
             </DialogDescription>
           </DialogHeader>
           
-          {/* Import Summary */}
+          {/* আমদানি সারসংক্ষেপ */}
           {importSummary && (
             <div className={`p-4 rounded-lg border ${
               importSummary.failed_count === 0 
@@ -1507,7 +1507,7 @@ const StudentList = () => {
                         ? 'text-amber-800'
                         : 'text-red-800'
                   }`}>
-                    Import Summary
+                    আমদানি সারসংক্ষেপ
                   </h4>
                   <p className="text-sm mt-1">
                     <span className="text-green-600 font-medium">{importSummary.imported_count} successful</span>
@@ -1615,7 +1615,7 @@ const StudentList = () => {
                     }}
                   >
                     <Download className="h-4 w-4 mr-1" />
-                    Download Sample Excel
+                    স্যাম্পল Excel ডাউনলোড
                   </Button>
                 </div>
                 <Input
@@ -1638,7 +1638,7 @@ const StudentList = () => {
                   father_name, F/phone, mother_name, address, guardian_name, guardian_phone
                 </p>
                 <p className="text-xs text-amber-700 mt-1">
-                  Optional: F/ Whatsapp no, M/phone, M/whatsapp no, email id
+                  ঐচ্ছিক: পিতার হোয়াটসঅ্যাপ নং, মাতার ফোন, মাতার হোয়াটসঅ্যাপ নং, ইমেইল
                 </p>
               </div>
             </div>
@@ -1655,7 +1655,7 @@ const StudentList = () => {
                     setImportFile(null);
                   }}
                 >
-                  Upload New File
+                  নতুন ফাইল আপলোড
                 </Button>
                 <Button
                   className="bg-emerald-500 hover:bg-emerald-600"
@@ -1666,7 +1666,7 @@ const StudentList = () => {
                     setImportFile(null);
                   }}
                 >
-                  Close
+                  বন্ধ করুন
                 </Button>
               </>
             ) : (
@@ -1678,14 +1678,14 @@ const StudentList = () => {
                     setImportFile(null);
                   }}
                 >
-                  Cancel
+                  বাতিল
                 </Button>
                 <Button
                   className="bg-emerald-500 hover:bg-emerald-600"
                   onClick={handleImportStudents}
                   disabled={loading || !importFile}
                 >
-                  {uploadProgress || 'Import Students'}
+                  {uploadProgress || 'ছাত্র আমদানি'}
                 </Button>
               </>
             )}
@@ -1699,17 +1699,17 @@ const StudentList = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
               <Download className="h-5 w-5 text-emerald-500" />
-              <span>Export Students</span>
+              <span>ছাত্র রপ্তানি</span>
             </DialogTitle>
             <DialogDescription>
-              Download student list in your preferred format.
+              আপনার পছন্দের ফরম্যাটে ছাত্র তালিকা ডাউনলোড করুন।
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <p className="text-sm text-gray-600">
-              Current filters: {selectedClass !== 'all_classes' || selectedSection !== 'all_sections' 
-                ? 'Filtered data will be exported' 
-                : 'All students will be exported'}
+              বর্তমান ফিল্টার: {selectedClass !== 'all_classes' || selectedSection !== 'all_sections' 
+                ? 'ফিল্টার করা ডাটা রপ্তানি হবে' 
+                : 'সকল ছাত্র রপ্তানি হবে'}
             </p>
             <div className="grid grid-cols-3 gap-3">
               <Button
@@ -1753,11 +1753,9 @@ const StudentList = () => {
       <Dialog open={isAddStudentModalOpen} onOpenChange={setIsAddStudentModalOpen}>
         <DialogContent className={`${isMadrasahSimpleUI && useSimpleForm ? 'max-w-lg' : 'max-w-2xl'} max-h-[90vh] overflow-y-auto`}>
           <DialogHeader>
-            <DialogTitle>{isMadrasahSimpleUI ? 'নতুন ছাত্র যোগ করুন' : 'Add New Student'}</DialogTitle>
+            <DialogTitle>নতুন ছাত্র যোগ করুন</DialogTitle>
             <DialogDescription>
-              {isMadrasahSimpleUI 
-                ? 'নিচে ছাত্রের তথ্য দিন। * চিহ্নিত ঘর অবশ্যই পূরণ করতে হবে।'
-                : 'Enter student information below. All fields marked with * are required.'}
+              নিচে ছাত্রের তথ্য দিন। * চিহ্নিত ঘর অবশ্যই পূরণ করতে হবে।
             </DialogDescription>
           </DialogHeader>
           
@@ -2007,7 +2005,7 @@ const StudentList = () => {
                   <Label htmlFor="student-photo" className="cursor-pointer">
                     <div className="flex items-center space-x-2 text-emerald-600 hover:text-emerald-700">
                       <Camera className="h-4 w-4" />
-                      <span>{photoPreview ? 'Change Photo' : 'Upload Photo'}</span>
+                      <span>{photoPreview ? 'ছবি পরিবর্তন' : 'ছবি আপলোড'}</span>
                     </div>
                     <Input
                       id="student-photo"
@@ -2020,7 +2018,7 @@ const StudentList = () => {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="add_admission_no">Admission Number *</Label>
+                    <Label htmlFor="add_admission_no">ভর্তি নম্বর *</Label>
                     <Input
                       id="add_admission_no"
                       value={formData.admission_no}
@@ -2029,7 +2027,7 @@ const StudentList = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="add_roll_no">Roll Number *</Label>
+                    <Label htmlFor="add_roll_no">রোল নম্বর *</Label>
                     <Input
                       id="add_roll_no"
                       value={formData.roll_no}
@@ -2038,7 +2036,7 @@ const StudentList = () => {
                 />
               </div>
               <div className="md:col-span-2">
-                <Label htmlFor="add_name">Full Name *</Label>
+                <Label htmlFor="add_name">পূর্ণ নাম *</Label>
                 <Input
                   id="add_name"
                   value={formData.name}
@@ -2047,7 +2045,7 @@ const StudentList = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="add_father_name">Father's Name *</Label>
+                <Label htmlFor="add_father_name">পিতার নাম *</Label>
                 <Input
                   id="add_father_name"
                   value={formData.father_name}
@@ -2056,25 +2054,25 @@ const StudentList = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="add_father_phone">Father's Phone</Label>
+                <Label htmlFor="add_father_phone">পিতার ফোন</Label>
                 <Input
                   id="add_father_phone"
                   value={formData.father_phone}
                   onChange={(e) => setFormData({...formData, father_phone: e.target.value})}
-                  placeholder="Father's phone number"
+                  placeholder="পিতার ফোন নম্বর"
                 />
               </div>
               <div>
-                <Label htmlFor="add_father_whatsapp">Father's WhatsApp</Label>
+                <Label htmlFor="add_father_whatsapp">পিতার হোয়াটসঅ্যাপ</Label>
                 <Input
                   id="add_father_whatsapp"
                   value={formData.father_whatsapp}
                   onChange={(e) => setFormData({...formData, father_whatsapp: e.target.value})}
-                  placeholder="Father's WhatsApp number"
+                  placeholder="পিতার হোয়াটসঅ্যাপ নম্বর"
                 />
               </div>
               <div>
-                <Label htmlFor="add_mother_name">Mother's Name *</Label>
+                <Label htmlFor="add_mother_name">মাতার নাম *</Label>
                 <Input
                   id="add_mother_name"
                   value={formData.mother_name}
@@ -2083,30 +2081,30 @@ const StudentList = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="add_mother_phone">Mother's Phone</Label>
+                <Label htmlFor="add_mother_phone">মাতার ফোন</Label>
                 <Input
                   id="add_mother_phone"
                   value={formData.mother_phone}
                   onChange={(e) => setFormData({...formData, mother_phone: e.target.value})}
-                  placeholder="Mother's phone number"
+                  placeholder="মাতার ফোন নম্বর"
                 />
               </div>
               <div>
-                <Label htmlFor="add_mother_whatsapp">Mother's WhatsApp</Label>
+                <Label htmlFor="add_mother_whatsapp">মাতার হোয়াটসঅ্যাপ</Label>
                 <Input
                   id="add_mother_whatsapp"
                   value={formData.mother_whatsapp}
                   onChange={(e) => setFormData({...formData, mother_whatsapp: e.target.value})}
-                  placeholder="Mother's WhatsApp number"
+                  placeholder="মাতার হোয়াটসঅ্যাপ নম্বর"
                 />
               </div>
               <div className="md:col-span-2">
-                <Label>Date of Birth *</Label>
+                <Label>জন্ম তারিখ *</Label>
                 <div className="grid grid-cols-3 gap-2">
                   <div>
                     <Select value={birthYear} onValueChange={(value) => handleDateChange('year', value)}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Year" />
+                        <SelectValue placeholder="বছর" />
                       </SelectTrigger>
                       <SelectContent>
                         {getYearRange().map((year) => (
@@ -2120,7 +2118,7 @@ const StudentList = () => {
                   <div>
                     <Select value={birthMonth} onValueChange={(value) => handleDateChange('month', value)}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Month" />
+                        <SelectValue placeholder="মাস" />
                       </SelectTrigger>
                       <SelectContent>
                         {months.map((month) => (
@@ -2134,7 +2132,7 @@ const StudentList = () => {
                   <div>
                     <Select value={birthDay} onValueChange={(value) => handleDateChange('day', value)} disabled={!birthYear || !birthMonth}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Day" />
+                        <SelectValue placeholder="দিন" />
                       </SelectTrigger>
                       <SelectContent>
                         {Array.from({ length: getDaysInMonth(birthYear, birthMonth) }, (_, i) => i + 1).map((day) => {
@@ -2154,20 +2152,20 @@ const StudentList = () => {
                 )}
               </div>
               <div>
-                <Label htmlFor="add_gender">Gender *</Label>
+                <Label htmlFor="add_gender">লিঙ্গ *</Label>
                 <Select value={formData.gender} onValueChange={(value) => setFormData({...formData, gender: value})}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select gender" />
+                    <SelectValue placeholder="লিঙ্গ নির্বাচন করুন" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Male">Male</SelectItem>
-                    <SelectItem value="Female">Female</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
+                    <SelectItem value="Male">পুরুষ</SelectItem>
+                    <SelectItem value="Female">মহিলা</SelectItem>
+                    <SelectItem value="Other">অন্যান্য</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label htmlFor="add_class_id">Class *</Label>
+                <Label htmlFor="add_class_id">মারহালা *</Label>
                 <Select 
                   value={formData.class_id} 
                   onValueChange={(value) => {
@@ -2176,12 +2174,12 @@ const StudentList = () => {
                   }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select class" />
+                    <SelectValue placeholder="মারহালা নির্বাচন করুন" />
                   </SelectTrigger>
                   <SelectContent>
                     {classes.length === 0 ? (
                       <div className="px-2 py-4 text-sm text-muted-foreground text-center">
-                        No classes found. Please add classes in Manage Classes first.
+                        কোনো মারহালা পাওয়া যায়নি। প্রথমে মারহালা ব্যবস্থাপনায় মারহালা যোগ করুন।
                       </div>
                     ) : (
                       classes.map((cls) => (
@@ -2194,24 +2192,24 @@ const StudentList = () => {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="add_section_id">Section *</Label>
+                <Label htmlFor="add_section_id">শাখা *</Label>
                 <Select 
                   value={formData.section_id} 
                   onValueChange={(value) => setFormData({...formData, section_id: value})}
                   disabled={!formData.class_id}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={formData.class_id ? "Select section" : "Select class first"} />
+                    <SelectValue placeholder={formData.class_id ? "শাখা নির্বাচন করুন" : "প্রথমে মারহালা নির্বাচন করুন"} />
                   </SelectTrigger>
                   <SelectContent>
                     {!formData.class_id ? (
                       <div className="px-2 py-4 text-sm text-muted-foreground text-center">
-                        Please select a class first
+                        প্রথমে মারহালা নির্বাচন করুন
                       </div>
                     ) : sections.length === 0 ? (
                       <div className="px-2 py-6 flex flex-col items-center gap-3">
                         <p className="text-sm text-muted-foreground text-center">
-                          No sections found for this class.
+                          এই মারহালায় কোনো শাখা পাওয়া যায়নি।
                         </p>
                         <Button
                           size="sm"
@@ -2219,7 +2217,7 @@ const StudentList = () => {
                           className="text-emerald-600 border-emerald-600 hover:bg-emerald-50"
                           onClick={() => setIsQuickAddSectionModalOpen(true)}
                         >
-                          + Add Section
+                          + শাখা যোগ করুন
                         </Button>
                       </div>
                     ) : (
@@ -2233,7 +2231,7 @@ const StudentList = () => {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="add_phone">Phone Number *</Label>
+                <Label htmlFor="add_phone">ফোন নম্বর *</Label>
                 <Input
                   id="add_phone"
                   value={formData.phone}
@@ -2242,7 +2240,7 @@ const StudentList = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="add_email">Email</Label>
+                <Label htmlFor="add_email">ইমেইল</Label>
                 <Input
                   id="add_email"
                   type="email"
@@ -2251,7 +2249,7 @@ const StudentList = () => {
                 />
               </div>
               <div className="md:col-span-2">
-                <Label htmlFor="add_address">Address *</Label>
+                <Label htmlFor="add_address">ঠিকানা *</Label>
                 <Input
                   id="add_address"
                   value={formData.address}
@@ -2260,7 +2258,7 @@ const StudentList = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="add_guardian_name">Guardian Name *</Label>
+                <Label htmlFor="add_guardian_name">অভিভাবকের নাম *</Label>
                 <Input
                   id="add_guardian_name"
                   value={formData.guardian_name}
@@ -2269,7 +2267,7 @@ const StudentList = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="add_guardian_phone">Guardian Phone *</Label>
+                <Label htmlFor="add_guardian_phone">অভিভাবকের ফোন *</Label>
                 <Input
                   id="add_guardian_phone"
                   value={formData.guardian_phone}
@@ -2289,10 +2287,10 @@ const StudentList = () => {
                   resetForm();
                 }}
               >
-                {isMadrasahSimpleUI ? 'বাতিল' : 'Cancel'}
+                বাতিল
               </Button>
               <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600" disabled={loading}>
-                {loading ? (isMadrasahSimpleUI ? 'সংরক্ষণ হচ্ছে...' : 'Saving...') : (isMadrasahSimpleUI ? 'ছাত্র যোগ করুন' : 'Add Student')}
+                {loading ? 'সংরক্ষণ হচ্ছে...' : 'ছাত্র যোগ করুন'}
               </Button>
             </DialogFooter>
           </form>
@@ -2303,25 +2301,25 @@ const StudentList = () => {
       <Dialog open={isQuickAddSectionModalOpen} onOpenChange={setIsQuickAddSectionModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add New Section</DialogTitle>
+            <DialogTitle>নতুন শাখা যোগ করুন</DialogTitle>
             <DialogDescription>
-              Add a section for {classes.find(c => c.id === formData.class_id)?.name || 'the selected class'}.
+              {classes.find(c => c.id === formData.class_id)?.name || 'নির্বাচিত মারহালা'}-এর জন্য একটি শাখা যোগ করুন।
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleQuickAddSection} className="space-y-4">
             <div>
-              <Label htmlFor="quick_section_name">Section Name *</Label>
+              <Label htmlFor="quick_section_name">শাখার নাম *</Label>
               <Input
                 id="quick_section_name"
                 value={quickSectionData.name}
                 onChange={(e) => setQuickSectionData({...quickSectionData, name: e.target.value})}
-                placeholder="e.g., A, B, C"
+                placeholder="যেমন: ক, খ, গ"
                 required
                 autoFocus
               />
             </div>
             <div>
-              <Label htmlFor="quick_max_students">Maximum Students</Label>
+              <Label htmlFor="quick_max_students">সর্বোচ্চ ছাত্র সংখ্যা</Label>
               <Input
                 id="quick_max_students"
                 type="number"
@@ -2340,14 +2338,14 @@ const StudentList = () => {
                   setQuickSectionData({ name: '', max_students: 40 });
                 }}
               >
-                Cancel
+                বাতিল
               </Button>
               <Button 
                 type="submit" 
                 className="bg-emerald-500 hover:bg-emerald-600" 
                 disabled={isSavingSection}
               >
-                {isSavingSection ? 'Adding...' : 'Add Section'}
+                {isSavingSection ? 'যোগ হচ্ছে...' : 'শাখা যোগ করুন'}
               </Button>
             </DialogFooter>
           </form>
@@ -2358,21 +2356,21 @@ const StudentList = () => {
       <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-red-600">Delete Student</DialogTitle>
+            <DialogTitle className="text-red-600">ছাত্র মুছুন</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this student?
+              আপনি কি নিশ্চিত যে এই ছাত্রকে মুছতে চান?
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             {studentToDelete && (
               <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                <p className="text-sm"><span className="font-semibold">Name:</span> {studentToDelete.name}</p>
-                <p className="text-sm"><span className="font-semibold">Admission No:</span> {studentToDelete.admission_no}</p>
-                <p className="text-sm"><span className="font-semibold">Roll No:</span> {studentToDelete.roll_no}</p>
+                <p className="text-sm"><span className="font-semibold">নাম:</span> {studentToDelete.name}</p>
+                <p className="text-sm"><span className="font-semibold">ভর্তি নম্বর:</span> {studentToDelete.admission_no}</p>
+                <p className="text-sm"><span className="font-semibold">রোল নম্বর:</span> {studentToDelete.roll_no}</p>
               </div>
             )}
             <p className="text-sm text-red-600 mt-4 font-medium">
-              ⚠️ This action cannot be undone.
+              ⚠️ এই কাজটি পূর্বাবস্থায় ফেরানো যাবে না।
             </p>
           </div>
           <DialogFooter>
@@ -2385,7 +2383,7 @@ const StudentList = () => {
               }}
               disabled={loading}
             >
-              Cancel
+              বাতিল
             </Button>
             <Button 
               type="button"
@@ -2394,7 +2392,7 @@ const StudentList = () => {
               disabled={loading}
               className="bg-red-600 hover:bg-red-700"
             >
-              {loading ? 'Deleting...' : 'Delete Student'}
+              {loading ? 'মুছা হচ্ছে...' : 'ছাত্র মুছুন'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2406,33 +2404,33 @@ const StudentList = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2 text-emerald-600">
               <Check className="h-5 w-5" />
-              <span>Student Account Created Successfully!</span>
+              <span>ছাত্রের অ্যাকাউন্ট সফলভাবে তৈরি হয়েছে!</span>
             </DialogTitle>
             <DialogDescription>
-              A login account has been automatically created for this student. Please share these credentials with the student or guardian.
+              এই ছাত্রের জন্য স্বয়ংক্রিয়ভাবে একটি লগইন অ্যাকাউন্ট তৈরি হয়েছে। অনুগ্রহ করে এই তথ্য ছাত্র বা অভিভাবকের সাথে শেয়ার করুন।
             </DialogDescription>
           </DialogHeader>
           {studentCredentials && (
             <div className="py-4 space-y-4">
               <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-4 space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Student Name:</span>
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">ছাত্রের নাম:</span>
                   <span className="font-semibold text-gray-900 dark:text-white">{studentCredentials.studentName}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Admission No:</span>
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">ভর্তি নম্বর:</span>
                   <span className="font-semibold text-gray-900 dark:text-white">{studentCredentials.admissionNo}</span>
                 </div>
               </div>
               
               <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 space-y-3 border-2 border-blue-200 dark:border-blue-800">
-                <h4 className="font-semibold text-blue-800 dark:text-blue-300 text-center">Login Credentials</h4>
+                <h4 className="font-semibold text-blue-800 dark:text-blue-300 text-center">লগইন তথ্য</h4>
                 <div className="flex justify-between items-center py-2 border-b border-blue-100 dark:border-blue-800">
-                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Username:</span>
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">ব্যবহারকারীর নাম:</span>
                   <code className="bg-white dark:bg-gray-800 px-3 py-1 rounded font-mono text-sm font-bold text-blue-600 dark:text-blue-400">{studentCredentials.username}</code>
                 </div>
                 <div className="flex justify-between items-center py-2">
-                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Temporary Password:</span>
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">অস্থায়ী পাসওয়ার্ড:</span>
                   <code className="bg-white dark:bg-gray-800 px-3 py-1 rounded font-mono text-sm font-bold text-blue-600 dark:text-blue-400">{studentCredentials.temporary_password}</code>
                 </div>
               </div>
@@ -2455,7 +2453,7 @@ const StudentList = () => {
                   }}
                 >
                   <Copy className="h-4 w-4 mr-2" />
-                  Copy Credentials
+                  তথ্য কপি করুন
                 </Button>
               </div>
             </div>
@@ -2468,7 +2466,7 @@ const StudentList = () => {
               }}
               className="bg-emerald-600 hover:bg-emerald-700"
             >
-              Done
+              সম্পন্ন
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2480,7 +2478,7 @@ const StudentList = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
               <User className="h-5 w-5 text-emerald-500" />
-              <span>Student Details</span>
+              <span>ছাত্রের বিবরণ</span>
             </DialogTitle>
           </DialogHeader>
           {viewingStudent && (
@@ -2505,12 +2503,12 @@ const StudentList = () => {
                 </div>
               </div>
 
-              {/* Personal Information */}
+              {/* ব্যক্তিগত তথ্য */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="p-4 border rounded-lg">
                   <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
                     <User className="h-4 w-4 mr-2 text-emerald-500" />
-                    Personal Information
+                    ব্যক্তিগত তথ্য
                   </h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
@@ -2643,7 +2641,7 @@ const StudentList = () => {
                         </div>
                         
                         <div class="section">
-                          <h4>Personal Information</h4>
+                          <h4>ব্যক্তিগত তথ্য</h4>
                           <div class="grid-2">
                             <div><div class="label">Gender</div><div class="value">${viewingStudent?.gender}</div></div>
                             <div><div class="label">Date of Birth</div><div class="value">${viewingStudent?.date_of_birth}</div></div>
@@ -2676,7 +2674,7 @@ const StudentList = () => {
                         </div>
                         
                         <div class="section">
-                          <h4>Guardian Information</h4>
+                          <h4>অভিভাবকের তথ্য</h4>
                           <div class="grid-2">
                             <div><div class="label">Name</div><div class="value">${viewingStudent?.guardian_name}</div></div>
                             <div><div class="label">Phone</div><div class="value">${viewingStudent?.guardian_phone}</div></div>
@@ -2691,10 +2689,10 @@ const StudentList = () => {
               }}
             >
               <Printer className="h-4 w-4 mr-2" />
-              Print
+              প্রিন্ট
             </Button>
             <Button onClick={() => setIsViewModalOpen(false)}>
-              Close
+              বন্ধ করুন
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2704,11 +2702,9 @@ const StudentList = () => {
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
         <DialogContent className={`${isMadrasahSimpleUI ? 'max-w-lg' : 'max-w-2xl'} max-h-[90vh] overflow-y-auto`}>
           <DialogHeader>
-            <DialogTitle>{isMadrasahSimpleUI ? 'ছাত্র/ছাত্রী সম্পাদনা' : 'Edit Student'}</DialogTitle>
+            <DialogTitle>ছাত্র সম্পাদনা</DialogTitle>
             <DialogDescription>
-              {isMadrasahSimpleUI 
-                ? 'ছাত্র/ছাত্রীর তথ্য আপডেট করুন। * চিহ্নিত ঘর অবশ্যই পূরণ করতে হবে।'
-                : 'Update student information. Fields marked with * are required.'}
+              ছাত্রের তথ্য আপডেট করুন। * চিহ্নিত ঘর অবশ্যই পূরণ করতে হবে।
             </DialogDescription>
           </DialogHeader>
           
@@ -2938,7 +2934,7 @@ const StudentList = () => {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="admission_no">Admission Number *</Label>
+                    <Label htmlFor="admission_no">ভর্তি নম্বর *</Label>
                     <Input
                       id="admission_no"
                       value={formData.admission_no}
@@ -2947,7 +2943,7 @@ const StudentList = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="roll_no">Roll Number *</Label>
+                    <Label htmlFor="roll_no">রোল নম্বর *</Label>
                     <Input
                       id="roll_no"
                       value={formData.roll_no}
@@ -2956,7 +2952,7 @@ const StudentList = () => {
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <Label htmlFor="name">Full Name *</Label>
+                    <Label htmlFor="name">পূর্ণ নাম *</Label>
                     <Input
                       id="name"
                       value={formData.name}
@@ -2965,7 +2961,7 @@ const StudentList = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="father_name">Father's Name *</Label>
+                    <Label htmlFor="father_name">পিতার নাম *</Label>
                     <Input
                       id="father_name"
                       value={formData.father_name}
@@ -2974,16 +2970,16 @@ const StudentList = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="edit_father_phone">Father's Phone</Label>
+                    <Label htmlFor="edit_father_phone">পিতার ফোন</Label>
                     <Input
                       id="edit_father_phone"
                       value={formData.father_phone}
                       onChange={(e) => setFormData({...formData, father_phone: e.target.value})}
-                      placeholder="Father's phone number"
+                      placeholder="পিতার ফোন নম্বর"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="mother_name">Mother's Name *</Label>
+                    <Label htmlFor="mother_name">মাতার নাম *</Label>
                     <Input
                       id="mother_name"
                       value={formData.mother_name}
@@ -2992,7 +2988,7 @@ const StudentList = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="date_of_birth">Date of Birth *</Label>
+                    <Label htmlFor="date_of_birth">জন্ম তারিখ *</Label>
                     <Input
                       id="date_of_birth"
                       type="date"
@@ -3002,10 +2998,10 @@ const StudentList = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="gender">Gender *</Label>
+                    <Label htmlFor="gender">লিঙ্গ *</Label>
                     <Select value={formData.gender} onValueChange={(value) => setFormData({...formData, gender: value})}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select gender" />
+                        <SelectValue placeholder="লিঙ্গ নির্বাচন করুন" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Male">Male</SelectItem>
@@ -3015,7 +3011,7 @@ const StudentList = () => {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="class_id">Class *</Label>
+                    <Label htmlFor="class_id">মারহালা *</Label>
                     <Select 
                       value={formData.class_id} 
                       onValueChange={(value) => {
@@ -3024,7 +3020,7 @@ const StudentList = () => {
                       }}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select class" />
+                        <SelectValue placeholder="মারহালা নির্বাচন করুন" />
                       </SelectTrigger>
                       <SelectContent>
                         {classes.map((cls) => (
@@ -3036,14 +3032,14 @@ const StudentList = () => {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="section_id">Section</Label>
+                    <Label htmlFor="section_id">শাখা</Label>
                     <Select 
                       value={formData.section_id} 
                       onValueChange={(value) => setFormData({...formData, section_id: value})}
                       disabled={!formData.class_id}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select section" />
+                        <SelectValue placeholder="শাখা নির্বাচন করুন" />
                       </SelectTrigger>
                       <SelectContent>
                         {sections.map((section) => (
@@ -3055,7 +3051,7 @@ const StudentList = () => {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="phone">Phone *</Label>
+                    <Label htmlFor="phone">ফোন *</Label>
                     <Input
                       id="phone"
                       value={formData.phone}
@@ -3064,7 +3060,7 @@ const StudentList = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email">ইমেইল</Label>
                     <Input
                       id="email"
                       type="email"
@@ -3073,7 +3069,7 @@ const StudentList = () => {
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <Label htmlFor="address">Address *</Label>
+                    <Label htmlFor="address">ঠিকানা *</Label>
                     <Input
                       id="address"
                       value={formData.address}
@@ -3082,7 +3078,7 @@ const StudentList = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="guardian_name">Guardian Name</Label>
+                    <Label htmlFor="guardian_name">অভিভাবকের নাম</Label>
                     <Input
                       id="guardian_name"
                       value={formData.guardian_name}
@@ -3090,7 +3086,7 @@ const StudentList = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="guardian_phone">Guardian Phone</Label>
+                    <Label htmlFor="guardian_phone">অভিভাবকের ফোন</Label>
                     <Input
                       id="guardian_phone"
                       value={formData.guardian_phone}
@@ -3110,12 +3106,12 @@ const StudentList = () => {
                   resetForm();
                 }}
               >
-                {isMadrasahSimpleUI ? 'বাতিল' : 'Cancel'}
+                বাতিল
               </Button>
               <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600" disabled={isSubmitting}>
                 {isSubmitting 
-                  ? (isMadrasahSimpleUI ? 'সংরক্ষণ হচ্ছে...' : 'Saving...') 
-                  : (isMadrasahSimpleUI ? 'আপডেট করুন' : 'Update')}
+                  ? 'সংরক্ষণ হচ্ছে...' 
+                  : 'আপডেট করুন'}
               </Button>
             </DialogFooter>
           </form>

@@ -108,24 +108,24 @@ const StaffListView = () => {
   });
 
   const departments = [
-    'Administration',
-    'Teaching',
-    'Accounts',
-    'Transport',
-    'Maintenance',
-    'Library',
-    'Laboratory',
-    'Sports',
-    'Medical'
+    'প্রশাসন',
+    'শিক্ষা',
+    'হিসাব',
+    'পরিবহন',
+    'রক্ষণাবেক্ষণ',
+    'গ্রন্থাগার',
+    'গবেষণাগার',
+    'খেলাধুলা',
+    'চিকিৎসা'
   ];
 
   const designations = [
-    'Principal',
-    'Vice Principal',
-    'Head Teacher',
-    'Senior Teacher',
-    'Teacher',
-    'Assistant Teacher',
+    'অধ্যক্ষ',
+    'উপাধ্যক্ষ',
+    'প্রধান শিক্ষক',
+    'সিনিয়র শিক্ষক',
+    'শিক্ষক',
+    'সহকারী শিক্ষক',
     'Accountant',
     'Librarian',
     'Lab Assistant',
@@ -472,12 +472,12 @@ const StaffListView = () => {
 
   const getDesignationColor = (designation) => {
     const colors = {
-      'Principal': 'bg-red-100 text-red-800',
-      'Vice Principal': 'bg-orange-100 text-orange-800',
-      'Head Teacher': 'bg-purple-100 text-purple-800',
-      'Senior Teacher': 'bg-blue-100 text-blue-800',
-      'Teacher': 'bg-emerald-100 text-emerald-800',
-      'Assistant Teacher': 'bg-green-100 text-green-800',
+      'অধ্যক্ষ': 'bg-red-100 text-red-800',
+      'উপাধ্যক্ষ': 'bg-orange-100 text-orange-800',
+      'প্রধান শিক্ষক': 'bg-purple-100 text-purple-800',
+      'সিনিয়র শিক্ষক': 'bg-blue-100 text-blue-800',
+      'শিক্ষক': 'bg-emerald-100 text-emerald-800',
+      'সহকারী শিক্ষক': 'bg-green-100 text-green-800',
     };
     return colors[designation] || 'bg-gray-100 text-gray-800';
   };
@@ -498,7 +498,7 @@ const StaffListView = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 truncate">Staff Management</h1>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 truncate">শিক্ষক তালিকা</h1>
           <p className="text-xs sm:text-sm text-gray-600 mt-1">শিক্ষক ও কর্মচারীদের তথ্য ব্যবস্থাপনা</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -586,7 +586,7 @@ const StaffListView = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="email">Email *</Label>
+                    <Label htmlFor="email">ইমেইল *</Label>
                     <Input
                       id="email"
                       type="email"
@@ -706,7 +706,7 @@ const StaffListView = () => {
                     বাতিল
                   </Button>
                   <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600" disabled={loading}>
-                    {loading ? 'সংরক্ষণ হচ্ছে...' : (editingStaff ? 'আপডেট করুন' : 'শিক্ষক যোগ করুন')}
+                    {loading ? 'সংরক্ষণ হচ্ছে...' : (editingStaff ? 'সংরক্ষণ' : 'সংরক্ষণ')}
                   </Button>
                 </DialogFooter>
               </form>
@@ -783,7 +783,7 @@ const StaffListView = () => {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="নাম, আইডি বা ইমেইল দিয়ে খুঁজুন..."
+                  placeholder="শিক্ষক খুঁজুন..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 text-sm h-9 sm:h-10"
@@ -824,14 +824,14 @@ const StaffListView = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12 hidden sm:table-cell">#</TableHead>
-                  <TableHead>শিক্ষক/কর্মী</TableHead>
+                  <TableHead>নাম</TableHead>
                   <TableHead className="hidden md:table-cell">কর্মচারী আইডি</TableHead>
                   <TableHead>পদবী</TableHead>
                   <TableHead className="hidden lg:table-cell">বিভাগ</TableHead>
                   <TableHead className="hidden xl:table-cell">অভিজ্ঞতা</TableHead>
                   <TableHead className="hidden xl:table-cell">বেতন</TableHead>
-                  <TableHead className="hidden md:table-cell">যোগাযোগ</TableHead>
-                  <TableHead className="text-right">একশন</TableHead>
+                  <TableHead className="hidden md:table-cell">ফোন/ইমেইল</TableHead>
+                  <TableHead className="text-right">সম্পাদনা/মুছুন</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -936,15 +936,15 @@ const StaffListView = () => {
           <DialogHeader>
             <DialogTitle className="text-red-600">শিক্ষক মুছুন</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this staff member? This action cannot be undone.
+              আপনি কি নিশ্চিত যে এই শিক্ষক মুছতে চান? এই পদক্ষেপ পূর্বাবস্থায় ফেরানো যাবে না।
             </DialogDescription>
           </DialogHeader>
           {staffToDelete && (
             <div className="py-4">
               <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                <p><span className="font-medium">Name:</span> {staffToDelete.name}</p>
-                <p><span className="font-medium">Employee ID:</span> {staffToDelete.employee_id}</p>
-                <p><span className="font-medium">Department:</span> {staffToDelete.department}</p>
+                <p><span className="font-medium">নাম:</span> {staffToDelete.name}</p>
+                <p><span className="font-medium">কর্মচারী আইডি:</span> {staffToDelete.employee_id}</p>
+                <p><span className="font-medium">বিভাগ:</span> {staffToDelete.department}</p>
               </div>
             </div>
           )}
@@ -961,7 +961,7 @@ const StaffListView = () => {
               onClick={confirmDelete}
               disabled={loading}
             >
-              {loading ? 'Deleting...' : 'Delete Staff'}
+              {loading ? 'মুছে ফেলা হচ্ছে...' : 'মুছুন'}
             </Button>
           </DialogFooter>
         </DialogContent>

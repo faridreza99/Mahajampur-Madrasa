@@ -44,7 +44,7 @@ const MarkStudentAttendance = () => {
       const response = await axios.get(`${API}/classes`);
       setClasses(response.data);
     } catch (error) {
-      toast.error('Failed to load classes');
+      toast.error('মারহালা লোড করতে ব্যর্থ');
     }
   };
 
@@ -53,7 +53,7 @@ const MarkStudentAttendance = () => {
       const response = await axios.get(`${API}/sections?class_id=${classId}`);
       setSections(response.data);
     } catch (error) {
-      toast.error('Failed to load sections');
+      toast.error('শাখা লোড করতে ব্যর্থ');
     }
   };
 
@@ -69,7 +69,7 @@ const MarkStudentAttendance = () => {
       });
       setStudents(response.data);
     } catch (error) {
-      toast.error('Failed to load students');
+      toast.error('ছাত্র লোড করতে ব্যর্থ');
     } finally {
       setLoading(false);
     }
@@ -109,12 +109,12 @@ const MarkStudentAttendance = () => {
       newAttendance[student.id] = status;
     });
     setAttendance(newAttendance);
-    toast.success(`All students marked as ${status}`);
+    toast.success(status === 'present' ? 'সকল ছাত্রকে উপস্থিত হিসেবে চিহ্নিত করা হয়েছে' : 'সকল ছাত্রকে অনুপস্থিত হিসেবে চিহ্নিত করা হয়েছে');
   };
 
   const saveAttendance = async () => {
     if (Object.keys(attendance).length === 0) {
-      toast.error('Please mark attendance for at least one student');
+      toast.error('অন্তত একজন ছাত্রের হাজিরা দিন');
       return;
     }
 
@@ -145,9 +145,9 @@ const MarkStudentAttendance = () => {
         records: records
       });
 
-      toast.success('Student attendance saved successfully');
+      toast.success('ছাত্র হাজিরা সংরক্ষিত হয়েছে');
     } catch (error) {
-      toast.error('Failed to save attendance');
+      toast.error('হাজিরা সংরক্ষণ করতে ব্যর্থ');
       console.error(error);
     } finally {
       setSaving(false);
@@ -162,7 +162,7 @@ const MarkStudentAttendance = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Mark Student Attendance</h2>
+        <h2 className="text-2xl font-bold">ছাত্র হাজিরা</h2>
       </div>
 
       {/* Filters */}
@@ -170,7 +170,7 @@ const MarkStudentAttendance = () => {
         <CardContent className="pt-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Date</label>
+              <label className="block text-sm font-medium mb-2">তারিখ</label>
               <input
                 type="date"
                 value={selectedDate}
@@ -179,7 +179,7 @@ const MarkStudentAttendance = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Class</label>
+              <label className="block text-sm font-medium mb-2">মারহালা</label>
               <select
                 value={selectedClass}
                 onChange={(e) => {
@@ -189,21 +189,21 @@ const MarkStudentAttendance = () => {
                 }}
                 className="w-full px-3 py-2 border rounded-md"
               >
-                <option value="">Select Class</option>
+                <option value="">মারহালা নির্বাচন করুন</option>
                 {classes.map(cls => (
                   <option key={cls.id} value={cls.id}>{cls.name}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Section</label>
+              <label className="block text-sm font-medium mb-2">শাখা</label>
               <select
                 value={selectedSection}
                 onChange={(e) => setSelectedSection(e.target.value)}
                 className="w-full px-3 py-2 border rounded-md"
                 disabled={!selectedClass}
               >
-                <option value="">Select Section</option>
+                <option value="">শাখা নির্বাচন করুন</option>
                 {sections.map(section => (
                   <option key={section.id} value={section.id}>{section.name}</option>
                 ))}
@@ -219,7 +219,7 @@ const MarkStudentAttendance = () => {
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">মোট / Total</CardTitle>
+                <CardTitle className="text-sm font-medium">মোট ছাত্র</CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -228,7 +228,7 @@ const MarkStudentAttendance = () => {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">উপস্থিত / Present</CardTitle>
+                <CardTitle className="text-sm font-medium">উপস্থিত</CardTitle>
                 <UserCheck className="h-4 w-4 text-green-600" />
               </CardHeader>
               <CardContent>
@@ -237,7 +237,7 @@ const MarkStudentAttendance = () => {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">অনুপস্থিত / Absent</CardTitle>
+                <CardTitle className="text-sm font-medium">অনুপস্থিত</CardTitle>
                 <UserX className="h-4 w-4 text-red-600" />
               </CardHeader>
               <CardContent>
@@ -246,7 +246,7 @@ const MarkStudentAttendance = () => {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">দেরি / Late</CardTitle>
+                <CardTitle className="text-sm font-medium">বিলম্বিত</CardTitle>
                 <Clock className="h-4 w-4 text-yellow-600" />
               </CardHeader>
               <CardContent>
@@ -255,7 +255,7 @@ const MarkStudentAttendance = () => {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">অর্ধদিবস / Half Day</CardTitle>
+                <CardTitle className="text-sm font-medium">অর্ধ দিন</CardTitle>
                 <AlertTriangle className="h-4 w-4 text-orange-600" />
               </CardHeader>
               <CardContent>
@@ -268,24 +268,24 @@ const MarkStudentAttendance = () => {
           <div className="flex gap-2">
             <Button onClick={() => markAll('present')} variant="outline" className="gap-2">
               <Check className="h-4 w-4" />
-              Mark All Present
+              সকলকে উপস্থিত
             </Button>
             <Button onClick={() => markAll('absent')} variant="outline" className="gap-2">
               <X className="h-4 w-4" />
-              Mark All Absent
+              সকলকে অনুপস্থিত
             </Button>
           </div>
 
           {/* Student List */}
           <Card>
             <CardHeader>
-              <CardTitle>Student List</CardTitle>
+              <CardTitle>ছাত্র তালিকা</CardTitle>
             </CardHeader>
             <CardContent>
               {loading ? (
-                <div className="text-center py-8">Loading students...</div>
+                <div className="text-center py-8">লোড হচ্ছে...</div>
               ) : students.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">No students found</div>
+                <div className="text-center py-8 text-gray-500">কোন ছাত্র পাওয়া যায়নি</div>
               ) : (
                 <div className="space-y-2">
                   {students.map(student => (
@@ -296,7 +296,7 @@ const MarkStudentAttendance = () => {
                       <div className="flex items-center gap-4">
                         <div>
                           <p className="font-medium">{student.name}</p>
-                          <p className="text-sm text-gray-500">Roll: {student.roll_no || '-'}</p>
+                          <p className="text-sm text-gray-500">রোল: {student.roll_no || '-'}</p>
                         </div>
                       </div>
                       <div className="flex gap-2 flex-wrap">
@@ -325,7 +325,7 @@ const MarkStudentAttendance = () => {
                           className={attendance[student.id] === 'late' ? 'bg-yellow-600 hover:bg-yellow-700' : ''}
                         >
                           <Clock className="h-4 w-4 mr-1" />
-                          দেরি
+                          বিলম্বিত
                         </Button>
                         <Button
                           onClick={() => markAttendance(student.id, 'half_day')}
@@ -334,7 +334,7 @@ const MarkStudentAttendance = () => {
                           className={attendance[student.id] === 'half_day' ? 'bg-orange-600 hover:bg-orange-700' : ''}
                         >
                           <AlertTriangle className="h-4 w-4 mr-1" />
-                          অর্ধদিবস
+                          অর্ধ দিন
                         </Button>
                       </div>
                     </div>
@@ -352,7 +352,7 @@ const MarkStudentAttendance = () => {
               className="gap-2"
             >
               <Calendar className="h-4 w-4" />
-              {saving ? 'Saving...' : 'Save Attendance'}
+              {saving ? 'সংরক্ষণ হচ্ছে...' : 'হাজিরা সংরক্ষণ'}
             </Button>
           </div>
         </>
@@ -389,7 +389,7 @@ const StudentAttendanceReport = () => {
       const response = await axios.get(`${API}/classes`);
       setClasses(response.data);
     } catch (error) {
-      toast.error('Failed to load classes');
+      toast.error('মারহালা লোড করতে ব্যর্থ');
     }
   };
 
@@ -398,7 +398,7 @@ const StudentAttendanceReport = () => {
       const response = await axios.get(`${API}/sections?class_id=${classId}`);
       setSections(response.data);
     } catch (error) {
-      toast.error('Failed to load sections');
+      toast.error('শাখা লোড করতে ব্যর্থ');
     }
   };
 
@@ -454,9 +454,9 @@ const StudentAttendanceReport = () => {
       link.click();
       link.remove();
       
-      toast.success(`Report exported as ${format.toUpperCase()}`);
+      toast.success(`রিপোর্ট ${format.toUpperCase()} হিসেবে ডাউনলোড হয়েছে`);
     } catch (error) {
-      toast.error('Failed to export report');
+      toast.error('রিপোর্ট ডাউনলোড করতে ব্যর্থ');
       console.error(error);
     }
   };
@@ -468,15 +468,15 @@ const StudentAttendanceReport = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Student Attendance Report</h2>
+        <h2 className="text-2xl font-bold">ছাত্র হাজিরা রিপোর্ট</h2>
         <div className="flex gap-2">
           <Button onClick={() => exportReport('excel')} variant="outline" className="gap-2">
             <FileSpreadsheet className="h-4 w-4" />
-            Export Excel
+            এক্সেল ডাউনলোড
           </Button>
           <Button onClick={() => exportReport('pdf')} variant="outline" className="gap-2">
             <Download className="h-4 w-4" />
-            Export PDF
+            পিডিএফ ডাউনলোড
           </Button>
         </div>
       </div>
@@ -486,7 +486,7 @@ const StudentAttendanceReport = () => {
         <CardContent className="pt-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Date</label>
+              <label className="block text-sm font-medium mb-2">তারিখ</label>
               <input
                 type="date"
                 value={selectedDate}
@@ -495,7 +495,7 @@ const StudentAttendanceReport = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Class</label>
+              <label className="block text-sm font-medium mb-2">মারহালা</label>
               <select
                 value={selectedClass}
                 onChange={(e) => {
@@ -504,21 +504,21 @@ const StudentAttendanceReport = () => {
                 }}
                 className="w-full px-3 py-2 border rounded-md"
               >
-                <option value="all">All Classes</option>
+                <option value="all">সকল মারহালা</option>
                 {classes.map(cls => (
                   <option key={cls.id} value={cls.id}>{cls.name}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Section</label>
+              <label className="block text-sm font-medium mb-2">শাখা</label>
               <select
                 value={selectedSection}
                 onChange={(e) => setSelectedSection(e.target.value)}
                 className="w-full px-3 py-2 border rounded-md"
                 disabled={selectedClass === 'all'}
               >
-                <option value="all">All Sections</option>
+                <option value="all">সকল শাখা</option>
                 {sections.map(section => (
                   <option key={section.id} value={section.id}>{section.name}</option>
                 ))}
@@ -530,13 +530,13 @@ const StudentAttendanceReport = () => {
 
       {/* Summary */}
       {loading ? (
-        <div className="text-center py-8">Loading...</div>
+        <div className="text-center py-8">লোড হচ্ছে...</div>
       ) : summary && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+                <CardTitle className="text-sm font-medium">মোট ছাত্র</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{summary.total || 0}</div>
@@ -544,7 +544,7 @@ const StudentAttendanceReport = () => {
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Present</CardTitle>
+                <CardTitle className="text-sm font-medium">উপস্থিত</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-green-600">{summary.present || 0}</div>
@@ -552,7 +552,7 @@ const StudentAttendanceReport = () => {
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Absent</CardTitle>
+                <CardTitle className="text-sm font-medium">অনুপস্থিত</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-red-600">{summary.absent || 0}</div>
@@ -560,7 +560,7 @@ const StudentAttendanceReport = () => {
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Attendance Rate</CardTitle>
+                <CardTitle className="text-sm font-medium">উপস্থিতি হার</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-blue-600">{attendanceRate}%</div>
@@ -578,8 +578,8 @@ const StudentAttendance = () => {
   const location = useLocation();
 
   const tabs = [
-    { name: 'Mark Attendance', path: '/students/attendance/mark' },
-    { name: 'Attendance Report', path: '/students/attendance/report' }
+    { name: 'হাজিরা দিন', path: '/students/attendance/mark' },
+    { name: 'হাজিরা রিপোর্ট', path: '/students/attendance/report' }
   ];
 
   return (
