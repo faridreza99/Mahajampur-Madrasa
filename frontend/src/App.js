@@ -1,4 +1,4 @@
-import React, { useState, useEffect, createContext, useContext } from "react";
+import React, { useState, useEffect, createContext, useContext, lazy, Suspense } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -13,66 +13,74 @@ import "./App.css";
 import { CurrencyProvider } from "./context/CurrencyContext";
 import { InstitutionProvider } from "./context/InstitutionContext";
 
-// Import components
+// Core components (loaded immediately)
 import LoginPage from "./components/LoginPage";
-import Dashboard from "./components/Dashboard";
-import StudentList from "./components/StudentList";
-import StaffList from "./components/StaffList";
-import ClassManagement from "./components/ClassManagement";
-import AdmissionSummary from "./components/AdmissionSummary";
-import HSS from "./components/HSS";
-import Fees from "./components/Fees";
-import Accounts from "./components/Accounts";
-import Certificates from "./components/Certificates";
-import Vehicle from "./components/Vehicle";
-import Reports from "./components/Reports";
-import Payroll from "./components/Payroll";
-import BiometricDevices from "./components/BiometricDevices";
-import OnlineAdmission from "./components/OnlineAdmission";
-import Attendance from "./components/Attendance";
-import StudentAttendance from "./components/StudentAttendance";
-import Calendar from "./components/Calendar";
-import Settings from "./components/Settings";
-import AIAssistant from "./components/AIAssistant";
-import AILogs from "./components/AILogs";
-import AcademicCMS from "./components/AcademicCMS";
-import QuizTool from "./components/QuizTool";
-import TestGenerator from "./components/TestGenerator";
-import QuestionPaperBuilder from "./components/QuestionPaperBuilder";
-import SchoolBranding from "./components/SchoolBranding";
-import AISummary from "./components/AISummary";
-import AINotes from "./components/AINotes";
-import Notifications from "./components/Notifications";
-import RatingSurveys from "./components/RatingSurveys";
-import Results from "./components/Results";
-import StudentResults from "./components/StudentResults";
-import ParentResults from "./components/ParentResults";
-import MadrasahSimpleResult from "./components/MadrasahSimpleResult";
-import MadrasahSimpleRoutine from "./components/MadrasahSimpleRoutine";
-import MadrasahReportPage from "./components/MadrasahReportPage";
-import MadrasahSimpleSettings from "./components/MadrasahSimpleSettings";
-import MadrasahDashboard from "./components/MadrasahDashboard";
-import ResultConfiguration from "./components/ResultConfiguration";
-import TenantManagement from "./components/TenantManagement";
-import SubscriptionManagement from "./components/SubscriptionManagement";
-import SubscriptionHistory from "./components/SubscriptionHistory";
-import SystemSettings from "./components/SystemSettings";
-import StudentDashboard from "./components/StudentDashboard";
-import StudentProfile from "./components/StudentProfile";
-import StudentFees from "./components/StudentFees";
-import StudentAdmitCard from "./components/StudentAdmitCard";
-import StudentAttendanceView from "./components/StudentAttendanceView";
-import StudentIDCard from "./components/StudentIDCard";
-import StaffIDCard from "./components/StaffIDCard";
-import TeacherDashboard from "./components/TeacherDashboard";
-import Homework from "./components/Homework";
-import LessonPlans from "./components/LessonPlans";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
-import Search from "./components/Search";
-// SubscriptionPopup removed - system runs freely without subscription checks
 import { Toaster } from "./components/ui/sonner";
 import { useInstitution } from "./context/InstitutionContext";
+
+// Lazy loaded components for better performance
+const Dashboard = lazy(() => import("./components/Dashboard"));
+const MadrasahDashboard = lazy(() => import("./components/MadrasahDashboard"));
+const StudentList = lazy(() => import("./components/StudentList"));
+const StaffList = lazy(() => import("./components/StaffList"));
+const ClassManagement = lazy(() => import("./components/ClassManagement"));
+const AdmissionSummary = lazy(() => import("./components/AdmissionSummary"));
+const HSS = lazy(() => import("./components/HSS"));
+const Fees = lazy(() => import("./components/Fees"));
+const Accounts = lazy(() => import("./components/Accounts"));
+const Certificates = lazy(() => import("./components/Certificates"));
+const Vehicle = lazy(() => import("./components/Vehicle"));
+const Reports = lazy(() => import("./components/Reports"));
+const Payroll = lazy(() => import("./components/Payroll"));
+const BiometricDevices = lazy(() => import("./components/BiometricDevices"));
+const OnlineAdmission = lazy(() => import("./components/OnlineAdmission"));
+const Attendance = lazy(() => import("./components/Attendance"));
+const StudentAttendance = lazy(() => import("./components/StudentAttendance"));
+const Calendar = lazy(() => import("./components/Calendar"));
+const Settings = lazy(() => import("./components/Settings"));
+const AIAssistant = lazy(() => import("./components/AIAssistant"));
+const AILogs = lazy(() => import("./components/AILogs"));
+const AcademicCMS = lazy(() => import("./components/AcademicCMS"));
+const QuizTool = lazy(() => import("./components/QuizTool"));
+const TestGenerator = lazy(() => import("./components/TestGenerator"));
+const QuestionPaperBuilder = lazy(() => import("./components/QuestionPaperBuilder"));
+const SchoolBranding = lazy(() => import("./components/SchoolBranding"));
+const AISummary = lazy(() => import("./components/AISummary"));
+const AINotes = lazy(() => import("./components/AINotes"));
+const Notifications = lazy(() => import("./components/Notifications"));
+const RatingSurveys = lazy(() => import("./components/RatingSurveys"));
+const Results = lazy(() => import("./components/Results"));
+const StudentResults = lazy(() => import("./components/StudentResults"));
+const ParentResults = lazy(() => import("./components/ParentResults"));
+const MadrasahSimpleResult = lazy(() => import("./components/MadrasahSimpleResult"));
+const MadrasahSimpleRoutine = lazy(() => import("./components/MadrasahSimpleRoutine"));
+const MadrasahReportPage = lazy(() => import("./components/MadrasahReportPage"));
+const MadrasahSimpleSettings = lazy(() => import("./components/MadrasahSimpleSettings"));
+const ResultConfiguration = lazy(() => import("./components/ResultConfiguration"));
+const TenantManagement = lazy(() => import("./components/TenantManagement"));
+const SubscriptionManagement = lazy(() => import("./components/SubscriptionManagement"));
+const SubscriptionHistory = lazy(() => import("./components/SubscriptionHistory"));
+const SystemSettings = lazy(() => import("./components/SystemSettings"));
+const StudentDashboard = lazy(() => import("./components/StudentDashboard"));
+const StudentProfile = lazy(() => import("./components/StudentProfile"));
+const StudentFees = lazy(() => import("./components/StudentFees"));
+const StudentAdmitCard = lazy(() => import("./components/StudentAdmitCard"));
+const StudentAttendanceView = lazy(() => import("./components/StudentAttendanceView"));
+const StudentIDCard = lazy(() => import("./components/StudentIDCard"));
+const StaffIDCard = lazy(() => import("./components/StaffIDCard"));
+const TeacherDashboard = lazy(() => import("./components/TeacherDashboard"));
+const Homework = lazy(() => import("./components/Homework"));
+const LessonPlans = lazy(() => import("./components/LessonPlans"));
+const Search = lazy(() => import("./components/Search"));
+
+// Loading spinner for lazy components
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center h-64">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+  </div>
+);
 
 const API = process.env.REACT_APP_API_URL || "/api";
 console.log("API URL - ", API);
@@ -293,6 +301,7 @@ function App() {
         <Router>
           <div className="App">
             <Layout>
+              <Suspense fallback={<LoadingSpinner />}>
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
                 <Route
@@ -705,6 +714,7 @@ function App() {
                 />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
+              </Suspense>
             </Layout>
             <Toaster />
           </div>
