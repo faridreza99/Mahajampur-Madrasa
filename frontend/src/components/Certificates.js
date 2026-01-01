@@ -238,7 +238,7 @@ const Certificates = () => {
   
   // School branding and classes for ID cards
   const [schoolBranding, setSchoolBranding] = useState({
-    name: 'School ERP System',
+    name: '',
     logo: null,
     address: '',
     phone: '',
@@ -301,7 +301,7 @@ const Certificates = () => {
       if (response.ok) {
         const data = await response.json();
         setSchoolBranding({
-          name: data.name || data.institution_name || 'School ERP System',
+          name: data.name || data.institution_name || '',
           logo: data.logo_url || data.logo || null,
           address: data.address || '',
           phone: data.phone || data.contact_phone || '',
@@ -1668,7 +1668,7 @@ const Certificates = () => {
         <div class="id-card">
           <div class="card-header">
             ${branding.logo ? `<img src="${branding.logo}" alt="School Logo" class="school-logo" />` : ''}
-            <h3>${branding.name || 'School ERP System'}</h3>
+            <h3>${branding?.name || 'প্রতিষ্ঠানের নাম'}</h3>
             <p>${isStudent ? 'Student ID Card' : 'Staff ID Card'}</p>
           </div>
           <div class="card-body">
@@ -1889,223 +1889,140 @@ const Certificates = () => {
 
   const handlePrintTC = (tc) => {
     try {
-      const printContent = generateTCPrintContent(tc);
+      const printContent = generateTCPrintContent(tc, schoolBranding);
       
-      // Create a new window for printing
       const printWindow = window.open('', '_blank', 'width=800,height=600');
       printWindow.document.write(`
         <!DOCTYPE html>
         <html>
           <head>
-            <title>Print Transfer Certificate - ${tc.admission_no}</title>
+            <title>ছাড়পত্র প্রিন্ট - ${tc.admission_no}</title>
             <meta charset="utf-8">
             <style>
-              @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+              @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@300;400;500;600;700&display=swap');
               
               * { margin: 0; padding: 0; box-sizing: border-box; }
               
               body { 
-                font-family: 'Poppins', 'Roboto', sans-serif; 
+                font-family: 'Noto Sans Bengali', 'Kalpurush', sans-serif;
                 margin: 20px; 
                 background: #f5f5f5;
                 color: #111827;
               }
               
-              .certificate { 
-                max-width: 850px; 
-                margin: 0 auto; 
-                padding: 40px; 
+              .certificate-wrapper {
+                max-width: 700px;
+                margin: 0 auto;
                 background: white;
-                border: 3px solid #1E3A8A;
-                position: relative;
-                box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+                padding: 30px;
               }
               
-              .watermark {
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%) rotate(-45deg);
-                font-size: 80px;
-                font-weight: bold;
-                color: rgba(30, 58, 138, 0.05);
-                z-index: 0;
-                pointer-events: none;
-              }
-              
-              .header {
-                background: #1E3A8A;
-                color: white;
-                padding: 25px;
-                border-radius: 8px 8px 0 0;
-                margin: -40px -40px 30px -40px;
-                position: relative;
-                z-index: 1;
-              }
-              
-              .header-content {
-                display: flex;
-                align-items: center;
-                gap: 20px;
-              }
-              
-              .school-logo {
-                font-size: 60px;
-                line-height: 1;
-              }
-              
-              .school-info {
-                flex: 1;
+              .certificate { 
+                border: 4px solid #0D9488;
+                padding: 40px;
                 text-align: center;
               }
               
+              .header {
+                margin-bottom: 30px;
+              }
+              
+              .school-logo {
+                width: 80px;
+                height: 80px;
+                object-fit: contain;
+                margin: 0 auto 15px auto;
+                display: block;
+              }
+              
               .school-name {
-                font-size: 32px;
+                font-size: 28px;
                 font-weight: 700;
-                margin-bottom: 8px;
-                letter-spacing: 1px;
+                color: #0D9488;
+                margin-bottom: 5px;
               }
               
-              .school-tagline {
+              .school-address {
                 font-size: 14px;
-                font-style: italic;
-                opacity: 0.95;
-                margin-bottom: 8px;
-              }
-              
-              .school-contact {
-                font-size: 12px;
-                opacity: 0.9;
+                color: #666;
               }
               
               .cert-title {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 15px;
-                margin: 30px 0 15px 0;
-                position: relative;
-                z-index: 1;
-              }
-              
-              .title-icon {
-                font-size: 28px;
-              }
-              
-              .title-text {
-                font-size: 28px;
+                font-size: 32px;
                 font-weight: 700;
-                color: #1E3A8A;
-                letter-spacing: 2px;
+                color: #0D9488;
+                margin: 25px 0 15px 0;
+                text-decoration: underline;
               }
               
-              .gold-divider {
-                height: 3px;
-                background: linear-gradient(to right, transparent, #D97706, transparent);
-                margin: 0 auto 30px auto;
-                width: 60%;
-                position: relative;
-                z-index: 1;
-              }
-              
-              .info-table {
-                background: #F8FAFC;
-                border-radius: 8px;
-                padding: 20px;
-                margin: 20px 0;
-                position: relative;
-                z-index: 1;
-              }
-              
-              .info-row {
-                display: flex;
-                padding: 12px;
-                border-bottom: 1px solid #E5E7EB;
-              }
-              
-              .info-row:last-child {
-                border-bottom: none;
-              }
-              
-              .info-row:nth-child(even) {
-                background: white;
-              }
-              
-              .info-label {
-                flex: 0 0 280px;
-                font-weight: 600;
-                color: #374151;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-              }
-              
-              .info-label .icon {
+              .cert-subtitle {
                 font-size: 18px;
+                margin-bottom: 25px;
               }
               
-              .info-value {
-                flex: 1;
-                color: #111827;
-                font-weight: 500;
+              .student-info {
+                text-align: left;
+                margin: 25px 0;
+                font-size: 16px;
+                line-height: 2;
+              }
+              
+              .student-info p {
+                margin: 5px 0;
+              }
+              
+              .info-highlight {
+                background: #F0FDFA;
+                padding: 15px;
+                border-radius: 8px;
+                margin: 25px 0;
+                text-align: left;
+              }
+              
+              .info-highlight p {
+                margin: 8px 0;
+                font-size: 16px;
+              }
+              
+              .closing-text {
+                font-size: 16px;
+                margin: 25px 0;
+                text-align: left;
+                line-height: 1.8;
               }
               
               .signature-section {
                 display: flex;
                 justify-content: space-between;
-                margin: 50px 40px 30px 40px;
-                position: relative;
-                z-index: 1;
+                margin-top: 60px;
+                padding: 0 20px;
               }
               
               .signature-box {
                 text-align: center;
-                width: 200px;
               }
               
               .signature-line {
-                height: 60px;
-                border-bottom: 2px solid #111827;
-                margin-bottom: 10px;
+                border-top: 1px solid #333;
+                padding-top: 8px;
+                min-width: 120px;
               }
               
-              .signature-label {
-                font-weight: 600;
-                color: #374151;
+              .issue-date {
                 font-size: 14px;
+                color: #666;
+                margin-top: 30px;
               }
               
-              .footer {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-top: 40px;
-                padding-top: 20px;
-                border-top: 2px solid #E5E7EB;
-                position: relative;
-                z-index: 1;
-              }
-              
-              .footer-info {
-                color: #6B7280;
-                font-size: 12px;
-                line-height: 1.6;
-              }
-              
-              .qr-code {
-                text-align: center;
-              }
-              
-              .qr-label {
+              .footer-brand {
                 font-size: 11px;
-                color: #6B7280;
-                margin-top: 5px;
+                color: #999;
+                margin-top: 20px;
               }
               
               @media print {
                 body { margin: 0; background: white; }
-                .certificate { box-shadow: none; }
-                .no-print { display: none !important; }
+                .certificate-wrapper { box-shadow: none; }
               }
             </style>
           </head>
@@ -2116,15 +2033,14 @@ const Certificates = () => {
       `);
       printWindow.document.close();
       
-      // Auto-trigger print dialog
       printWindow.onload = () => {
         printWindow.print();
       };
       
-      toast.success('Print dialog opened');
+      toast.success('প্রিন্ট ডায়ালগ খোলা হয়েছে');
     } catch (error) {
       console.error('Failed to print TC:', error);
-      toast.error('Failed to print Transfer Certificate');
+      toast.error('ছাড়পত্র প্রিন্ট করতে ব্যর্থ');
     }
   };
 
@@ -2181,145 +2097,55 @@ const Certificates = () => {
     }
   };
 
-  const generateTCPrintContent = (tc) => {
-    const currentDate = new Date().toLocaleDateString();
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=TC-${tc.id}-VERIFIED`;
+  const generateTCPrintContent = (tc, branding) => {
+    const issueDate = tc.issue_date ? new Date(tc.issue_date).toLocaleDateString('bn-BD') : new Date().toLocaleDateString('bn-BD');
+    const admissionDate = tc.date_of_admission ? new Date(tc.date_of_admission).toLocaleDateString('bn-BD') : '';
+    const leavingDate = tc.date_of_leaving ? new Date(tc.date_of_leaving).toLocaleDateString('bn-BD') : '';
     
     return `
-      <div class="certificate">
-        <!-- Watermark -->
-        <div class="watermark">DEMO SCHOOL</div>
-        
-        <!-- Professional Header Section -->
-        <div class="header">
-          <div class="header-content">
-            <div class="school-logo">🏫</div>
-            <div class="school-info">
-              <div class="school-name">DEMO SCHOOL</div>
-              <div class="school-tagline">"Excellence in Learning and Character"</div>
-              <div class="school-contact">
-                123 Learning City | info@demoschool.edu | (555) 123-4567
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Certificate Title with Decorative Elements -->
-        <div class="cert-title">
-          <div class="title-icon">🏆</div>
-          <div class="title-text">TRANSFER CERTIFICATE</div>
-          <div class="title-icon">🏆</div>
-        </div>
-        <div class="gold-divider"></div>
-        
-        <!-- Student Information Table -->
-        <div class="info-table">
-          <div class="info-row">
-            <div class="info-label">
-              <span class="icon">🧑‍🎓</span>
-              <span>Student Name</span>
-            </div>
-            <div class="info-value">${tc.student_name || 'N/A'}</div>
+      <div class="certificate-wrapper">
+        <div class="certificate">
+          <div class="header">
+            ${branding?.logo ? `<img src="${branding.logo}" alt="Logo" class="school-logo" />` : ''}
+            <h1 class="school-name">${branding?.name || 'প্রতিষ্ঠানের নাম'}</h1>
+            <p class="school-address">${branding?.address || ''}</p>
           </div>
           
-          <div class="info-row">
-            <div class="info-label">
-              <span class="icon">🏷️</span>
-              <span>Admission Number</span>
-            </div>
-            <div class="info-value">${tc.admission_no || 'N/A'}</div>
+          <h2 class="cert-title">ছাড়পত্র</h2>
+          <p class="cert-subtitle">এই মর্মে প্রত্যয়ন করা যাচ্ছে যে,</p>
+          
+          <div class="student-info">
+            <p><strong>${tc.student_name || ''}</strong></p>
+            <p>ভর্তি নং: ${tc.admission_no || ''}</p>
+            <p>শ্রেণি: ${tc.last_class || ''}, শাখা: ${tc.last_section || ''}</p>
           </div>
           
-          <div class="info-row">
-            <div class="info-label">
-              <span class="icon">📅</span>
-              <span>Date of Admission</span>
-            </div>
-            <div class="info-value">${tc.date_of_admission ? new Date(tc.date_of_admission).toLocaleDateString() : 'N/A'}</div>
+          <div class="info-highlight">
+            <p><strong>ভর্তির তারিখ:</strong> ${admissionDate}</p>
+            <p><strong>ছাড়ার তারিখ:</strong> ${leavingDate}</p>
+            <p><strong>ছাড়ার কারণ:</strong> ${tc.reason_for_transfer || ''}</p>
+            <p><strong>আচরণ ও চরিত্র:</strong> ${tc.conduct_remarks || 'সন্তোষজনক'}</p>
           </div>
           
-          <div class="info-row">
-            <div class="info-label">
-              <span class="icon">📚</span>
-              <span>Last Class</span>
+          <p class="closing-text">
+            উক্ত ছাত্র/ছাত্রী আমাদের প্রতিষ্ঠানে অধ্যয়নকালে তার আচরণ ও চরিত্র সন্তোষজনক ছিল। 
+            আমরা তার ভবিষ্যৎ উজ্জ্বল কামনা করি।
+          </p>
+          
+          <div class="signature-section">
+            <div class="signature-box">
+              <div class="signature-line">শ্রেণি শিক্ষক</div>
             </div>
-            <div class="info-value">${tc.last_class || 'N/A'}</div>
+            <div class="signature-box">
+              <div class="signature-line">প্রধান শিক্ষক</div>
+            </div>
+            <div class="signature-box">
+              <div class="signature-line">মোহতামিম</div>
+            </div>
           </div>
           
-          <div class="info-row">
-            <div class="info-label">
-              <span class="icon">📖</span>
-              <span>Last Section</span>
-            </div>
-            <div class="info-value">${tc.last_section || 'N/A'}</div>
-          </div>
-          
-          <div class="info-row">
-            <div class="info-label">
-              <span class="icon">📅</span>
-              <span>Date of Leaving</span>
-            </div>
-            <div class="info-value">${tc.date_of_leaving ? new Date(tc.date_of_leaving).toLocaleDateString() : 'N/A'}</div>
-          </div>
-          
-          <div class="info-row">
-            <div class="info-label">
-              <span class="icon">📝</span>
-              <span>Reason for Transfer</span>
-            </div>
-            <div class="info-value">${tc.reason_for_transfer || 'N/A'}</div>
-          </div>
-          
-          <div class="info-row">
-            <div class="info-label">
-              <span class="icon">⭐</span>
-              <span>Conduct & Behavior</span>
-            </div>
-            <div class="info-value">${tc.conduct_remarks || 'Satisfactory'}</div>
-          </div>
-          
-          ${tc.issue_date ? `
-          <div class="info-row">
-            <div class="info-label">
-              <span class="icon">📅</span>
-              <span>Issue Date</span>
-            </div>
-            <div class="info-value">${new Date(tc.issue_date).toLocaleDateString()}</div>
-          </div>
-          ` : ''}
-          
-          <div class="info-row">
-            <div class="info-label">
-              <span class="icon">🎫</span>
-              <span>Certificate ID</span>
-            </div>
-            <div class="info-value">${tc.id || 'N/A'}</div>
-          </div>
-        </div>
-        
-        <!-- Signature Section -->
-        <div class="signature-section">
-          <div class="signature-box">
-            <div class="signature-line"></div>
-            <div class="signature-label">Class Teacher</div>
-          </div>
-          <div class="signature-box">
-            <div class="signature-line"></div>
-            <div class="signature-label">Principal</div>
-          </div>
-        </div>
-        
-        <!-- Footer Section with QR Code -->
-        <div class="footer">
-          <div class="footer-info">
-            <div>Generated on: ${currentDate}</div>
-            <div>Certificate ID: ${tc.id || 'N/A'}</div>
-            <div>Verified by DEMO SCHOOL</div>
-          </div>
-          <div class="qr-code">
-            <img src="${qrCodeUrl}" alt="QR Code" style="width: 80px; height: 80px;" />
-            <div class="qr-label">Scan to Verify</div>
-          </div>
+          <p class="issue-date">ইস্যু তারিখ: ${issueDate}</p>
+          <p class="footer-brand">Made by MaxTechBD</p>
         </div>
       </div>
     `;
