@@ -2699,9 +2699,9 @@ const StudentList = () => {
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit Student</DialogTitle>
+            <DialogTitle>{editingStudent ? 'ছাত্র/ছাত্রী সম্পাদনা' : 'নতুন ছাত্র/ছাত্রী ভর্তি'}</DialogTitle>
             <DialogDescription>
-              Update student information below. All fields marked with * are required.
+              {editingStudent ? 'ছাত্র/ছাত্রীর তথ্য আপডেট করুন। * চিহ্নিত ফিল্ড আবশ্যক।' : 'নতুন ছাত্র/ছাত্রীর তথ্য প্রদান করুন। * চিহ্নিত ফিল্ড আবশ্যক।'}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -2723,7 +2723,7 @@ const StudentList = () => {
               <Label htmlFor="edit-student-photo" className="cursor-pointer">
                 <div className="flex items-center space-x-2 text-emerald-600 hover:text-emerald-700">
                   <Camera className="h-4 w-4" />
-                  <span>{photoPreview || editingStudent?.photo_url ? 'Change Photo' : 'Upload Photo'}</span>
+                  <span>{photoPreview || editingStudent?.photo_url ? 'ছবি পরিবর্তন' : 'ছবি আপলোড'}</span>
                 </div>
                 <Input
                   id="edit-student-photo"
@@ -2736,7 +2736,7 @@ const StudentList = () => {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="admission_no">Admission Number *</Label>
+                <Label htmlFor="admission_no">ভর্তি নম্বর *</Label>
                 <Input
                   id="admission_no"
                   value={formData.admission_no}
@@ -2745,7 +2745,7 @@ const StudentList = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="roll_no">Roll Number *</Label>
+                <Label htmlFor="roll_no">রোল নম্বর *</Label>
                 <Input
                   id="roll_no"
                   value={formData.roll_no}
@@ -2754,7 +2754,7 @@ const StudentList = () => {
                 />
               </div>
               <div className="md:col-span-2">
-                <Label htmlFor="name">Full Name *</Label>
+                <Label htmlFor="name">পুরো নাম *</Label>
                 <Input
                   id="name"
                   value={formData.name}
@@ -2763,7 +2763,7 @@ const StudentList = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="father_name">Father's Name *</Label>
+                <Label htmlFor="father_name">পিতার নাম *</Label>
                 <Input
                   id="father_name"
                   value={formData.father_name}
@@ -2772,25 +2772,25 @@ const StudentList = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="edit_father_phone">Father's Phone</Label>
+                <Label htmlFor="edit_father_phone">পিতার ফোন</Label>
                 <Input
                   id="edit_father_phone"
                   value={formData.father_phone}
                   onChange={(e) => setFormData({...formData, father_phone: e.target.value})}
-                  placeholder="Father's phone number"
+                  placeholder="পিতার ফোন নম্বর"
                 />
               </div>
               <div>
-                <Label htmlFor="edit_father_whatsapp">Father's WhatsApp</Label>
+                <Label htmlFor="edit_father_whatsapp">পিতার হোয়াটসঅ্যাপ</Label>
                 <Input
                   id="edit_father_whatsapp"
                   value={formData.father_whatsapp}
                   onChange={(e) => setFormData({...formData, father_whatsapp: e.target.value})}
-                  placeholder="Father's WhatsApp number"
+                  placeholder="পিতার হোয়াটসঅ্যাপ নম্বর"
                 />
               </div>
               <div>
-                <Label htmlFor="mother_name">Mother's Name *</Label>
+                <Label htmlFor="mother_name">মাতার নাম *</Label>
                 <Input
                   id="mother_name"
                   value={formData.mother_name}
@@ -2799,25 +2799,25 @@ const StudentList = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="edit_mother_phone">Mother's Phone</Label>
+                <Label htmlFor="edit_mother_phone">মাতার ফোন</Label>
                 <Input
                   id="edit_mother_phone"
                   value={formData.mother_phone}
                   onChange={(e) => setFormData({...formData, mother_phone: e.target.value})}
-                  placeholder="Mother's phone number"
+                  placeholder="মাতার ফোন নম্বর"
                 />
               </div>
               <div>
-                <Label htmlFor="edit_mother_whatsapp">Mother's WhatsApp</Label>
+                <Label htmlFor="edit_mother_whatsapp">মাতার হোয়াটসঅ্যাপ</Label>
                 <Input
                   id="edit_mother_whatsapp"
                   value={formData.mother_whatsapp}
                   onChange={(e) => setFormData({...formData, mother_whatsapp: e.target.value})}
-                  placeholder="Mother's WhatsApp number"
+                  placeholder="মাতার হোয়াটসঅ্যাপ নম্বর"
                 />
               </div>
               <div>
-                <Label htmlFor="date_of_birth">Date of Birth *</Label>
+                <Label htmlFor="date_of_birth">জন্ম তারিখ *</Label>
                 <Input
                   id="date_of_birth"
                   type="date"
@@ -2827,20 +2827,20 @@ const StudentList = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="gender">Gender *</Label>
+                <Label htmlFor="gender">লিঙ্গ *</Label>
                 <Select value={formData.gender} onValueChange={(value) => setFormData({...formData, gender: value})}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select gender" />
+                    <SelectValue placeholder="লিঙ্গ নির্বাচন করুন" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Male">Male</SelectItem>
-                    <SelectItem value="Female">Female</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
+                    <SelectItem value="Male">পুরুষ</SelectItem>
+                    <SelectItem value="Female">মহিলা</SelectItem>
+                    <SelectItem value="Other">অন্যান্য</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label htmlFor="class_id">Class *</Label>
+                <Label htmlFor="class_id">মারহালা *</Label>
                 <Select 
                   value={formData.class_id} 
                   onValueChange={(value) => {
@@ -2849,7 +2849,7 @@ const StudentList = () => {
                   }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select class" />
+                    <SelectValue placeholder="মারহালা নির্বাচন করুন" />
                   </SelectTrigger>
                   <SelectContent>
                     {classes.map((cls) => (
@@ -2861,14 +2861,14 @@ const StudentList = () => {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="section_id">Section *</Label>
+                <Label htmlFor="section_id">শাখা *</Label>
                 <Select 
                   value={formData.section_id} 
                   onValueChange={(value) => setFormData({...formData, section_id: value})}
                   disabled={!formData.class_id}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select section" />
+                    <SelectValue placeholder="শাখা নির্বাচন করুন" />
                   </SelectTrigger>
                   <SelectContent>
                     {sections.map((section) => (
@@ -2880,7 +2880,7 @@ const StudentList = () => {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="phone">Phone Number *</Label>
+                <Label htmlFor="phone">মোবাইল নম্বর *</Label>
                 <Input
                   id="phone"
                   value={formData.phone}
@@ -2889,7 +2889,7 @@ const StudentList = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">ইমেইল</Label>
                 <Input
                   id="email"
                   type="email"
@@ -2898,7 +2898,7 @@ const StudentList = () => {
                 />
               </div>
               <div className="md:col-span-2">
-                <Label htmlFor="address">Address *</Label>
+                <Label htmlFor="address">ঠিকানা *</Label>
                 <Input
                   id="address"
                   value={formData.address}
@@ -2907,7 +2907,7 @@ const StudentList = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="guardian_name">Guardian Name *</Label>
+                <Label htmlFor="guardian_name">অভিভাবকের নাম *</Label>
                 <Input
                   id="guardian_name"
                   value={formData.guardian_name}
@@ -2916,7 +2916,7 @@ const StudentList = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="guardian_phone">Guardian Phone *</Label>
+                <Label htmlFor="guardian_phone">অভিভাবকের ফোন *</Label>
                 <Input
                   id="guardian_phone"
                   value={formData.guardian_phone}
@@ -2935,10 +2935,10 @@ const StudentList = () => {
                   resetForm();
                 }}
               >
-                Cancel
+                বাতিল
               </Button>
               <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600" disabled={loading}>
-                {loading ? 'Saving...' : 'Update Student'}
+                {loading ? 'সংরক্ষণ হচ্ছে...' : (editingStudent ? 'আপডেট করুন' : 'সংরক্ষণ করুন')}
               </Button>
             </DialogFooter>
           </form>
