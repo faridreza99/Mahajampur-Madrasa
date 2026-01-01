@@ -207,12 +207,17 @@ const ClassManagement = () => {
       console.log('✅ Staff fetched:', staffRes.data);
       console.log('✅ Subjects fetched:', subjectsRes.data);
       
-      setClasses(classesRes.data);
-      setSections(sectionsRes.data);
-      setSubjects(subjectsRes.data);
+      const classData = Array.isArray(classesRes.data) ? classesRes.data : (classesRes.data?.classes || []);
+      const sectionData = Array.isArray(sectionsRes.data) ? sectionsRes.data : (sectionsRes.data?.sections || []);
+      const staffData = Array.isArray(staffRes.data) ? staffRes.data : (staffRes.data?.staff || []);
+      const subjectData = Array.isArray(subjectsRes.data) ? subjectsRes.data : (subjectsRes.data?.subjects || []);
+      
+      setClasses(classData);
+      setSections(sectionData);
+      setSubjects(subjectData);
       
       // Filter staff to include teachers and senior positions
-      const teachers = staffRes.data.filter(s => 
+      const teachers = staffData.filter(s => 
         s.designation && (
           s.designation.toLowerCase().includes('teacher') || 
           s.designation.toLowerCase().includes('principal') ||

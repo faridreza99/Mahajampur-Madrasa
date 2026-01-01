@@ -56,11 +56,12 @@ const MadrasahSimpleRoutine = () => {
   const fetchClasses = useCallback(async () => {
     try {
       const response = await axios.get('/api/classes');
-      const madrasahClasses = response.data.filter(c => 
+      const classData = Array.isArray(response.data) ? response.data : (response.data?.classes || response.data?.data || []);
+      const madrasahClasses = classData.filter(c => 
         c.institution_type === 'madrasah' || c.display_name?.includes('ইবতেদায়ী') || 
         c.display_name?.includes('দাখিল') || c.display_name?.includes('আলিম')
       );
-      setClasses(madrasahClasses.length > 0 ? madrasahClasses : response.data);
+      setClasses(madrasahClasses.length > 0 ? madrasahClasses : classData);
     } catch (error) {
       console.error('Error fetching classes:', error);
     }
@@ -69,7 +70,8 @@ const MadrasahSimpleRoutine = () => {
   const fetchSubjects = useCallback(async () => {
     try {
       const response = await axios.get('/api/subjects');
-      setSubjects(response.data || []);
+      const subjectData = Array.isArray(response.data) ? response.data : (response.data?.subjects || response.data?.data || []);
+      setSubjects(subjectData);
     } catch (error) {
       console.error('Error fetching subjects:', error);
     }
