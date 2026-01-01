@@ -369,6 +369,8 @@ class Institution(BaseModel):
     vision: Optional[str] = None
     currency: Optional[str] = "BDT"
     social_links: Optional[Dict[str, str]] = {}
+    site_title: Optional[str] = None
+    favicon_url: Optional[str] = None
     is_active: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
@@ -3448,6 +3450,42 @@ async def upload_institution_logo(
     )
     
     return {"message": "Logo uploaded successfully", "logo_url": logo_url}
+
+@api_router.post("/institution/favicon")
+async def upload_institution_favicon(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    """Upload institution favicon"""
+    if current_user.role not in ["super_admin", "admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    allowed_types = ["image/jpeg", "image/png", "image/x-icon", "image/vnd.microsoft.icon"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Invalid file type. Only PNG or ICO files are allowed")
+    
+    content = await file.read()
+    if len(content) > 500 * 1024:
+        raise HTTPException(status_code=400, detail="File size exceeds 500KB limit")
+    
+    upload_dir = f"uploads/{current_user.tenant_id}/institution"
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    file_ext = os.path.splitext(file.filename)[1] if file.filename else ".ico"
+    unique_filename = f"favicon_{current_user.tenant_id}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}{file_ext}"
+    file_path = os.path.join(upload_dir, unique_filename)
+    
+    with open(file_path, "wb") as f:
+        f.write(content)
+    
+    favicon_url = f"/uploads/{current_user.tenant_id}/institution/{unique_filename}"
+    
+    await db.institutions.update_one(
+        {"tenant_id": current_user.tenant_id, "is_active": True},
+        {"$set": {"favicon_url": favicon_url, "updated_at": datetime.utcnow()}}
+    )
+    
+    return {"message": "Favicon uploaded successfully", "favicon_url": favicon_url}
 
 # ==================== STUDENT MANAGEMENT ====================
 

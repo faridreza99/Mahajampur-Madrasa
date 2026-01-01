@@ -86,6 +86,7 @@ const MadrasahSimpleSettings = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [resettingPassword, setResettingPassword] = useState(false);
+  const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const [newClassName, setNewClassName] = useState("");
   const [newUserData, setNewUserData] = useState({
     name: "",
@@ -202,6 +203,46 @@ const MadrasahSimpleSettings = () => {
       toast.error("সংরক্ষণ করতে সমস্যা হয়েছে");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleFaviconUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const validTypes = ["image/png", "image/x-icon", "image/vnd.microsoft.icon", "image/ico"];
+    if (!validTypes.includes(file.type) && !file.name.endsWith('.ico')) {
+      toast.error("শুধুমাত্র PNG বা ICO ফাইল আপলোড করুন");
+      return;
+    }
+    
+    if (file.size > 500 * 1024) {
+      toast.error("ফাইল সাইজ ৫০০KB এর বেশি হতে পারবে না");
+      return;
+    }
+    
+    setUploadingFavicon(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      
+      const response = await axios.post(`${API_BASE_URL}/institution/favicon`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      
+      if (response.data.favicon_url) {
+        setInstitutionData(prev => ({ ...prev, faviconUrl: response.data.favicon_url }));
+        const link = document.querySelector("link[rel~='icon']") || document.createElement('link');
+        link.type = 'image/x-icon';
+        link.rel = 'icon';
+        link.href = response.data.favicon_url;
+        document.head.appendChild(link);
+        toast.success("ফেভিকন আপলোড হয়েছে");
+      }
+    } catch (error) {
+      toast.error("ফেভিকন আপলোড করতে সমস্যা হয়েছে");
+    } finally {
+      setUploadingFavicon(false);
     }
   };
 
@@ -593,20 +634,46 @@ const MadrasahSimpleSettings = () => {
                 <div className="space-y-2 md:col-span-2">
                   <Label className="text-base font-medium flex items-center gap-2">
                     <Image className="h-4 w-4" />
-                    ফেভিকন URL (ব্রাউজার আইকন)
+                    ফেভিকন (ব্রাউজার আইকন)
                   </Label>
-                  <Input
-                    value={institutionData.faviconUrl}
-                    onChange={(e) =>
-                      setInstitutionData({
-                        ...institutionData,
-                        faviconUrl: e.target.value,
-                      })
-                    }
-                    placeholder="https://example.com/favicon.ico"
-                    className="text-lg py-3"
-                  />
-                  <p className="text-xs text-gray-500">ব্রাউজার ট্যাবে ছোট আইকন হিসেবে দেখাবে (PNG বা ICO ফরম্যাট)</p>
+                  <div className="flex items-center gap-4">
+                    {institutionData.faviconUrl && (
+                      <div className="flex items-center gap-2 p-2 border rounded-lg bg-gray-50">
+                        <img 
+                          src={institutionData.faviconUrl} 
+                          alt="Favicon" 
+                          className="w-8 h-8 object-contain"
+                          onError={(e) => e.target.style.display = 'none'}
+                        />
+                        <span className="text-sm text-green-600">আপলোড করা হয়েছে</span>
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <label className="cursor-pointer">
+                        <div className={`flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed rounded-lg hover:bg-gray-50 transition-colors ${uploadingFavicon ? 'bg-gray-100' : ''}`}>
+                          {uploadingFavicon ? (
+                            <>
+                              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-emerald-600"></div>
+                              <span className="text-gray-600">আপলোড হচ্ছে...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="h-5 w-5 text-gray-500" />
+                              <span className="text-gray-600">ফেভিকন আপলোড করুন</span>
+                            </>
+                          )}
+                        </div>
+                        <input
+                          type="file"
+                          accept=".png,.ico,image/png,image/x-icon"
+                          onChange={handleFaviconUpload}
+                          className="hidden"
+                          disabled={uploadingFavicon}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500">ব্রাউজার ট্যাবে ছোট আইকন হিসেবে দেখাবে (PNG বা ICO ফরম্যাট, সর্বোচ্চ ৫০০KB)</p>
                 </div>
               </div>
 
