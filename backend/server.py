@@ -29194,6 +29194,7 @@ async def get_salary_structures(
     
     # Enrich with employee names
     for struct in structures:
+        struct.pop("_id", None)
         employee = await db.staff.find_one({"id": struct["employee_id"], "tenant_id": current_user.tenant_id})
         if employee:
             struct["employee_name"] = employee.get("name", "Unknown")
