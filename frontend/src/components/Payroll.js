@@ -68,9 +68,9 @@ const Payroll = () => {
   const [payments, setPayments] = useState([]);
   const [settings, setSettings] = useState(null);
   
-  const [processYear, setProcessYear] = useState(new তারিখ().getFullYear());
-  const [processMonth, setProcessMonth] = useState(new তারিখ().getMonth() + 1);
-  const [filterYear, setFilterYear] = useState(new তারিখ().getFullYear());
+  const [processYear, setProcessYear] = useState(new Date().getFullYear());
+  const [processMonth, setProcessMonth] = useState(new Date().getMonth() + 1);
+  const [filterYear, setFilterYear] = useState(new Date().getFullYear());
   
   const [showSalaryForm, setShowSalaryForm] = useState(false);
   const [showBonusForm, setShowBonusForm] = useState(false);
@@ -461,7 +461,7 @@ const Payroll = () => {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-purple-600 dark:text-purple-400">Year to তারিখ / বছর পর্যন্ত</p>
+                    <p className="text-sm text-purple-600 dark:text-purple-400">Year to Date / বছর পর্যন্ত</p>
                     <p className="text-2xl font-bold text-purple-800 dark:text-purple-200">
                       {formatCurrency(dashboard?.year_to_date_total || 0)}
                     </p>
@@ -934,7 +934,7 @@ const Payroll = () => {
                     <TableHead className="text-right">নেট বেতন / নিট বেতন</TableHead>
                     <TableHead>Method / পদ্ধতি</TableHead>
                     <TableHead>Reference / রেফারেন্স</TableHead>
-                    <TableHead>তারিখ / তারিখ</TableHead>
+                    <TableHead>তারিখ</TableHead>
                     <TableHead>স্ট্যাটাস</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -1058,7 +1058,7 @@ const PaymentForm = ({ item, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
     payment_method: 'Bank',
     payment_reference: '',
-    payment_date: new তারিখ().toISOString().split('T')[0],
+    payment_date: new Date().toISOString().split('T')[0],
     remarks: ''
   });
 
@@ -1103,7 +1103,7 @@ const PaymentForm = ({ item, onSubmit, onCancel }) => {
       </div>
 
       <div className="space-y-2">
-        <Label>Payment তারিখ / তারিখ</Label>
+        <Label>Payment তারিখ</Label>
         <Input
           type="date"
           value={formData.payment_date}
