@@ -67,13 +67,16 @@ const MadrasahDashboard = () => {
         axios.get(`${API}/school-branding`, { headers }).catch(() => ({ data: {} })),
       ]);
 
-      const students = studentsRes.data || [];
+      const studentsRaw = studentsRes.data;
+      const students = Array.isArray(studentsRaw) ? studentsRaw : (studentsRaw?.students || studentsRaw?.data || []);
       const fees = feesRes.data || {};
       const attendance = attendanceRes.data || {};
-      const classes = classesRes.data || [];
-      const recentPayments = paymentsRes.data || [];
+      const classesRaw = classesRes.data;
+      const classes = Array.isArray(classesRaw) ? classesRaw : (classesRaw?.classes || classesRaw?.data || []);
+      const paymentsRaw = paymentsRes.data;
+      const recentPayments = Array.isArray(paymentsRaw) ? paymentsRaw : (paymentsRaw?.payments || paymentsRaw?.data || []);
 
-      const classWiseStudents = classes.map(cls => {
+      const classWiseStudents = (classes || []).map(cls => {
         const count = students.filter(s => s.class_id === cls.id).length;
         return { name: cls.name || cls.standard, students: count };
       }).filter(c => c.students > 0);
@@ -103,9 +106,9 @@ const MadrasahDashboard = () => {
           total: (attendance.present || 0) + (attendance.absent || 0) + (attendance.late || 0),
         },
         classes: classWiseStudents,
-        recentPayments: recentPayments,
-        monthlyFees: fees.monthly_collection || [],
-        weeklyAttendance: attendance.weekly || [],
+        recentPayments: Array.isArray(recentPayments) ? recentPayments : [],
+        monthlyFees: Array.isArray(fees.monthly_collection) ? fees.monthly_collection : [],
+        weeklyAttendance: Array.isArray(attendance.weekly) ? attendance.weekly : [],
       });
 
       setSchoolBranding(brandingRes.data || {});
