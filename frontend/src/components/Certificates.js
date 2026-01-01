@@ -287,6 +287,7 @@ const Certificates = () => {
     fetchStaff();
     fetchSchoolBranding();
     fetchClasses();
+    fetchAppreciationCertificates();
   }, []);
   
   const fetchSchoolBranding = async () => {
@@ -501,6 +502,60 @@ const Certificates = () => {
     }
   };
   
+  const fetchAppreciationCertificates = async () => {
+    try {
+      setAppreciationLoading(true);
+      const API = process.env.REACT_APP_API_URL;
+      const response = await fetch(`${API}/appreciation-certificates`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAppreciationRecords(data.appreciation_certificates || []);
+      } else {
+        console.error('Failed to fetch appreciation certificates');
+        setAppreciationRecords([]);
+      }
+    } catch (error) {
+      console.error('Error fetching appreciation certificates:', error);
+      setAppreciationRecords([]);
+    } finally {
+      setAppreciationLoading(false);
+    }
+  };
+
+  const handleSaveAppreciationCertificate = async () => {
+    try {
+      setAppreciationLoading(true);
+      const API = process.env.REACT_APP_API_URL;
+      const response = await fetch(`${API}/appreciation-certificates`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(appreciationFormData)
+      });
+
+      if (response.ok) {
+        toast.success('প্রশংসাপত্র সফলভাবে তৈরি হয়েছে!');
+        setShowAppreciationPreview(true);
+        await fetchAppreciationCertificates();
+      } else {
+        const error = await response.json();
+        toast.error(error.detail || 'প্রশংসাপত্র তৈরি করতে ব্যর্থ হয়েছে');
+      }
+    } catch (error) {
+      console.error('Error creating appreciation certificate:', error);
+      toast.error('প্রশংসাপত্র তৈরি করতে ব্যর্থ হয়েছে');
+    } finally {
+      setAppreciationLoading(false);
+    }
+  };
+
   const fetchCCRecords = async () => {
     try {
       const API = process.env.REACT_APP_API_URL;
@@ -4639,7 +4694,7 @@ const Certificates = () => {
                   ) : (
                     <div className="space-y-3">
                       {appreciationRecords.map((cert, index) => (
-                        <div key={index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-amber-50">
+                        <div key={cert.id || index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-amber-50">
                           <div className="flex items-center gap-4">
                             <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
                               <Star className="h-6 w-6 text-amber-600" />
@@ -4647,14 +4702,55 @@ const Certificates = () => {
                             <div>
                               <h4 className="font-medium text-gray-900">{cert.student_name}</h4>
                               <p className="text-sm text-gray-500">{cert.achievement}</p>
+                              <p className="text-xs text-gray-400">
+                                {cert.class_name} {cert.section && `- ${cert.section}`} | 
+                                ইস্যু: {cert.issue_date ? new Date(cert.issue_date).toLocaleDateString('bn-BD') : 'N/A'}
+                              </p>
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <Button variant="outline" size="sm">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                setAppreciationFormData({
+                                  student_id: cert.student_id,
+                                  student_name: cert.student_name,
+                                  admission_no: cert.admission_no,
+                                  class_name: cert.class_name,
+                                  section: cert.section,
+                                  achievement: cert.achievement,
+                                  remarks: cert.remarks,
+                                  issue_date: cert.issue_date,
+                                  status: cert.status
+                                });
+                                setShowAppreciationPreview(true);
+                              }}
+                              title="দেখুন"
+                            >
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button variant="outline" size="sm">
-                              <Printer className="h-4 w-4" />
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                setAppreciationFormData({
+                                  student_id: cert.student_id,
+                                  student_name: cert.student_name,
+                                  admission_no: cert.admission_no,
+                                  class_name: cert.class_name,
+                                  section: cert.section,
+                                  achievement: cert.achievement,
+                                  remarks: cert.remarks,
+                                  issue_date: cert.issue_date,
+                                  status: cert.status
+                                });
+                                setShowAppreciationPreview(true);
+                                setTimeout(() => window.print(), 300);
+                              }}
+                              title="ডাউনলোড"
+                            >
+                              <Download className="h-4 w-4" />
                             </Button>
                           </div>
                         </div>
@@ -4799,13 +4895,14 @@ const Certificates = () => {
                         </Button>
                         <Button 
                           className="flex-1 bg-amber-500 hover:bg-amber-600"
-                          onClick={() => {
-                            toast.success('প্রশংসাপত্র সফলভাবে তৈরি হয়েছে!');
-                            setShowAppreciationPreview(true);
-                          }}
-                          disabled={!appreciationFormData.achievement}
+                          onClick={handleSaveAppreciationCertificate}
+                          disabled={!appreciationFormData.achievement || appreciationLoading}
                         >
-                          <Printer className="h-4 w-4 mr-2" />
+                          {appreciationLoading ? (
+                            <span className="animate-spin mr-2">⏳</span>
+                          ) : (
+                            <Printer className="h-4 w-4 mr-2" />
+                          )}
                           প্রশংসাপত্র তৈরি ও প্রিন্ট করুন
                         </Button>
                       </div>
