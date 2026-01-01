@@ -27775,6 +27775,9 @@ if frontend_build_path.exists() and (frontend_build_path / "static").exists():
     @app.get("/{full_path:path}")
     async def serve_react_app(full_path: str):
         """Serve React app for all non-API routes (SPA fallback)"""
+        # Skip API routes - let the API router handle them
+        if full_path.startswith("api"):
+            raise HTTPException(status_code=404, detail="API route not handled here")
         # Try to serve the requested file (for direct asset requests)
         file_path = frontend_build_path / full_path
         if file_path.is_file():
