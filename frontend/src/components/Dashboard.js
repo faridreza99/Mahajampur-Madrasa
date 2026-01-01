@@ -38,7 +38,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [chartsLoading, setChartsLoading] = useState(true);
-  const [subscriptionInfo, setSubscriptionInfo] = useState(null);
+  // Subscription removed - system runs freely
   const [giniAnalytics, setGiniAnalytics] = useState(null);
   const [timePeriod, setTimePeriod] = useState(7); // 7 or 30 days
   const [selectedClass, setSelectedClass] = useState("all");
@@ -52,26 +52,6 @@ const Dashboard = () => {
     fetchClassesAndSubjects();
   }, [timePeriod, selectedClass, selectedSubject]);
 
-  // Fetch subscription info for status display (popup is handled globally in Layout)
-  useEffect(() => {
-    const fetchSubscriptionInfo = async () => {
-      if (user && user.role === 'admin') {
-        try {
-          const token = localStorage.getItem("token");
-          const response = await axios.get(`${API}/subscriptions/current`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          setSubscriptionInfo(response.data);
-        } catch (error) {
-          console.error("Error fetching subscription info:", error);
-          if (error.response?.status === 404) {
-            setSubscriptionInfo({ is_active: false, status: 'none', plan_name: null });
-          }
-        }
-      }
-    };
-    fetchSubscriptionInfo();
-  }, [user]);
 
   const fetchGiniAnalytics = async () => {
     setChartsLoading(true);
@@ -390,53 +370,6 @@ const Dashboard = () => {
           </p>
         </div>
         
-        {/* Subscription Status for Admin */}
-        {user?.role === 'admin' && subscriptionInfo && !subscriptionInfo.error && (
-          <div className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${
-            subscriptionInfo.status === 'active' 
-              ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800' 
-              : subscriptionInfo.status === 'frozen'
-              ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800'
-              : subscriptionInfo.status === 'pending'
-              ? 'bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800'
-              : 'bg-gray-50 border-gray-200 dark:bg-gray-800 dark:border-gray-700'
-          }`}>
-            <span className={`w-2 h-2 rounded-full ${
-              subscriptionInfo.status === 'active' 
-                ? 'bg-green-500' 
-                : subscriptionInfo.status === 'frozen'
-                ? 'bg-blue-500'
-                : subscriptionInfo.status === 'pending'
-                ? 'bg-yellow-500'
-                : 'bg-gray-400'
-            }`}></span>
-            <div className="text-sm">
-              <span className="font-medium text-gray-700 dark:text-gray-300">Plan: </span>
-              <span className={`font-semibold ${
-                subscriptionInfo.status === 'active' 
-                  ? 'text-green-700 dark:text-green-400' 
-                  : subscriptionInfo.status === 'frozen'
-                  ? 'text-blue-700 dark:text-blue-400'
-                  : subscriptionInfo.status === 'pending'
-                  ? 'text-yellow-700 dark:text-yellow-400'
-                  : 'text-gray-600 dark:text-gray-400'
-              }`}>
-                {subscriptionInfo.plan_name || 'No Plan'}
-              </span>
-              {subscriptionInfo.status === 'frozen' && (
-                <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">(Frozen)</span>
-              )}
-              {subscriptionInfo.status === 'pending' && (
-                <span className="ml-2 text-xs text-yellow-600 dark:text-yellow-400">(Pending Verification)</span>
-              )}
-              {subscriptionInfo.expires_at && subscriptionInfo.status === 'active' && (
-                <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
-                  Expires: {new Date(subscriptionInfo.expires_at).toLocaleDateString()}
-                </span>
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Filters Row */}
