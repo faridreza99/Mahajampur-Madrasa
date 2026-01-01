@@ -12,11 +12,13 @@ import "./App.css";
 // Import contexts
 import { CurrencyProvider } from "./context/CurrencyContext";
 import { InstitutionProvider } from "./context/InstitutionContext";
+import { LoadingProvider } from "./context/LoadingContext";
 
 // Core components (loaded immediately)
 import LoginPage from "./components/LoginPage";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
+import GlobalLoader from "./components/GlobalLoader";
 import { Toaster } from "./components/ui/sonner";
 import { useInstitution } from "./context/InstitutionContext";
 
@@ -341,11 +343,13 @@ const BrandingLoader = () => {
 
 function App() {
   return (
+    <LoadingProvider>
     <CurrencyProvider>
       <AuthProvider>
       <InstitutionProvider>
         <Router>
           <BrandingLoader />
+          <GlobalLoader />
           <div className="App">
             <Layout>
               <Suspense fallback={<LoadingSpinner />}>
@@ -769,6 +773,7 @@ function App() {
       </InstitutionProvider>
     </AuthProvider>
     </CurrencyProvider>
+    </LoadingProvider>
   );
 }
 
