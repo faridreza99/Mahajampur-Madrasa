@@ -284,7 +284,7 @@ const Layout = ({ children }) => {
           </div>
           <footer className="py-3 text-center border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 mt-auto">
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              Developed By Maxtechbd.com
+              Developed By <a href="https://maxtechbd.com" target="_blank" rel="noopener noreferrer" className="text-red-600 font-bold hover:underline">Maxtechbd.com</a>
             </p>
           </footer>
         </main>
