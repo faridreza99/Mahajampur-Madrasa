@@ -352,7 +352,7 @@ const StaffListView = () => {
       const { success_count, error_count, errors } = response.data;
       
       if (success_count > 0) {
-        toast.success(`${success_count} staff members imported successfully`);
+        toast.success(`${success_count} staff জন imported successfully`);
         await fetchStaff(); // Refresh the staff list
       }
       
@@ -499,7 +499,7 @@ const StaffListView = () => {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4">
         <div className="min-w-0">
           <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 truncate">Staff Management</h1>
-          <p className="text-xs sm:text-sm text-gray-600 mt-1">Manage school staff and employee records</p>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">শিক্ষক ও কর্মচারীদের তথ্য ব্যবস্থাপনা</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <Button variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm h-8 sm:h-9" onClick={handleImport}>
@@ -518,13 +518,13 @@ const StaffListView = () => {
             <DialogTrigger asChild>
               <Button className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600 text-xs sm:text-sm h-8 sm:h-9">
                 <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                Add Staff
+                শিক্ষক যোগ করুন
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
-                  {editingStaff ? 'Edit Staff Member' : 'Add New Staff Member'}
+                  {editingStaff ? 'শিক্ষক সম্পাদনা' : 'নতুন শিক্ষক যোগ'}
                 </DialogTitle>
                 <DialogDescription>
                   Fill in the staff member information below. All fields marked with * are required.
@@ -568,7 +568,7 @@ const StaffListView = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="employee_id">Employee ID *</Label>
+                    <Label htmlFor="employee_id">কর্মচারী আইডি *</Label>
                     <Input
                       id="employee_id"
                       value={formData.employee_id}
@@ -577,7 +577,7 @@ const StaffListView = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="name">Full Name *</Label>
+                    <Label htmlFor="name">পুরো নাম *</Label>
                     <Input
                       id="name"
                       value={formData.name}
@@ -596,7 +596,7 @@ const StaffListView = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="phone">Phone Number *</Label>
+                    <Label htmlFor="phone">মোবাইল নম্বর *</Label>
                     <Input
                       id="phone"
                       value={formData.phone}
@@ -605,7 +605,7 @@ const StaffListView = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="designation">Designation *</Label>
+                    <Label htmlFor="designation">পদবী *</Label>
                     <Select 
                       value={formData.designation} 
                       onValueChange={(value) => setFormData({...formData, designation: value})}
@@ -623,7 +623,7 @@ const StaffListView = () => {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="department">Department *</Label>
+                    <Label htmlFor="department">বিভাগ *</Label>
                     <Select 
                       value={formData.department} 
                       onValueChange={(value) => setFormData({...formData, department: value})}
@@ -641,7 +641,7 @@ const StaffListView = () => {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="qualification">Qualification *</Label>
+                    <Label htmlFor="qualification">শিক্ষাগত যোগ্যতা *</Label>
                     <Input
                       id="qualification"
                       value={formData.qualification}
@@ -651,7 +651,7 @@ const StaffListView = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="experience_years">Experience (Years) *</Label>
+                    <Label htmlFor="experience_years">অভিজ্ঞতা (বছর) *</Label>
                     <Input
                       id="experience_years"
                       type="number"
@@ -662,7 +662,7 @@ const StaffListView = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="date_of_joining">Date of Joining *</Label>
+                    <Label htmlFor="date_of_joining">যোগদানের তারিখ *</Label>
                     <Input
                       id="date_of_joining"
                       type="date"
@@ -672,7 +672,7 @@ const StaffListView = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="salary">Monthly Salary *</Label>
+                    <Label htmlFor="salary">মাসিক বেতন *</Label>
                     <Input
                       id="salary"
                       type="number"
@@ -684,7 +684,7 @@ const StaffListView = () => {
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <Label htmlFor="address">Address *</Label>
+                    <Label htmlFor="address">ঠিকানা *</Label>
                     <Input
                       id="address"
                       value={formData.address}
@@ -703,10 +703,10 @@ const StaffListView = () => {
                       resetForm();
                     }}
                   >
-                    Cancel
+                    বাতিল
                   </Button>
                   <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600" disabled={loading}>
-                    {loading ? 'Saving...' : (editingStaff ? 'Update Staff' : 'Add Staff')}
+                    {loading ? 'সংরক্ষণ হচ্ছে...' : (editingStaff ? 'আপডেট করুন' : 'শিক্ষক যোগ করুন')}
                   </Button>
                 </DialogFooter>
               </form>
@@ -715,53 +715,61 @@ const StaffListView = () => {
         </div>
       </div>
 
-      {/* Stats Cards */}
+            {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <Card className="card-hover">
-          <CardContent className="p-3 sm:p-4">
+        <Card className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
-              <div className="min-w-0">
-                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Total Staff</p>
-                <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">{staff.length}</p>
+              <div>
+                <p className="text-emerald-100 text-sm">মোট শিক্ষক</p>
+                <p className="text-3xl sm:text-4xl font-bold mt-1">{staff.length}</p>
               </div>
-              <UserCheck className="h-6 w-6 sm:h-8 sm:w-8 text-emerald-500 flex-shrink-0" />
+              <div className="bg-white/20 p-3 rounded-full">
+                <UserCheck className="h-6 w-6 sm:h-8 sm:w-8" />
+              </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="card-hover">
-          <CardContent className="p-3 sm:p-4">
+        <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
-              <div className="min-w-0">
-                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Teachers</p>
-                <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
-                  {staff.filter(s => s.designation.toLowerCase().includes('teacher')).length}
+              <div>
+                <p className="text-blue-100 text-sm">শিক্ষক</p>
+                <p className="text-3xl sm:text-4xl font-bold mt-1">
+                  {staff.filter(s => s.designation?.toLowerCase().includes('teacher')).length}
                 </p>
               </div>
-              <GraduationCap className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500 flex-shrink-0" />
+              <div className="bg-white/20 p-3 rounded-full">
+                <GraduationCap className="h-6 w-6 sm:h-8 sm:w-8" />
+              </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="card-hover">
-          <CardContent className="p-3 sm:p-4">
+        <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
-              <div className="min-w-0">
-                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Admin Staff</p>
-                <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
+              <div>
+                <p className="text-purple-100 text-sm">প্রশাসনিক কর্মী</p>
+                <p className="text-3xl sm:text-4xl font-bold mt-1">
                   {staff.filter(s => s.department === 'Administration').length}
                 </p>
               </div>
-              <UserCheck className="h-6 w-6 sm:h-8 sm:w-8 text-purple-500 flex-shrink-0" />
+              <div className="bg-white/20 p-3 rounded-full">
+                <UserCheck className="h-6 w-6 sm:h-8 sm:w-8" />
+              </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="card-hover">
-          <CardContent className="p-3 sm:p-4">
+        <Card className="bg-gradient-to-br from-amber-500 to-orange-500 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
-              <div className="min-w-0">
-                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Departments</p>
-                <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">{departments.length}</p>
+              <div>
+                <p className="text-amber-100 text-sm">বিভাগ</p>
+                <p className="text-3xl sm:text-4xl font-bold mt-1">{departments.length}</p>
               </div>
-              <UserCheck className="h-6 w-6 sm:h-8 sm:w-8 text-orange-500 flex-shrink-0" />
+              <div className="bg-white/20 p-3 rounded-full">
+                <UserCheck className="h-6 w-6 sm:h-8 sm:w-8" />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -775,7 +783,7 @@ const StaffListView = () => {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Search by name, employee ID, or email..."
+                  placeholder="নাম, আইডি বা ইমেইল দিয়ে খুঁজুন..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 text-sm h-9 sm:h-10"
@@ -784,10 +792,10 @@ const StaffListView = () => {
             </div>
             <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
               <SelectTrigger className="w-full md:w-48 h-9 sm:h-10 text-sm">
-                <SelectValue placeholder="All Departments" />
+                <SelectValue placeholder="সকল বিভাগ" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all_departments">All Departments</SelectItem>
+                <SelectItem value="all_departments">সকল বিভাগ</SelectItem>
                 {departments.map((dept) => (
                   <SelectItem key={dept} value={dept}>
                     {dept}
@@ -805,8 +813,8 @@ const StaffListView = () => {
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center space-x-2 min-w-0">
               <UserCheck className="h-5 w-5 text-emerald-500 flex-shrink-0" />
-              <span className="truncate">Staff List</span>
-              <Badge variant="secondary" className="text-[10px] sm:text-xs">{filteredStaff.length} members</Badge>
+              <span className="truncate">শিক্ষক তালিকা</span>
+              <Badge variant="secondary" className="text-[10px] sm:text-xs">{filteredStaff.length} জন</Badge>
             </div>
           </CardTitle>
         </CardHeader>
@@ -816,14 +824,14 @@ const StaffListView = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12 hidden sm:table-cell">#</TableHead>
-                  <TableHead>Staff Member</TableHead>
-                  <TableHead className="hidden md:table-cell">Employee ID</TableHead>
-                  <TableHead>Designation</TableHead>
-                  <TableHead className="hidden lg:table-cell">Department</TableHead>
-                  <TableHead className="hidden xl:table-cell">Experience</TableHead>
-                  <TableHead className="hidden xl:table-cell">Salary</TableHead>
-                  <TableHead className="hidden md:table-cell">Contact</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>শিক্ষক/কর্মী</TableHead>
+                  <TableHead className="hidden md:table-cell">কর্মচারী আইডি</TableHead>
+                  <TableHead>পদবী</TableHead>
+                  <TableHead className="hidden lg:table-cell">বিভাগ</TableHead>
+                  <TableHead className="hidden xl:table-cell">অভিজ্ঞতা</TableHead>
+                  <TableHead className="hidden xl:table-cell">বেতন</TableHead>
+                  <TableHead className="hidden md:table-cell">যোগাযোগ</TableHead>
+                  <TableHead className="text-right">একশন</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -926,7 +934,7 @@ const StaffListView = () => {
       <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-red-600">Delete Staff Member</DialogTitle>
+            <DialogTitle className="text-red-600">শিক্ষক মুছুন</DialogTitle>
             <DialogDescription>
               Are you sure you want to delete this staff member? This action cannot be undone.
             </DialogDescription>
@@ -946,7 +954,7 @@ const StaffListView = () => {
               onClick={() => setIsDeleteModalOpen(false)}
               disabled={loading}
             >
-              Cancel
+              বাতিল
             </Button>
             <Button
               variant="destructive"
@@ -959,13 +967,13 @@ const StaffListView = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Import Staff Modal */}
+      {/* ইমপোর্ট Modal */}
       <Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Import Staff Data</DialogTitle>
+            <DialogTitle>ইমপোর্ট Data</DialogTitle>
             <DialogDescription>
-              Upload an Excel (.xlsx, .xls) or CSV file to import staff members in bulk
+              Upload an Excel (.xlsx, .xls) or CSV file to import staff জন in bulk
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
@@ -1023,7 +1031,7 @@ const StaffListView = () => {
               }}
               disabled={importing}
             >
-              Cancel
+              বাতিল
             </Button>
             <Button
               onClick={handleImportSubmit}
@@ -1036,11 +1044,11 @@ const StaffListView = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Export Staff Modal */}
+      {/* এক্সপোর্ট Modal */}
       <Dialog open={isExportModalOpen} onOpenChange={setIsExportModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Export Staff Directory</DialogTitle>
+            <DialogTitle>এক্সপোর্ট Directory</DialogTitle>
             <DialogDescription>
               Choose the format for exporting staff data
             </DialogDescription>
@@ -1076,19 +1084,19 @@ const StaffListView = () => {
               variant="outline"
               onClick={() => setIsExportModalOpen(false)}
             >
-              Cancel
+              বাতিল
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Bulk Photo Upload Modal */}
+      {/* ছবি আপলোড Upload Modal */}
       <Dialog open={isBulkPhotoModalOpen} onOpenChange={setIsBulkPhotoModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
               <Camera className="h-5 w-5 text-emerald-500" />
-              <span>Bulk Photo Upload (Staff)</span>
+              <span>ছবি আপলোড Upload (Staff)</span>
             </DialogTitle>
             <DialogDescription>
               Upload multiple staff photos at once. File names should match staff Employee IDs.
@@ -1130,7 +1138,7 @@ const StaffListView = () => {
                 setSelectedFiles([]);
               }}
             >
-              Cancel
+              বাতিল
             </Button>
             <Button
               className="bg-emerald-500 hover:bg-emerald-600"
@@ -1146,7 +1154,7 @@ const StaffListView = () => {
   );
 };
 
-// Add Staff Component
+// শিক্ষক যোগ করুন Component
 const AddStaffView = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -1290,7 +1298,7 @@ const AddStaffView = () => {
         setErrors({ email: error.response.data.detail });
         toast.error(error.response.data.detail);
       } else if (error.response?.status === 403) {
-        toast.error('You do not have permission to add staff members');
+        toast.error('You do not have permission to add staff জন');
       } else {
         toast.error('Failed to add staff member. Please try again.');
       }
@@ -1303,7 +1311,7 @@ const AddStaffView = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Add Staff</h1>
+          <h1 className="text-3xl font-bold tracking-tight">শিক্ষক যোগ করুন</h1>
           <p className="text-muted-foreground">Add a new staff member to your school</p>
         </div>
         <Button variant="outline" onClick={() => navigate('/staff')}>
@@ -1334,7 +1342,7 @@ const AddStaffView = () => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name *</Label>
+                <Label htmlFor="name">পুরো নাম *</Label>
                 <Input
                   id="name"
                   value={formData.name}
@@ -1382,7 +1390,7 @@ const AddStaffView = () => {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email Address *</Label>
+                <Label htmlFor="email">ইমেইল *</Label>
                 <Input
                   id="email"
                   type="email"
@@ -1395,7 +1403,7 @@ const AddStaffView = () => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number *</Label>
+                <Label htmlFor="phone">মোবাইল নম্বর *</Label>
                 <Input
                   id="phone"
                   value={formData.phone}
@@ -1430,7 +1438,7 @@ const AddStaffView = () => {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="department">Department *</Label>
+                <Label htmlFor="department">বিভাগ *</Label>
                 <Select value={formData.department} onValueChange={(value) => handleInputChange('department', value)}>
                   <SelectTrigger className={errors.department ? 'border-red-500' : ''}>
                     <SelectValue placeholder="Select department" />
@@ -1445,7 +1453,7 @@ const AddStaffView = () => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="designation">Designation *</Label>
+                <Label htmlFor="designation">পদবী *</Label>
                 <Select value={formData.designation} onValueChange={(value) => handleInputChange('designation', value)}>
                   <SelectTrigger className={errors.designation ? 'border-red-500' : ''}>
                     <SelectValue placeholder="Select designation" />
@@ -1489,7 +1497,7 @@ const AddStaffView = () => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="date_of_joining">Date of Joining *</Label>
+                <Label htmlFor="date_of_joining">যোগদানের তারিখ *</Label>
                 <Input
                   id="date_of_joining"
                   type="date"
@@ -1564,7 +1572,7 @@ const AddStaffView = () => {
                 onClick={() => navigate('/staff')}
                 disabled={loading}
               >
-                Cancel
+                বাতিল
               </Button>
               
               <Button
@@ -1577,7 +1585,7 @@ const AddStaffView = () => {
                 {loading ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                    Saving...
+                    সংরক্ষণ হচ্ছে...
                   </>
                 ) : (
                   'Save & Add Another'
@@ -1592,7 +1600,7 @@ const AddStaffView = () => {
                 {loading ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Saving...
+                    সংরক্ষণ হচ্ছে...
                   </>
                 ) : (
                   'Save Staff'
@@ -1737,7 +1745,7 @@ const LeaveRequestsView = () => {
     }
   };
 
-  const handleCancel = async (requestId) => {
+  const handleবাতিল = async (requestId) => {
     try {
       await axios.put(`${API}/leave-requests/${requestId}`, {
         status: 'cancelled'
@@ -1755,7 +1763,7 @@ const LeaveRequestsView = () => {
       pending: { color: 'bg-yellow-100 text-yellow-800', text: 'Pending' },
       approved: { color: 'bg-green-100 text-green-800', text: 'Approved' },
       rejected: { color: 'bg-red-100 text-red-800', text: 'Rejected' },
-      cancelled: { color: 'bg-gray-100 text-gray-800', text: 'Cancelled' }
+      cancelled: { color: 'bg-gray-100 text-gray-800', text: 'বাতিলled' }
     };
     
     const config = statusConfig[status] || statusConfig.pending;
@@ -1813,7 +1821,7 @@ const LeaveRequestsView = () => {
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="approved">Approved</SelectItem>
                   <SelectItem value="rejected">Rejected</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="cancelled">বাতিলled</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1932,10 +1940,10 @@ const LeaveRequestsView = () => {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleCancel(request.id)}
+                            onClick={() => handleবাতিল(request.id)}
                             className="text-gray-600"
                           >
-                            Cancel
+                            বাতিল
                           </Button>
                         </>
                       )}
@@ -2015,7 +2023,7 @@ const LeaveRequestsView = () => {
                 onClick={() => setIsCreateModalOpen(false)}
                 disabled={creating}
               >
-                Cancel
+                বাতিল
               </Button>
               <Button onClick={handleCreateSubmit} disabled={creating}>
                 {creating ? 'Submitting...' : 'Submit Request'}
@@ -2057,7 +2065,7 @@ const LeaveRequestsView = () => {
                 onClick={() => setActionModal({ open: false, request: null, action: '' })}
                 disabled={actionLoading}
               >
-                Cancel
+                বাতিল
               </Button>
               <Button 
                 onClick={handleAction}
@@ -2262,7 +2270,7 @@ const AttendanceView = () => {
             />
           </div>
           <div className="flex-1">
-            <Label htmlFor="department">Department</Label>
+            <Label htmlFor="department">বিভাগ</Label>
             <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
               <SelectTrigger>
                 <SelectValue placeholder="Select department" />
@@ -2270,7 +2278,7 @@ const AttendanceView = () => {
               <SelectContent>
                 {departments.map((dept) => (
                   <SelectItem key={dept} value={dept}>
-                    {dept === 'all_departments' ? 'All Departments' : dept}
+                    {dept === 'all_departments' ? 'সকল বিভাগ' : dept}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -2328,7 +2336,7 @@ const AttendanceView = () => {
             disabled={saving || staffList.length === 0}
             className="bg-emerald-600 hover:bg-emerald-700"
           >
-            {saving ? 'Saving...' : 'Save Attendance'}
+            {saving ? 'সংরক্ষণ হচ্ছে...' : 'Save Attendance'}
           </Button>
         </CardHeader>
         <CardContent>
@@ -2344,10 +2352,10 @@ const AttendanceView = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Employee ID</TableHead>
+                  <TableHead>কর্মচারী আইডি</TableHead>
                   <TableHead>Name</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Designation</TableHead>
+                  <TableHead>বিভাগ</TableHead>
+                  <TableHead>পদবী</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
