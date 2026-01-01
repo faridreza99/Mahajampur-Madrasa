@@ -843,7 +843,7 @@ const StaffListView = () => {
                       <TableCell className="min-w-[150px]">
                         <div className="flex items-center space-x-2 sm:space-x-3">
                           <Avatar className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0">
-                            <AvatarImage src={member.photo_url} />
+                            <AvatarImage src={member.photo_url ? `${BASE_URL}${member.photo_url}` : ""} />
                             <AvatarFallback className="bg-blue-100 text-blue-700 text-xs sm:text-sm">
                               {member.name.split(' ').map(n => n[0]).join('')}
                             </AvatarFallback>
@@ -2358,7 +2358,7 @@ const AttendanceView = () => {
                     <TableCell>
                       <div className="flex items-center space-x-2">
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src={staff.photo_url} />
+                          <AvatarImage src={staff.photo_url ? `${BASE_URL}${staff.photo_url}` : ""} />
                           <AvatarFallback>{staff.name.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <span>{staff.name}</span>
