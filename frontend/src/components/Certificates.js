@@ -354,6 +354,19 @@ const Certificates = () => {
     return classObj ? classObj.name : classId;
   };
 
+  const getSectionName = (sectionId, classId) => {
+    if (!sectionId) return '';
+    // If sectionId is already a simple string like "A", "B", return it
+    if (sectionId.length <= 2) return sectionId;
+    // Find the class and get its sections
+    const classObj = classes.find(c => c.id === classId);
+    if (classObj && classObj.sections && classObj.sections.length > 0) {
+      // Return first section as default if we can't match the UUID
+      return classObj.sections[0] || '';
+    }
+    return '';
+  };
+
   const fetchCertificatesData = async () => {
     try {
       const API = process.env.REACT_APP_API_URL;
@@ -5051,9 +5064,9 @@ const Certificates = () => {
                         ...appreciationFormData,
                         student_id: student.id,
                         student_name: student.name || student.student_name,
-                        admission_no: student.admission_no || student.admission_number,
+                        admission_no: student.admission_no || student.admission_number || student.roll_no || '',
                         class_name: getClassName(student.class_id),
-                        section: student.section || ''
+                        section: student.section || getSectionName(student.section_id, student.class_id) || ''
                       });
                       setShowAppreciationModal(false);
                     }}
@@ -5104,10 +5117,10 @@ const Certificates = () => {
                         ...characterFormData,
                         student_id: student.id,
                         student_name: student.name || student.student_name,
-                        admission_no: student.admission_no || student.admission_number,
+                        admission_no: student.admission_no || student.admission_number || student.roll_no || '',
                         father_name: student.father_name || '',
                         class_name: getClassName(student.class_id),
-                        section: student.section || ''
+                        section: student.section || getSectionName(student.section_id, student.class_id) || ''
                       });
                       setShowCharacterModal(false);
                     }}
