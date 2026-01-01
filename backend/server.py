@@ -27767,6 +27767,9 @@ if not frontend_build_path.exists():
 # Mount uploads directory for serving student photos and other uploaded files
 if UPLOAD_DIR.exists():
     app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
+# Include API router BEFORE the catch-all route so API routes are matched first
+app.include_router(api_router)
+
 
 if frontend_build_path.exists() and (frontend_build_path / "static").exists():
     # Mount static files (CSS, JS, images)
@@ -27775,9 +27778,6 @@ if frontend_build_path.exists() and (frontend_build_path / "static").exists():
     @app.get("/{full_path:path}")
     async def serve_react_app(full_path: str):
         """Serve React app for all non-API routes (SPA fallback)"""
-        # Skip API routes - let the API router handle them
-        if full_path.startswith("api"):
-            raise HTTPException(status_code=404, detail="API route not handled here")
         # Try to serve the requested file (for direct asset requests)
         file_path = frontend_build_path / full_path
         if file_path.is_file():
@@ -30986,7 +30986,6 @@ async def delete_madrasah_simple_routine(
     
     return {"message": "Routine deleted successfully"}
 
-app.include_router(api_router)
 
 # ============================================================================
 # FEE RECEIPT PDF GENERATION
