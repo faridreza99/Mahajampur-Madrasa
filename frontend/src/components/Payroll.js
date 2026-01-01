@@ -85,18 +85,18 @@ const Payroll = () => {
   }, [currency]);
 
   const months = [
-    { value: 1, label: 'January / জানুয়ারি' },
-    { value: 2, label: 'February / ফেব্রুয়ারি' },
-    { value: 3, label: 'March / মার্চ' },
-    { value: 4, label: 'April / এপ্রিল' },
-    { value: 5, label: 'May / মে' },
-    { value: 6, label: 'June / জুন' },
-    { value: 7, label: 'July / জুলাই' },
-    { value: 8, label: 'August / আগস্ট' },
-    { value: 9, label: 'September / সেপ্টেম্বর' },
-    { value: 10, label: 'October / অক্টোবর' },
-    { value: 11, label: 'November / নভেম্বর' },
-    { value: 12, label: 'December / ডিসেম্বর' }
+    { value: 1, label: 'জানুয়ারি' },
+    { value: 2, label: 'ফেব্রুয়ারি' },
+    { value: 3, label: 'মার্চ' },
+    { value: 4, label: 'এপ্রিল' },
+    { value: 5, label: 'মে' },
+    { value: 6, label: 'জুন' },
+    { value: 7, label: 'জুলাই' },
+    { value: 8, label: 'আগস্ট' },
+    { value: 9, label: 'সেপ্টেম্বর' },
+    { value: 10, label: 'অক্টোবর' },
+    { value: 11, label: 'নভেম্বর' },
+    { value: 12, label: 'ডিসেম্বর' }
   ];
 
   const fetchDashboard = useCallback(async () => {
@@ -120,7 +120,7 @@ const Payroll = () => {
       setPayrolls(response.data);
     } catch (error) {
       console.error('Error fetching payrolls:', error);
-      toast.error('Failed to fetch payrolls');
+      toast.error('বেতন তালিকা লোড করতে ব্যর্থ');
     } finally {
       setLoading(false);
     }
@@ -134,7 +134,7 @@ const Payroll = () => {
       });
       setSelectedPayroll(response.data);
     } catch (error) {
-      toast.error('Failed to fetch payroll details');
+      toast.error('বেতন বিবরণ লোড করতে ব্যর্থ');
     } finally {
       setLoading(false);
     }
@@ -245,11 +245,11 @@ const Payroll = () => {
       }, {
         headers: { Authorization: getAuthToken() }
       });
-      toast.success(response.data.message);
+      toast.success(response.data.message || 'বেতন প্রক্রিয়া সফল হয়েছে');
       fetchPayrolls();
       fetchDashboard();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to process payroll');
+      toast.error(error.response?.data?.detail || 'বেতন প্রক্রিয়া ব্যর্থ');
     } finally {
       setLoading(false);
     }
@@ -261,13 +261,13 @@ const Payroll = () => {
       await axios.post(`${API}/payroll/${payrollId}/approve`, { action }, {
         headers: { Authorization: getAuthToken() }
       });
-      toast.success(`Payroll ${action === 'approve' ? 'approved' : 'rejected'} successfully`);
+      toast.success(action === 'approve' ? 'বেতন অনুমোদিত হয়েছে' : 'বেতন প্রত্যাখ্যাত হয়েছে');
       fetchPayrolls();
       if (selectedPayroll?.id === payrollId) {
         fetchPayrollDetails(payrollId);
       }
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to update payroll');
+      toast.error(error.response?.data?.detail || 'বেতন আপডেট ব্যর্থ');
     } finally {
       setLoading(false);
     }
@@ -279,13 +279,13 @@ const Payroll = () => {
       await axios.post(`${API}/payroll/${payrollId}/lock`, {}, {
         headers: { Authorization: getAuthToken() }
       });
-      toast.success('Payroll locked successfully');
+      toast.success('বেতন লক করা হয়েছে');
       fetchPayrolls();
       if (selectedPayroll?.id === payrollId) {
         fetchPayrollDetails(payrollId);
       }
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to lock payroll');
+      toast.error(error.response?.data?.detail || 'বেতন লক করতে ব্যর্থ');
     } finally {
       setLoading(false);
     }
@@ -301,13 +301,13 @@ const Payroll = () => {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `Payslip_${employeeName}_${monthName}_${year}.pdf`);
+      link.setAttribute('download', `বেতন_স্লিপ_${employeeName}_${monthName}_${year}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.remove();
-      toast.success('Payslip downloaded');
+      toast.success('বেতন স্লিপ ডাউনলোড হয়েছে');
     } catch (error) {
-      toast.error('Failed to download payslip');
+      toast.error('বেতন স্লিপ ডাউনলোড ব্যর্থ');
     }
   };
 
@@ -323,14 +323,14 @@ const Payroll = () => {
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
-        link.setAttribute('download', `Payroll_Report_${selectedPayroll.month_name}_${selectedPayroll.year}.xlsx`);
+        link.setAttribute('download', `বেতন_রিপোর্ট_${selectedPayroll.month_name}_${selectedPayroll.year}.xlsx`);
         document.body.appendChild(link);
         link.click();
         link.remove();
-        toast.success('Report downloaded');
+        toast.success('রিপোর্ট ডাউনলোড হয়েছে');
       }
     } catch (error) {
-      toast.error('Failed to download report');
+      toast.error('রিপোর্ট ডাউনলোড ব্যর্থ');
     }
   };
 
@@ -339,15 +339,15 @@ const Payroll = () => {
       await axios.post(`${API}/payroll/${payrollId}/items/${itemId}/payment`, paymentData, {
         headers: { Authorization: getAuthToken() }
       });
-      toast.success('Payment recorded');
+      toast.success('পেমেন্ট রেকর্ড হয়েছে');
       fetchPayrollDetails(payrollId);
       setShowPaymentForm(false);
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to record payment');
+      toast.error(error.response?.data?.detail || 'পেমেন্ট রেকর্ড ব্যর্থ');
     }
   };
 
-  const getস্ট্যাটাসBadge = (status) => {
+  const getStatusBadge = (status) => {
     const statusStyles = {
       draft: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
       approved: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
@@ -359,13 +359,13 @@ const Payroll = () => {
     };
     
     const statusLabels = {
-      draft: 'খসড়া / খসড়া',
-      approved: 'অনুমোদিত / অনুমোদিত',
-      locked: 'Locked / লক',
-      rejected: 'Rejected / প্রত্যাখ্যাত',
-      paid: 'পরিশোধিত / পরিশোধিত',
-      unpaid: 'Unpaid / অপরিশোধিত',
-      not_processed: 'Not Processed / প্রক্রিয়াকৃত নয়'
+      draft: 'খসড়া',
+      approved: 'অনুমোদিত',
+      locked: 'লক',
+      rejected: 'প্রত্যাখ্যাত',
+      paid: 'পরিশোধিত',
+      unpaid: 'অপরিশোধিত',
+      not_processed: 'প্রক্রিয়াকৃত নয়'
     };
 
     return (
@@ -381,10 +381,10 @@ const Payroll = () => {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <Wallet className="h-8 w-8 text-emerald-600" />
-            Payroll Management / বেতন ব্যবস্থাপনা
+            বেতন ব্যবস্থাপনা
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Manage employee salaries, bonuses, and payments
+            কর্মচারীদের বেতন, বোনাস ও পেমেন্ট ব্যবস্থাপনা
           </p>
         </div>
       </div>
@@ -393,41 +393,41 @@ const Payroll = () => {
         <TabsList className="grid grid-cols-7 gap-2 bg-white dark:bg-gray-800 p-1 rounded-lg">
           <TabsTrigger value="dashboard" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
-            Dashboard
+            ড্যাশবোর্ড
           </TabsTrigger>
           <TabsTrigger value="payrolls" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
-            Payrolls
+            বেতন তালিকা
           </TabsTrigger>
           <TabsTrigger value="salary-structures" className="flex items-center gap-2">
             <DollarSign className="h-4 w-4" />
-            Salary
+            বেতন কাঠামো
           </TabsTrigger>
           <TabsTrigger value="bonuses" className="flex items-center gap-2">
             <Gift className="h-4 w-4" />
-            Bonuses
+            বোনাস
           </TabsTrigger>
           <TabsTrigger value="advances" className="flex items-center gap-2">
             <PiggyBank className="h-4 w-4" />
-            Advances
+            অগ্রিম
           </TabsTrigger>
           <TabsTrigger value="payments" className="flex items-center gap-2">
             <CreditCard className="h-4 w-4" />
-            Payments
+            পেমেন্ট
           </TabsTrigger>
           <TabsTrigger value="settings" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
-            Settings
+            সেটিংস
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <Card className="bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800">
+            <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/40 dark:to-emerald-800/40 border-emerald-200 dark:border-emerald-700">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-emerald-600 dark:text-emerald-400">Current Month / চলতি মাস</p>
+                    <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">চলতি মাসের বেতন</p>
                     <p className="text-2xl font-bold text-emerald-800 dark:text-emerald-200">
                       {formatCurrency(dashboard?.current_month?.total_net || 0)}
                     </p>
@@ -435,55 +435,65 @@ const Payroll = () => {
                       {dashboard?.current_month?.month_name} {dashboard?.current_month?.year}
                     </p>
                   </div>
-                  <Wallet className="h-10 w-10 text-emerald-500" />
+                  <div className="h-12 w-12 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                    <Wallet className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+                  </div>
                 </div>
                 <div className="mt-2">
-                  {getস্ট্যাটাসBadge(dashboard?.current_month?.status || 'not_processed')}
+                  {getStatusBadge(dashboard?.current_month?.status || 'not_processed')}
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/40 dark:to-blue-800/40 border-blue-200 dark:border-blue-700">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-blue-600 dark:text-blue-400">Active Employees / সক্রিয় কর্মচারী</p>
+                    <p className="text-sm font-medium text-blue-700 dark:text-blue-300">সক্রিয় কর্মচারী</p>
                     <p className="text-2xl font-bold text-blue-800 dark:text-blue-200">
                       {dashboard?.active_employees || 0}
                     </p>
+                    <p className="text-sm text-blue-600 dark:text-blue-400">জন</p>
                   </div>
-                  <Users className="h-10 w-10 text-blue-500" />
+                  <div className="h-12 w-12 rounded-full bg-blue-500/20 flex items-center justify-center">
+                    <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800">
+            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/40 dark:to-purple-800/40 border-purple-200 dark:border-purple-700">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-purple-600 dark:text-purple-400">Year to Date / বছর পর্যন্ত</p>
+                    <p className="text-sm font-medium text-purple-700 dark:text-purple-300">বছর পর্যন্ত মোট</p>
                     <p className="text-2xl font-bold text-purple-800 dark:text-purple-200">
                       {formatCurrency(dashboard?.year_to_date_total || 0)}
                     </p>
                     <p className="text-sm text-purple-600 dark:text-purple-400">
-                      {dashboard?.processed_months || 0} months processed
+                      {dashboard?.processed_months || 0} মাস প্রক্রিয়াকৃত
                     </p>
                   </div>
-                  <TrendingUp className="h-10 w-10 text-purple-500" />
+                  <div className="h-12 w-12 rounded-full bg-purple-500/20 flex items-center justify-center">
+                    <TrendingUp className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800">
+            <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/40 dark:to-orange-800/40 border-orange-200 dark:border-orange-700">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-orange-600 dark:text-orange-400">বকেয়া Advances / বকেয়া অগ্রিম</p>
+                    <p className="text-sm font-medium text-orange-700 dark:text-orange-300">বকেয়া অগ্রিম</p>
                     <p className="text-2xl font-bold text-orange-800 dark:text-orange-200">
                       {dashboard?.pending_advances || 0}
                     </p>
+                    <p className="text-sm text-orange-600 dark:text-orange-400">টি সক্রিয়</p>
                   </div>
-                  <AlertCircle className="h-10 w-10 text-orange-500" />
+                  <div className="h-12 w-12 rounded-full bg-orange-500/20 flex items-center justify-center">
+                    <AlertCircle className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -492,14 +502,14 @@ const Payroll = () => {
           <Card className="bg-white dark:bg-gray-800">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <RefreshCw className="h-5 w-5" />
-                বেতন প্রক্রিয়া করুন / বেতন প্রক্রিয়া
+                <RefreshCw className="h-5 w-5 text-emerald-600" />
+                বেতন প্রক্রিয়া করুন
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-4 items-end">
                 <div className="space-y-2">
-                  <Label>Year / বছর</Label>
+                  <Label>বছর</Label>
                   <Select value={String(processYear)} onValueChange={(v) => setProcessYear(Number(v))}>
                     <SelectTrigger className="w-32">
                       <SelectValue />
@@ -512,7 +522,7 @@ const Payroll = () => {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Month / মাস</Label>
+                  <Label>মাস</Label>
                   <Select value={String(processMonth)} onValueChange={(v) => setProcessMonth(Number(v))}>
                     <SelectTrigger className="w-48">
                       <SelectValue />
@@ -530,7 +540,7 @@ const Payroll = () => {
                   className="bg-emerald-600 hover:bg-emerald-700"
                 >
                   {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                  বেতন প্রক্রিয়া করুন / বেতন প্রক্রিয়া করুন
+                  বেতন প্রক্রিয়া করুন
                 </Button>
               </div>
             </CardContent>
@@ -541,9 +551,9 @@ const Payroll = () => {
           <Card className="bg-white dark:bg-gray-800">
             <CardHeader>
               <div className="flex justify-between items-center">
-                <CardTitle>Payroll List / বেতনের তালিকা</CardTitle>
+                <CardTitle>বেতনের তালিকা</CardTitle>
                 <div className="flex gap-2 items-center">
-                  <Label>Year:</Label>
+                  <Label>বছর:</Label>
                   <Select value={String(filterYear)} onValueChange={(v) => setFilterYear(Number(v))}>
                     <SelectTrigger className="w-24">
                       <SelectValue />
@@ -565,11 +575,11 @@ const Payroll = () => {
                       <h3 className="text-xl font-bold text-gray-900 dark:text-white">
                         {selectedPayroll.month_name} {selectedPayroll.year}
                       </h3>
-                      {getস্ট্যাটাসBadge(selectedPayroll.status)}
+                      {getStatusBadge(selectedPayroll.status)}
                     </div>
                     <div className="flex gap-2">
                       <Button variant="outline" onClick={() => setSelectedPayroll(null)}>
-                        Back / ফিরে যান
+                        ফিরে যান
                       </Button>
                       {selectedPayroll.status === 'draft' && (
                         <>
@@ -578,13 +588,13 @@ const Payroll = () => {
                             onClick={() => handleApprovePayroll(selectedPayroll.id, 'approve')}
                           >
                             <Check className="h-4 w-4 mr-2" />
-                            Approve / অনুমোদন
+                            অনুমোদন
                           </Button>
                           <Button 
                             variant="destructive"
                             onClick={() => handleApprovePayroll(selectedPayroll.id, 'reject')}
                           >
-                            Reject / প্রত্যাখ্যান
+                            প্রত্যাখ্যান
                           </Button>
                         </>
                       )}
@@ -594,7 +604,7 @@ const Payroll = () => {
                           onClick={() => handleLockPayroll(selectedPayroll.id)}
                         >
                           <Lock className="h-4 w-4 mr-2" />
-                          Lock / লক করুন
+                          লক করুন
                         </Button>
                       )}
                       <Button 
@@ -602,7 +612,7 @@ const Payroll = () => {
                         onClick={() => handleDownloadReport('excel')}
                       >
                         <Download className="h-4 w-4 mr-2" />
-                        Excel
+                        এক্সেল
                       </Button>
                     </div>
                   </div>
@@ -610,7 +620,7 @@ const Payroll = () => {
                   <div className="grid grid-cols-3 gap-4 mb-4">
                     <Card className="bg-gray-50 dark:bg-gray-700">
                       <CardContent className="p-4 text-center">
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Total Gross</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">মোট আয়</p>
                         <p className="text-xl font-bold text-gray-900 dark:text-white">
                           {formatCurrency(selectedPayroll.total_gross_salary)}
                         </p>
@@ -626,7 +636,7 @@ const Payroll = () => {
                     </Card>
                     <Card className="bg-gray-50 dark:bg-gray-700">
                       <CardContent className="p-4 text-center">
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Total Net</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">নেট বেতন</p>
                         <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
                           {formatCurrency(selectedPayroll.total_net_salary)}
                         </p>
@@ -637,13 +647,13 @@ const Payroll = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Employee / কর্মচারী</TableHead>
-                        <TableHead>Department / বিভাগ</TableHead>
-                        <TableHead className="text-right">Gross / মোট</TableHead>
-                        <TableHead className="text-right">Deductions / কর্তন</TableHead>
-                        <TableHead className="text-right">Net / নিট</TableHead>
-                        <TableHead>Payment / পরিশোধ</TableHead>
-                        <TableHead>একশন / কার্যক্রম</TableHead>
+                        <TableHead>কর্মচারী</TableHead>
+                        <TableHead>বিভাগ</TableHead>
+                        <TableHead className="text-right">মোট আয়</TableHead>
+                        <TableHead className="text-right">কর্তন</TableHead>
+                        <TableHead className="text-right">নেট</TableHead>
+                        <TableHead>পরিশোধ</TableHead>
+                        <TableHead>কার্যক্রম</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -671,7 +681,7 @@ const Payroll = () => {
                             {formatCurrency(item.net_salary)}
                           </TableCell>
                           <TableCell>
-                            {getস্ট্যাটাসBadge(item.payment?.status || 'unpaid')}
+                            {getStatusBadge(item.payment?.status || 'unpaid')}
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-1">
@@ -711,12 +721,12 @@ const Payroll = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Month / মাস</TableHead>
-                      <TableHead>স্ট্যাটাস / অবস্থা</TableHead>
-                      <TableHead className="text-right">Employees / কর্মচারী</TableHead>
-                      <TableHead className="text-right">Gross / মোট</TableHead>
-                      <TableHead className="text-right">Net / নিট</TableHead>
-                      <TableHead>একশন / কার্যক্রম</TableHead>
+                      <TableHead>মাস</TableHead>
+                      <TableHead>অবস্থা</TableHead>
+                      <TableHead className="text-right">কর্মচারী</TableHead>
+                      <TableHead className="text-right">মোট আয়</TableHead>
+                      <TableHead className="text-right">নেট বেতন</TableHead>
+                      <TableHead>কার্যক্রম</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -729,7 +739,7 @@ const Payroll = () => {
                     ) : payrolls.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                          No payrolls found for {filterYear}
+                          {filterYear} সালের কোনো বেতন পাওয়া যায়নি
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -738,7 +748,7 @@ const Payroll = () => {
                           <TableCell className="font-medium">
                             {payroll.month_name} {payroll.year}
                           </TableCell>
-                          <TableCell>{getস্ট্যাটাসBadge(payroll.status)}</TableCell>
+                          <TableCell>{getStatusBadge(payroll.status)}</TableCell>
                           <TableCell className="text-right">{payroll.total_employees}</TableCell>
                           <TableCell className="text-right">{formatCurrency(payroll.total_gross_salary)}</TableCell>
                           <TableCell className="text-right font-bold text-emerald-600">
@@ -751,7 +761,7 @@ const Payroll = () => {
                               onClick={() => fetchPayrollDetails(payroll.id)}
                             >
                               <Eye className="h-4 w-4 mr-1" />
-                              View
+                              দেখুন
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -768,10 +778,10 @@ const Payroll = () => {
           <Card className="bg-white dark:bg-gray-800">
             <CardHeader>
               <div className="flex justify-between items-center">
-                <CardTitle>Salary Structures / বেতন কাঠামো</CardTitle>
+                <CardTitle>বেতন কাঠামো</CardTitle>
                 <Button onClick={() => setShowSalaryForm(true)}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Structure
+                  কাঠামো যোগ করুন
                 </Button>
               </div>
             </CardHeader>
@@ -779,14 +789,14 @@ const Payroll = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Employee / কর্মচারী</TableHead>
-                    <TableHead>Department / বিভাগ</TableHead>
-                    <TableHead className="text-right">Basic / মূল</TableHead>
-                    <TableHead className="text-right">HRA</TableHead>
-                    <TableHead className="text-right">Food / খাবার</TableHead>
-                    <TableHead className="text-right">Transport / পরিবহন</TableHead>
-                    <TableHead className="text-right">Total / মোট</TableHead>
-                    <TableHead>স্ট্যাটাস</TableHead>
+                    <TableHead>কর্মচারী</TableHead>
+                    <TableHead>বিভাগ</TableHead>
+                    <TableHead className="text-right">মূল বেতন</TableHead>
+                    <TableHead className="text-right">বাসা ভাড়া</TableHead>
+                    <TableHead className="text-right">খাবার</TableHead>
+                    <TableHead className="text-right">যাতায়াত</TableHead>
+                    <TableHead className="text-right">মোট</TableHead>
+                    <TableHead>অবস্থা</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -815,7 +825,7 @@ const Payroll = () => {
                       </TableCell>
                       <TableCell>
                         <Badge className={struct.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
-                          {struct.is_active ? 'Active' : 'Inactive'}
+                          {struct.is_active ? 'সক্রিয়' : 'নিষ্ক্রিয়'}
                         </Badge>
                       </TableCell>
                     </TableRow>
@@ -830,7 +840,7 @@ const Payroll = () => {
           <Card className="bg-white dark:bg-gray-800">
             <CardHeader>
               <div className="flex justify-between items-center">
-                <CardTitle>Bonuses / বোনাস</CardTitle>
+                <CardTitle>বোনাস তালিকা</CardTitle>
                 <Button onClick={() => setShowBonusForm(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   বোনাস যোগ করুন
@@ -841,11 +851,11 @@ const Payroll = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Bonus Name / বোনাসের নাম</TableHead>
-                    <TableHead>Type / ধরন</TableHead>
-                    <TableHead>Applicable To / প্রযোজ্য</TableHead>
-                    <TableHead className="text-right">পরিমাণ / পরিমাণ</TableHead>
-                    <TableHead>Month / মাস</TableHead>
+                    <TableHead>বোনাসের নাম</TableHead>
+                    <TableHead>ধরন</TableHead>
+                    <TableHead>প্রযোজ্য</TableHead>
+                    <TableHead className="text-right">পরিমাণ</TableHead>
+                    <TableHead>মাস</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -854,7 +864,7 @@ const Payroll = () => {
                       <TableCell className="font-medium">{bonus.bonus_name}</TableCell>
                       <TableCell>
                         <Badge variant="outline">
-                          {bonus.bonus_type === 'percentage' ? 'Percentage' : 'Fixed'}
+                          {bonus.bonus_type === 'percentage' ? 'শতাংশ' : 'নির্দিষ্ট'}
                         </Badge>
                       </TableCell>
                       <TableCell>{bonus.applicable_to}</TableCell>
@@ -864,7 +874,7 @@ const Payroll = () => {
                           : formatCurrency(bonus.amount)}
                       </TableCell>
                       <TableCell>
-                        {months.find(m => m.value === bonus.effective_month)?.label.split(' / ')[0]} {bonus.effective_year}
+                        {months.find(m => m.value === bonus.effective_month)?.label} {bonus.effective_year}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -878,7 +888,7 @@ const Payroll = () => {
           <Card className="bg-white dark:bg-gray-800">
             <CardHeader>
               <div className="flex justify-between items-center">
-                <CardTitle>Advances & Loans / অগ্রিম ও ঋণ</CardTitle>
+                <CardTitle>অগ্রিম ও ঋণ</CardTitle>
                 <Button onClick={() => setShowAdvanceForm(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   অগ্রিম যোগ করুন
@@ -889,12 +899,12 @@ const Payroll = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Employee / কর্মচারী</TableHead>
-                    <TableHead>Reason / কারণ</TableHead>
-                    <TableHead className="text-right">পরিমাণ / পরিমাণ</TableHead>
-                    <TableHead className="text-right">Monthly Deduction / মাসিক কর্তন</TableHead>
-                    <TableHead className="text-right">Remaining / বাকি</TableHead>
-                    <TableHead>স্ট্যাটাস</TableHead>
+                    <TableHead>কর্মচারী</TableHead>
+                    <TableHead>কারণ</TableHead>
+                    <TableHead className="text-right">পরিমাণ</TableHead>
+                    <TableHead className="text-right">মাসিক কর্তন</TableHead>
+                    <TableHead className="text-right">বাকি</TableHead>
+                    <TableHead>অবস্থা</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -909,7 +919,7 @@ const Payroll = () => {
                       </TableCell>
                       <TableCell>
                         <Badge className={advance.is_active ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}>
-                          {advance.is_active ? 'Active' : 'Settled'}
+                          {advance.is_active ? 'সক্রিয়' : 'নিষ্পত্তি'}
                         </Badge>
                       </TableCell>
                     </TableRow>
@@ -923,19 +933,19 @@ const Payroll = () => {
         <TabsContent value="payments">
           <Card className="bg-white dark:bg-gray-800">
             <CardHeader>
-              <CardTitle>Payment Records / পেমেন্ট রেকর্ড</CardTitle>
+              <CardTitle>পেমেন্ট রেকর্ড</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Employee / কর্মচারী</TableHead>
-                    <TableHead>Month / মাস</TableHead>
-                    <TableHead className="text-right">নেট বেতন / নিট বেতন</TableHead>
-                    <TableHead>Method / পদ্ধতি</TableHead>
-                    <TableHead>Reference / রেফারেন্স</TableHead>
+                    <TableHead>কর্মচারী</TableHead>
+                    <TableHead>মাস</TableHead>
+                    <TableHead className="text-right">নেট বেতন</TableHead>
+                    <TableHead>পদ্ধতি</TableHead>
+                    <TableHead>রেফারেন্স</TableHead>
                     <TableHead>তারিখ</TableHead>
-                    <TableHead>স্ট্যাটাস</TableHead>
+                    <TableHead>অবস্থা</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -943,13 +953,13 @@ const Payroll = () => {
                     <TableRow key={idx}>
                       <TableCell className="font-medium">{payment.employee_name}</TableCell>
                       <TableCell>
-                        {months.find(m => m.value === payment.month)?.label.split(' / ')[0]} {payment.year}
+                        {months.find(m => m.value === payment.month)?.label} {payment.year}
                       </TableCell>
                       <TableCell className="text-right font-bold">{formatCurrency(payment.net_salary)}</TableCell>
                       <TableCell>{payment.payment_method || '-'}</TableCell>
                       <TableCell>{payment.payment_reference || '-'}</TableCell>
                       <TableCell>{payment.payment_date || '-'}</TableCell>
-                      <TableCell>{getস্ট্যাটাসBadge(payment.payment_status)}</TableCell>
+                      <TableCell>{getStatusBadge(payment.payment_status)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -961,57 +971,57 @@ const Payroll = () => {
         <TabsContent value="settings">
           <Card className="bg-white dark:bg-gray-800">
             <CardHeader>
-              <CardTitle>Payroll Settings / বেতন সেটিংস</CardTitle>
+              <CardTitle>বেতন সেটিংস</CardTitle>
             </CardHeader>
             <CardContent>
               {settings ? (
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-4">
-                    <h3 className="font-semibold text-lg">Attendance Rules / উপস্থিতি নিয়ম</h3>
+                    <h3 className="font-semibold text-lg">উপস্থিতি নিয়ম</h3>
                     <div className="space-y-2">
                       <div className="flex justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded">
-                        <span>Working Days/Month</span>
+                        <span>কর্মদিবস/মাস</span>
                         <span className="font-bold">{settings.working_days_per_month}</span>
                       </div>
                       <div className="flex justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded">
-                        <span>Late Deduction Enabled</span>
+                        <span>বিলম্ব কর্তন সক্রিয়</span>
                         <Badge className={settings.late_deduction_enabled ? 'bg-green-100' : 'bg-gray-100'}>
-                          {settings.late_deduction_enabled ? 'Yes' : 'No'}
+                          {settings.late_deduction_enabled ? 'হ্যাঁ' : 'না'}
                         </Badge>
                       </div>
                       <div className="flex justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded">
-                        <span>Late Days Threshold</span>
-                        <span className="font-bold">{settings.late_days_threshold} days</span>
+                        <span>বিলম্ব দিন সীমা</span>
+                        <span className="font-bold">{settings.late_days_threshold} দিন</span>
                       </div>
                       <div className="flex justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded">
-                        <span>Late Deduction পরিমাণ</span>
+                        <span>বিলম্ব কর্তন পরিমাণ</span>
                         <span className="font-bold">{formatCurrency(settings.late_deduction_amount)}</span>
                       </div>
                     </div>
                   </div>
                   <div className="space-y-4">
-                    <h3 className="font-semibold text-lg">Deduction Rules / কর্তন নিয়ম</h3>
+                    <h3 className="font-semibold text-lg">কর্তন নিয়ম</h3>
                     <div className="space-y-2">
                       <div className="flex justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded">
-                        <span>Absent Deduction/Day</span>
+                        <span>অনুপস্থিত কর্তন/দিন</span>
                         <span className="font-bold">
                           {settings.absent_deduction_per_day > 0 
                             ? formatCurrency(settings.absent_deduction_per_day)
-                            : 'Daily Rate'}
+                            : 'দৈনিক হার'}
                         </span>
                       </div>
                       <div className="flex justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded">
-                        <span>Half-day Deduction Rate</span>
+                        <span>অর্ধদিবস কর্তন হার</span>
                         <span className="font-bold">{(settings.half_day_deduction_rate * 100)}%</span>
                       </div>
                       <div className="flex justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded">
-                        <span>Overtime Enabled</span>
+                        <span>ওভারটাইম সক্রিয়</span>
                         <Badge className={settings.overtime_enabled ? 'bg-green-100' : 'bg-gray-100'}>
-                          {settings.overtime_enabled ? 'Yes' : 'No'}
+                          {settings.overtime_enabled ? 'হ্যাঁ' : 'না'}
                         </Badge>
                       </div>
                       <div className="flex justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded">
-                        <span>Overtime Rate/Hour</span>
+                        <span>ওভারটাইম হার/ঘণ্টা</span>
                         <span className="font-bold">{formatCurrency(settings.overtime_rate_per_hour)}</span>
                       </div>
                     </div>
@@ -1020,9 +1030,9 @@ const Payroll = () => {
               ) : (
                 <div className="text-center py-8 text-gray-500">
                   <Settings className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <p>No payroll settings configured yet</p>
+                  <p>এখনো কোনো বেতন সেটিংস কনফিগার করা হয়নি</p>
                   <Button className="mt-4" onClick={() => setShowSettingsForm(true)}>
-                    Configure Settings
+                    সেটিংস কনফিগার করুন
                   </Button>
                 </div>
               )}
@@ -1035,7 +1045,7 @@ const Payroll = () => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <Card className="w-full max-w-md">
             <CardHeader>
-              <CardTitle>পেমেন্ট রেকর্ড / পেমেন্ট রেকর্ড</CardTitle>
+              <CardTitle>পেমেন্ট রেকর্ড করুন</CardTitle>
             </CardHeader>
             <CardContent>
               <PaymentForm
@@ -1071,11 +1081,11 @@ const PaymentForm = ({ item, onSubmit, onCancel }) => {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <p className="font-medium">{item.employee_name}</p>
-        <p className="text-lg font-bold text-emerald-600">Net: ৳{item.net_salary?.toLocaleString()}</p>
+        <p className="text-lg font-bold text-emerald-600">নেট বেতন: ৳{item.net_salary?.toLocaleString()}</p>
       </div>
       
       <div className="space-y-2">
-        <Label>Payment Method / পদ্ধতি</Label>
+        <Label>পেমেন্ট পদ্ধতি</Label>
         <Select 
           value={formData.payment_method} 
           onValueChange={(v) => setFormData({...formData, payment_method: v})}
@@ -1084,26 +1094,26 @@ const PaymentForm = ({ item, onSubmit, onCancel }) => {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="Bank">Bank Transfer</SelectItem>
-            <SelectItem value="bKash">bKash</SelectItem>
-            <SelectItem value="Nagad">Nagad</SelectItem>
-            <SelectItem value="Rocket">Rocket</SelectItem>
-            <SelectItem value="Cash">Cash</SelectItem>
+            <SelectItem value="Bank">ব্যাংক ট্রান্সফার</SelectItem>
+            <SelectItem value="bKash">বিকাশ</SelectItem>
+            <SelectItem value="Nagad">নগদ</SelectItem>
+            <SelectItem value="Rocket">রকেট</SelectItem>
+            <SelectItem value="Cash">নগদ টাকা</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <div className="space-y-2">
-        <Label>Reference Number / রেফারেন্স</Label>
+        <Label>রেফারেন্স নম্বর</Label>
         <Input
           value={formData.payment_reference}
           onChange={(e) => setFormData({...formData, payment_reference: e.target.value})}
-          placeholder="Transaction ID or reference"
+          placeholder="ট্রান্সেকশন আইডি বা রেফারেন্স"
         />
       </div>
 
       <div className="space-y-2">
-        <Label>Payment তারিখ</Label>
+        <Label>পেমেন্ট তারিখ</Label>
         <Input
           type="date"
           value={formData.payment_date}
@@ -1112,20 +1122,20 @@ const PaymentForm = ({ item, onSubmit, onCancel }) => {
       </div>
 
       <div className="space-y-2">
-        <Label>Remarks / মন্তব্য</Label>
+        <Label>মন্তব্য</Label>
         <Input
           value={formData.remarks}
           onChange={(e) => setFormData({...formData, remarks: e.target.value})}
-          placeholder="Optional remarks"
+          placeholder="ঐচ্ছিক মন্তব্য"
         />
       </div>
 
       <div className="flex gap-2 justify-end">
         <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
+          বাতিল
         </Button>
         <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700">
-          পেমেন্ট রেকর্ড
+          পেমেন্ট রেকর্ড করুন
         </Button>
       </div>
     </form>
