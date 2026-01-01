@@ -15773,6 +15773,137 @@ async def download_conduct_certificate_pdf(
         logging.error(f"Failed to download conduct certificate PDF: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to download PDF")
 
+# ==================== APPRECIATION CERTIFICATES ====================
+
+class AppreciationCertificateRequest(BaseModel):
+    student_id: str
+    student_name: str
+    admission_no: Optional[str] = None
+    class_name: str
+    section: Optional[str] = None
+    achievement: str
+    remarks: Optional[str] = None
+    issue_date: Optional[str] = None
+    status: str = "issued"
+
+@api_router.post("/appreciation-certificates")
+async def create_appreciation_certificate(
+    data: AppreciationCertificateRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new appreciation certificate"""
+    try:
+        student = await db.students.find_one({
+            "id": data.student_id,
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        })
+        
+        if not student:
+            raise HTTPException(status_code=404, detail="Student not found")
+        
+        cert = {
+            "id": str(uuid.uuid4()),
+            "tenant_id": current_user.tenant_id,
+            "school_id": getattr(current_user, 'school_id', None),
+            "student_id": data.student_id,
+            "student_name": data.student_name,
+            "admission_no": data.admission_no or "",
+            "class_name": data.class_name,
+            "section": data.section or "",
+            "achievement": data.achievement,
+            "remarks": data.remarks or "",
+            "issue_date": data.issue_date or datetime.now().strftime('%Y-%m-%d'),
+            "status": data.status,
+            "created_by": current_user.id,
+            "created_at": datetime.now(),
+            "updated_at": datetime.now()
+        }
+        
+        await db.appreciation_certificates.insert_one(cert)
+        cert.pop("_id", None)
+        
+        logging.info(f"Appreciation certificate created for {data.student_name} by {current_user.full_name}")
+        return cert
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Failed to create appreciation certificate: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to create appreciation certificate")
+
+@api_router.get("/appreciation-certificates")
+async def get_appreciation_certificates(
+    status: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all appreciation certificates"""
+    try:
+        filter_criteria = {"tenant_id": current_user.tenant_id}
+        
+        if status and status != "all":
+            filter_criteria["status"] = status
+        
+        certs = await db.appreciation_certificates.find(filter_criteria).sort("created_at", -1).to_list(1000)
+        
+        for cert in certs:
+            cert.pop("_id", None)
+        
+        logging.info(f"Retrieved {len(certs)} appreciation certificates for {current_user.full_name}")
+        return {"appreciation_certificates": certs}
+        
+    except Exception as e:
+        logging.error(f"Failed to get appreciation certificates: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve appreciation certificates")
+
+@api_router.get("/appreciation-certificates/{cert_id}")
+async def get_appreciation_certificate(
+    cert_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get a specific appreciation certificate"""
+    try:
+        cert = await db.appreciation_certificates.find_one({
+            "id": cert_id,
+            "tenant_id": current_user.tenant_id
+        })
+        
+        if not cert:
+            raise HTTPException(status_code=404, detail="Appreciation certificate not found")
+        
+        cert.pop("_id", None)
+        return cert
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Failed to get appreciation certificate: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve appreciation certificate")
+
+@api_router.delete("/appreciation-certificates/{cert_id}")
+async def delete_appreciation_certificate(
+    cert_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete an appreciation certificate"""
+    try:
+        result = await db.appreciation_certificates.delete_one({
+            "id": cert_id,
+            "tenant_id": current_user.tenant_id
+        })
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Certificate not found")
+        
+        return {"message": "Certificate deleted successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Failed to delete appreciation certificate: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to delete certificate")
+
+
 # ==================== HSS CONSOLIDATED REPORT ====================
 
 @api_router.get("/hss/consolidated")
