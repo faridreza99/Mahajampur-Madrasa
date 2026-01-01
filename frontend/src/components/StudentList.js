@@ -2695,236 +2695,406 @@ const StudentList = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Student Dialog */}
+      {/* Edit Student Dialog - Same style as Add form */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className={`${isMadrasahSimpleUI ? 'max-w-lg' : 'max-w-2xl'} max-h-[90vh] overflow-y-auto`}>
           <DialogHeader>
-            <DialogTitle>{editingStudent ? 'ছাত্র/ছাত্রী সম্পাদনা' : 'নতুন ছাত্র/ছাত্রী ভর্তি'}</DialogTitle>
+            <DialogTitle>{isMadrasahSimpleUI ? 'ছাত্র/ছাত্রী সম্পাদনা' : 'Edit Student'}</DialogTitle>
             <DialogDescription>
-              {editingStudent ? 'ছাত্র/ছাত্রীর তথ্য আপডেট করুন। * চিহ্নিত ফিল্ড আবশ্যক।' : 'নতুন ছাত্র/ছাত্রীর তথ্য প্রদান করুন। * চিহ্নিত ফিল্ড আবশ্যক।'}
+              {isMadrasahSimpleUI 
+                ? 'ছাত্র/ছাত্রীর তথ্য আপডেট করুন। * চিহ্নিত ঘর অবশ্যই পূরণ করতে হবে।'
+                : 'Update student information. Fields marked with * are required.'}
             </DialogDescription>
           </DialogHeader>
+          
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Photo Upload Section */}
-            <div className="flex flex-col items-center space-y-3 pb-4 border-b">
-              <div className="relative">
-                {photoPreview || editingStudent?.photo_url ? (
-                  <img 
-                    src={photoPreview || (editingStudent?.photo_url ? `${BASE_URL}${editingStudent.photo_url}` : '')} 
-                    alt="Student" 
-                    className="w-24 h-24 rounded-full object-cover border-4 border-emerald-100"
+            {/* Madrasah Simple Edit Form */}
+            {isMadrasahSimpleUI ? (
+              <div className="space-y-4">
+                {/* Photo Section */}
+                <div className="flex flex-col items-center space-y-2 pb-4 border-b">
+                  {photoPreview || editingStudent?.photo_url ? (
+                    <img 
+                      src={photoPreview || (editingStudent?.photo_url ? `${BASE_URL}${editingStudent.photo_url}` : '')} 
+                      alt="Student" 
+                      className="w-20 h-20 rounded-full object-cover border-4 border-emerald-100"
+                    />
+                  ) : (
+                    <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center">
+                      <Camera className="h-6 w-6 text-gray-400" />
+                    </div>
+                  )}
+                  <Label htmlFor="edit-student-photo-simple" className="cursor-pointer text-emerald-600 text-sm">
+                    {photoPreview || editingStudent?.photo_url ? 'ছবি পরিবর্তন' : 'ছবি আপলোড'}
+                    <Input
+                      id="edit-student-photo-simple"
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoChange}
+                      className="hidden"
+                    />
+                  </Label>
+                </div>
+                
+                <div>
+                  <Label htmlFor="edit_name" className="text-base font-semibold">ছাত্রের নাম *</Label>
+                  <Input
+                    id="edit_name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    placeholder="ছাত্রের পুরো নাম লিখুন"
+                    className="text-lg py-3"
+                    required
                   />
-                ) : (
-                  <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center border-4 border-gray-200">
-                    <Camera className="h-8 w-8 text-gray-400" />
+                </div>
+                <div>
+                  <Label htmlFor="edit_father_name" className="text-base font-semibold">পিতার নাম *</Label>
+                  <Input
+                    id="edit_father_name"
+                    value={formData.father_name}
+                    onChange={(e) => setFormData({...formData, father_name: e.target.value})}
+                    placeholder="পিতার নাম লিখুন"
+                    className="text-lg py-3"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit_phone" className="text-base font-semibold">মোবাইল নম্বর *</Label>
+                  <Input
+                    id="edit_phone"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    placeholder="০১XXXXXXXXX"
+                    className="text-lg py-3"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit_class_id" className="text-base font-semibold">মারহালা / শ্রেণি *</Label>
+                  <Select 
+                    value={formData.class_id} 
+                    onValueChange={(value) => {
+                      setFormData({...formData, class_id: value, section_id: ''});
+                      fetchSections(value);
+                    }}
+                  >
+                    <SelectTrigger className="text-lg py-3">
+                      <SelectValue placeholder="মারহালা নির্বাচন করুন" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {classes.length === 0 ? (
+                        <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                          কোনো মারহালা পাওয়া যায়নি।
+                        </div>
+                      ) : (
+                        classes.map((cls) => (
+                          <SelectItem key={cls.id} value={cls.id}>
+                            {cls.name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {formData.class_id && sections.length > 0 && (
+                  <div>
+                    <Label htmlFor="edit_section_id" className="text-base font-semibold">শাখা</Label>
+                    <Select value={formData.section_id} onValueChange={(value) => setFormData({...formData, section_id: value})}>
+                      <SelectTrigger className="text-lg py-3">
+                        <SelectValue placeholder="শাখা নির্বাচন করুন" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sections.map((section) => (
+                          <SelectItem key={section.id} value={section.id}>
+                            {section.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 )}
-              </div>
-              <Label htmlFor="edit-student-photo" className="cursor-pointer">
-                <div className="flex items-center space-x-2 text-emerald-600 hover:text-emerald-700">
-                  <Camera className="h-4 w-4" />
-                  <span>{photoPreview || editingStudent?.photo_url ? 'ছবি পরিবর্তন' : 'ছবি আপলোড'}</span>
+                <div>
+                  <Label htmlFor="edit_roll_no" className="text-base font-semibold">রোল নম্বর *</Label>
+                  <Input
+                    id="edit_roll_no"
+                    value={formData.roll_no}
+                    onChange={(e) => setFormData({...formData, roll_no: e.target.value})}
+                    placeholder="যেমন: ১, ২, ৩..."
+                    className="text-lg py-3"
+                    required
+                  />
                 </div>
-                <Input
-                  id="edit-student-photo"
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoChange}
-                  className="hidden"
-                />
-              </Label>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="admission_no">ভর্তি নম্বর *</Label>
-                <Input
-                  id="admission_no"
-                  value={formData.admission_no}
-                  onChange={(e) => setFormData({...formData, admission_no: e.target.value})}
-                  required
-                />
+                
+                {/* Optional fields collapsed */}
+                <details className="border rounded-lg p-3">
+                  <summary className="cursor-pointer text-sm text-muted-foreground">অতিরিক্ত তথ্য (ক্লিক করুন)</summary>
+                  <div className="mt-3 space-y-3">
+                    <div>
+                      <Label htmlFor="edit_admission_no">ভর্তি নম্বর</Label>
+                      <Input
+                        id="edit_admission_no"
+                        value={formData.admission_no}
+                        onChange={(e) => setFormData({...formData, admission_no: e.target.value})}
+                        placeholder="ভর্তি নম্বর"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="edit_email">ইমেইল</Label>
+                      <Input
+                        id="edit_email"
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                        placeholder="example@email.com"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="edit_father_whatsapp">পিতার হোয়াটসঅ্যাপ</Label>
+                      <Input
+                        id="edit_father_whatsapp"
+                        value={formData.father_whatsapp}
+                        onChange={(e) => setFormData({...formData, father_whatsapp: e.target.value})}
+                        placeholder="হোয়াটসঅ্যাপ নম্বর"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="edit_mother_name">মাতার নাম</Label>
+                      <Input
+                        id="edit_mother_name"
+                        value={formData.mother_name}
+                        onChange={(e) => setFormData({...formData, mother_name: e.target.value})}
+                        placeholder="মাতার নাম"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="edit_address">ঠিকানা</Label>
+                      <Input
+                        id="edit_address"
+                        value={formData.address}
+                        onChange={(e) => setFormData({...formData, address: e.target.value})}
+                        placeholder="গ্রাম, থানা, জেলা"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="edit_date_of_birth">জন্ম তারিখ</Label>
+                      <Input
+                        id="edit_date_of_birth"
+                        type="date"
+                        value={formData.date_of_birth}
+                        onChange={(e) => setFormData({...formData, date_of_birth: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="edit_gender">লিঙ্গ</Label>
+                      <Select value={formData.gender} onValueChange={(value) => setFormData({...formData, gender: value})}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="লিঙ্গ নির্বাচন করুন" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Male">পুরুষ</SelectItem>
+                          <SelectItem value="Female">মহিলা</SelectItem>
+                          <SelectItem value="Other">অন্যান্য</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </details>
               </div>
-              <div>
-                <Label htmlFor="roll_no">রোল নম্বর *</Label>
-                <Input
-                  id="roll_no"
-                  value={formData.roll_no}
-                  onChange={(e) => setFormData({...formData, roll_no: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="md:col-span-2">
-                <Label htmlFor="name">পুরো নাম *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="father_name">পিতার নাম *</Label>
-                <Input
-                  id="father_name"
-                  value={formData.father_name}
-                  onChange={(e) => setFormData({...formData, father_name: e.target.value})}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit_father_phone">পিতার ফোন</Label>
-                <Input
-                  id="edit_father_phone"
-                  value={formData.father_phone}
-                  onChange={(e) => setFormData({...formData, father_phone: e.target.value})}
-                  placeholder="পিতার ফোন নম্বর"
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit_father_whatsapp">পিতার হোয়াটসঅ্যাপ</Label>
-                <Input
-                  id="edit_father_whatsapp"
-                  value={formData.father_whatsapp}
-                  onChange={(e) => setFormData({...formData, father_whatsapp: e.target.value})}
-                  placeholder="পিতার হোয়াটসঅ্যাপ নম্বর"
-                />
-              </div>
-              <div>
-                <Label htmlFor="mother_name">মাতার নাম *</Label>
-                <Input
-                  id="mother_name"
-                  value={formData.mother_name}
-                  onChange={(e) => setFormData({...formData, mother_name: e.target.value})}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit_mother_phone">মাতার ফোন</Label>
-                <Input
-                  id="edit_mother_phone"
-                  value={formData.mother_phone}
-                  onChange={(e) => setFormData({...formData, mother_phone: e.target.value})}
-                  placeholder="মাতার ফোন নম্বর"
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit_mother_whatsapp">মাতার হোয়াটসঅ্যাপ</Label>
-                <Input
-                  id="edit_mother_whatsapp"
-                  value={formData.mother_whatsapp}
-                  onChange={(e) => setFormData({...formData, mother_whatsapp: e.target.value})}
-                  placeholder="মাতার হোয়াটসঅ্যাপ নম্বর"
-                />
-              </div>
-              <div>
-                <Label htmlFor="date_of_birth">জন্ম তারিখ *</Label>
-                <Input
-                  id="date_of_birth"
-                  type="date"
-                  value={formData.date_of_birth}
-                  onChange={(e) => setFormData({...formData, date_of_birth: e.target.value})}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="gender">লিঙ্গ *</Label>
-                <Select value={formData.gender} onValueChange={(value) => setFormData({...formData, gender: value})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="লিঙ্গ নির্বাচন করুন" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Male">পুরুষ</SelectItem>
-                    <SelectItem value="Female">মহিলা</SelectItem>
-                    <SelectItem value="Other">অন্যান্য</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="class_id">মারহালা *</Label>
-                <Select 
-                  value={formData.class_id} 
-                  onValueChange={(value) => {
-                    setFormData({...formData, class_id: value, section_id: ''});
-                    fetchSections(value);
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="মারহালা নির্বাচন করুন" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {classes.map((cls) => (
-                      <SelectItem key={cls.id} value={cls.id}>
-                        {cls.name} ({cls.standard})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="section_id">শাখা *</Label>
-                <Select 
-                  value={formData.section_id} 
-                  onValueChange={(value) => setFormData({...formData, section_id: value})}
-                  disabled={!formData.class_id}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="শাখা নির্বাচন করুন" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {sections.map((section) => (
-                      <SelectItem key={section.id} value={section.id}>
-                        {section.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="phone">মোবাইল নম্বর *</Label>
-                <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="email">ইমেইল</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
-                />
-              </div>
-              <div className="md:col-span-2">
-                <Label htmlFor="address">ঠিকানা *</Label>
-                <Input
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => setFormData({...formData, address: e.target.value})}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="guardian_name">অভিভাবকের নাম *</Label>
-                <Input
-                  id="guardian_name"
-                  value={formData.guardian_name}
-                  onChange={(e) => setFormData({...formData, guardian_name: e.target.value})}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="guardian_phone">অভিভাবকের ফোন *</Label>
-                <Input
-                  id="guardian_phone"
-                  value={formData.guardian_phone}
-                  onChange={(e) => setFormData({...formData, guardian_phone: e.target.value})}
-                  required
-                />
-              </div>
-            </div>
+            ) : (
+              /* Full Edit Form for non-Madrasah */
+              <>
+                <div className="flex flex-col items-center space-y-3 pb-4 border-b">
+                  <div className="relative">
+                    {photoPreview || editingStudent?.photo_url ? (
+                      <img 
+                        src={photoPreview || (editingStudent?.photo_url ? `${BASE_URL}${editingStudent.photo_url}` : '')} 
+                        alt="Student" 
+                        className="w-24 h-24 rounded-full object-cover border-4 border-emerald-100"
+                      />
+                    ) : (
+                      <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center border-4 border-gray-200">
+                        <Camera className="h-8 w-8 text-gray-400" />
+                      </div>
+                    )}
+                  </div>
+                  <Label htmlFor="edit-student-photo" className="cursor-pointer">
+                    <div className="flex items-center space-x-2 text-emerald-600 hover:text-emerald-700">
+                      <Camera className="h-4 w-4" />
+                      <span>{photoPreview || editingStudent?.photo_url ? 'Change Photo' : 'Upload Photo'}</span>
+                    </div>
+                    <Input
+                      id="edit-student-photo"
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoChange}
+                      className="hidden"
+                    />
+                  </Label>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="admission_no">Admission Number *</Label>
+                    <Input
+                      id="admission_no"
+                      value={formData.admission_no}
+                      onChange={(e) => setFormData({...formData, admission_no: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="roll_no">Roll Number *</Label>
+                    <Input
+                      id="roll_no"
+                      value={formData.roll_no}
+                      onChange={(e) => setFormData({...formData, roll_no: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label htmlFor="name">Full Name *</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="father_name">Father's Name *</Label>
+                    <Input
+                      id="father_name"
+                      value={formData.father_name}
+                      onChange={(e) => setFormData({...formData, father_name: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit_father_phone">Father's Phone</Label>
+                    <Input
+                      id="edit_father_phone"
+                      value={formData.father_phone}
+                      onChange={(e) => setFormData({...formData, father_phone: e.target.value})}
+                      placeholder="Father's phone number"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="mother_name">Mother's Name *</Label>
+                    <Input
+                      id="mother_name"
+                      value={formData.mother_name}
+                      onChange={(e) => setFormData({...formData, mother_name: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="date_of_birth">Date of Birth *</Label>
+                    <Input
+                      id="date_of_birth"
+                      type="date"
+                      value={formData.date_of_birth}
+                      onChange={(e) => setFormData({...formData, date_of_birth: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="gender">Gender *</Label>
+                    <Select value={formData.gender} onValueChange={(value) => setFormData({...formData, gender: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Male">Male</SelectItem>
+                        <SelectItem value="Female">Female</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="class_id">Class *</Label>
+                    <Select 
+                      value={formData.class_id} 
+                      onValueChange={(value) => {
+                        setFormData({...formData, class_id: value, section_id: ''});
+                        fetchSections(value);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select class" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {classes.map((cls) => (
+                          <SelectItem key={cls.id} value={cls.id}>
+                            {cls.name} ({cls.standard})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="section_id">Section</Label>
+                    <Select 
+                      value={formData.section_id} 
+                      onValueChange={(value) => setFormData({...formData, section_id: value})}
+                      disabled={!formData.class_id}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select section" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sections.map((section) => (
+                          <SelectItem key={section.id} value={section.id}>
+                            {section.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="phone">Phone *</Label>
+                    <Input
+                      id="phone"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label htmlFor="address">Address *</Label>
+                    <Input
+                      id="address"
+                      value={formData.address}
+                      onChange={(e) => setFormData({...formData, address: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="guardian_name">Guardian Name</Label>
+                    <Input
+                      id="guardian_name"
+                      value={formData.guardian_name}
+                      onChange={(e) => setFormData({...formData, guardian_name: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="guardian_phone">Guardian Phone</Label>
+                    <Input
+                      id="guardian_phone"
+                      value={formData.guardian_phone}
+                      onChange={(e) => setFormData({...formData, guardian_phone: e.target.value})}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
             <DialogFooter>
               <Button
                 type="button"
@@ -2935,10 +3105,12 @@ const StudentList = () => {
                   resetForm();
                 }}
               >
-                বাতিল
+                {isMadrasahSimpleUI ? 'বাতিল' : 'Cancel'}
               </Button>
-              <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600" disabled={loading}>
-                {loading ? 'সংরক্ষণ হচ্ছে...' : (editingStudent ? 'আপডেট করুন' : 'সংরক্ষণ করুন')}
+              <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600" disabled={isSubmitting}>
+                {isSubmitting 
+                  ? (isMadrasahSimpleUI ? 'সংরক্ষণ হচ্ছে...' : 'Saving...') 
+                  : (isMadrasahSimpleUI ? 'আপডেট করুন' : 'Update')}
               </Button>
             </DialogFooter>
           </form>
