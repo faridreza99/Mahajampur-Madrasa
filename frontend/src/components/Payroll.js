@@ -1060,6 +1060,149 @@ const Payroll = () => {
           </Card>
         </div>
       )}
+
+      {showSalaryForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-emerald-600" />
+                বেতন কাঠামো যোগ করুন
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <SalaryStructureForm
+                employees={employees}
+                departments={departments}
+                onSubmit={async (data) => {
+                  try {
+                    setLoading(true);
+                    await axios.post(`${API}/payroll/salary-structures`, data, {
+                      headers: { Authorization: getAuthToken() }
+                    });
+                    toast.success('বেতন কাঠামো সফলভাবে যোগ হয়েছে');
+                    setShowSalaryForm(false);
+                    fetchSalaryStructures();
+                  } catch (error) {
+                    toast.error(error.response?.data?.detail || 'বেতন কাঠামো যোগ করতে ব্যর্থ');
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                onCancel={() => setShowSalaryForm(false)}
+                loading={loading}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {showBonusForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Gift className="h-5 w-5 text-purple-600" />
+                বোনাস যোগ করুন
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <BonusForm
+                employees={employees}
+                departments={departments}
+                months={months}
+                onSubmit={async (data) => {
+                  try {
+                    setLoading(true);
+                    await axios.post(`${API}/payroll/bonuses`, data, {
+                      headers: { Authorization: getAuthToken() }
+                    });
+                    toast.success('বোনাস সফলভাবে যোগ হয়েছে');
+                    setShowBonusForm(false);
+                    fetchBonuses();
+                  } catch (error) {
+                    toast.error(error.response?.data?.detail || 'বোনাস যোগ করতে ব্যর্থ');
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                onCancel={() => setShowBonusForm(false)}
+                loading={loading}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {showAdvanceForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <PiggyBank className="h-5 w-5 text-orange-600" />
+                অগ্রিম যোগ করুন
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <AdvanceForm
+                employees={employees}
+                onSubmit={async (data) => {
+                  try {
+                    setLoading(true);
+                    await axios.post(`${API}/payroll/advances`, data, {
+                      headers: { Authorization: getAuthToken() }
+                    });
+                    toast.success('অগ্রিম সফলভাবে যোগ হয়েছে');
+                    setShowAdvanceForm(false);
+                    fetchAdvances();
+                  } catch (error) {
+                    toast.error(error.response?.data?.detail || 'অগ্রিম যোগ করতে ব্যর্থ');
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                onCancel={() => setShowAdvanceForm(false)}
+                loading={loading}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {showSettingsForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5 text-blue-600" />
+                বেতন সেটিংস
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <SettingsForm
+                initialSettings={settings}
+                onSubmit={async (data) => {
+                  try {
+                    setLoading(true);
+                    await axios.put(`${API}/payroll/settings`, data, {
+                      headers: { Authorization: getAuthToken() }
+                    });
+                    toast.success('সেটিংস সফলভাবে আপডেট হয়েছে');
+                    setShowSettingsForm(false);
+                    fetchSettings();
+                  } catch (error) {
+                    toast.error(error.response?.data?.detail || 'সেটিংস আপডেট করতে ব্যর্থ');
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                onCancel={() => setShowSettingsForm(false)}
+                loading={loading}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };
@@ -1136,6 +1279,497 @@ const PaymentForm = ({ item, onSubmit, onCancel }) => {
         </Button>
         <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700">
           পেমেন্ট রেকর্ড করুন
+        </Button>
+      </div>
+    </form>
+  );
+};
+
+const SalaryStructureForm = ({ employees, departments, onSubmit, onCancel, loading }) => {
+  const [formData, setFormData] = useState({
+    employee_id: '',
+    basic_salary: '',
+    house_rent_allowance: '',
+    food_allowance: '',
+    transport_allowance: '',
+    medical_allowance: '',
+    other_allowance: '',
+    provident_fund_percentage: '0',
+    tax_percentage: '0',
+    is_active: true
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!formData.employee_id) {
+      return;
+    }
+    onSubmit({
+      ...formData,
+      basic_salary: Number(formData.basic_salary) || 0,
+      house_rent_allowance: Number(formData.house_rent_allowance) || 0,
+      food_allowance: Number(formData.food_allowance) || 0,
+      transport_allowance: Number(formData.transport_allowance) || 0,
+      medical_allowance: Number(formData.medical_allowance) || 0,
+      other_allowance: Number(formData.other_allowance) || 0,
+      provident_fund_percentage: Number(formData.provident_fund_percentage) || 0,
+      tax_percentage: Number(formData.tax_percentage) || 0
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label>কর্মচারী নির্বাচন করুন *</Label>
+        <Select value={formData.employee_id} onValueChange={(v) => setFormData({...formData, employee_id: v})}>
+          <SelectTrigger>
+            <SelectValue placeholder="কর্মচারী বাছুন" />
+          </SelectTrigger>
+          <SelectContent>
+            {employees.map((emp) => (
+              <SelectItem key={emp.id} value={emp.id}>
+                {emp.name} - {emp.employee_id || emp.staff_id}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>মূল বেতন (৳) *</Label>
+          <Input
+            type="number"
+            value={formData.basic_salary}
+            onChange={(e) => setFormData({...formData, basic_salary: e.target.value})}
+            placeholder="০"
+            required
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>বাসা ভাড়া (৳)</Label>
+          <Input
+            type="number"
+            value={formData.house_rent_allowance}
+            onChange={(e) => setFormData({...formData, house_rent_allowance: e.target.value})}
+            placeholder="০"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>খাবার ভাতা (৳)</Label>
+          <Input
+            type="number"
+            value={formData.food_allowance}
+            onChange={(e) => setFormData({...formData, food_allowance: e.target.value})}
+            placeholder="০"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>যাতায়াত ভাতা (৳)</Label>
+          <Input
+            type="number"
+            value={formData.transport_allowance}
+            onChange={(e) => setFormData({...formData, transport_allowance: e.target.value})}
+            placeholder="০"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>চিকিৎসা ভাতা (৳)</Label>
+          <Input
+            type="number"
+            value={formData.medical_allowance}
+            onChange={(e) => setFormData({...formData, medical_allowance: e.target.value})}
+            placeholder="০"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>অন্যান্য ভাতা (৳)</Label>
+          <Input
+            type="number"
+            value={formData.other_allowance}
+            onChange={(e) => setFormData({...formData, other_allowance: e.target.value})}
+            placeholder="০"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>প্রভিডেন্ট ফান্ড (%)</Label>
+          <Input
+            type="number"
+            value={formData.provident_fund_percentage}
+            onChange={(e) => setFormData({...formData, provident_fund_percentage: e.target.value})}
+            placeholder="০"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>ট্যাক্স (%)</Label>
+          <Input
+            type="number"
+            value={formData.tax_percentage}
+            onChange={(e) => setFormData({...formData, tax_percentage: e.target.value})}
+            placeholder="০"
+          />
+        </div>
+      </div>
+
+      <div className="flex gap-2 justify-end pt-4">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          বাতিল
+        </Button>
+        <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700" disabled={loading}>
+          {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+          সংরক্ষণ করুন
+        </Button>
+      </div>
+    </form>
+  );
+};
+
+const BonusForm = ({ employees, departments, months, onSubmit, onCancel, loading }) => {
+  const [formData, setFormData] = useState({
+    bonus_name: '',
+    bonus_type: 'fixed',
+    amount: '',
+    percentage: '',
+    applicable_to: 'all',
+    employee_ids: [],
+    department: '',
+    effective_month: new Date().getMonth() + 1,
+    effective_year: new Date().getFullYear()
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!formData.bonus_name) return;
+    onSubmit({
+      ...formData,
+      amount: Number(formData.amount) || 0,
+      percentage: Number(formData.percentage) || 0
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label>বোনাসের নাম *</Label>
+        <Input
+          value={formData.bonus_name}
+          onChange={(e) => setFormData({...formData, bonus_name: e.target.value})}
+          placeholder="যেমন: ঈদ বোনাস, বার্ষিক বোনাস"
+          required
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>বোনাসের ধরন</Label>
+          <Select value={formData.bonus_type} onValueChange={(v) => setFormData({...formData, bonus_type: v})}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="fixed">নির্দিষ্ট পরিমাণ</SelectItem>
+              <SelectItem value="percentage">শতাংশ (মূল বেতনের)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {formData.bonus_type === 'fixed' ? (
+          <div className="space-y-2">
+            <Label>পরিমাণ (৳)</Label>
+            <Input
+              type="number"
+              value={formData.amount}
+              onChange={(e) => setFormData({...formData, amount: e.target.value})}
+              placeholder="০"
+            />
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <Label>শতাংশ (%)</Label>
+            <Input
+              type="number"
+              value={formData.percentage}
+              onChange={(e) => setFormData({...formData, percentage: e.target.value})}
+              placeholder="০"
+            />
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label>প্রযোজ্য</Label>
+        <Select value={formData.applicable_to} onValueChange={(v) => setFormData({...formData, applicable_to: v})}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">সকল কর্মচারী</SelectItem>
+            <SelectItem value="department">নির্দিষ্ট বিভাগ</SelectItem>
+            <SelectItem value="individual">নির্দিষ্ট কর্মচারী</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {formData.applicable_to === 'department' && (
+        <div className="space-y-2">
+          <Label>বিভাগ বাছুন</Label>
+          <Select value={formData.department} onValueChange={(v) => setFormData({...formData, department: v})}>
+            <SelectTrigger>
+              <SelectValue placeholder="বিভাগ বাছুন" />
+            </SelectTrigger>
+            <SelectContent>
+              {departments.map((dept) => (
+                <SelectItem key={dept.id || dept.name} value={dept.name}>
+                  {dept.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>মাস</Label>
+          <Select value={String(formData.effective_month)} onValueChange={(v) => setFormData({...formData, effective_month: Number(v)})}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {months.map((m) => (
+                <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>বছর</Label>
+          <Select value={String(formData.effective_year)} onValueChange={(v) => setFormData({...formData, effective_year: Number(v)})}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[2024, 2025, 2026].map((y) => (
+                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="flex gap-2 justify-end pt-4">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          বাতিল
+        </Button>
+        <Button type="submit" className="bg-purple-600 hover:bg-purple-700" disabled={loading}>
+          {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+          বোনাস যোগ করুন
+        </Button>
+      </div>
+    </form>
+  );
+};
+
+const AdvanceForm = ({ employees, onSubmit, onCancel, loading }) => {
+  const [formData, setFormData] = useState({
+    employee_id: '',
+    amount: '',
+    monthly_deduction: '',
+    reason: '',
+    start_date: new Date().toISOString().split('T')[0]
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!formData.employee_id || !formData.amount) return;
+    onSubmit({
+      ...formData,
+      amount: Number(formData.amount),
+      monthly_deduction: Number(formData.monthly_deduction) || Number(formData.amount)
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label>কর্মচারী নির্বাচন করুন *</Label>
+        <Select value={formData.employee_id} onValueChange={(v) => setFormData({...formData, employee_id: v})}>
+          <SelectTrigger>
+            <SelectValue placeholder="কর্মচারী বাছুন" />
+          </SelectTrigger>
+          <SelectContent>
+            {employees.map((emp) => (
+              <SelectItem key={emp.id} value={emp.id}>
+                {emp.name} - {emp.employee_id || emp.staff_id}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>অগ্রিমের পরিমাণ (৳) *</Label>
+          <Input
+            type="number"
+            value={formData.amount}
+            onChange={(e) => setFormData({...formData, amount: e.target.value})}
+            placeholder="০"
+            required
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>মাসিক কর্তন (৳)</Label>
+          <Input
+            type="number"
+            value={formData.monthly_deduction}
+            onChange={(e) => setFormData({...formData, monthly_deduction: e.target.value})}
+            placeholder="সম্পূর্ণ পরিমাণ"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label>কারণ</Label>
+        <Input
+          value={formData.reason}
+          onChange={(e) => setFormData({...formData, reason: e.target.value})}
+          placeholder="অগ্রিম নেওয়ার কারণ"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>শুরুর তারিখ</Label>
+        <Input
+          type="date"
+          value={formData.start_date}
+          onChange={(e) => setFormData({...formData, start_date: e.target.value})}
+        />
+      </div>
+
+      <div className="flex gap-2 justify-end pt-4">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          বাতিল
+        </Button>
+        <Button type="submit" className="bg-orange-600 hover:bg-orange-700" disabled={loading}>
+          {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+          অগ্রিম যোগ করুন
+        </Button>
+      </div>
+    </form>
+  );
+};
+
+const SettingsForm = ({ initialSettings, onSubmit, onCancel, loading }) => {
+  const [formData, setFormData] = useState({
+    payment_day: initialSettings?.payment_day || 1,
+    provident_fund_percentage: initialSettings?.provident_fund_percentage || 0,
+    professional_tax: initialSettings?.professional_tax || 0,
+    overtime_rate_per_hour: initialSettings?.overtime_rate_per_hour || 0,
+    late_deduction_per_day: initialSettings?.late_deduction_per_day || 0,
+    absent_deduction_per_day: initialSettings?.absent_deduction_per_day || 0,
+    enable_attendance_deduction: initialSettings?.enable_attendance_deduction ?? true,
+    enable_overtime: initialSettings?.enable_overtime ?? false
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSubmit({
+      ...formData,
+      payment_day: Number(formData.payment_day),
+      provident_fund_percentage: Number(formData.provident_fund_percentage),
+      professional_tax: Number(formData.professional_tax),
+      overtime_rate_per_hour: Number(formData.overtime_rate_per_hour),
+      late_deduction_per_day: Number(formData.late_deduction_per_day),
+      absent_deduction_per_day: Number(formData.absent_deduction_per_day)
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>বেতন প্রদানের দিন</Label>
+          <Input
+            type="number"
+            min="1"
+            max="28"
+            value={formData.payment_day}
+            onChange={(e) => setFormData({...formData, payment_day: e.target.value})}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>প্রভিডেন্ট ফান্ড (%)</Label>
+          <Input
+            type="number"
+            value={formData.provident_fund_percentage}
+            onChange={(e) => setFormData({...formData, provident_fund_percentage: e.target.value})}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>পেশাদার কর (৳)</Label>
+          <Input
+            type="number"
+            value={formData.professional_tax}
+            onChange={(e) => setFormData({...formData, professional_tax: e.target.value})}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>ওভারটাইম রেট/ঘণ্টা (৳)</Label>
+          <Input
+            type="number"
+            value={formData.overtime_rate_per_hour}
+            onChange={(e) => setFormData({...formData, overtime_rate_per_hour: e.target.value})}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>দেরি কর্তন/দিন (৳)</Label>
+          <Input
+            type="number"
+            value={formData.late_deduction_per_day}
+            onChange={(e) => setFormData({...formData, late_deduction_per_day: e.target.value})}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>অনুপস্থিতি কর্তন/দিন (৳)</Label>
+          <Input
+            type="number"
+            value={formData.absent_deduction_per_day}
+            onChange={(e) => setFormData({...formData, absent_deduction_per_day: e.target.value})}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-3 pt-2">
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="attendance_deduction"
+            checked={formData.enable_attendance_deduction}
+            onChange={(e) => setFormData({...formData, enable_attendance_deduction: e.target.checked})}
+            className="h-4 w-4 rounded border-gray-300"
+          />
+          <Label htmlFor="attendance_deduction" className="cursor-pointer">হাজিরা ভিত্তিক কর্তন সক্রিয়</Label>
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="overtime"
+            checked={formData.enable_overtime}
+            onChange={(e) => setFormData({...formData, enable_overtime: e.target.checked})}
+            className="h-4 w-4 rounded border-gray-300"
+          />
+          <Label htmlFor="overtime" className="cursor-pointer">ওভারটাইম হিসাব সক্রিয়</Label>
+        </div>
+      </div>
+
+      <div className="flex gap-2 justify-end pt-4">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          বাতিল
+        </Button>
+        <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={loading}>
+          {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+          সেটিংস সংরক্ষণ করুন
         </Button>
       </div>
     </form>
