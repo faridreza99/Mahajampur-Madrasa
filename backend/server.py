@@ -27767,25 +27767,11 @@ if not frontend_build_path.exists():
 # Mount uploads directory for serving student photos and other uploaded files
 if UPLOAD_DIR.exists():
     app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
-# Include API router BEFORE the catch-all route so API routes are matched first
-app.include_router(api_router)
 
 
 if frontend_build_path.exists() and (frontend_build_path / "static").exists():
     # Mount static files (CSS, JS, images)
     app.mount("/static", StaticFiles(directory=str(frontend_build_path / "static")), name="static")
-    
-    @app.get("/{full_path:path}")
-    async def serve_react_app(full_path: str):
-        """Serve React app for all non-API routes (SPA fallback)"""
-        # Try to serve the requested file (for direct asset requests)
-        file_path = frontend_build_path / full_path
-        if file_path.is_file():
-            return FileResponse(file_path)
-        
-        # Fallback to index.html for React Router (SPA)
-        index_path = frontend_build_path / "index.html"
-        return FileResponse(index_path)
 
 # Configure logging to work with uvicorn
 logging.basicConfig(
@@ -31234,3 +31220,24 @@ async def get_student_payments(
         logging.error(f"Failed to get student payments: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to load payment history")
 
+
+# ============================================================================
+# INCLUDE API ROUTER AND SETUP FRONTEND SERVING
+# This must be at the end of the file so all routes are registered first
+# ============================================================================
+
+# Include all API routes
+app.include_router(api_router)
+
+# Serve React frontend static files in production (catch-all route)
+# Note: This MUST be after app.include_router to avoid intercepting API routes
+if frontend_build_path.exists() and (frontend_build_path / "static").exists():
+    @app.get("/{full_path:path}")
+    async def serve_spa_fallback(full_path: str):
+        """Serve React app for all non-API routes"""
+        # Try to serve the requested file
+        file_path = frontend_build_path / full_path
+        if file_path.is_file():
+            return FileResponse(file_path)
+        # Fallback to index.html for React Router (SPA)
+        return FileResponse(frontend_build_path / "index.html")
