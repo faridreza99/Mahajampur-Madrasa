@@ -371,11 +371,11 @@ Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
           <div className="flex items-center gap-3 mb-2">
             <BookOpen className="text-white" size={32} />
             <h1 className="text-3xl font-bold text-white">
-              AI Summary Generator
+              AI সারসংক্ষেপ জেনারেটর
             </h1>
           </div>
           <p className="text-purple-100">
-            Generate comprehensive chapter and topic summaries
+            অধ্যায় ও টপিকের বিস্তারিত সারসংক্ষেপ তৈরি করুন
           </p>
         </div>
 
@@ -384,14 +384,14 @@ Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
           <div className="lg:col-span-1 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 dark:text-white">
               <Sparkles size={20} className="text-purple-600" />
-              Generate Summary
+              সারসংক্ষেপ তৈরি করুন
             </h2>
 
             <div className="space-y-4">
               {/* Class */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Class *
+                  মারহালা *
                 </label>
                 <select
                   value={selectedClassId}
@@ -399,7 +399,7 @@ Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
                   className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white"
                 >
                   <option value="">
-                    {classLoading ? "Loading classes..." : "Select Class"}
+                    {classLoading ? "মারহালা লোড হচ্ছে..." : "মারহালা নির্বাচন করুন"}
                   </option>
                   {classOptions.map((cls) => (
                     <option key={cls.id} value={cls.id}>
@@ -412,7 +412,7 @@ Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
               {/* Subject (dynamic from backend with demo fallback) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Subject *
+                  বিষয় *
                 </label>
                 <select
                   value={formData.subject}
@@ -422,10 +422,10 @@ Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
                 >
                   <option value="">
                     {subjectsLoading
-                      ? "Loading subjects..."
+                      ? "বিষয় লোড হচ্ছে..."
                       : formData.class_standard
-                        ? "Select Subject"
-                        : "Select Class first"}
+                        ? "বিষয় নির্বাচন করুন"
+                        : "প্রথমে মারহালা নির্বাচন করুন"}
                   </option>
 
                   {/* Backend subjects */}
@@ -438,7 +438,7 @@ Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
                   {/* Message when no subjects available */}
                   {subjectsOptions.length === 0 && !subjectsLoading && formData.class_standard && (
                     <option value="" disabled>
-                      No subjects found - Add in Class Management
+                      কোন বিষয় পাওয়া যায়নি - মারহালা ব্যবস্থাপনায় যোগ করুন
                     </option>
                   )}
                 </select>
@@ -447,7 +447,7 @@ Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
               {/* Chapter (dynamic from syllabus or free text) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Chapter
+                  অধ্যায়
                 </label>
                 {chaptersOptions.length > 0 ? (
                   <select
@@ -456,7 +456,7 @@ Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
                     disabled={!formData.subject}
                     className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:cursor-not-allowed dark:bg-gray-700 dark:text-white"
                   >
-                    <option value="">Select Chapter</option>
+                    <option value="">অধ্যায় নির্বাচন করুন</option>
                     {chaptersOptions.map((ch) => (
                       <option key={ch} value={ch}>
                         {ch}
@@ -475,8 +475,8 @@ Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
                     }
                     placeholder={
                       formData.subject
-                        ? "No syllabus chapters found – type chapter name"
-                        : "Select Subject first"
+                        ? "সিলেবাসে অধ্যায় পাওয়া যায়নি – অধ্যায়ের নাম লিখুন"
+                        : "প্রথমে বিষয় নির্বাচন করুন"
                     }
                     className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white"
                   />
@@ -486,7 +486,7 @@ Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
               {/* Topic */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Topic
+                  টপিক
                 </label>
                 <input
                   type="text"
@@ -497,7 +497,7 @@ Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
                       topic: e.target.value,
                     }))
                   }
-                  placeholder="e.g., Velocity and Acceleration"
+                  placeholder="যেমন, বেগ ও ত্বরণ"
                   className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white"
                 />
               </div>
@@ -511,18 +511,18 @@ Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
                 {generating ? (
                   <>
                     <Loader2 className="animate-spin" size={20} />
-                    Generating...
+                    তৈরি হচ্ছে...
                   </>
                 ) : (
                   <>
                     <Sparkles size={20} />
-                    Generate Summary
+                    সারসংক্ষেপ তৈরি করুন
                   </>
                 )}
               </button>
 
               <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                Checks library first, generates with AI if needed
+                প্রথমে লাইব্রেরি চেক করে, প্রয়োজনে AI দিয়ে তৈরি করে
               </p>
             </div>
           </div>
@@ -532,7 +532,7 @@ Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold flex items-center gap-2 dark:text-white">
                 <FileText size={20} className="text-purple-600" />
-                Summary
+                সারসংক্ষেপ
               </h2>
               {currentSummary && (
                 <button
@@ -540,7 +540,7 @@ Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
                   className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition"
                 >
                   <Download size={18} />
-                  Download
+                  ডাউনলোড
                 </button>
               )}
             </div>
@@ -550,14 +550,14 @@ Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
                 <div className="bg-purple-50 dark:bg-gray-700 rounded-lg p-4">
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
-                      <span className="font-medium text-gray-700 dark:text-gray-300">Class:</span>{" "}
+                      <span className="font-medium text-gray-700 dark:text-gray-300">মারহালা:</span>{" "}
                       <span className="text-gray-900 dark:text-white">
                         {currentSummary.class_standard}
                       </span>
                     </div>
                     <div>
                       <span className="font-medium text-gray-700 dark:text-gray-300">
-                        Subject:
+                        বিষয়:
                       </span>{" "}
                       <span className="text-gray-900 dark:text-white">
                         {currentSummary.subject}
@@ -566,7 +566,7 @@ Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
                     {currentSummary.chapter && (
                       <div>
                         <span className="font-medium text-gray-700 dark:text-gray-300">
-                          Chapter:
+                          অধ্যায়:
                         </span>{" "}
                         <span className="text-gray-900 dark:text-white">
                           {currentSummary.chapter}
@@ -576,7 +576,7 @@ Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
                     {currentSummary.topic && (
                       <div>
                         <span className="font-medium text-gray-700 dark:text-gray-300">
-                          Topic:
+                          টপিক:
                         </span>{" "}
                         <span className="text-gray-900 dark:text-white">
                           {currentSummary.topic}
@@ -584,7 +584,7 @@ Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
                       </div>
                     )}
                     <div className="col-span-2">
-                      <span className="font-medium text-gray-700 dark:text-gray-300">Source:</span>{" "}
+                      <span className="font-medium text-gray-700 dark:text-gray-300">উৎস:</span>{" "}
                       <span
                         className={`px-2 py-1 rounded text-xs font-medium ${
                           currentSummary.source === "cms"
@@ -593,8 +593,8 @@ Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
                         }`}
                       >
                         {currentSummary.source === "cms"
-                          ? "Library"
-                          : "AI Generated"}
+                          ? "লাইব্রেরি"
+                          : "AI তৈরি"}
                       </span>
                     </div>
                   </div>
@@ -609,7 +609,7 @@ Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
             ) : (
               <div className="text-center py-16 text-gray-400 dark:text-gray-500">
                 <BookOpen size={64} className="mx-auto mb-4 opacity-30" />
-                <p>Generate a summary to view it here</p>
+                <p>এখানে দেখতে সারসংক্ষেপ তৈরি করুন</p>
               </div>
             )}
           </div>
@@ -617,14 +617,14 @@ Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
 
         {/* Summary History */}
         <div className="mt-6 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold mb-4 dark:text-white">Summary Library</h2>
+          <h2 className="text-xl font-semibold mb-4 dark:text-white">সারসংক্ষেপ লাইব্রেরি</h2>
 
           {/* Filters */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             {/* Class filter */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Filter by Class
+                মারহালা দিয়ে ফিল্টার
               </label>
               <select
                 value={filterClass}
@@ -632,7 +632,7 @@ Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 dark:bg-gray-700 dark:text-white"
               >
                 <option value="">
-                  {classLoading ? "Loading classes..." : "All Classes"}
+                  {classLoading ? "মারহালা লোড হচ্ছে..." : "সকল মারহালা"}
                 </option>
                 {classOptions.map((cls) => (
                   <option key={cls.id} value={getClassValue(cls)}>
@@ -645,7 +645,7 @@ Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
             {/* Subject filter – options based on summaries + class */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Filter by Subject
+                বিষয় দিয়ে ফিল্টার
               </label>
               <select
                 value={filterSubject}
@@ -655,8 +655,8 @@ Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
               >
                 <option value="">
                   {subjectFilterOptions.length
-                    ? "All Subjects"
-                    : "No subjects found"}
+                    ? "সকল বিষয়"
+                    : "কোন বিষয় পাওয়া যায়নি"}
                 </option>
                 {subjectFilterOptions.map((subj) => (
                   <option key={subj} value={subj}>
@@ -669,7 +669,7 @@ Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
             {/* Chapter filter – based on summaries + class + subject */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Filter by Chapter
+                অধ্যায় দিয়ে ফিল্টার
               </label>
               <select
                 value={filterChapter}
@@ -679,8 +679,8 @@ Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
               >
                 <option value="">
                   {chapterFilterOptions.length
-                    ? "All Chapters"
-                    : "No chapters found"}
+                    ? "সকল অধ্যায়"
+                    : "কোন অধ্যায় পাওয়া যায়নি"}
                 </option>
                 {chapterFilterOptions.map((ch) => (
                   <option key={ch} value={ch}>
@@ -696,7 +696,7 @@ Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
             {loading ? (
               <div className="flex items-center justify-center gap-2 text-gray-500 dark:text-gray-400 py-8">
                 <Loader2 className="animate-spin" size={18} />
-                Loading summaries...
+                সারসংক্ষেপ লোড হচ্ছে...
               </div>
             ) : summaries.length > 0 ? (
               summaries.map((summary) => (
@@ -711,9 +711,9 @@ Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
                         {summary.subject} - Class {summary.class_standard}
                       </h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        {summary.chapter && `Chapter: ${summary.chapter}`}
+                        {summary.chapter && `অধ্যায়: ${summary.chapter}`}
                         {summary.chapter && summary.topic && " | "}
-                        {summary.topic && `Topic: ${summary.topic}`}
+                        {summary.topic && `টপিক: ${summary.topic}`}
                       </p>
                       <div className="flex items-center gap-3 mt-2">
                         <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -726,7 +726,7 @@ Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
                               : "bg-green-100 text-green-800"
                           }`}
                         >
-                          {summary.source === "ai_generated" ? "AI" : "Library"}
+                          {summary.source === "ai_generated" ? "AI" : "লাইব্রেরি"}
                         </span>
                       </div>
                     </div>
@@ -744,7 +744,7 @@ Source: ${currentSummary.source === "cms" ? "Library" : "AI Generated"}
               ))
             ) : (
               <div className="text-center py-8 text-gray-400 dark:text-gray-500">
-                No summaries found
+                কোন সারসংক্ষেপ পাওয়া যায়নি
               </div>
             )}
           </div>

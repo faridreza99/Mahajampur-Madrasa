@@ -243,7 +243,7 @@ const StudentIDCard = () => {
             <div className="flex items-center gap-3">
               <CreditCard className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
               <CardTitle className="text-xl dark:text-white">
-                {t("idCard.studentTitle") || "Student ID Cards"}
+                {t("idCard.studentTitle") || "ছাত্র আইডি কার্ড"}
               </CardTitle>
             </div>
             <Button
@@ -255,7 +255,7 @@ const StudentIDCard = () => {
               <RefreshCw
                 className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
               />
-              {t("common.refresh") || "Refresh"}
+              {t("common.refresh") || "রিফ্রেশ"}
             </Button>
           </div>
         </CardHeader>
@@ -263,7 +263,7 @@ const StudentIDCard = () => {
           <div className="flex flex-wrap gap-4 mb-6">
             <div className="flex-1 min-w-[200px]">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                {t("common.class") || "Class"}
+                {t("common.class") || "মারহালা"}
               </label>
               <select
                 value={selectedClass}
@@ -274,7 +274,7 @@ const StudentIDCard = () => {
                 className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               >
                 <option value="all">
-                  {t("common.allClasses") || "All Classes"}
+                  {t("common.allClasses") || "সকল মারহালা"}
                 </option>
                 {classes.map((cls) => (
                   <option key={cls.id} value={cls.id}>
@@ -285,7 +285,7 @@ const StudentIDCard = () => {
             </div>
             <div className="flex-1 min-w-[200px]">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                {t("common.section") || "Section"}
+                {t("common.section") || "শাখা"}
               </label>
               <select
                 value={selectedSection}
@@ -293,7 +293,7 @@ const StudentIDCard = () => {
                 className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               >
                 <option value="all">
-                  {t("common.allSections") || "All Sections"}
+                  {t("common.allSections") || "সকল শাখা"}
                 </option>
                 {sections
                   .filter(
@@ -311,14 +311,14 @@ const StudentIDCard = () => {
             </div>
             <div className="flex-1 min-w-[250px]">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                {t("common.search") || "Search"}
+                {t("common.search") || "খুঁজুন"}
               </label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   placeholder={
                     t("idCard.searchPlaceholder") ||
-                    "Search by name, roll no..."
+                    "নাম, রোল দিয়ে খুঁজুন..."
                   }
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -332,12 +332,12 @@ const StudentIDCard = () => {
             <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
               <Users className="h-4 w-4" />
               <span>
-                {t("idCard.totalStudents") || "Total Students"}:{" "}
+                {t("idCard.totalStudents") || "মোট ছাত্র"}:{" "}
                 {filteredStudents.length}
                 {selectedStudents.size > 0 && (
                   <span className="ml-2 text-emerald-600 dark:text-emerald-400 font-medium">
                     ({selectedStudents.size}{" "}
-                    {t("common.selected") || "selected"})
+                    {t("common.selected") || "নির্বাচিত"})
                   </span>
                 )}
               </span>
@@ -356,7 +356,7 @@ const StudentIDCard = () => {
                 ) : (
                   <>
                     <FileDown className="h-4 w-4 mr-2" />
-                    {t("idCard.downloadSelected") || "Download Selected"} (
+                    {t("idCard.downloadSelected") || "নির্বাচিত ডাউনলোড"} (
                     {selectedStudents.size})
                   </>
                 )}
@@ -371,7 +371,7 @@ const StudentIDCard = () => {
           ) : filteredStudents.length === 0 ? (
             <div className="text-center py-12 text-gray-500 dark:text-gray-400">
               <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>{t("idCard.noStudents") || "No students found"}</p>
+              <p>{t("idCard.noStudents") || "কোন ছাত্র পাওয়া যায়নি"}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -392,25 +392,25 @@ const StudentIDCard = () => {
                       </button>
                     </th>
                     <th className="text-left px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {t("common.photo") || "Photo"}
+                      {t("common.photo") || "ছবি"}
                     </th>
                     <th className="text-left px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {t("common.name") || "Name"}
+                      {t("common.name") || "নাম"}
                     </th>
                     <th className="text-left px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {t("common.fatherName") || "Father's Name"}
+                      {t("common.fatherName") || "পিতার নাম"}
                     </th>
                     <th className="text-left px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {t("common.class") || "Class"}
+                      {t("common.class") || "মারহালা"}
                     </th>
                     <th className="text-left px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {t("common.section") || "Section"}
+                      {t("common.section") || "শাখা"}
                     </th>
                     <th className="text-left px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {t("common.rollNo") || "Roll No"}
+                      {t("common.rollNo") || "রোল"}
                     </th>
                     <th className="text-center px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {t("common.actions") || "Actions"}
+                      {t("common.actions") || "একশন"}
                     </th>
                   </tr>
                 </thead>
@@ -466,7 +466,7 @@ const StudentIDCard = () => {
                             size="sm"
                             variant="ghost"
                             onClick={() => previewIDCard(student.id)}
-                            title={t("common.preview") || "Preview"}
+                            title={t("common.preview") || "প্রিভিউ"}
                             className="text-blue-600 hover:text-blue-700 dark:text-blue-400"
                           >
                             <Eye className="h-4 w-4" />
@@ -478,7 +478,7 @@ const StudentIDCard = () => {
                               generateIDCard(student.id, student.name)
                             }
                             disabled={generating[student.id]}
-                            title={t("common.download") || "Download"}
+                            title={t("common.download") || "ডাউনলোড"}
                             className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400"
                           >
                             {generating[student.id] ? (
@@ -491,7 +491,7 @@ const StudentIDCard = () => {
                             size="sm"
                             variant="ghost"
                             onClick={() => previewIDCard(student.id, true)}
-                            title={t("common.print") || "Print"}
+                            title={t("common.print") || "প্রিন্ট"}
                             className="text-purple-600 hover:text-purple-700 dark:text-purple-400"
                           >
                             <Printer className="h-4 w-4" />

@@ -101,7 +101,7 @@ export default function AIAssistant() {
         {
           role: "assistant",
           error: true,
-          content: "Something went wrong. Please try again.",
+          content: "কিছু সমস্যা হয়েছে। আবার চেষ্টা করুন।",
         },
       ]);
     } finally {
@@ -128,7 +128,7 @@ export default function AIAssistant() {
       recorder.start();
       setIsRecording(true);
     } catch {
-      alert("Microphone permission denied");
+      alert("মাইক্রোফোন অনুমতি অস্বীকৃত");
     }
   };
 
@@ -157,7 +157,7 @@ export default function AIAssistant() {
 
       setInputMessage(res.data.transcribed_text);
     } catch {
-      alert("Voice recognition failed");
+      alert("ভয়েস রিকগনিশন ব্যর্থ");
     } finally {
       setLoading(false);
     }
@@ -177,7 +177,7 @@ export default function AIAssistant() {
 
       new Audio(URL.createObjectURL(res.data)).play();
     } catch {
-      alert("Audio playback failed");
+      alert("অডিও চালাতে ব্যর্থ");
     }
   };
 
@@ -195,7 +195,7 @@ export default function AIAssistant() {
         </div>
         <div className="min-w-0">
           <h1 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white truncate">
-            GiNi AI Assistant
+            জিনি AI সহকারী
           </h1>
         </div>
       </div>
@@ -203,15 +203,15 @@ export default function AIAssistant() {
       {/* Compact Source Filter */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-2 mb-2 shrink-0">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">Source:</span>
+          <span className="text-xs font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">উৎস:</span>
           <select
             value={answerSource}
             onChange={(e) => setAnswerSource(e.target.value)}
             className="flex-1 min-w-0 border border-gray-200 dark:border-gray-600 rounded-md px-2 py-1 text-xs bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-1 focus:ring-purple-500 focus:outline-none"
           >
-            <option value="">All Sources</option>
-            <option value="Academic Book">Academic Books</option>
-            <option value="Reference Book">Reference Books</option>
+            <option value="">সকল উৎস</option>
+            <option value="Academic Book">একাডেমিক বই</option>
+            <option value="Reference Book">রেফারেন্স বই</option>
           </select>
         </div>
       </div>
@@ -221,7 +221,7 @@ export default function AIAssistant() {
         {/* Chat Header */}
         <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-700 shrink-0">
           <Bot className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-          <span className="text-sm font-medium text-gray-900 dark:text-white">Chat</span>
+          <span className="text-sm font-medium text-gray-900 dark:text-white">চ্যাট</span>
           <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">GPT-4o Turbo</span>
         </div>
 
@@ -234,7 +234,7 @@ export default function AIAssistant() {
             <div className="flex flex-col items-center justify-center h-full text-center py-8">
               <Bot className="h-10 w-10 text-gray-300 dark:text-gray-600 mb-2" />
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Ask me anything about your academic content
+                আপনার একাডেমিক বিষয়ে যেকোনো প্রশ্ন করুন
               </p>
             </div>
           )}
@@ -267,7 +267,7 @@ export default function AIAssistant() {
                     onClick={() => playVoice(m.content)}
                     className="mt-1.5 flex items-center gap-1 text-xs opacity-60 hover:opacity-100 transition-opacity"
                   >
-                    <Volume2 className="h-3 w-3" /> Listen
+                    <Volume2 className="h-3 w-3" /> শুনুন
                   </button>
                 )}
               </div>
@@ -317,7 +317,7 @@ export default function AIAssistant() {
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
               onFocus={handleInputFocus}
-              placeholder="Ask a question..."
+              placeholder="প্রশ্ন করুন..."
               disabled={loading}
               className="flex-1 min-w-0 border border-gray-200 dark:border-gray-600 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500"
             />

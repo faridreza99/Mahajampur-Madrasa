@@ -391,12 +391,11 @@ Source: ${currentNotes.source === "cms" ? "Library" : "AI Generated"}
           <div className="flex items-center gap-3 mb-2">
             <FileText className="text-white" size={32} />
             <h1 className="text-3xl font-bold text-white">
-              AI Notes Generator
+              AI নোটস জেনারেটর
             </h1>
           </div>
           <p className="text-blue-100">
-            Generate comprehensive study notes with examples and practice
-            questions
+            উদাহরণ ও অনুশীলন প্রশ্নসহ বিস্তারিত নোটস তৈরি করুন
           </p>
         </div>
 
@@ -405,14 +404,14 @@ Source: ${currentNotes.source === "cms" ? "Library" : "AI Generated"}
           <div className="lg:col-span-1 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 dark:text-white">
               <Sparkles size={20} className="text-blue-600" />
-              Generate Notes
+              নোটস তৈরি করুন
             </h2>
 
             <div className="space-y-4">
               {/* Class */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Class *
+                  মারহালা *
                 </label>
                 <select
                   value={selectedClassId}
@@ -420,7 +419,7 @@ Source: ${currentNotes.source === "cms" ? "Library" : "AI Generated"}
                   className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 >
                   <option value="">
-                    {classLoading ? "Loading classes..." : "Select Class"}
+                    {classLoading ? "মারহালা লোড হচ্ছে..." : "মারহালা নির্বাচন করুন"}
                   </option>
                   {classOptions.map((cls) => (
                     <option key={cls.id} value={cls.id}>
@@ -433,7 +432,7 @@ Source: ${currentNotes.source === "cms" ? "Library" : "AI Generated"}
               {/* Subject (dynamic from backend) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Subject *
+                  বিষয় *
                 </label>
                 <select
                   value={formData.subject}
@@ -443,10 +442,10 @@ Source: ${currentNotes.source === "cms" ? "Library" : "AI Generated"}
                 >
                   <option value="">
                     {subjectsLoading
-                      ? "Loading subjects..."
+                      ? "বিষয় লোড হচ্ছে..."
                       : formData.class_standard
-                        ? "Select Subject"
-                        : "Select Class first"}
+                        ? "বিষয় নির্বাচন করুন"
+                        : "প্রথমে মারহালা নির্বাচন করুন"}
                   </option>
 
                   {/* Backend subjects */}
@@ -459,7 +458,7 @@ Source: ${currentNotes.source === "cms" ? "Library" : "AI Generated"}
                   {/* Message when no subjects available */}
                   {subjectsOptions.length === 0 && !subjectsLoading && formData.class_standard && (
                     <option value="" disabled>
-                      No subjects found - Add in Class Management
+                      কোন বিষয় পাওয়া যায়নি - মারহালা ব্যবস্থাপনায় যোগ করুন
                     </option>
                   )}
                 </select>
@@ -468,7 +467,7 @@ Source: ${currentNotes.source === "cms" ? "Library" : "AI Generated"}
               {/* Chapter (dynamic from syllabus) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Chapter
+                  অধ্যায়
                 </label>
                 {chaptersOptions.length > 0 ? (
                   <select
@@ -477,7 +476,7 @@ Source: ${currentNotes.source === "cms" ? "Library" : "AI Generated"}
                     disabled={!formData.subject}
                     className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:cursor-not-allowed dark:bg-gray-700 dark:text-white"
                   >
-                    <option value="">Select Chapter</option>
+                    <option value="">অধ্যায় নির্বাচন করুন</option>
                     {chaptersOptions.map((ch) => (
                       <option key={ch} value={ch}>
                         {ch}
@@ -496,8 +495,8 @@ Source: ${currentNotes.source === "cms" ? "Library" : "AI Generated"}
                     }
                     placeholder={
                       formData.subject
-                        ? "No syllabus chapters found – type chapter name"
-                        : "Select Subject first"
+                        ? "সিলেবাসে অধ্যায় পাওয়া যায়নি – অধ্যায়ের নাম লিখুন"
+                        : "প্রথমে বিষয় নির্বাচন করুন"
                     }
                     className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                   />
@@ -507,7 +506,7 @@ Source: ${currentNotes.source === "cms" ? "Library" : "AI Generated"}
               {/* Topic (free text) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Topic
+                  টপিক
                 </label>
                 <input
                   type="text"
@@ -518,7 +517,7 @@ Source: ${currentNotes.source === "cms" ? "Library" : "AI Generated"}
                       topic: e.target.value,
                     }))
                   }
-                  placeholder="e.g., Laws of Thermodynamics"
+                  placeholder="যেমন, তাপগতিবিদ্যার সূত্র"
                   className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 />
               </div>
@@ -532,18 +531,18 @@ Source: ${currentNotes.source === "cms" ? "Library" : "AI Generated"}
                 {generating ? (
                   <>
                     <Loader2 className="animate-spin" size={20} />
-                    Generating...
+                    তৈরি হচ্ছে...
                   </>
                 ) : (
                   <>
                     <Sparkles size={20} />
-                    Generate Notes
+                    নোটস তৈরি করুন
                   </>
                 )}
               </button>
 
               <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                Includes learning objectives, examples, and practice questions
+                শিখন উদ্দেশ্য, উদাহরণ এবং অনুশীলন প্রশ্ন অন্তর্ভুক্ত
               </p>
             </div>
           </div>
@@ -553,7 +552,7 @@ Source: ${currentNotes.source === "cms" ? "Library" : "AI Generated"}
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold flex items-center gap-2 dark:text-white">
                 <BookOpen size={20} className="text-blue-600" />
-                Study Notes
+                স্টাডি নোটস
               </h2>
               {currentNotes && (
                 <button
@@ -561,7 +560,7 @@ Source: ${currentNotes.source === "cms" ? "Library" : "AI Generated"}
                   className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition"
                 >
                   <Download size={18} />
-                  Download
+                  ডাউনলোড
                 </button>
               )}
             </div>
@@ -571,14 +570,14 @@ Source: ${currentNotes.source === "cms" ? "Library" : "AI Generated"}
                 <div className="bg-blue-50 dark:bg-gray-700 rounded-lg p-4">
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
-                      <span className="font-medium text-gray-700 dark:text-gray-300">Class:</span>{" "}
+                      <span className="font-medium text-gray-700 dark:text-gray-300">মারহালা:</span>{" "}
                       <span className="text-gray-900 dark:text-white">
                         {currentNotes.class_standard}
                       </span>
                     </div>
                     <div>
                       <span className="font-medium text-gray-700 dark:text-gray-300">
-                        Subject:
+                        বিষয়:
                       </span>{" "}
                       <span className="text-gray-900 dark:text-white">
                         {currentNotes.subject}
@@ -587,7 +586,7 @@ Source: ${currentNotes.source === "cms" ? "Library" : "AI Generated"}
                     {currentNotes.chapter && (
                       <div>
                         <span className="font-medium text-gray-700 dark:text-gray-300">
-                          Chapter:
+                          অধ্যায়:
                         </span>{" "}
                         <span className="text-gray-900 dark:text-white">
                           {currentNotes.chapter}
@@ -597,7 +596,7 @@ Source: ${currentNotes.source === "cms" ? "Library" : "AI Generated"}
                     {currentNotes.topic && (
                       <div>
                         <span className="font-medium text-gray-700 dark:text-gray-300">
-                          Topic:
+                          টপিক:
                         </span>{" "}
                         <span className="text-gray-900 dark:text-white">
                           {currentNotes.topic}
@@ -605,7 +604,7 @@ Source: ${currentNotes.source === "cms" ? "Library" : "AI Generated"}
                       </div>
                     )}
                     <div className="col-span-2">
-                      <span className="font-medium text-gray-700 dark:text-gray-300">Source:</span>{" "}
+                      <span className="font-medium text-gray-700 dark:text-gray-300">উৎস:</span>{" "}
                       <span
                         className={`px-2 py-1 rounded text-xs font-medium ${
                           currentNotes.source === "cms"
@@ -614,8 +613,8 @@ Source: ${currentNotes.source === "cms" ? "Library" : "AI Generated"}
                         }`}
                       >
                         {currentNotes.source === "cms"
-                          ? "Library"
-                          : "AI Generated"}
+                          ? "লাইব্রেরি"
+                          : "AI তৈরি"}
                       </span>
                     </div>
                   </div>
@@ -630,7 +629,7 @@ Source: ${currentNotes.source === "cms" ? "Library" : "AI Generated"}
             ) : (
               <div className="text-center py-16 text-gray-400 dark:text-gray-500">
                 <FileText size={64} className="mx-auto mb-4 opacity-30" />
-                <p>Generate notes to view them here</p>
+                <p>এখানে দেখতে নোটস তৈরি করুন</p>
               </div>
             )}
           </div>
@@ -638,14 +637,14 @@ Source: ${currentNotes.source === "cms" ? "Library" : "AI Generated"}
 
         {/* Notes History */}
         <div className="mt-6 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold mb-4 dark:text-white">Notes Library</h2>
+          <h2 className="text-xl font-semibold mb-4 dark:text-white">নোটস লাইব্রেরি</h2>
 
           {/* Filters */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             {/* Filter by Class */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Filter by Class
+                মারহালা দিয়ে ফিল্টার
               </label>
               <select
                 value={filterClass}
@@ -653,7 +652,7 @@ Source: ${currentNotes.source === "cms" ? "Library" : "AI Generated"}
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 dark:bg-gray-700 dark:text-white"
               >
                 <option value="">
-                  {classLoading ? "Loading classes..." : "All Classes"}
+                  {classLoading ? "মারহালা লোড হচ্ছে..." : "সকল মারহালা"}
                 </option>
                 {classOptions.map((cls) => (
                   <option key={cls.id} value={getClassValue(cls)}>
@@ -666,7 +665,7 @@ Source: ${currentNotes.source === "cms" ? "Library" : "AI Generated"}
             {/* Filter by Subject */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Filter by Subject
+                বিষয় দিয়ে ফিল্টার
               </label>
               <select
                 value={filterSubject}
@@ -676,8 +675,8 @@ Source: ${currentNotes.source === "cms" ? "Library" : "AI Generated"}
               >
                 <option value="">
                   {subjectFilterOptions.length
-                    ? "All Subjects"
-                    : "No subjects found"}
+                    ? "সকল বিষয়"
+                    : "কোন বিষয় পাওয়া যায়নি"}
                 </option>
                 {subjectFilterOptions.map((subj) => (
                   <option key={subj} value={subj}>
@@ -690,7 +689,7 @@ Source: ${currentNotes.source === "cms" ? "Library" : "AI Generated"}
             {/* Filter by Chapter */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Filter by Chapter
+                অধ্যায় দিয়ে ফিল্টার
               </label>
               <select
                 value={filterChapter}
@@ -700,8 +699,8 @@ Source: ${currentNotes.source === "cms" ? "Library" : "AI Generated"}
               >
                 <option value="">
                   {chapterFilterOptions.length
-                    ? "All Chapters"
-                    : "No chapters found"}
+                    ? "সকল অধ্যায়"
+                    : "কোন অধ্যায় পাওয়া যায়নি"}
                 </option>
                 {chapterFilterOptions.map((ch) => (
                   <option key={ch} value={ch}>
@@ -717,7 +716,7 @@ Source: ${currentNotes.source === "cms" ? "Library" : "AI Generated"}
             {loading ? (
               <div className="flex items-center justify-center gap-2 text-gray-500 dark:text-gray-400 py-8">
                 <Loader2 className="animate-spin" size={18} />
-                Loading notes...
+                নোটস লোড হচ্ছে...
               </div>
             ) : notesList.length > 0 ? (
               notesList.map((notes) => (
@@ -732,9 +731,9 @@ Source: ${currentNotes.source === "cms" ? "Library" : "AI Generated"}
                         {notes.subject} - Class {notes.class_standard}
                       </h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        {notes.chapter && `Chapter: ${notes.chapter}`}
+                        {notes.chapter && `অধ্যায়: ${notes.chapter}`}
                         {notes.chapter && notes.topic && " | "}
-                        {notes.topic && `Topic: ${notes.topic}`}
+                        {notes.topic && `টপিক: ${notes.topic}`}
                       </p>
                       <div className="flex items-center gap-3 mt-2">
                         <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -747,7 +746,7 @@ Source: ${currentNotes.source === "cms" ? "Library" : "AI Generated"}
                               : "bg-green-100 text-green-800"
                           }`}
                         >
-                          {notes.source === "ai_generated" ? "AI" : "Library"}
+                          {notes.source === "ai_generated" ? "AI" : "লাইব্রেরি"}
                         </span>
                       </div>
                     </div>
@@ -765,7 +764,7 @@ Source: ${currentNotes.source === "cms" ? "Library" : "AI Generated"}
               ))
             ) : (
               <div className="text-center py-8 text-gray-400 dark:text-gray-500">
-                No notes found
+                কোন নোটস পাওয়া যায়নি
               </div>
             )}
           </div>

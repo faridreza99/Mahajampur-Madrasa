@@ -35,6 +35,9 @@ import {
   Phone,
   MapPin,
   User,
+  KeyRound,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
@@ -73,6 +76,12 @@ const MadrasahSimpleSettings = () => {
 
   const [isAddClassModalOpen, setIsAddClassModalOpen] = useState(false);
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+  const [isResetPasswordModalOpen, setIsResetPasswordModalOpen] = useState(false);
+  const [selectedUserForReset, setSelectedUserForReset] = useState(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
   const [newClassName, setNewClassName] = useState("");
   const [newUserData, setNewUserData] = useState({
     name: "",
@@ -173,6 +182,46 @@ const MadrasahSimpleSettings = () => {
       toast.error("সংরক্ষণ করতে সমস্যা হয়েছে");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const openResetPasswordModal = (user) => {
+    setSelectedUserForReset(user);
+    setNewPassword("");
+    setConfirmPassword("");
+    setShowPassword(false);
+    setIsResetPasswordModalOpen(true);
+  };
+
+  const handleResetPassword = async () => {
+    if (!newPassword) {
+      toast.error("নতুন পাসওয়ার্ড দিন");
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error("পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("পাসওয়ার্ড মিলছে না");
+      return;
+    }
+
+    setResettingPassword(true);
+    try {
+      await axios.post(
+        `${API_BASE_URL}/admin/users/${selectedUserForReset.id}/reset-password`,
+        { new_password: newPassword }
+      );
+      toast.success(`${selectedUserForReset.name || selectedUserForReset.username} এর পাসওয়ার্ড রিসেট হয়েছে`);
+      setIsResetPasswordModalOpen(false);
+      setSelectedUserForReset(null);
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error) {
+      toast.error("পাসওয়ার্ড রিসেট করতে সমস্যা হয়েছে");
+    } finally {
+      setResettingPassword(false);
     }
   };
 
@@ -512,6 +561,52 @@ const MadrasahSimpleSettings = () => {
                   <Save className="h-5 w-5 mr-2" />
                   {saving ? "সংরক্ষণ হচ্ছে..." : "সংরক্ষণ করুন"}
                 </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <KeyRound className="h-5 w-5 text-orange-500" />
+                পাসওয়ার্ড রিসেট
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-gray-600 dark:text-gray-400">
+                কোনো ব্যবহারকারী তাদের পাসওয়ার্ড ভুলে গেলে এখান থেকে রিসেট করুন।
+              </p>
+              <div className="space-y-3">
+                <Label className="text-base font-medium">ব্যবহারকারী নির্বাচন করুন</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {users.map((user) => (
+                    <div
+                      key={user.id}
+                      className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium truncate">{user.name || user.username}</p>
+                        <p className="text-xs text-gray-500 truncate">@{user.username}</p>
+                        <Badge variant="outline" className="mt-1 text-xs">
+                          {user.role === "admin" ? "অ্যাডমিন" : user.role === "teacher" ? "শিক্ষক" : user.role}
+                        </Badge>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openResetPasswordModal(user)}
+                        className="ml-2 shrink-0"
+                      >
+                        <KeyRound className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  {users.length === 0 && (
+                    <p className="text-gray-500 col-span-full text-center py-4">
+                      কোনো ব্যবহারকারী নেই
+                    </p>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -954,6 +1049,79 @@ const MadrasahSimpleSettings = () => {
             <Button onClick={handleAddUser}>
               <Plus className="h-4 w-4 mr-2" />
               যোগ করুন
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isResetPasswordModalOpen} onOpenChange={setIsResetPasswordModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5 text-orange-500" />
+              পাসওয়ার্ড রিসেট করুন
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <p className="text-sm text-gray-600 dark:text-gray-400">ব্যবহারকারী:</p>
+              <p className="font-medium">{selectedUserForReset?.name || selectedUserForReset?.username}</p>
+              <p className="text-xs text-gray-500">@{selectedUserForReset?.username}</p>
+            </div>
+            <div className="space-y-2">
+              <Label>নতুন পাসওয়ার্ড</Label>
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="নতুন পাসওয়ার্ড লিখুন (কমপক্ষে ৬ অক্ষর)"
+                  className="text-lg py-3 pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-1 top-1/2 -translate-y-1/2"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>পাসওয়ার্ড নিশ্চিত করুন</Label>
+              <Input
+                type={showPassword ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="পাসওয়ার্ড আবার লিখুন"
+                className="text-lg py-3"
+              />
+            </div>
+            {newPassword && confirmPassword && newPassword !== confirmPassword && (
+              <p className="text-sm text-red-500">পাসওয়ার্ড মিলছে না</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsResetPasswordModalOpen(false);
+                setSelectedUserForReset(null);
+                setNewPassword("");
+                setConfirmPassword("");
+              }}
+            >
+              বাতিল
+            </Button>
+            <Button 
+              onClick={handleResetPassword}
+              disabled={resettingPassword || !newPassword || newPassword !== confirmPassword}
+              className="bg-orange-500 hover:bg-orange-600"
+            >
+              <KeyRound className="h-4 w-4 mr-2" />
+              {resettingPassword ? "রিসেট হচ্ছে..." : "পাসওয়ার্ড রিসেট করুন"}
             </Button>
           </DialogFooter>
         </DialogContent>

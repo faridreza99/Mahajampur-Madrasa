@@ -165,15 +165,15 @@ export default function AILogs() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              AI Activity Logs
+              AI অ্যাক্টিভিটি লগ
             </h1>
             <p className="text-gray-600">
-              Track your AI interactions by Subject, Chapter, and Topic
+              বিষয়, অধ্যায় এবং টপিক অনুযায়ী আপনার AI ইন্টারঅ্যাকশন ট্র্যাক করুন
             </p>
           </div>
         </div>
         <Button onClick={resetFilters} variant="outline">
-          Clear Filters
+          ফিল্টার রিসেট করুন
         </Button>
       </div>
 
@@ -182,7 +182,7 @@ export default function AILogs() {
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Filter className="h-5 w-5" />
-            <span>Filter by Content Source &amp; Tags</span>
+            <span>উৎস ও ট্যাগ দিয়ে ফিল্টার করুন</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -190,7 +190,7 @@ export default function AILogs() {
             {/* Content Source */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Content Source
+                কন্টেন্ট উৎস
               </label>
               <select
                 value={contentSource}
@@ -205,9 +205,9 @@ export default function AILogs() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
                 {/* Fixed options from screenshot */}
-                <option value="">All Sources</option>
-                <option value="Academic Book">Academic Books</option>
-                <option value="Reference Book">Reference Books</option>
+                <option value="">সকল উৎস</option>
+                <option value="Academic Book">একাডেমিক বই</option>
+                <option value="Reference Book">রেফারেন্স বই</option>
 
                 {/* Any other backend-defined sources */}
                 {dynamicSources.map((source) => (
@@ -221,7 +221,7 @@ export default function AILogs() {
             {/* Subject */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Subject
+                বিষয়
               </label>
               <select
                 value={subject}
@@ -234,7 +234,7 @@ export default function AILogs() {
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
-                <option value="">All Subjects</option>
+                <option value="">সকল বিষয়</option>
                 {(filterOptions.subjects || []).map((sub) => (
                   <option key={sub} value={sub}>
                     {sub}
@@ -246,7 +246,7 @@ export default function AILogs() {
             {/* Chapter */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Chapter
+                অধ্যায়
               </label>
               <select
                 value={chapter}
@@ -258,7 +258,7 @@ export default function AILogs() {
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
-                <option value="">All Chapters</option>
+                <option value="">সকল অধ্যায়</option>
                 {(filterOptions.chapters || []).map((chap) => (
                   <option key={chap} value={chap}>
                     {chap}
@@ -270,7 +270,7 @@ export default function AILogs() {
             {/* Topic */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Topic (Optional)
+                টপিক (ঐচ্ছিক)
               </label>
               <select
                 value={topic}
@@ -280,7 +280,7 @@ export default function AILogs() {
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
-                <option value="">All Topics</option>
+                <option value="">সকল টপিক</option>
                 {(filterOptions.topics || []).map((top) => (
                   <option key={top} value={top}>
                     {top}
@@ -292,7 +292,7 @@ export default function AILogs() {
             {/* Reference Book */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Reference Book (Optional)
+                রেফারেন্স বই (ঐচ্ছিক)
               </label>
               <select
                 value={referenceBook}
@@ -302,7 +302,7 @@ export default function AILogs() {
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
-                <option value="">All Reference Books</option>
+                <option value="">সকল রেফারেন্স বই</option>
                 {(filterOptions.reference_books || []).map((rb) => (
                   <option key={rb} value={rb}>
                     {rb}
@@ -315,7 +315,7 @@ export default function AILogs() {
           {/* Sort Order */}
           <div className="mt-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Sort Order
+              সাজানোর ক্রম
             </label>
             <select
               value={sortOrder}
@@ -325,8 +325,8 @@ export default function AILogs() {
               }}
               className="w-full md:w-48 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
             >
-              <option value="latest">Latest First</option>
-              <option value="oldest">Oldest First</option>
+              <option value="latest">সর্বশেষ প্রথমে</option>
+              <option value="oldest">পুরনো প্রথমে</option>
             </select>
           </div>
         </CardContent>
@@ -335,21 +335,21 @@ export default function AILogs() {
       {/* Activity Logs */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Activity History</CardTitle>
+          <CardTitle>অ্যাক্টিভিটি ইতিহাস</CardTitle>
           {pagination && (
             <p className="text-sm text-gray-600">
-              Showing {logs.length} of {pagination.total_count}
+              দেখানো হচ্ছে {logs.length} টি মোট {pagination.total_count} এর মধ্যে
             </p>
           )}
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="text-center py-8 text-gray-500">
-              Loading logs...
+              লগ লোড হচ্ছে...
             </div>
           ) : logs.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              No activity logs found. Try adjusting your filters.
+              কোন অ্যাক্টিভিটি লগ পাওয়া যায়নি। ফিল্টার পরিবর্তন করে দেখুন।
             </div>
           ) : (
             <div className="space-y-4">
@@ -364,7 +364,7 @@ export default function AILogs() {
                       {log?.question && (
                         <div>
                           <p className="text-sm font-semibold text-gray-700 mb-1">
-                            Question:
+                            প্রশ্ন:
                           </p>
                           <p className="text-sm text-gray-900">
                             {log.question}
@@ -375,7 +375,7 @@ export default function AILogs() {
                       {log?.answer && (
                         <div>
                           <p className="text-sm font-semibold text-gray-700 mb-1">
-                            Answer:
+                            উত্তর:
                           </p>
                           <p className="text-sm text-gray-900 whitespace-pre-wrap">
                             {log.answer}
@@ -392,42 +392,42 @@ export default function AILogs() {
                         tags.previous_papers) && (
                         <div className="pt-3 border-t border-gray-200">
                           <p className="text-xs font-semibold mb-2 text-gray-600">
-                            📚 Source Tags:
+                            📚 উৎস ট্যাগ:
                           </p>
                           <div className="flex flex-wrap gap-2">
                             {tags.subject && (
                               <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
-                                Subject: {tags.subject}
+                                বিষয়: {tags.subject}
                               </span>
                             )}
                             {tags.chapter && (
                               <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">
-                                Chapter: {tags.chapter}
+                                অধ্যায়: {tags.chapter}
                               </span>
                             )}
                             {tags.topic && (
                               <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs">
-                                Topic: {tags.topic}
+                                টপিক: {tags.topic}
                               </span>
                             )}
                             {tags.academic_book && (
                               <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs">
-                                📖 Academic Book: {tags.academic_book}
+                                📖 একাডেমিক বই: {tags.academic_book}
                               </span>
                             )}
                             {tags.reference_book && (
                               <span className="px-2 py-1 bg-indigo-100 text-indigo-800 rounded text-xs">
-                                📚 Reference Book: {tags.reference_book}
+                                📚 রেফারেন্স বই: {tags.reference_book}
                               </span>
                             )}
                             {tags.qa_knowledge_base && (
                               <span className="px-2 py-1 bg-pink-100 text-pink-800 rounded text-xs">
-                                ❓ Q&amp;A Knowledge Base
+                                ❓ প্রশ্নোত্তর নলেজ বেস
                               </span>
                             )}
                             {tags.previous_papers && (
                               <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs">
-                                📝 Previous Papers: {tags.previous_papers}
+                                📝 বিগত প্রশ্নপত্র: {tags.previous_papers}
                               </span>
                             )}
                           </div>
@@ -443,7 +443,7 @@ export default function AILogs() {
                         </div>
                         {log?.source && (
                           <span className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded">
-                            Source: {log.source}
+                            উৎস: {log.source}
                           </span>
                         )}
                         {log?.user_name && (
@@ -463,7 +463,7 @@ export default function AILogs() {
           {pagination && pagination.total_pages > 1 && (
             <div className="flex items-center justify-between mt-6 pt-4 border-t">
               <div className="text-sm text-gray-600">
-                Page {pagination.current_page} of {pagination.total_pages}
+                পৃষ্ঠা {pagination.current_page} মোট {pagination.total_pages} এর মধ্যে
               </div>
               <div className="flex items-center space-x-2">
                 <Button
@@ -473,7 +473,7 @@ export default function AILogs() {
                   disabled={!pagination.has_previous}
                 >
                   <ChevronLeft className="h-4 w-4 mr-1" />
-                  Previous
+                  পূর্ববর্তী
                 </Button>
                 <Button
                   variant="outline"
@@ -481,7 +481,7 @@ export default function AILogs() {
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={!pagination.has_next}
                 >
-                  Next
+                  পরবর্তী
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               </div>
