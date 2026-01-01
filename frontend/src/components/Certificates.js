@@ -5144,14 +5144,14 @@ const Certificates = () => {
 
       {/* Appreciation Certificate Print Preview */}
       {showAppreciationPreview && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-hidden">
-            <div className="p-4 border-b flex items-center justify-between">
-              <h3 className="text-lg font-semibold">প্রশংসাপত্র প্রিন্ট প্রিভিউ</h3>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 print:bg-white print:p-0">
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-hidden print:max-w-none print:max-h-none print:overflow-visible">
+            <div className="p-4 border-b flex items-center justify-between print:hidden">
+              <h3 className="text-lg font-semibold">প্রশংসাপত্র প্রিভিউ</h3>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => window.print()}>
-                  <Printer className="h-4 w-4 mr-1" />
-                  প্রিন্ট
+                <Button variant="outline" size="sm" onClick={() => window.print()} className="bg-amber-500 hover:bg-amber-600 text-white border-0">
+                  <Download className="h-4 w-4 mr-1" />
+                  ডাউনলোড
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => {
                   setShowAppreciationPreview(false);
@@ -5202,14 +5202,14 @@ const Certificates = () => {
 
       {/* Character Certificate Print Preview */}
       {showCharacterPreview && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-hidden">
-            <div className="p-4 border-b flex items-center justify-between">
-              <h3 className="text-lg font-semibold">চরিত্র সনদ প্রিন্ট প্রিভিউ</h3>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 print:bg-white print:p-0">
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-hidden print:max-w-none print:max-h-none print:overflow-visible">
+            <div className="p-4 border-b flex items-center justify-between print:hidden">
+              <h3 className="text-lg font-semibold">চরিত্র সনদ প্রিভিউ</h3>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => window.print()}>
-                  <Printer className="h-4 w-4 mr-1" />
-                  প্রিন্ট
+                <Button variant="outline" size="sm" onClick={() => window.print()} className="bg-emerald-500 hover:bg-emerald-600 text-white border-0">
+                  <Download className="h-4 w-4 mr-1" />
+                  ডাউনলোড
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => {
                   setShowCharacterPreview(false);
