@@ -2231,7 +2231,7 @@ const Certificates = () => {
           </div>
           
           <p class="issue-date">ইস্যু তারিখ: ${issueDate}</p>
-          <p class="footer-brand">Made by MaxTechBD</p>
+          <p class="footer-brand">Developed By Maxtechbd.com</p>
         </div>
       </div>
     `;

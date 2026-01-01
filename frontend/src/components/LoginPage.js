@@ -288,9 +288,7 @@ const LoginPage = () => {
                 : 'Real-time Data Sync'}
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-500">
-              {currentLang === 'bn' 
-                ? 'তৈরি করেছে MaxTechBD' 
-                : 'Made by MaxTechBD'}
+              Developed By Maxtechbd.com
             </p>
           </div>
         </div>

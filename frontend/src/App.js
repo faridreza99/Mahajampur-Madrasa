@@ -282,6 +282,11 @@ const Layout = ({ children }) => {
           <div className="min-h-[calc(100vh-100px)] pb-16 sm:pb-24 max-w-full overflow-x-hidden">
             {children}
           </div>
+          <footer className="py-4 text-center border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Developed By Maxtechbd.com
+            </p>
+          </footer>
         </main>
       </div>
     </div>
