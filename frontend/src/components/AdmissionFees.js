@@ -52,7 +52,14 @@ const AdmissionFees = () => {
   const { t, i18n } = useTranslation();
   const { formatCurrency } = useCurrency();
   const { isMadrasahSimpleUI } = useInstitution();
-  const isBangla = i18n.language === 'bn';
+  const isBangla = i18n.language === 'bn' || isMadrasahSimpleUI;
+  
+  // Auto-switch to Bengali for Madrasah mode
+  useEffect(() => {
+    if (isMadrasahSimpleUI && i18n.language !== 'bn') {
+      i18n.changeLanguage('bn');
+    }
+  }, [isMadrasahSimpleUI, i18n]);
   
   const [fees, setFees] = useState([]);
   const [loading, setLoading] = useState(false);
