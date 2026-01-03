@@ -81,10 +81,10 @@ const AdmissionFees = () => {
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   
   const paymentModes = [
-    { value: 'Cash', label: isBangla ? 'নগদ' : 'Cash' },
-    { value: 'Bank', label: isBangla ? 'ব্যাংক' : 'Bank' },
-    { value: 'Mobile Banking', label: isBangla ? 'মোবাইল ব্যাংকিং' : 'Mobile Banking' },
-    { value: 'Cheque', label: isBangla ? 'চেক' : 'Cheque' }
+    { value: 'Cash', labelKey: 'admissionFees.cash' },
+    { value: 'Bank', labelKey: 'admissionFees.bank' },
+    { value: 'Mobile Banking', labelKey: 'admissionFees.mobileBanking' },
+    { value: 'Cheque', labelKey: 'admissionFees.cheque' }
   ];
 
   useEffect(() => {
@@ -105,7 +105,7 @@ const AdmissionFees = () => {
       setSummary(response.data.summary || {});
     } catch (error) {
       console.error('Error fetching admission fees:', error);
-      toast.error(isBangla ? 'ভর্তি ফি লোড করতে ব্যর্থ' : 'Failed to load admission fees');
+      toast.error(t('admissionFees.loadError'));
     } finally {
       setLoading(false);
     }
@@ -133,7 +133,7 @@ const AdmissionFees = () => {
     e.preventDefault();
     
     if (!formData.student_name || !formData.class_name || !formData.amount) {
-      toast.error(isBangla ? 'সকল প্রয়োজনীয় তথ্য পূরণ করুন' : 'Please fill all required fields');
+      toast.error(t('admissionFees.fillRequired'));
       return;
     }
     
@@ -144,7 +144,7 @@ const AdmissionFees = () => {
         amount: parseFloat(formData.amount)
       });
       
-      toast.success(isBangla ? 'ভর্তি ফি সফলভাবে সংরক্ষিত হয়েছে' : 'Admission fee saved successfully');
+      toast.success(t('admissionFees.saveSuccess'));
       setLastReceipt(response.data);
       setShowAddModal(false);
       setShowReceiptModal(true);
@@ -159,24 +159,24 @@ const AdmissionFees = () => {
       fetchFees();
     } catch (error) {
       console.error('Error creating admission fee:', error);
-      toast.error(isBangla ? 'ভর্তি ফি সংরক্ষণ করতে ব্যর্থ' : 'Failed to save admission fee');
+      toast.error(t('admissionFees.saveError'));
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async (feeId) => {
-    if (!window.confirm(isBangla ? 'আপনি কি নিশ্চিত এই ভর্তি ফি মুছে ফেলতে চান?' : 'Are you sure you want to delete this admission fee?')) {
+    if (!window.confirm(t('admissionFees.confirmDelete'))) {
       return;
     }
     
     try {
       await axios.delete(`${API}/admission-fees/${feeId}`);
-      toast.success(isBangla ? 'ভর্তি ফি মুছে ফেলা হয়েছে' : 'Admission fee deleted');
+      toast.success(t('admissionFees.deleteSuccess'));
       fetchFees();
     } catch (error) {
       console.error('Error deleting admission fee:', error);
-      toast.error(isBangla ? 'ভর্তি ফি মুছে ফেলতে ব্যর্থ' : 'Failed to delete admission fee');
+      toast.error(t('admissionFees.deleteError'));
     }
   };
 
@@ -208,6 +208,11 @@ const AdmissionFees = () => {
     return new Date(dateString).toLocaleDateString();
   };
 
+  const getPaymentModeLabel = (value) => {
+    const mode = paymentModes.find(m => m.value === value);
+    return mode ? t(mode.labelKey) : value;
+  };
+
   const printReceipt = () => {
     window.print();
   };
@@ -217,15 +222,15 @@ const AdmissionFees = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            {isBangla ? 'ভর্তি ফি আদায়' : 'Admission Fee Collection'}
+            {t('admissionFees.title')}
           </h1>
           <p className="text-gray-500 mt-1">
-            {isBangla ? 'নতুন শিক্ষার্থী ভর্তি ফি আদায় ও রসিদ' : 'Collect admission fees for new students'}
+            {t('admissionFees.subtitle')}
           </p>
         </div>
         <Button onClick={() => setShowAddModal(true)} className="bg-emerald-600 hover:bg-emerald-700">
           <Plus className="h-4 w-4 mr-2" />
-          {isBangla ? 'ভর্তি ফি আদায়' : 'Collect Admission Fee'}
+          {t('admissionFees.collectFee')}
         </Button>
       </div>
 
@@ -237,7 +242,7 @@ const AdmissionFees = () => {
                 <DollarSign className="h-6 w-6 text-emerald-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">{isBangla ? 'মোট আদায়' : 'Total Collected'}</p>
+                <p className="text-sm text-gray-500">{t('admissionFees.totalCollected')}</p>
                 <p className="text-2xl font-bold text-gray-900">{formatAmount(summary.total_collected || 0)}</p>
               </div>
             </div>
@@ -251,7 +256,7 @@ const AdmissionFees = () => {
                 <TrendingUp className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">{isBangla ? 'আজকের আদায়' : "Today's Collection"}</p>
+                <p className="text-sm text-gray-500">{t('admissionFees.todayCollection')}</p>
                 <p className="text-2xl font-bold text-gray-900">{formatAmount(summary.today_collection || 0)}</p>
               </div>
             </div>
@@ -265,7 +270,7 @@ const AdmissionFees = () => {
                 <Users className="h-6 w-6 text-purple-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">{isBangla ? 'মোট ভর্তি' : 'Total Admissions'}</p>
+                <p className="text-sm text-gray-500">{t('admissionFees.totalAdmissions')}</p>
                 <p className="text-2xl font-bold text-gray-900">
                   {isBangla ? toBengaliNumeral(summary.total_admissions || 0) : summary.total_admissions || 0}
                 </p>
@@ -281,7 +286,7 @@ const AdmissionFees = () => {
                 <Calendar className="h-6 w-6 text-orange-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">{isBangla ? 'আজকের ভর্তি' : "Today's Admissions"}</p>
+                <p className="text-sm text-gray-500">{t('admissionFees.todayAdmissions')}</p>
                 <p className="text-2xl font-bold text-gray-900">
                   {isBangla ? toBengaliNumeral(summary.today_admissions || 0) : summary.today_admissions || 0}
                 </p>
@@ -294,12 +299,12 @@ const AdmissionFees = () => {
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <CardTitle>{isBangla ? 'ভর্তি ফি তালিকা' : 'Admission Fee Records'}</CardTitle>
+            <CardTitle>{t('admissionFees.feeRecords')}</CardTitle>
             <div className="flex gap-2">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder={isBangla ? 'অনুসন্ধান...' : 'Search...'}
+                  placeholder={t('common.search') + '...'}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 w-64"
@@ -307,10 +312,10 @@ const AdmissionFees = () => {
               </div>
               <Select value={selectedClass} onValueChange={setSelectedClass}>
                 <SelectTrigger className="w-48">
-                  <SelectValue placeholder={isBangla ? 'সকল জামাত' : 'All Classes'} />
+                  <SelectValue placeholder={t('admissionFees.allClasses')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">{isBangla ? 'সকল জামাত' : 'All Classes'}</SelectItem>
+                  <SelectItem value="all">{t('admissionFees.allClasses')}</SelectItem>
                   {classes.map(cls => (
                     <SelectItem key={cls.id} value={cls.name}>{cls.name}</SelectItem>
                   ))}
@@ -323,26 +328,26 @@ const AdmissionFees = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>{isBangla ? 'রসিদ নং' : 'Receipt No'}</TableHead>
-                <TableHead>{isBangla ? 'শিক্ষার্থীর নাম' : 'Student Name'}</TableHead>
-                <TableHead>{isBangla ? 'জামাত/মারহালা' : 'Class'}</TableHead>
-                <TableHead>{isBangla ? 'টাকা' : 'Amount'}</TableHead>
-                <TableHead>{isBangla ? 'পেমেন্ট মোড' : 'Payment Mode'}</TableHead>
-                <TableHead>{isBangla ? 'তারিখ' : 'Date'}</TableHead>
-                <TableHead>{isBangla ? 'কার্যক্রম' : 'Actions'}</TableHead>
+                <TableHead>{t('admissionFees.receiptNo')}</TableHead>
+                <TableHead>{t('admissionFees.studentName')}</TableHead>
+                <TableHead>{t('admissionFees.class')}</TableHead>
+                <TableHead>{t('admissionFees.amount')}</TableHead>
+                <TableHead>{t('admissionFees.paymentMode')}</TableHead>
+                <TableHead>{t('admissionFees.date')}</TableHead>
+                <TableHead>{t('common.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8">
-                    {isBangla ? 'লোড হচ্ছে...' : 'Loading...'}
+                    {t('common.loading')}
                   </TableCell>
                 </TableRow>
               ) : fees.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                    {isBangla ? 'কোন ভর্তি ফি পাওয়া যায়নি' : 'No admission fees found'}
+                    {t('admissionFees.noRecords')}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -357,7 +362,7 @@ const AdmissionFees = () => {
                       {formatAmount(fee.amount)}
                     </TableCell>
                     <TableCell>
-                      {paymentModes.find(m => m.value === fee.payment_mode)?.label || fee.payment_mode}
+                      {getPaymentModeLabel(fee.payment_mode)}
                     </TableCell>
                     <TableCell>{formatDate(fee.payment_date)}</TableCell>
                     <TableCell>
@@ -393,17 +398,17 @@ const AdmissionFees = () => {
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{isBangla ? 'ভর্তি ফি আদায়' : 'Collect Admission Fee'}</DialogTitle>
+            <DialogTitle>{t('admissionFees.collectFee')}</DialogTitle>
             <DialogDescription>
-              {isBangla ? 'নতুন শিক্ষার্থীর ভর্তি ফি আদায় করুন' : 'Collect admission fee for new student'}
+              {t('admissionFees.collectFeeDesc')}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label>{isBangla ? 'শিক্ষার্থী নির্বাচন করুন (ঐচ্ছিক)' : 'Select Student (Optional)'}</Label>
+              <Label>{t('admissionFees.selectStudentOptional')}</Label>
               <Select onValueChange={handleStudentSelect}>
                 <SelectTrigger>
-                  <SelectValue placeholder={isBangla ? 'শিক্ষার্থী নির্বাচন করুন' : 'Select a student'} />
+                  <SelectValue placeholder={t('admissionFees.selectStudent')} />
                 </SelectTrigger>
                 <SelectContent>
                   {students.map(student => (
@@ -414,23 +419,23 @@ const AdmissionFees = () => {
             </div>
             
             <div>
-              <Label>{isBangla ? 'শিক্ষার্থীর নাম *' : 'Student Name *'}</Label>
+              <Label>{t('admissionFees.studentName')} *</Label>
               <Input
                 value={formData.student_name}
                 onChange={(e) => setFormData({...formData, student_name: e.target.value})}
-                placeholder={isBangla ? 'শিক্ষার্থীর নাম লিখুন' : 'Enter student name'}
+                placeholder={t('admissionFees.enterStudentName')}
                 required
               />
             </div>
             
             <div>
-              <Label>{isBangla ? 'জামাত/মারহালা *' : 'Class/Jamaat *'}</Label>
+              <Label>{t('admissionFees.class')} *</Label>
               <Select 
                 value={formData.class_name} 
                 onValueChange={(value) => setFormData({...formData, class_name: value})}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={isBangla ? 'জামাত নির্বাচন করুন' : 'Select class'} />
+                  <SelectValue placeholder={t('admissionFees.selectClass')} />
                 </SelectTrigger>
                 <SelectContent>
                   {classes.map(cls => (
@@ -441,18 +446,18 @@ const AdmissionFees = () => {
             </div>
             
             <div>
-              <Label>{isBangla ? 'টাকার পরিমাণ *' : 'Amount *'}</Label>
+              <Label>{t('admissionFees.amount')} *</Label>
               <Input
                 type="number"
                 value={formData.amount}
                 onChange={(e) => setFormData({...formData, amount: e.target.value})}
-                placeholder={isBangla ? 'টাকার পরিমাণ লিখুন' : 'Enter amount'}
+                placeholder={t('admissionFees.enterAmount')}
                 required
               />
             </div>
             
             <div>
-              <Label>{isBangla ? 'পেমেন্ট মোড' : 'Payment Mode'}</Label>
+              <Label>{t('admissionFees.paymentMode')}</Label>
               <Select 
                 value={formData.payment_mode} 
                 onValueChange={(value) => setFormData({...formData, payment_mode: value})}
@@ -462,27 +467,27 @@ const AdmissionFees = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {paymentModes.map(mode => (
-                    <SelectItem key={mode.value} value={mode.value}>{mode.label}</SelectItem>
+                    <SelectItem key={mode.value} value={mode.value}>{t(mode.labelKey)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             
             <div>
-              <Label>{isBangla ? 'মন্তব্য' : 'Remarks'}</Label>
+              <Label>{t('admissionFees.remarks')}</Label>
               <Input
                 value={formData.remarks}
                 onChange={(e) => setFormData({...formData, remarks: e.target.value})}
-                placeholder={isBangla ? 'মন্তব্য (ঐচ্ছিক)' : 'Remarks (optional)'}
+                placeholder={t('admissionFees.remarksOptional')}
               />
             </div>
             
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowAddModal(false)}>
-                {isBangla ? 'বাতিল' : 'Cancel'}
+                {t('common.cancel')}
               </Button>
               <Button type="submit" disabled={loading} className="bg-emerald-600 hover:bg-emerald-700">
-                {loading ? (isBangla ? 'সংরক্ষণ হচ্ছে...' : 'Saving...') : (isBangla ? 'সংরক্ষণ করুন' : 'Save')}
+                {loading ? t('admissionFees.saving') : t('common.save')}
               </Button>
             </DialogFooter>
           </form>
@@ -492,43 +497,43 @@ const AdmissionFees = () => {
       <Dialog open={showReceiptModal} onOpenChange={setShowReceiptModal}>
         <DialogContent className="sm:max-w-lg print:shadow-none">
           <DialogHeader>
-            <DialogTitle>{isBangla ? 'ভর্তি ফি রসিদ' : 'Admission Fee Receipt'}</DialogTitle>
+            <DialogTitle>{t('admissionFees.receipt')}</DialogTitle>
           </DialogHeader>
           {lastReceipt && (
             <div className="space-y-4 p-4 border rounded-lg bg-white print:border-2">
               <div className="text-center border-b pb-4">
                 <h2 className="text-xl font-bold text-emerald-600">
-                  {isBangla ? 'ভর্তি ফি রসিদ' : 'ADMISSION FEE RECEIPT'}
+                  {t('admissionFees.receipt')}
                 </h2>
-                <p className="text-gray-500">{isBangla ? 'রসিদ নং' : 'Receipt No'}: {lastReceipt.receipt_no}</p>
+                <p className="text-gray-500">{t('admissionFees.receiptNo')}: {lastReceipt.receipt_no}</p>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-500">{isBangla ? 'শিক্ষার্থীর নাম' : 'Student Name'}</p>
+                  <p className="text-sm text-gray-500">{t('admissionFees.studentName')}</p>
                   <p className="font-medium">{lastReceipt.student_name}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">{isBangla ? 'জামাত/মারহালা' : 'Class'}</p>
+                  <p className="text-sm text-gray-500">{t('admissionFees.class')}</p>
                   <p className="font-medium">{lastReceipt.class_name}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">{isBangla ? 'টাকার পরিমাণ' : 'Amount'}</p>
+                  <p className="text-sm text-gray-500">{t('admissionFees.amount')}</p>
                   <p className="font-bold text-emerald-600 text-lg">{formatAmount(lastReceipt.amount)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">{isBangla ? 'পেমেন্ট মোড' : 'Payment Mode'}</p>
+                  <p className="text-sm text-gray-500">{t('admissionFees.paymentMode')}</p>
                   <p className="font-medium">
-                    {paymentModes.find(m => m.value === lastReceipt.payment_mode)?.label || lastReceipt.payment_mode}
+                    {getPaymentModeLabel(lastReceipt.payment_mode)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">{isBangla ? 'তারিখ' : 'Date'}</p>
+                  <p className="text-sm text-gray-500">{t('admissionFees.date')}</p>
                   <p className="font-medium">{formatDate(lastReceipt.payment_date)}</p>
                 </div>
                 {lastReceipt.remarks && (
                   <div>
-                    <p className="text-sm text-gray-500">{isBangla ? 'মন্তব্য' : 'Remarks'}</p>
+                    <p className="text-sm text-gray-500">{t('admissionFees.remarks')}</p>
                     <p className="font-medium">{lastReceipt.remarks}</p>
                   </div>
                 )}
@@ -536,18 +541,18 @@ const AdmissionFees = () => {
               
               <div className="border-t pt-4 mt-4">
                 <p className="text-center text-sm text-gray-500">
-                  {isBangla ? 'এটি কম্পিউটার জেনারেটেড রসিদ' : 'This is a computer generated receipt'}
+                  {t('admissionFees.computerGenerated')}
                 </p>
               </div>
             </div>
           )}
           <DialogFooter className="print:hidden">
             <Button variant="outline" onClick={() => setShowReceiptModal(false)}>
-              {isBangla ? 'বন্ধ করুন' : 'Close'}
+              {t('common.close')}
             </Button>
             <Button onClick={printReceipt} className="bg-emerald-600 hover:bg-emerald-700">
               <Printer className="h-4 w-4 mr-2" />
-              {isBangla ? 'প্রিন্ট করুন' : 'Print'}
+              {t('common.print')}
             </Button>
           </DialogFooter>
         </DialogContent>
