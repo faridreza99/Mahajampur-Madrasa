@@ -2,6 +2,12 @@
 
 This Cloud School ERP is a **Single Madrasah** management system (fixed tenant: MHAM5678) with comprehensive educational modules and AI capabilities. The system includes student management, attendance tracking, results, ID card generation, fee management, and AI tools. It provides a simplified, Bengali-first interface optimized for Madrasah institutions with professional reporting and scalable architecture supporting 100k+ students.
 
+## Recent Changes (January 2026)
+- **Admission Fee Collection Module**: New student-based admission fee collection with receipt generation, class/jamaat selection, payment mode tracking, and full Bangla support (ভর্তি ফি)
+- **Committee/Donation Management Module**: Non-student donation management with donor registration, committee tracking (e.g., ৩১৩ বদরী সাদৃশ্য কমিটি), monthly/yearly donation types, payment history, summary reports, and full Bangla support (কমিটি / দান)
+- Bengali numeral conversion (toBengaliNumeral) and Bangla date formatting (toBanglaDate) for all receipts
+- Fixed backend API bug using `.pop("_id", None)` instead of `del` to prevent KeyError exceptions
+
 ## Recent Changes (December 2024)
 - Converted from multi-tenant to Single Madrasah mode with fixed tenant MHAM5678
 - Removed School CODE field from login/registration
