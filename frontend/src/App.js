@@ -76,6 +76,8 @@ const TeacherDashboard = lazy(() => import("./components/TeacherDashboard"));
 const Homework = lazy(() => import("./components/Homework"));
 const LessonPlans = lazy(() => import("./components/LessonPlans"));
 const Search = lazy(() => import("./components/Search"));
+const AdmissionFees = lazy(() => import("./components/AdmissionFees"));
+const CommitteeDonation = lazy(() => import("./components/CommitteeDonation"));
 
 // Loading spinner for lazy components
 const LoadingSpinner = () => (
@@ -534,6 +536,22 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <Fees />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admission-fees"
+                  element={
+                    <ProtectedRoute>
+                      <AdmissionFees />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/committee-donation"
+                  element={
+                    <ProtectedRoute>
+                      <CommitteeDonation />
                     </ProtectedRoute>
                   }
                 />

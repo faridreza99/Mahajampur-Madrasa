@@ -337,6 +337,18 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           roles: ["super_admin", "admin"],
         },
         {
+          title: "Admission Fees",
+          madrasahTitle: "ভর্তি ফি",
+          path: "/admission-fees",
+          roles: ["super_admin", "admin"],
+        },
+        {
+          title: "Committee/Donation",
+          madrasahTitle: "কমিটি / দান",
+          path: "/committee-donation",
+          roles: ["super_admin", "admin"],
+        },
+        {
           title: "Fee Structure",
           madrasahTitle: "ফি কাঠামো",
           path: "/fees/structure",

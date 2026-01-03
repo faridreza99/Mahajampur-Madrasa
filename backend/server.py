@@ -31461,3 +31461,632 @@ if frontend_build_path.exists() and (frontend_build_path / "static").exists():
             return FileResponse(file_path)
         # Fallback to index.html for React Router (SPA)
         return FileResponse(frontend_build_path / "index.html")
+
+
+# ============================================================================
+# ADMISSION FEE COLLECTION MODULE (Student-Based)
+# For new student admission fee collection with receipt generation
+# ============================================================================
+
+class AdmissionFeeCreate(BaseModel):
+    student_id: str
+    student_name: str
+    class_name: str  # জামাত/মারহালা
+    amount: float
+    payment_mode: str = "Cash"
+    remarks: Optional[str] = None
+
+class AdmissionFeeResponse(BaseModel):
+    id: str
+    student_id: str
+    student_name: str
+    class_name: str
+    amount: float
+    payment_mode: str
+    receipt_no: str
+    payment_date: datetime
+    remarks: Optional[str] = None
+    tenant_id: str
+
+@api_router.post("/admission-fees", response_model=AdmissionFeeResponse)
+async def create_admission_fee(
+    fee_data: AdmissionFeeCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new admission fee payment and generate receipt"""
+    try:
+        # Generate unique receipt number
+        count = await db.admission_fees.count_documents({"tenant_id": current_user.tenant_id})
+        receipt_no = f"ADM-{current_user.tenant_id[:4].upper()}-{count + 1:05d}"
+        
+        admission_fee = {
+            "id": str(uuid.uuid4()),
+            "student_id": fee_data.student_id,
+            "student_name": fee_data.student_name,
+            "class_name": fee_data.class_name,
+            "amount": fee_data.amount,
+            "payment_mode": fee_data.payment_mode,
+            "receipt_no": receipt_no,
+            "payment_date": datetime.utcnow(),
+            "remarks": fee_data.remarks,
+            "tenant_id": current_user.tenant_id,
+            "created_by": current_user.id,
+            "created_at": datetime.utcnow()
+        }
+        
+        await db.admission_fees.insert_one(admission_fee)
+        
+        # Remove MongoDB _id before returning
+        admission_fee.pop("_id", None)
+        
+        return AdmissionFeeResponse(**admission_fee)
+        
+    except Exception as e:
+        logging.error(f"Failed to create admission fee: {str(e)}")
+        raise HTTPException(status_code=500, detail="ভর্তি ফি সংরক্ষণ করতে ব্যর্থ হয়েছে")
+
+@api_router.get("/admission-fees")
+async def get_admission_fees(
+    page: int = 1,
+    limit: int = 20,
+    search: Optional[str] = None,
+    class_name: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all admission fee payments with pagination and filters"""
+    try:
+        query = {"tenant_id": current_user.tenant_id}
+        
+        if search:
+            query["$or"] = [
+                {"student_name": {"$regex": search, "$options": "i"}},
+                {"receipt_no": {"$regex": search, "$options": "i"}}
+            ]
+        
+        if class_name and class_name != "all":
+            query["class_name"] = class_name
+        
+        if start_date:
+            query["payment_date"] = {"$gte": datetime.fromisoformat(start_date)}
+        
+        if end_date:
+            if "payment_date" in query:
+                query["payment_date"]["$lte"] = datetime.fromisoformat(end_date)
+            else:
+                query["payment_date"] = {"$lte": datetime.fromisoformat(end_date)}
+        
+        total = await db.admission_fees.count_documents(query)
+        skip = (page - 1) * limit
+        
+        fees = await db.admission_fees.find(query).sort("payment_date", -1).skip(skip).limit(limit).to_list(limit)
+        
+        # Calculate totals
+        all_fees = await db.admission_fees.find({"tenant_id": current_user.tenant_id}).to_list(None)
+        total_collected = sum(f.get("amount", 0) for f in all_fees)
+        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_fees = [f for f in all_fees if f.get("payment_date", datetime.min) >= today_start]
+        today_collection = sum(f.get("amount", 0) for f in today_fees)
+        
+        # Clean MongoDB _id
+        cleaned_fees = []
+        for f in fees:
+            f_copy = dict(f)
+            if "_id" in f_copy:
+                del f_copy["_id"]
+            cleaned_fees.append(f_copy)
+        
+        return {
+            "fees": cleaned_fees,
+            "total": total,
+            "page": page,
+            "limit": limit,
+            "total_pages": (total + limit - 1) // limit,
+            "summary": {
+                "total_collected": total_collected,
+                "today_collection": today_collection,
+                "total_admissions": len(all_fees),
+                "today_admissions": len(today_fees)
+            }
+        }
+        
+    except Exception as e:
+        logging.error(f"Failed to fetch admission fees: {str(e)}")
+        raise HTTPException(status_code=500, detail="ভর্তি ফি তথ্য লোড করতে ব্যর্থ হয়েছে")
+
+@api_router.get("/admission-fees/{fee_id}")
+async def get_admission_fee(
+    fee_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get single admission fee details"""
+    try:
+        fee = await db.admission_fees.find_one({
+            "id": fee_id,
+            "tenant_id": current_user.tenant_id
+        })
+        
+        if not fee:
+            raise HTTPException(status_code=404, detail="ভর্তি ফি পাওয়া যায়নি")
+        
+        del fee["_id"]
+        return fee
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Failed to fetch admission fee: {str(e)}")
+        raise HTTPException(status_code=500, detail="ভর্তি ফি তথ্য লোড করতে ব্যর্থ হয়েছে")
+
+@api_router.delete("/admission-fees/{fee_id}")
+async def delete_admission_fee(
+    fee_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete an admission fee record"""
+    try:
+        result = await db.admission_fees.delete_one({
+            "id": fee_id,
+            "tenant_id": current_user.tenant_id
+        })
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="ভর্তি ফি পাওয়া যায়নি")
+        
+        return {"message": "ভর্তি ফি সফলভাবে মুছে ফেলা হয়েছে"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Failed to delete admission fee: {str(e)}")
+        raise HTTPException(status_code=500, detail="ভর্তি ফি মুছে ফেলতে ব্যর্থ হয়েছে")
+
+
+# ============================================================================
+# COMMITTEE / DONATION FEE MODULE (Non-Student Based)
+# For managing committee members and donations like "৩১৩ বদরী সাদৃশ্য কমিটি"
+# ============================================================================
+
+class DonorCreate(BaseModel):
+    name: str
+    address: Optional[str] = None
+    mobile: str
+    donation_type: str  # "monthly" or "yearly"
+    fixed_amount: float
+    committee_name: Optional[str] = None  # e.g., "৩১৩ বদরী সাদৃশ্য কমিটি"
+    notes: Optional[str] = None
+
+class DonorUpdate(BaseModel):
+    name: Optional[str] = None
+    address: Optional[str] = None
+    mobile: Optional[str] = None
+    donation_type: Optional[str] = None
+    fixed_amount: Optional[float] = None
+    committee_name: Optional[str] = None
+    is_active: Optional[bool] = None
+    notes: Optional[str] = None
+
+class DonorResponse(BaseModel):
+    id: str
+    name: str
+    address: Optional[str] = None
+    mobile: str
+    donation_type: str
+    fixed_amount: float
+    committee_name: Optional[str] = None
+    is_active: bool
+    notes: Optional[str] = None
+    tenant_id: str
+    created_at: datetime
+    total_donated: Optional[float] = 0
+
+class DonationPaymentCreate(BaseModel):
+    donor_id: str
+    amount: float
+    payment_mode: str = "Cash"
+    payment_for_month: Optional[str] = None  # e.g., "জানুয়ারি ২০২৬"
+    payment_for_year: Optional[str] = None  # e.g., "২০২৬"
+    remarks: Optional[str] = None
+
+# Donor CRUD endpoints
+@api_router.post("/donors", response_model=DonorResponse)
+async def create_donor(
+    donor_data: DonorCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new donor/committee member"""
+    try:
+        donor = {
+            "id": str(uuid.uuid4()),
+            "name": donor_data.name,
+            "address": donor_data.address,
+            "mobile": donor_data.mobile,
+            "donation_type": donor_data.donation_type,
+            "fixed_amount": donor_data.fixed_amount,
+            "committee_name": donor_data.committee_name,
+            "is_active": True,
+            "notes": donor_data.notes,
+            "tenant_id": current_user.tenant_id,
+            "created_by": current_user.id,
+            "created_at": datetime.utcnow(),
+            "total_donated": 0
+        }
+        
+        await db.donors.insert_one(donor)
+        donor.pop("_id", None)
+        
+        return DonorResponse(**donor)
+        
+    except Exception as e:
+        logging.error(f"Failed to create donor: {str(e)}")
+        raise HTTPException(status_code=500, detail="দাতা সংরক্ষণ করতে ব্যর্থ হয়েছে")
+
+@api_router.get("/donors")
+async def get_donors(
+    page: int = 1,
+    limit: int = 20,
+    search: Optional[str] = None,
+    donation_type: Optional[str] = None,
+    committee_name: Optional[str] = None,
+    is_active: Optional[bool] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all donors with pagination and filters"""
+    try:
+        query = {"tenant_id": current_user.tenant_id}
+        
+        if search:
+            query["$or"] = [
+                {"name": {"$regex": search, "$options": "i"}},
+                {"mobile": {"$regex": search, "$options": "i"}},
+                {"committee_name": {"$regex": search, "$options": "i"}}
+            ]
+        
+        if donation_type and donation_type != "all":
+            query["donation_type"] = donation_type
+        
+        if committee_name and committee_name != "all":
+            query["committee_name"] = committee_name
+        
+        if is_active is not None:
+            query["is_active"] = is_active
+        
+        total = await db.donors.count_documents(query)
+        skip = (page - 1) * limit
+        
+        donors = await db.donors.find(query).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+        
+        # Get unique committee names for filter dropdown
+        all_donors = await db.donors.find({"tenant_id": current_user.tenant_id}).to_list(None)
+        committees = list(set(d.get("committee_name") for d in all_donors if d.get("committee_name")))
+        
+        # Calculate total expected monthly/yearly donations
+        active_donors = [d for d in all_donors if d.get("is_active", True)]
+        monthly_expected = sum(d.get("fixed_amount", 0) for d in active_donors if d.get("donation_type") == "monthly")
+        yearly_expected = sum(d.get("fixed_amount", 0) for d in active_donors if d.get("donation_type") == "yearly")
+        
+        # Clean MongoDB _id
+        cleaned_donors = []
+        for d in donors:
+            d_copy = dict(d)
+            if "_id" in d_copy:
+                del d_copy["_id"]
+            cleaned_donors.append(d_copy)
+        
+        return {
+            "donors": cleaned_donors,
+            "total": total,
+            "page": page,
+            "limit": limit,
+            "total_pages": (total + limit - 1) // limit,
+            "committees": committees,
+            "summary": {
+                "total_donors": len(all_donors),
+                "active_donors": len(active_donors),
+                "monthly_expected": monthly_expected,
+                "yearly_expected": yearly_expected
+            }
+        }
+        
+    except Exception as e:
+        logging.error(f"Failed to fetch donors: {str(e)}")
+        raise HTTPException(status_code=500, detail="দাতা তথ্য লোড করতে ব্যর্থ হয়েছে")
+
+@api_router.get("/donors/{donor_id}")
+async def get_donor(
+    donor_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get single donor details with payment history"""
+    try:
+        donor = await db.donors.find_one({
+            "id": donor_id,
+            "tenant_id": current_user.tenant_id
+        })
+        
+        if not donor:
+            raise HTTPException(status_code=404, detail="দাতা পাওয়া যায়নি")
+        
+        # Get payment history
+        payments = await db.donation_payments.find({
+            "donor_id": donor_id,
+            "tenant_id": current_user.tenant_id
+        }).sort("payment_date", -1).to_list(100)
+        
+        donor.pop("_id", None)
+        
+        cleaned_payments = []
+        for p in payments:
+            p_copy = dict(p)
+            if "_id" in p_copy:
+                del p_copy["_id"]
+            cleaned_payments.append(p_copy)
+        
+        return {
+            "donor": donor,
+            "payments": cleaned_payments,
+            "total_donated": sum(p.get("amount", 0) for p in payments)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Failed to fetch donor: {str(e)}")
+        raise HTTPException(status_code=500, detail="দাতা তথ্য লোড করতে ব্যর্থ হয়েছে")
+
+@api_router.put("/donors/{donor_id}")
+async def update_donor(
+    donor_id: str,
+    donor_data: DonorUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update donor details"""
+    try:
+        update_data = {k: v for k, v in donor_data.model_dump().items() if v is not None}
+        update_data["updated_at"] = datetime.utcnow()
+        
+        result = await db.donors.update_one(
+            {"id": donor_id, "tenant_id": current_user.tenant_id},
+            {"$set": update_data}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="দাতা পাওয়া যায়নি")
+        
+        donor = await db.donors.find_one({"id": donor_id})
+        donor.pop("_id", None)
+        
+        return donor
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Failed to update donor: {str(e)}")
+        raise HTTPException(status_code=500, detail="দাতা আপডেট করতে ব্যর্থ হয়েছে")
+
+@api_router.delete("/donors/{donor_id}")
+async def delete_donor(
+    donor_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a donor"""
+    try:
+        result = await db.donors.delete_one({
+            "id": donor_id,
+            "tenant_id": current_user.tenant_id
+        })
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="দাতা পাওয়া যায়নি")
+        
+        # Also delete all donation payments for this donor
+        await db.donation_payments.delete_many({
+            "donor_id": donor_id,
+            "tenant_id": current_user.tenant_id
+        })
+        
+        return {"message": "দাতা সফলভাবে মুছে ফেলা হয়েছে"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Failed to delete donor: {str(e)}")
+        raise HTTPException(status_code=500, detail="দাতা মুছে ফেলতে ব্যর্থ হয়েছে")
+
+# Donation Payment endpoints
+@api_router.post("/donation-payments")
+async def create_donation_payment(
+    payment_data: DonationPaymentCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Record a donation payment"""
+    try:
+        # Verify donor exists
+        donor = await db.donors.find_one({
+            "id": payment_data.donor_id,
+            "tenant_id": current_user.tenant_id
+        })
+        
+        if not donor:
+            raise HTTPException(status_code=404, detail="দাতা পাওয়া যায়নি")
+        
+        # Generate receipt number
+        count = await db.donation_payments.count_documents({"tenant_id": current_user.tenant_id})
+        receipt_no = f"DON-{current_user.tenant_id[:4].upper()}-{count + 1:05d}"
+        
+        payment = {
+            "id": str(uuid.uuid4()),
+            "donor_id": payment_data.donor_id,
+            "donor_name": donor.get("name"),
+            "committee_name": donor.get("committee_name"),
+            "amount": payment_data.amount,
+            "payment_mode": payment_data.payment_mode,
+            "payment_for_month": payment_data.payment_for_month,
+            "payment_for_year": payment_data.payment_for_year,
+            "receipt_no": receipt_no,
+            "payment_date": datetime.utcnow(),
+            "remarks": payment_data.remarks,
+            "tenant_id": current_user.tenant_id,
+            "created_by": current_user.id,
+            "created_at": datetime.utcnow()
+        }
+        
+        await db.donation_payments.insert_one(payment)
+        
+        # Update donor's total_donated
+        await db.donors.update_one(
+            {"id": payment_data.donor_id},
+            {"$inc": {"total_donated": payment_data.amount}}
+        )
+        
+        payment.pop("_id", None)
+        
+        return payment
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Failed to create donation payment: {str(e)}")
+        raise HTTPException(status_code=500, detail="দান সংরক্ষণ করতে ব্যর্থ হয়েছে")
+
+@api_router.get("/donation-payments")
+async def get_donation_payments(
+    page: int = 1,
+    limit: int = 20,
+    search: Optional[str] = None,
+    donor_id: Optional[str] = None,
+    committee_name: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all donation payments with pagination and filters"""
+    try:
+        query = {"tenant_id": current_user.tenant_id}
+        
+        if search:
+            query["$or"] = [
+                {"donor_name": {"$regex": search, "$options": "i"}},
+                {"receipt_no": {"$regex": search, "$options": "i"}}
+            ]
+        
+        if donor_id:
+            query["donor_id"] = donor_id
+        
+        if committee_name and committee_name != "all":
+            query["committee_name"] = committee_name
+        
+        if start_date:
+            query["payment_date"] = {"$gte": datetime.fromisoformat(start_date)}
+        
+        if end_date:
+            if "payment_date" in query:
+                query["payment_date"]["$lte"] = datetime.fromisoformat(end_date)
+            else:
+                query["payment_date"] = {"$lte": datetime.fromisoformat(end_date)}
+        
+        total = await db.donation_payments.count_documents(query)
+        skip = (page - 1) * limit
+        
+        payments = await db.donation_payments.find(query).sort("payment_date", -1).skip(skip).limit(limit).to_list(limit)
+        
+        # Calculate summary
+        all_payments = await db.donation_payments.find({"tenant_id": current_user.tenant_id}).to_list(None)
+        total_collected = sum(p.get("amount", 0) for p in all_payments)
+        
+        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_payments = [p for p in all_payments if p.get("payment_date", datetime.min) >= today_start]
+        today_collection = sum(p.get("amount", 0) for p in today_payments)
+        
+        # This month's collection
+        month_start = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        month_payments = [p for p in all_payments if p.get("payment_date", datetime.min) >= month_start]
+        month_collection = sum(p.get("amount", 0) for p in month_payments)
+        
+        # Clean MongoDB _id
+        cleaned_payments = []
+        for p in payments:
+            p_copy = dict(p)
+            if "_id" in p_copy:
+                del p_copy["_id"]
+            cleaned_payments.append(p_copy)
+        
+        return {
+            "payments": cleaned_payments,
+            "total": total,
+            "page": page,
+            "limit": limit,
+            "total_pages": (total + limit - 1) // limit,
+            "summary": {
+                "total_collected": total_collected,
+                "today_collection": today_collection,
+                "month_collection": month_collection,
+                "total_payments": len(all_payments)
+            }
+        }
+        
+    except Exception as e:
+        logging.error(f"Failed to fetch donation payments: {str(e)}")
+        raise HTTPException(status_code=500, detail="দান তথ্য লোড করতে ব্যর্থ হয়েছে")
+
+@api_router.delete("/donation-payments/{payment_id}")
+async def delete_donation_payment(
+    payment_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a donation payment"""
+    try:
+        payment = await db.donation_payments.find_one({
+            "id": payment_id,
+            "tenant_id": current_user.tenant_id
+        })
+        
+        if not payment:
+            raise HTTPException(status_code=404, detail="দান পেমেন্ট পাওয়া যায়নি")
+        
+        # Update donor's total_donated
+        await db.donors.update_one(
+            {"id": payment.get("donor_id")},
+            {"$inc": {"total_donated": -payment.get("amount", 0)}}
+        )
+        
+        await db.donation_payments.delete_one({"id": payment_id})
+        
+        return {"message": "দান পেমেন্ট সফলভাবে মুছে ফেলা হয়েছে"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Failed to delete donation payment: {str(e)}")
+        raise HTTPException(status_code=500, detail="দান পেমেন্ট মুছে ফেলতে ব্যর্থ হয়েছে")
+
+# Committee management endpoint
+@api_router.get("/committees")
+async def get_committees(
+    current_user: User = Depends(get_current_user)
+):
+    """Get all unique committee names"""
+    try:
+        donors = await db.donors.find({"tenant_id": current_user.tenant_id}).to_list(None)
+        committees = list(set(d.get("committee_name") for d in donors if d.get("committee_name")))
+        
+        committee_stats = []
+        for committee in committees:
+            committee_donors = [d for d in donors if d.get("committee_name") == committee]
+            active_count = len([d for d in committee_donors if d.get("is_active", True)])
+            total_expected = sum(d.get("fixed_amount", 0) for d in committee_donors if d.get("is_active", True))
+            
+            committee_stats.append({
+                "name": committee,
+                "total_members": len(committee_donors),
+                "active_members": active_count,
+                "monthly_expected": total_expected
+            })
+        
+        return {"committees": committee_stats}
+        
+    except Exception as e:
+        logging.error(f"Failed to fetch committees: {str(e)}")
+        raise HTTPException(status_code=500, detail="কমিটি তথ্য লোড করতে ব্যর্থ হয়েছে")
+
