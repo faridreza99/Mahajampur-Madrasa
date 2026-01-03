@@ -78,6 +78,11 @@ const LessonPlans = lazy(() => import("./components/LessonPlans"));
 const Search = lazy(() => import("./components/Search"));
 const AdmissionFees = lazy(() => import("./components/AdmissionFees"));
 const CommitteeDonation = lazy(() => import("./components/CommitteeDonation"));
+const FinancialSummary = lazy(() => import("./components/reports/FinancialSummary"));
+const AdmissionFeeReport = lazy(() => import("./components/reports/AdmissionFeeReport"));
+const MonthlyFeeReport = lazy(() => import("./components/reports/MonthlyFeeReport"));
+const DonationReport = lazy(() => import("./components/reports/DonationReport"));
+const DateWiseReport = lazy(() => import("./components/reports/DateWiseReport"));
 
 // Loading spinner for lazy components
 const LoadingSpinner = () => (
@@ -784,6 +789,46 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <LessonPlans />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/reports/financial-summary"
+                  element={
+                    <ProtectedRoute>
+                      <FinancialSummary />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/reports/admission-fees"
+                  element={
+                    <ProtectedRoute>
+                      <AdmissionFeeReport />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/reports/monthly-fees"
+                  element={
+                    <ProtectedRoute>
+                      <MonthlyFeeReport />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/reports/donations"
+                  element={
+                    <ProtectedRoute>
+                      <DonationReport />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/reports/date-wise"
+                  element={
+                    <ProtectedRoute>
+                      <DateWiseReport />
                     </ProtectedRoute>
                   }
                 />

@@ -32069,6 +32069,643 @@ async def get_committees(
         raise HTTPException(status_code=500, detail="কমিটি তথ্য লোড করতে ব্যর্থ হয়েছে")
 
 # ============================================================================
+# FINANCIAL REPORTS API ENDPOINTS
+# Central reporting endpoints for all financial data
+# ============================================================================
+
+@api_router.get("/reports/financial-summary")
+async def get_financial_summary(current_user: User = Depends(get_current_user)):
+    """Get overall financial summary including all fee types and donations"""
+    try:
+        tenant_id = current_user.tenant_id
+        today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        this_month_start = today.replace(day=1)
+        this_year_start = today.replace(month=1, day=1)
+        
+        # Get admission fees total
+        admission_fees = await db.admission_fees.find({"tenant_id": tenant_id}).to_list(None)
+        total_admission_fees = sum(f.get("amount", 0) for f in admission_fees)
+        
+        # Get today's admission fees
+        today_admission = sum(f.get("amount", 0) for f in admission_fees 
+                             if f.get("payment_date", f.get("created_at", datetime.min)) >= today)
+        
+        # Get monthly fees (from fee_payments collection)
+        monthly_payments = await db.fee_payments.find({"tenant_id": tenant_id}).to_list(None)
+        total_monthly_fees = sum(p.get("amount", 0) for p in monthly_payments)
+        
+        # Get today's monthly fees
+        today_monthly = sum(p.get("amount", 0) for p in monthly_payments 
+                          if p.get("payment_date", p.get("created_at", datetime.min)) >= today)
+        
+        # Get donations total
+        donations = await db.donation_payments.find({"tenant_id": tenant_id}).to_list(None)
+        total_donations = sum(d.get("amount", 0) for d in donations)
+        
+        # Get today's donations
+        today_donations = sum(d.get("amount", 0) for d in donations 
+                            if d.get("payment_date", d.get("created_at", datetime.min)) >= today)
+        
+        # Get this month's collection
+        this_month_admission = sum(f.get("amount", 0) for f in admission_fees 
+                                   if f.get("payment_date", f.get("created_at", datetime.min)) >= this_month_start)
+        this_month_monthly = sum(p.get("amount", 0) for p in monthly_payments 
+                                if p.get("payment_date", p.get("created_at", datetime.min)) >= this_month_start)
+        this_month_donations = sum(d.get("amount", 0) for d in donations 
+                                  if d.get("payment_date", d.get("created_at", datetime.min)) >= this_month_start)
+        
+        # Get this year's collection
+        this_year_admission = sum(f.get("amount", 0) for f in admission_fees 
+                                  if f.get("payment_date", f.get("created_at", datetime.min)) >= this_year_start)
+        this_year_monthly = sum(p.get("amount", 0) for p in monthly_payments 
+                               if p.get("payment_date", p.get("created_at", datetime.min)) >= this_year_start)
+        this_year_donations = sum(d.get("amount", 0) for d in donations 
+                                 if d.get("payment_date", d.get("created_at", datetime.min)) >= this_year_start)
+        
+        # Get total dues from student_fees
+        student_fees = await db.student_fees.find({"tenant_id": tenant_id}).to_list(None)
+        total_dues = sum(f.get("pending_amount", 0) + f.get("overdue_amount", 0) for f in student_fees)
+        
+        return {
+            "totalAdmissionFees": total_admission_fees,
+            "totalMonthlyFees": total_monthly_fees,
+            "totalDonations": total_donations,
+            "todayCollection": today_admission + today_monthly + today_donations,
+            "totalDues": total_dues,
+            "thisMonthCollection": this_month_admission + this_month_monthly + this_month_donations,
+            "thisYearCollection": this_year_admission + this_year_monthly + this_year_donations
+        }
+        
+    except Exception as e:
+        logging.error(f"Failed to get financial summary: {str(e)}")
+        raise HTTPException(status_code=500, detail="আর্থিক সারাংশ লোড করতে ব্যর্থ হয়েছে")
+
+@api_router.get("/reports/date-wise")
+async def get_date_wise_report(
+    date_from: str = None,
+    date_to: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get date-wise financial report with all transactions"""
+    try:
+        tenant_id = current_user.tenant_id
+        
+        # Parse dates
+        if date_from:
+            start_date = datetime.fromisoformat(date_from.replace('Z', '+00:00'))
+        else:
+            start_date = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+            
+        if date_to:
+            end_date = datetime.fromisoformat(date_to.replace('Z', '+00:00')).replace(hour=23, minute=59, second=59)
+        else:
+            end_date = datetime.utcnow().replace(hour=23, minute=59, second=59)
+        
+        # Get admission fees in date range
+        admission_fees = await db.admission_fees.find({
+            "tenant_id": tenant_id,
+            "$or": [
+                {"payment_date": {"$gte": start_date, "$lte": end_date}},
+                {"created_at": {"$gte": start_date, "$lte": end_date}}
+            ]
+        }).to_list(None)
+        
+        # Get monthly fees in date range
+        monthly_fees = await db.fee_payments.find({
+            "tenant_id": tenant_id,
+            "$or": [
+                {"payment_date": {"$gte": start_date, "$lte": end_date}},
+                {"created_at": {"$gte": start_date, "$lte": end_date}}
+            ]
+        }).to_list(None)
+        
+        # Get donations in date range
+        donations = await db.donation_payments.find({
+            "tenant_id": tenant_id,
+            "$or": [
+                {"payment_date": {"$gte": start_date, "$lte": end_date}},
+                {"created_at": {"$gte": start_date, "$lte": end_date}}
+            ]
+        }).to_list(None)
+        
+        # Clean MongoDB _id
+        for item in admission_fees:
+            item.pop("_id", None)
+        for item in monthly_fees:
+            item.pop("_id", None)
+        for item in donations:
+            item.pop("_id", None)
+        
+        return {
+            "admission_fees": admission_fees,
+            "monthly_fees": monthly_fees,
+            "donations": donations,
+            "date_from": date_from,
+            "date_to": date_to
+        }
+        
+    except Exception as e:
+        logging.error(f"Failed to get date-wise report: {str(e)}")
+        raise HTTPException(status_code=500, detail="তারিখভিত্তিক রিপোর্ট লোড করতে ব্যর্থ হয়েছে")
+
+@api_router.get("/reports/financial-summary/export/excel")
+async def export_financial_summary_excel(current_user: User = Depends(get_current_user)):
+    """Export financial summary as Excel"""
+    try:
+        summary = await get_financial_summary(current_user)
+        
+        import pandas as pd
+        from io import BytesIO
+        
+        data = {
+            "Category": ["Admission Fees", "Monthly Fees", "Donations", "Today's Collection", "Total Dues", "This Month", "This Year"],
+            "Amount (৳)": [
+                summary["totalAdmissionFees"],
+                summary["totalMonthlyFees"],
+                summary["totalDonations"],
+                summary["todayCollection"],
+                summary["totalDues"],
+                summary["thisMonthCollection"],
+                summary["thisYearCollection"]
+            ]
+        }
+        
+        df = pd.DataFrame(data)
+        output = BytesIO()
+        df.to_excel(output, index=False, sheet_name="Financial Summary")
+        output.seek(0)
+        
+        return Response(
+            content=output.getvalue(),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename=financial-summary-{datetime.utcnow().strftime('%Y-%m-%d')}.xlsx"}
+        )
+        
+    except Exception as e:
+        logging.error(f"Failed to export financial summary: {str(e)}")
+        raise HTTPException(status_code=500, detail="এক্সপোর্ট ব্যর্থ হয়েছে")
+
+@api_router.get("/reports/financial-summary/export/pdf")
+async def export_financial_summary_pdf(current_user: User = Depends(get_current_user)):
+    """Export financial summary as PDF"""
+    try:
+        summary = await get_financial_summary(current_user)
+        
+        from reportlab.lib.pagesizes import A4
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.lib import colors
+        from io import BytesIO
+        
+        output = BytesIO()
+        doc = SimpleDocTemplate(output, pagesize=A4)
+        elements = []
+        styles = getSampleStyleSheet()
+        
+        elements.append(Paragraph("Financial Summary Report", styles['Heading1']))
+        elements.append(Spacer(1, 20))
+        
+        data = [
+            ["Category", "Amount"],
+            ["Total Admission Fees", f"Tk. {summary['totalAdmissionFees']:,.0f}"],
+            ["Total Monthly Fees", f"Tk. {summary['totalMonthlyFees']:,.0f}"],
+            ["Total Donations", f"Tk. {summary['totalDonations']:,.0f}"],
+            ["Today's Collection", f"Tk. {summary['todayCollection']:,.0f}"],
+            ["Total Dues", f"Tk. {summary['totalDues']:,.0f}"],
+            ["This Month Collection", f"Tk. {summary['thisMonthCollection']:,.0f}"],
+            ["This Year Collection", f"Tk. {summary['thisYearCollection']:,.0f}"],
+        ]
+        
+        table = Table(data, colWidths=[250, 150])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.green),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ]))
+        
+        elements.append(table)
+        doc.build(elements)
+        output.seek(0)
+        
+        return Response(
+            content=output.getvalue(),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename=financial-summary-{datetime.utcnow().strftime('%Y-%m-%d')}.pdf"}
+        )
+        
+    except Exception as e:
+        logging.error(f"Failed to export financial summary PDF: {str(e)}")
+        raise HTTPException(status_code=500, detail="পিডিএফ এক্সপোর্ট ব্যর্থ হয়েছে")
+
+@api_router.get("/reports/admission-fees/export/excel")
+async def export_admission_fees_excel(
+    date_from: str = None,
+    date_to: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Export admission fees as Excel"""
+    try:
+        tenant_id = current_user.tenant_id
+        query = {"tenant_id": tenant_id}
+        
+        fees = await db.admission_fees.find(query).to_list(None)
+        
+        import pandas as pd
+        from io import BytesIO
+        
+        data = []
+        for f in fees:
+            data.append({
+                "Receipt No": f.get("receipt_no", ""),
+                "Student Name": f.get("student_name", ""),
+                "Class": f.get("class_name", ""),
+                "Amount": f.get("amount", 0),
+                "Payment Mode": f.get("payment_mode", ""),
+                "Date": f.get("payment_date", f.get("created_at", ""))
+            })
+        
+        df = pd.DataFrame(data)
+        output = BytesIO()
+        df.to_excel(output, index=False, sheet_name="Admission Fees")
+        output.seek(0)
+        
+        return Response(
+            content=output.getvalue(),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename=admission-fees-{datetime.utcnow().strftime('%Y-%m-%d')}.xlsx"}
+        )
+        
+    except Exception as e:
+        logging.error(f"Failed to export admission fees: {str(e)}")
+        raise HTTPException(status_code=500, detail="এক্সপোর্ট ব্যর্থ হয়েছে")
+
+@api_router.get("/reports/admission-fees/export/pdf")
+async def export_admission_fees_pdf(
+    date_from: str = None,
+    date_to: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Export admission fees as PDF"""
+    try:
+        tenant_id = current_user.tenant_id
+        fees = await db.admission_fees.find({"tenant_id": tenant_id}).to_list(None)
+        
+        from reportlab.lib.pagesizes import A4
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.lib import colors
+        from io import BytesIO
+        
+        output = BytesIO()
+        doc = SimpleDocTemplate(output, pagesize=A4)
+        elements = []
+        styles = getSampleStyleSheet()
+        
+        elements.append(Paragraph("Admission Fee Report", styles['Heading1']))
+        elements.append(Spacer(1, 20))
+        
+        data = [["SL", "Receipt No", "Student", "Class", "Amount"]]
+        for i, f in enumerate(fees, 1):
+            data.append([
+                str(i),
+                f.get("receipt_no", ""),
+                f.get("student_name", "")[:20],
+                f.get("class_name", ""),
+                f"Tk. {f.get('amount', 0):,.0f}"
+            ])
+        
+        total = sum(f.get("amount", 0) for f in fees)
+        data.append(["", "", "", "Total:", f"Tk. {total:,.0f}"])
+        
+        table = Table(data, colWidths=[30, 80, 120, 80, 80])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.green),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+        ]))
+        
+        elements.append(table)
+        doc.build(elements)
+        output.seek(0)
+        
+        return Response(
+            content=output.getvalue(),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename=admission-fees-{datetime.utcnow().strftime('%Y-%m-%d')}.pdf"}
+        )
+        
+    except Exception as e:
+        logging.error(f"Failed to export admission fees PDF: {str(e)}")
+        raise HTTPException(status_code=500, detail="পিডিএফ এক্সপোর্ট ব্যর্থ হয়েছে")
+
+@api_router.get("/reports/monthly-fees/export/excel")
+async def export_monthly_fees_excel(
+    month: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Export monthly fees as Excel"""
+    try:
+        tenant_id = current_user.tenant_id
+        payments = await db.fee_payments.find({"tenant_id": tenant_id}).to_list(None)
+        
+        import pandas as pd
+        from io import BytesIO
+        
+        data = []
+        for p in payments:
+            data.append({
+                "Receipt No": p.get("receipt_no", ""),
+                "Student Name": p.get("student_name", ""),
+                "Fee Type": p.get("fee_type", ""),
+                "Amount": p.get("amount", 0),
+                "Date": p.get("payment_date", p.get("created_at", ""))
+            })
+        
+        df = pd.DataFrame(data)
+        output = BytesIO()
+        df.to_excel(output, index=False, sheet_name="Monthly Fees")
+        output.seek(0)
+        
+        return Response(
+            content=output.getvalue(),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename=monthly-fees-{datetime.utcnow().strftime('%Y-%m-%d')}.xlsx"}
+        )
+        
+    except Exception as e:
+        logging.error(f"Failed to export monthly fees: {str(e)}")
+        raise HTTPException(status_code=500, detail="এক্সপোর্ট ব্যর্থ হয়েছে")
+
+@api_router.get("/reports/monthly-fees/export/pdf")
+async def export_monthly_fees_pdf(
+    month: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Export monthly fees as PDF"""
+    try:
+        tenant_id = current_user.tenant_id
+        payments = await db.fee_payments.find({"tenant_id": tenant_id}).to_list(None)
+        
+        from reportlab.lib.pagesizes import A4
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.lib import colors
+        from io import BytesIO
+        
+        output = BytesIO()
+        doc = SimpleDocTemplate(output, pagesize=A4)
+        elements = []
+        styles = getSampleStyleSheet()
+        
+        elements.append(Paragraph("Monthly Fee Report", styles['Heading1']))
+        elements.append(Spacer(1, 20))
+        
+        data = [["SL", "Receipt No", "Student", "Fee Type", "Amount"]]
+        for i, p in enumerate(payments, 1):
+            data.append([
+                str(i),
+                p.get("receipt_no", "-"),
+                p.get("student_name", "")[:20],
+                p.get("fee_type", ""),
+                f"Tk. {p.get('amount', 0):,.0f}"
+            ])
+        
+        total = sum(p.get("amount", 0) for p in payments)
+        data.append(["", "", "", "Total:", f"Tk. {total:,.0f}"])
+        
+        table = Table(data, colWidths=[30, 80, 120, 80, 80])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.green),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+        ]))
+        
+        elements.append(table)
+        doc.build(elements)
+        output.seek(0)
+        
+        return Response(
+            content=output.getvalue(),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename=monthly-fees-{datetime.utcnow().strftime('%Y-%m-%d')}.pdf"}
+        )
+        
+    except Exception as e:
+        logging.error(f"Failed to export monthly fees PDF: {str(e)}")
+        raise HTTPException(status_code=500, detail="পিডিএফ এক্সপোর্ট ব্যর্থ হয়েছে")
+
+@api_router.get("/reports/donations/export/excel")
+async def export_donations_excel(
+    type: str = "donations",
+    current_user: User = Depends(get_current_user)
+):
+    """Export donations/committees/donors as Excel"""
+    try:
+        tenant_id = current_user.tenant_id
+        
+        import pandas as pd
+        from io import BytesIO
+        
+        if type == "donations":
+            items = await db.donation_payments.find({"tenant_id": tenant_id}).to_list(None)
+            data = [{"Donor": i.get("donor_name", ""), "Committee": i.get("committee_name", ""), "Amount": i.get("amount", 0), "Date": i.get("payment_date", "")} for i in items]
+        elif type == "committees":
+            items = await db.committees.find({"tenant_id": tenant_id}).to_list(None)
+            data = [{"Name": i.get("name", ""), "Members": i.get("active_members", 0), "Total": i.get("total_collected", 0)} for i in items]
+        else:
+            items = await db.donors.find({"tenant_id": tenant_id}).to_list(None)
+            data = [{"Name": i.get("name", ""), "Phone": i.get("phone", ""), "Committee": i.get("committee_name", ""), "Fixed Amount": i.get("fixed_amount", 0)} for i in items]
+        
+        df = pd.DataFrame(data)
+        output = BytesIO()
+        df.to_excel(output, index=False, sheet_name=type.title())
+        output.seek(0)
+        
+        return Response(
+            content=output.getvalue(),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={type}-{datetime.utcnow().strftime('%Y-%m-%d')}.xlsx"}
+        )
+        
+    except Exception as e:
+        logging.error(f"Failed to export {type}: {str(e)}")
+        raise HTTPException(status_code=500, detail="এক্সপোর্ট ব্যর্থ হয়েছে")
+
+@api_router.get("/reports/donations/export/pdf")
+async def export_donations_pdf(
+    type: str = "donations",
+    current_user: User = Depends(get_current_user)
+):
+    """Export donations/committees/donors as PDF"""
+    try:
+        tenant_id = current_user.tenant_id
+        
+        from reportlab.lib.pagesizes import A4
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.lib import colors
+        from io import BytesIO
+        
+        output = BytesIO()
+        doc = SimpleDocTemplate(output, pagesize=A4)
+        elements = []
+        styles = getSampleStyleSheet()
+        
+        title = {"donations": "Donation Report", "committees": "Committee Report", "donors": "Donor Report"}.get(type, "Report")
+        elements.append(Paragraph(title, styles['Heading1']))
+        elements.append(Spacer(1, 20))
+        
+        if type == "donations":
+            items = await db.donation_payments.find({"tenant_id": tenant_id}).to_list(None)
+            data = [["SL", "Donor", "Committee", "Amount"]]
+            for i, item in enumerate(items, 1):
+                data.append([str(i), item.get("donor_name", "")[:20], item.get("committee_name", "")[:15], f"Tk. {item.get('amount', 0):,.0f}"])
+            total = sum(i.get("amount", 0) for i in items)
+            data.append(["", "", "Total:", f"Tk. {total:,.0f}"])
+        elif type == "committees":
+            items = await db.committees.find({"tenant_id": tenant_id}).to_list(None)
+            data = [["SL", "Committee Name", "Members", "Total Collected"]]
+            for i, item in enumerate(items, 1):
+                data.append([str(i), item.get("name", ""), str(item.get("active_members", 0)), f"Tk. {item.get('total_collected', 0):,.0f}"])
+        else:
+            items = await db.donors.find({"tenant_id": tenant_id}).to_list(None)
+            data = [["SL", "Donor Name", "Phone", "Fixed Amount"]]
+            for i, item in enumerate(items, 1):
+                data.append([str(i), item.get("name", "")[:20], item.get("phone", ""), f"Tk. {item.get('fixed_amount', 0):,.0f}"])
+        
+        table = Table(data, colWidths=[30, 120, 100, 100])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.purple),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ]))
+        
+        elements.append(table)
+        doc.build(elements)
+        output.seek(0)
+        
+        return Response(
+            content=output.getvalue(),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={type}-{datetime.utcnow().strftime('%Y-%m-%d')}.pdf"}
+        )
+        
+    except Exception as e:
+        logging.error(f"Failed to export {type} PDF: {str(e)}")
+        raise HTTPException(status_code=500, detail="পিডিএফ এক্সপোর্ট ব্যর্থ হয়েছে")
+
+@api_router.get("/reports/date-wise/export/excel")
+async def export_date_wise_excel(
+    date_from: str,
+    date_to: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Export date-wise report as Excel"""
+    try:
+        report = await get_date_wise_report(date_from, date_to, current_user)
+        
+        import pandas as pd
+        from io import BytesIO
+        
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            if report["admission_fees"]:
+                df1 = pd.DataFrame([{"Student": f.get("student_name", ""), "Amount": f.get("amount", 0)} for f in report["admission_fees"]])
+                df1.to_excel(writer, sheet_name="Admission Fees", index=False)
+            if report["monthly_fees"]:
+                df2 = pd.DataFrame([{"Student": f.get("student_name", ""), "Amount": f.get("amount", 0)} for f in report["monthly_fees"]])
+                df2.to_excel(writer, sheet_name="Monthly Fees", index=False)
+            if report["donations"]:
+                df3 = pd.DataFrame([{"Donor": d.get("donor_name", ""), "Amount": d.get("amount", 0)} for d in report["donations"]])
+                df3.to_excel(writer, sheet_name="Donations", index=False)
+        
+        output.seek(0)
+        
+        return Response(
+            content=output.getvalue(),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename=date-wise-{date_from}-to-{date_to}.xlsx"}
+        )
+        
+    except Exception as e:
+        logging.error(f"Failed to export date-wise report: {str(e)}")
+        raise HTTPException(status_code=500, detail="এক্সপোর্ট ব্যর্থ হয়েছে")
+
+@api_router.get("/reports/date-wise/export/pdf")
+async def export_date_wise_pdf(
+    date_from: str,
+    date_to: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Export date-wise report as PDF"""
+    try:
+        report = await get_date_wise_report(date_from, date_to, current_user)
+        
+        from reportlab.lib.pagesizes import A4
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.lib import colors
+        from io import BytesIO
+        
+        output = BytesIO()
+        doc = SimpleDocTemplate(output, pagesize=A4)
+        elements = []
+        styles = getSampleStyleSheet()
+        
+        elements.append(Paragraph(f"Date-wise Report: {date_from} to {date_to}", styles['Heading1']))
+        elements.append(Spacer(1, 20))
+        
+        # Summary
+        total_admission = sum(f.get("amount", 0) for f in report["admission_fees"])
+        total_monthly = sum(f.get("amount", 0) for f in report["monthly_fees"])
+        total_donations = sum(d.get("amount", 0) for d in report["donations"])
+        
+        summary_data = [
+            ["Category", "Amount"],
+            ["Admission Fees", f"Tk. {total_admission:,.0f}"],
+            ["Monthly Fees", f"Tk. {total_monthly:,.0f}"],
+            ["Donations", f"Tk. {total_donations:,.0f}"],
+            ["Grand Total", f"Tk. {total_admission + total_monthly + total_donations:,.0f}"]
+        ]
+        
+        table = Table(summary_data, colWidths=[200, 150])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.green),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+            ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),
+        ]))
+        
+        elements.append(table)
+        doc.build(elements)
+        output.seek(0)
+        
+        return Response(
+            content=output.getvalue(),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename=date-wise-{date_from}-to-{date_to}.pdf"}
+        )
+        
+    except Exception as e:
+        logging.error(f"Failed to export date-wise PDF: {str(e)}")
+        raise HTTPException(status_code=500, detail="পিডিএফ এক্সপোর্ট ব্যর্থ হয়েছে")
+
+# ============================================================================
 # INCLUDE API ROUTER AND SETUP FRONTEND SERVING
 # This must be at the end of the file so all routes are registered first
 # ============================================================================

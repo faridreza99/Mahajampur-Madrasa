@@ -456,8 +456,39 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       title: "Reports",
       madrasahTitle: "রিপোর্ট",
       icon: BarChart3,
-      path: "/madrasah/reports",
       roles: ["super_admin", "admin"],
+      subItems: [
+        {
+          title: "Financial Summary",
+          madrasahTitle: "আর্থিক সারাংশ",
+          path: "/reports/financial-summary",
+          roles: ["super_admin", "admin"],
+        },
+        {
+          title: "Admission Fee Report",
+          madrasahTitle: "ভর্তি ফি রিপোর্ট",
+          path: "/reports/admission-fees",
+          roles: ["super_admin", "admin"],
+        },
+        {
+          title: "Monthly Fee Report",
+          madrasahTitle: "মাসিক ফি রিপোর্ট",
+          path: "/reports/monthly-fees",
+          roles: ["super_admin", "admin"],
+        },
+        {
+          title: "Donation Report",
+          madrasahTitle: "ডোনেশন / কমিটি রিপোর্ট",
+          path: "/reports/donations",
+          roles: ["super_admin", "admin"],
+        },
+        {
+          title: "Date-wise Report",
+          madrasahTitle: "তারিখভিত্তিক রিপোর্ট",
+          path: "/reports/date-wise",
+          roles: ["super_admin", "admin"],
+        },
+      ],
     },
     {
       key: "communication",
