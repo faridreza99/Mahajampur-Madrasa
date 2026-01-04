@@ -436,6 +436,15 @@ const ClassManagement = () => {
     }
   };
 
+  const getClassOptionsForSubjects = () => {
+    return classes
+      .filter((cls) => cls.is_active !== false)
+      .map((cls) => ({
+        value: cls.standard, // IMPORTANT: backend still expects standard
+        label: getDisplayName(cls), // Bengali display
+      }));
+  };
+
   const handleSectionSubmit = async (e) => {
     e.preventDefault();
     if (sectionSubmittingRef.current) return;
@@ -1954,10 +1963,10 @@ const ClassManagement = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Classes</SelectItem>
-                  {classStandards.length > 0 ? (
+                  {getClassOptionsForSubjects.length > 0 ? (
                     classStandards.map((std) => (
-                      <SelectItem key={std} value={std}>
-                        {std}
+                      <SelectItem key={cls.value} value={cls.value}>
+                        {cls.label}
                       </SelectItem>
                     ))
                   ) : (
@@ -2012,10 +2021,10 @@ const ClassManagement = () => {
                         <SelectItem value="select_class" disabled>
                           Select Class
                         </SelectItem>
-                        {classStandards.length > 0 ? (
-                          classStandards.map((std) => (
-                            <SelectItem key={std} value={std}>
-                              {std}
+                        {getClassOptionsForSubjects().length > 0 ? (
+                          getClassOptionsForSubjects().map((cls) => (
+                            <SelectItem key={cls.value} value={cls.value}>
+                              {cls.label}
                             </SelectItem>
                           ))
                         ) : (
@@ -2177,8 +2186,13 @@ const ClassManagement = () => {
                           <Folder className="h-5 w-5 text-amber-500" />
                         )}
                         <span className="font-semibold text-lg">
-                          {classStd}
+                          {getDisplayName(
+                            classes.find((c) => c.standard === classStd) || {
+                              standard: classStd,
+                            },
+                          )}
                         </span>
+
                         <Badge variant="secondary" className="ml-2">
                           {classSubjects.length} subject
                           {classSubjects.length !== 1 ? "s" : ""}
