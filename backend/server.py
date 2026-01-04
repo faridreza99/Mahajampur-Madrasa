@@ -28,6 +28,10 @@ from pagination import get_pagination_params, create_paginated_response, MAX_PAG
 from job_queue import job_queue, JobStatus
 from id_card_generator import generate_student_id_card_pdf
 
+# bangla font registration
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+
 import os
 import logging
 import uuid
@@ -62,6 +66,14 @@ from payroll_management import (
     get_approved_leaves, calculate_salary, generate_payslip_pdf,
     get_school_branding_for_reports as get_payroll_branding,
     get_currency_symbol
+)
+
+pdfmetrics.registerFont(
+    TTFont("NotoBN", "backend/fonts/NotoSansBengali-Regular.ttf")
+)
+
+pdfmetrics.registerFont(
+    TTFont("NotoBN-Bold", "backend/fonts/NotoSansBengali-Bold.ttf")
 )
 
 ROOT_DIR = Path(__file__).parent

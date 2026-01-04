@@ -63,7 +63,12 @@
     "photo": "ছবি",
     "allClasses": "সকল মারহালা",
     "allSections": "সকল শাখা",
-    "preview": "দেখুন"
+    "preview": "দেখুন",
+    "designation": "পদবি",
+    "department": "বিভাগ",
+    "employeeId": "কর্মচারী আইডি",
+    "allDepartments": "সকল বিভাগ",
+    "selected": "নির্বাচিত"
   },
   "auth": {
     "welcomeBack": "স্বাগতম",
@@ -177,7 +182,7 @@
     "rank": "অবস্থান",
     "totalMarks": "মোট নম্বর",
     "obtainedMarks": "প্রাপ্ত নম্বর",
-    "maxMarks": "সর্বোচ্চ নম্বর",
+    "maxMarks": "সর্বোচ্চ ন���্বর",
     "passingMarks": "পাশ নম্বর",
     "pass": "পাশ",
     "fail": "ফেল",
@@ -242,6 +247,7 @@
   },
   "idCard": {
     "studentTitle": "শিক্ষার্থী পরিচয়পত্র",
+    "downloadSelected": "নির্বাচিত ডাউনলোড করুন",
     "staffTitle": "কর্মচারী পরিচয়পত্র",
     "totalStudents": "মোট শিক্ষার্থী",
     "totalStaff": "মোট কর্মচারী",

@@ -1,22 +1,22 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
-import { useInstitution } from '../context/InstitutionContext';
-import { useDebounce } from '../hooks/useDebounce';
-import * as XLSX from 'xlsx';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Badge } from './ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { 
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import axios from "axios";
+import { useInstitution } from "../context/InstitutionContext";
+import { useDebounce } from "../hooks/useDebounce";
+import * as XLSX from "xlsx";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Badge } from "./ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-} from './ui/table';
+} from "./ui/table";
 import {
   Dialog,
   DialogContent,
@@ -25,19 +25,19 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from './ui/dialog';
-import { Label } from './ui/label';
-import { 
+} from "./ui/dialog";
+import { Label } from "./ui/label";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from './ui/select';
-import { 
-  Users, 
-  Plus, 
-  Search, 
+} from "./ui/select";
+import {
+  Users,
+  Plus,
+  Search,
   Filter,
   Download,
   Upload,
@@ -58,30 +58,35 @@ import {
   User,
   Home,
   Copy,
-  Check
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { Calendar } from './ui/calendar';
-import { format } from 'date-fns';
-import { cn } from '../lib/utils';
+  Check,
+} from "lucide-react";
+import { toast } from "sonner";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Calendar } from "./ui/calendar";
+import { format } from "date-fns";
+import { cn } from "../lib/utils";
 
 const API = process.env.REACT_APP_API_URL;
-const BASE_URL = API ? API.replace('/api', '') : '';
+const BASE_URL = API ? API.replace("/api", "") : "";
 
 const withTimeout = (promise, timeoutMs = 10000) => {
   let timeoutId;
   const timeoutPromise = new Promise((_, reject) => {
-    timeoutId = setTimeout(() => reject(new Error('Request timeout')), timeoutMs);
+    timeoutId = setTimeout(
+      () => reject(new Error("Request timeout")),
+      timeoutMs,
+    );
   });
-  
+
   return Promise.race([promise, timeoutPromise]).finally(() => {
     if (timeoutId) clearTimeout(timeoutId);
   });
 };
 
 const safeBackgroundRefresh = (refreshFn) => {
-  Promise.resolve(refreshFn()).catch(err => console.error('Background refresh failed:', err));
+  Promise.resolve(refreshFn()).catch((err) =>
+    console.error("Background refresh failed:", err),
+  );
 };
 
 const StudentList = () => {
@@ -93,9 +98,9 @@ const StudentList = () => {
   const [classes, setClasses] = useState([]);
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedClass, setSelectedClass] = useState('all_classes');
-  const [selectedSection, setSelectedSection] = useState('all_sections');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedClass, setSelectedClass] = useState("all_classes");
+  const [selectedSection, setSelectedSection] = useState("all_sections");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
@@ -105,20 +110,21 @@ const StudentList = () => {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [importFile, setImportFile] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(null);
-  const [dateError, setDateError] = useState('');
-  const [birthYear, setBirthYear] = useState('');
-  const [birthMonth, setBirthMonth] = useState('');
-  const [birthDay, setBirthDay] = useState('');
-  const [isQuickAddSectionModalOpen, setIsQuickAddSectionModalOpen] = useState(false);
+  const [dateError, setDateError] = useState("");
+  const [birthYear, setBirthYear] = useState("");
+  const [birthMonth, setBirthMonth] = useState("");
+  const [birthDay, setBirthDay] = useState("");
+  const [isQuickAddSectionModalOpen, setIsQuickAddSectionModalOpen] =
+    useState(false);
   const [quickSectionData, setQuickSectionData] = useState({
-    name: '',
-    max_students: 40
+    name: "",
+    max_students: 40,
   });
   const [isSavingSection, setIsSavingSection] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [studentToDelete, setStudentToDelete] = useState(null);
   const [photoFile, setPhotoFile] = useState(null);
-  const [photoPreview, setPhotoPreview] = useState('');
+  const [photoPreview, setPhotoPreview] = useState("");
   const [importErrors, setImportErrors] = useState([]);
   const [importSummary, setImportSummary] = useState(null);
   const [isCredentialsModalOpen, setIsCredentialsModalOpen] = useState(false);
@@ -132,33 +138,33 @@ const StudentList = () => {
 
   const getCurrentView = () => {
     const path = location.pathname;
-    if (path === '/students/add') return 'add';
-    if (path === '/students/import') return 'import';
-    if (path === '/students/photos') return 'photos';
-    return 'list';
+    if (path === "/students/add") return "add";
+    if (path === "/students/import") return "import";
+    if (path === "/students/photos") return "photos";
+    return "list";
   };
 
   const currentView = getCurrentView();
 
   const [formData, setFormData] = useState({
-    admission_no: '',
-    roll_no: '',
-    name: '',
-    father_name: '',
-    father_phone: '',
-    father_whatsapp: '',
-    mother_name: '',
-    mother_phone: '',
-    mother_whatsapp: '',
-    date_of_birth: '',
-    gender: '',
-    class_id: '',
-    section_id: '',
-    phone: '',
-    email: '',
-    address: '',
-    guardian_name: '',
-    guardian_phone: ''
+    admission_no: "",
+    roll_no: "",
+    name: "",
+    father_name: "",
+    father_phone: "",
+    father_whatsapp: "",
+    mother_name: "",
+    mother_phone: "",
+    mother_whatsapp: "",
+    date_of_birth: "",
+    gender: "",
+    class_id: "",
+    section_id: "",
+    phone: "",
+    email: "",
+    address: "",
+    guardian_name: "",
+    guardian_phone: "",
   });
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [viewingStudent, setViewingStudent] = useState(null);
@@ -187,14 +193,14 @@ const StudentList = () => {
     try {
       const [studentsRes, classesRes] = await Promise.all([
         axios.get(`${API}/students`),
-        axios.get(`${API}/classes`)
+        axios.get(`${API}/classes`),
       ]);
-      
+
       setStudents(studentsRes.data);
       setClasses(classesRes.data);
     } catch (error) {
-      console.error('Failed to fetch data:', error);
-      toast.error('Failed to load data');
+      console.error("Failed to fetch data:", error);
+      toast.error("Failed to load data");
     }
   };
 
@@ -203,7 +209,7 @@ const StudentList = () => {
       const response = await axios.get(`${API}/sections?class_id=${classId}`);
       setSections(response.data);
     } catch (error) {
-      console.error('Failed to fetch sections:', error);
+      console.error("Failed to fetch sections:", error);
     }
   };
 
@@ -216,11 +222,14 @@ const StudentList = () => {
       }
       const response = await axios.get(url);
       if (autoRollRef.current) {
-        setFormData(prev => ({ ...prev, roll_no: String(response.data.next_roll) }));
+        setFormData((prev) => ({
+          ...prev,
+          roll_no: String(response.data.next_roll),
+        }));
       }
       return response.data.next_roll;
     } catch (error) {
-      console.error('Failed to fetch next roll number:', error);
+      console.error("Failed to fetch next roll number:", error);
       return null;
     }
   };
@@ -228,10 +237,13 @@ const StudentList = () => {
   const fetchNextAdmissionNumber = async () => {
     try {
       const response = await axios.get(`${API}/students/next-admission`);
-      setFormData(prev => ({ ...prev, admission_no: response.data.next_admission }));
+      setFormData((prev) => ({
+        ...prev,
+        admission_no: response.data.next_admission,
+      }));
       return response.data.next_admission;
     } catch (error) {
-      console.error('Failed to fetch next admission number:', error);
+      console.error("Failed to fetch next admission number:", error);
       return null;
     }
   };
@@ -249,12 +261,14 @@ const StudentList = () => {
       }
       const response = await axios.get(url);
       if (response.data.is_duplicate) {
-        setRollDuplicateWarning(`এই রোল নম্বর ইতিমধ্যে ব্যবহৃত হয়েছে (${response.data.existing_student_name})`);
+        setRollDuplicateWarning(
+          `এই রোল নম্বর ইতিমধ্যে ব্যবহৃত হয়েছে (${response.data.existing_student_name})`,
+        );
       } else {
         setRollDuplicateWarning(null);
       }
     } catch (error) {
-      console.error('Failed to check roll duplicate:', error);
+      console.error("Failed to check roll duplicate:", error);
     } finally {
       setIsCheckingRoll(false);
     }
@@ -262,14 +276,14 @@ const StudentList = () => {
 
   const handleQuickAddSection = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.class_id) {
-      toast.error('প্রথমে মারহালা নির্বাচন করুন');
+      toast.error("প্রথমে মারহালা নির্বাচন করুন");
       return;
     }
 
     if (!quickSectionData.name.trim()) {
-      toast.error('Please enter a section name');
+      toast.error("Please enter a section name");
       return;
     }
 
@@ -279,24 +293,24 @@ const StudentList = () => {
         class_id: formData.class_id,
         name: quickSectionData.name.trim(),
         max_students: parseInt(quickSectionData.max_students),
-        section_teacher_id: null
+        section_teacher_id: null,
       };
 
       const response = await axios.post(`${API}/sections`, sectionPayload);
-      toast.success('Section added successfully!');
-      
+      toast.success("Section added successfully!");
+
       // Refresh sections for the current class
       await fetchSections(formData.class_id);
-      
+
       // Auto-select the newly created section
-      setFormData({...formData, section_id: response.data.id});
-      
+      setFormData({ ...formData, section_id: response.data.id });
+
       // Reset and close modal
-      setQuickSectionData({ name: '', max_students: 40 });
+      setQuickSectionData({ name: "", max_students: 40 });
       setIsQuickAddSectionModalOpen(false);
     } catch (error) {
-      console.error('Failed to add section:', error);
-      toast.error(error.response?.data?.detail || 'Failed to add section');
+      console.error("Failed to add section:", error);
+      toast.error(error.response?.data?.detail || "Failed to add section");
     } finally {
       setIsSavingSection(false);
     }
@@ -317,18 +331,18 @@ const StudentList = () => {
   };
 
   const months = [
-    { value: '01', label: 'January' },
-    { value: '02', label: 'February' },
-    { value: '03', label: 'March' },
-    { value: '04', label: 'April' },
-    { value: '05', label: 'May' },
-    { value: '06', label: 'June' },
-    { value: '07', label: 'July' },
-    { value: '08', label: 'August' },
-    { value: '09', label: 'September' },
-    { value: '10', label: 'October' },
-    { value: '11', label: 'November' },
-    { value: '12', label: 'December' }
+    { value: "01", label: "January" },
+    { value: "02", label: "February" },
+    { value: "03", label: "March" },
+    { value: "04", label: "April" },
+    { value: "05", label: "May" },
+    { value: "06", label: "June" },
+    { value: "07", label: "July" },
+    { value: "08", label: "August" },
+    { value: "09", label: "September" },
+    { value: "10", label: "October" },
+    { value: "11", label: "November" },
+    { value: "12", label: "December" },
   ];
 
   const handleDateChange = (type, value) => {
@@ -336,34 +350,38 @@ const StudentList = () => {
     let newMonth = birthMonth;
     let newDay = birthDay;
 
-    if (type === 'year') {
+    if (type === "year") {
       newYear = value;
       setBirthYear(value);
-    } else if (type === 'month') {
+    } else if (type === "month") {
       newMonth = value;
       setBirthMonth(value);
       const daysInMonth = getDaysInMonth(birthYear, value);
       if (birthDay && parseInt(birthDay) > daysInMonth) {
-        newDay = daysInMonth.toString().padStart(2, '0');
+        newDay = daysInMonth.toString().padStart(2, "0");
         setBirthDay(newDay);
       }
-    } else if (type === 'day') {
+    } else if (type === "day") {
       newDay = value;
       setBirthDay(value);
     }
 
     if (newYear && newMonth && newDay) {
-      const selectedDate = new Date(parseInt(newYear), parseInt(newMonth) - 1, parseInt(newDay));
+      const selectedDate = new Date(
+        parseInt(newYear),
+        parseInt(newMonth) - 1,
+        parseInt(newDay),
+      );
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
       if (selectedDate > today) {
-        setDateError('Future dates are not allowed');
-        toast.error('Date of Birth cannot be a future date');
+        setDateError("Future dates are not allowed");
+        toast.error("Date of Birth cannot be a future date");
         return;
       }
 
-      setDateError('');
+      setDateError("");
       const formattedDate = `${newYear}-${newMonth}-${newDay}`;
       setFormData({ ...formData, date_of_birth: formattedDate });
     }
@@ -372,12 +390,12 @@ const StudentList = () => {
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please select a valid image file');
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please select a valid image file");
         return;
       }
       if (file.size > 2 * 1024 * 1024) {
-        toast.error('Photo size should be less than 2MB');
+        toast.error("Photo size should be less than 2MB");
         return;
       }
       setPhotoFile(file);
@@ -391,80 +409,93 @@ const StudentList = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (submittingRef.current) {
       return;
     }
-    
+
     submittingRef.current = true;
     setIsSubmitting(true);
 
     const unlockTimeout = setTimeout(() => {
       submittingRef.current = false;
       setIsSubmitting(false);
-      toast.warning('Operation is taking longer than expected. Please check the list.');
+      toast.warning(
+        "Operation is taking longer than expected. Please check the list.",
+      );
     }, 15000);
 
     try {
       let studentId = null;
       let newCredentials = null;
       const wasEditing = !!editingStudent;
-      
+
       if (editingStudent) {
-        await withTimeout(axios.put(`${API}/students/${editingStudent.id}`, formData), 10000);
+        await withTimeout(
+          axios.put(`${API}/students/${editingStudent.id}`, formData),
+          10000,
+        );
         studentId = editingStudent.id;
-        toast.success('Student updated successfully');
+        toast.success("Student updated successfully");
       } else {
-        const response = await withTimeout(axios.post(`${API}/students`, formData), 10000);
+        const response = await withTimeout(
+          axios.post(`${API}/students`, formData),
+          10000,
+        );
         const responseData = response.data;
         studentId = responseData.id;
-        
+
         if (responseData.credentials) {
           newCredentials = {
             studentName: responseData.name,
             admissionNo: responseData.admission_no,
-            ...responseData.credentials
+            ...responseData.credentials,
           };
           setStudentCredentials(newCredentials);
         }
-        toast.success('Student admission created successfully!');
+        toast.success("Student admission created successfully!");
       }
-      
+
       if (photoFile && studentId) {
         const photoFormData = new FormData();
-        photoFormData.append('file', photoFile);
+        photoFormData.append("file", photoFile);
         withTimeout(
           axios.post(`${API}/students/${studentId}/photo`, photoFormData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
+            headers: { "Content-Type": "multipart/form-data" },
           }),
-          8000
-        ).then(() => { safeBackgroundRefresh(fetchData); }).catch(photoError => {
-          console.error('Failed to upload photo:', photoError);
-          toast.warning('Student saved but photo upload failed');
-        });
+          8000,
+        )
+          .then(() => {
+            safeBackgroundRefresh(fetchData);
+          })
+          .catch((photoError) => {
+            console.error("Failed to upload photo:", photoError);
+            toast.warning("Student saved but photo upload failed");
+          });
       }
-      
+
       if (wasEditing) {
         setIsAddModalOpen(false);
       } else {
         setIsAddStudentModalOpen(false);
       }
-      
+
       setEditingStudent(null);
       resetForm();
-      
+
       safeBackgroundRefresh(fetchData);
-      
+
       if (!wasEditing && newCredentials) {
         setTimeout(() => {
           setIsCredentialsModalOpen(true);
         }, 100);
       }
     } catch (error) {
-      console.error('Failed to save student:', error);
-      const errorMessage = error.message === 'Request timeout' 
-        ? 'Request timed out. Please try again.'
-        : (error.response?.data?.detail || 'Failed to save student');
+      console.error("Failed to save student:", error);
+      const errorMessage =
+        error.message === "Request timeout"
+          ? "Request timed out. Please try again."
+          : error.response?.data?.detail || "Failed to save student";
       toast.error(errorMessage);
     } finally {
       clearTimeout(unlockTimeout);
@@ -479,24 +510,24 @@ const StudentList = () => {
       roll_no: student.roll_no,
       name: student.name,
       father_name: student.father_name,
-      father_phone: student.father_phone || '',
-      father_whatsapp: student.father_whatsapp || '',
+      father_phone: student.father_phone || "",
+      father_whatsapp: student.father_whatsapp || "",
       mother_name: student.mother_name,
-      mother_phone: student.mother_phone || '',
-      mother_whatsapp: student.mother_whatsapp || '',
+      mother_phone: student.mother_phone || "",
+      mother_whatsapp: student.mother_whatsapp || "",
       date_of_birth: student.date_of_birth,
       gender: student.gender,
       class_id: student.class_id,
       section_id: student.section_id,
       phone: student.phone,
-      email: student.email || '',
+      email: student.email || "",
       address: student.address,
       guardian_name: student.guardian_name,
-      guardian_phone: student.guardian_phone
+      guardian_phone: student.guardian_phone,
     });
     setEditingStudent(student);
     setPhotoFile(null);
-    setPhotoPreview(student.photo_url || '');
+    setPhotoPreview(student.photo_url || "");
     setIsAddModalOpen(true);
   };
 
@@ -511,13 +542,13 @@ const StudentList = () => {
     setLoading(true);
     try {
       await axios.delete(`${API}/students/${studentToDelete.id}`);
-      toast.success('Student deleted successfully');
+      toast.success("Student deleted successfully");
       await fetchData();
       setIsDeleteModalOpen(false);
       setStudentToDelete(null);
     } catch (error) {
-      console.error('Failed to delete student:', error);
-      toast.error(error.response?.data?.detail || 'Failed to delete student');
+      console.error("Failed to delete student:", error);
+      toast.error(error.response?.data?.detail || "Failed to delete student");
     } finally {
       setLoading(false);
     }
@@ -525,36 +556,36 @@ const StudentList = () => {
 
   const resetForm = () => {
     setFormData({
-      admission_no: '',
-      roll_no: '',
-      name: '',
-      father_name: '',
-      father_phone: '',
-      father_whatsapp: '',
-      mother_name: '',
-      mother_phone: '',
-      mother_whatsapp: '',
-      date_of_birth: '',
-      gender: '',
-      class_id: '',
-      section_id: '',
-      phone: '',
-      email: '',
-      address: '',
-      guardian_name: '',
-      guardian_phone: ''
+      admission_no: "",
+      roll_no: "",
+      name: "",
+      father_name: "",
+      father_phone: "",
+      father_whatsapp: "",
+      mother_name: "",
+      mother_phone: "",
+      mother_whatsapp: "",
+      date_of_birth: "",
+      gender: "",
+      class_id: "",
+      section_id: "",
+      phone: "",
+      email: "",
+      address: "",
+      guardian_name: "",
+      guardian_phone: "",
     });
-    setDateError('');
-    setBirthYear('');
-    setBirthMonth('');
-    setBirthDay('');
+    setDateError("");
+    setBirthYear("");
+    setBirthMonth("");
+    setBirthDay("");
     setPhotoFile(null);
-    setPhotoPreview('');
+    setPhotoPreview("");
   };
 
   const handleBulkPhotoUpload = async () => {
     if (!selectedFiles || selectedFiles.length === 0) {
-      toast.error('Please select at least one photo');
+      toast.error("Please select at least one photo");
       return;
     }
 
@@ -562,35 +593,45 @@ const StudentList = () => {
     const validatedFiles = [];
     const errors = [];
     const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB in bytes
-    const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png'];
+    const ALLOWED_TYPES = ["image/jpeg", "image/jpg", "image/png"];
 
     // Get list of valid admission numbers from current students
-    const validAdmissionNumbers = students.map(s => s.admission_no?.toUpperCase());
+    const validAdmissionNumbers = students.map((s) =>
+      s.admission_no?.toUpperCase(),
+    );
 
     Array.from(selectedFiles).forEach((file) => {
       // File type validation
       if (!ALLOWED_TYPES.includes(file.type)) {
-        errors.push(`${file.name}: Invalid file type. Only JPEG and PNG are allowed.`);
+        errors.push(
+          `${file.name}: Invalid file type. Only JPEG and PNG are allowed.`,
+        );
         return;
       }
 
       // File size validation
       if (file.size > MAX_FILE_SIZE) {
-        errors.push(`${file.name}: File size exceeds 2MB limit (${(file.size / (1024 * 1024)).toFixed(2)}MB).`);
+        errors.push(
+          `${file.name}: File size exceeds 2MB limit (${(file.size / (1024 * 1024)).toFixed(2)}MB).`,
+        );
         return;
       }
 
       // Filename validation (should match student admission number)
-      const filename = file.name.split('.')[0].toUpperCase();
+      const filename = file.name.split(".")[0].toUpperCase();
       if (!filename || filename.length < 3) {
-        errors.push(`${file.name}: Filename must contain student admission number.`);
+        errors.push(
+          `${file.name}: Filename must contain student admission number.`,
+        );
         return;
       }
 
       // Check if filename matches any student admission number
       const matchingStudent = validAdmissionNumbers.includes(filename);
       if (!matchingStudent) {
-        errors.push(`${file.name}: No matching student found with admission number '${filename}'.`);
+        errors.push(
+          `${file.name}: No matching student found with admission number '${filename}'.`,
+        );
         return;
       }
 
@@ -599,40 +640,50 @@ const StudentList = () => {
 
     // Show validation errors
     if (errors.length > 0) {
-      errors.forEach(error => toast.error(error));
+      errors.forEach((error) => toast.error(error));
       if (validatedFiles.length === 0) {
         return;
       }
-      toast.warning(`${validatedFiles.length} valid files will be uploaded. ${errors.length} files rejected.`);
+      toast.warning(
+        `${validatedFiles.length} valid files will be uploaded. ${errors.length} files rejected.`,
+      );
     }
 
     setLoading(true);
-    setUploadProgress('Uploading...');
+    setUploadProgress("Uploading...");
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const formData = new FormData();
-      
+
       validatedFiles.forEach((file) => {
-        formData.append('files', file);
+        formData.append("files", file);
       });
 
-      const response = await axios.post(`${API}/students/bulk-photo-upload`, formData, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+      const response = await axios.post(
+        `${API}/students/bulk-photo-upload`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        },
+      );
 
       const { uploaded_count, total_files, failed_uploads } = response.data;
-      
+
       if (failed_uploads && failed_uploads.length > 0) {
-        toast.warning(`Uploaded ${uploaded_count}/${total_files} photos. ${failed_uploads.length} failed.`);
-        console.log('Failed uploads:', failed_uploads);
-        
+        toast.warning(
+          `Uploaded ${uploaded_count}/${total_files} photos. ${failed_uploads.length} failed.`,
+        );
+        console.log("Failed uploads:", failed_uploads);
+
         // Show specific failure reasons
         failed_uploads.slice(0, 3).forEach((failure) => {
-          toast.error(`${failure.filename}: ${failure.reason || 'Upload failed'}`);
+          toast.error(
+            `${failure.filename}: ${failure.reason || "Upload failed"}`,
+          );
         });
       } else {
         toast.success(`✅ Successfully uploaded ${uploaded_count} photo(s)!`);
@@ -642,8 +693,8 @@ const StudentList = () => {
       setSelectedFiles([]);
       fetchData();
     } catch (error) {
-      console.error('Failed to upload photos:', error);
-      toast.error(error.response?.data?.detail || 'Failed to upload photos');
+      console.error("Failed to upload photos:", error);
+      toast.error(error.response?.data?.detail || "Failed to upload photos");
     } finally {
       setLoading(false);
       setUploadProgress(null);
@@ -652,109 +703,113 @@ const StudentList = () => {
 
   const handleImportStudents = async () => {
     if (!importFile) {
-      toast.error('Please select a file to import');
+      toast.error("Please select a file to import");
       return;
     }
 
     setLoading(true);
-    setUploadProgress('Importing...');
+    setUploadProgress("Importing...");
     setImportErrors([]);
     setImportSummary(null);
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const formData = new FormData();
-      formData.append('file', importFile);
+      formData.append("file", importFile);
 
       const response = await axios.post(`${API}/students/import`, formData, {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        }
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
       });
 
       const { imported_count, total_rows, failed_imports } = response.data;
-      
+
       setImportSummary({
         imported_count,
         total_rows,
-        failed_count: failed_imports.length
+        failed_count: failed_imports.length,
       });
-      
+
       if (failed_imports.length > 0) {
         setImportErrors(failed_imports);
         if (imported_count > 0) {
-          toast.warning(`Imported ${imported_count}/${total_rows} students. ${failed_imports.length} record(s) need attention.`);
+          toast.warning(
+            `Imported ${imported_count}/${total_rows} students. ${failed_imports.length} record(s) need attention.`,
+          );
         } else {
-          toast.error(`Import failed for all ${failed_imports.length} record(s). Please review the errors below.`);
+          toast.error(
+            `Import failed for all ${failed_imports.length} record(s). Please review the errors below.`,
+          );
         }
       } else {
         toast.success(`Successfully imported all ${imported_count} students!`);
         setIsImportModalOpen(false);
         setImportFile(null);
       }
-      
+
       fetchData();
     } catch (error) {
-      console.error('Failed to import students:', error);
-      toast.error(error.response?.data?.detail || 'Failed to import students');
+      console.error("Failed to import students:", error);
+      toast.error(error.response?.data?.detail || "Failed to import students");
     } finally {
       setLoading(false);
       setUploadProgress(null);
     }
   };
 
-  const downloadSampleTemplate = (format = 'excel') => {
+  const downloadSampleTemplate = (format = "excel") => {
     // Sample data for student import template matching the user's Excel format
     const templateData = [
       {
-        admission_no: 'HSS001',
-        roll_no: '001',
-        name: 'John Smith',
-        gender: 'Male',
-        date_of_birth: '2008-05-12',
-        class_id: '8',
-        section_id: 'A',
-        father_name: 'Robert Smith',
-        'F/phone': '9876543210',
-        'F/ Whatsapp no': '9876543210',
-        mother_name: 'Anna Smith',
-        'M/phone': '9876543212',
-        'M/whatsapp no': '9876543212',
-        address: '123 Main Street, New York',
-        'email id': 'john.smith@email.com',
-        guardian_name: 'Robert Smith',
-        guardian_phone: '9876543210'
+        admission_no: "HSS001",
+        roll_no: "001",
+        name: "John Smith",
+        gender: "Male",
+        date_of_birth: "2008-05-12",
+        class_id: "8",
+        section_id: "A",
+        father_name: "Robert Smith",
+        "F/phone": "9876543210",
+        "F/ Whatsapp no": "9876543210",
+        mother_name: "Anna Smith",
+        "M/phone": "9876543212",
+        "M/whatsapp no": "9876543212",
+        address: "123 Main Street, New York",
+        "email id": "john.smith@email.com",
+        guardian_name: "Robert Smith",
+        guardian_phone: "9876543210",
       },
       {
-        admission_no: 'HSS002',
-        roll_no: '002',
-        name: 'Sarah Johnson',
-        gender: 'Female',
-        date_of_birth: '2009-02-20',
-        class_id: '8',
-        section_id: 'A',
-        father_name: 'David Johnson',
-        'F/phone': '9876543211',
-        'F/ Whatsapp no': '9876543211',
-        mother_name: 'Linda Johnson',
-        'M/phone': '9876543213',
-        'M/whatsapp no': '9876543213',
-        address: '456 Oak Avenue, California',
-        'email id': 'sarah.johnson@email.com',
-        guardian_name: 'David Johnson',
-        guardian_phone: '9876543211'
-      }
+        admission_no: "HSS002",
+        roll_no: "002",
+        name: "Sarah Johnson",
+        gender: "Female",
+        date_of_birth: "2009-02-20",
+        class_id: "8",
+        section_id: "A",
+        father_name: "David Johnson",
+        "F/phone": "9876543211",
+        "F/ Whatsapp no": "9876543211",
+        mother_name: "Linda Johnson",
+        "M/phone": "9876543213",
+        "M/whatsapp no": "9876543213",
+        address: "456 Oak Avenue, California",
+        "email id": "sarah.johnson@email.com",
+        guardian_name: "David Johnson",
+        guardian_phone: "9876543211",
+      },
     ];
 
-    if (format === 'excel') {
+    if (format === "excel") {
       // Create Excel workbook
       const worksheet = XLSX.utils.json_to_sheet(templateData);
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Students');
-      
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Students");
+
       // Set column widths for better readability
-      worksheet['!cols'] = [
+      worksheet["!cols"] = [
         { wch: 15 }, // admission_no
         { wch: 10 }, // roll_no
         { wch: 20 }, // name
@@ -771,58 +826,65 @@ const StudentList = () => {
         { wch: 30 }, // address
         { wch: 25 }, // email id
         { wch: 18 }, // guardian_name
-        { wch: 15 }  // guardian_phone
+        { wch: 15 }, // guardian_phone
       ];
-      
+
       // Download Excel file
-      XLSX.writeFile(workbook, 'student_import_template.xlsx');
-      toast.success('Excel template downloaded!');
+      XLSX.writeFile(workbook, "student_import_template.xlsx");
+      toast.success("Excel template downloaded!");
     } else {
       // Create CSV
-      const headers = Object.keys(templateData[0]).join(',');
-      const rows = templateData.map(row => Object.values(row).join(','));
-      const csvContent = [headers, ...rows].join('\n');
-      
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
+      const headers = Object.keys(templateData[0]).join(",");
+      const rows = templateData.map((row) => Object.values(row).join(","));
+      const csvContent = [headers, ...rows].join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', 'student_import_template.csv');
-      link.style.visibility = 'hidden';
+      link.setAttribute("href", url);
+      link.setAttribute("download", "student_import_template.csv");
+      link.style.visibility = "hidden";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      toast.success('CSV template downloaded!');
+      toast.success("CSV template downloaded!");
     }
   };
 
   const handleExport = async (format) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const params = new URLSearchParams({ format });
-      
-      if (selectedClass !== 'all_classes') {
-        params.append('class_id', selectedClass);
+
+      if (selectedClass !== "all_classes") {
+        params.append("class_id", selectedClass);
       }
-      if (selectedSection !== 'all_sections') {
-        params.append('section_id', selectedSection);
+      if (selectedSection !== "all_sections") {
+        params.append("section_id", selectedSection);
       }
 
-      const response = await axios.get(`${API}/students/export?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
+      const response = await axios.get(
+        `${API}/students/export?${params.toString()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          responseType: "blob",
         },
-        responseType: 'blob'
-      });
+      );
 
       // Create download link
       const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      
-      const fileExtension = format === 'csv' ? 'csv' : format === 'excel' ? 'xlsx' : 'pdf';
-      link.setAttribute('download', `students_${new Date().toISOString().split('T')[0]}.${fileExtension}`);
-      
+
+      const fileExtension =
+        format === "csv" ? "csv" : format === "excel" ? "xlsx" : "pdf";
+      link.setAttribute(
+        "download",
+        `students_${new Date().toISOString().split("T")[0]}.${fileExtension}`,
+      );
+
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -831,35 +893,45 @@ const StudentList = () => {
       toast.success(`Students exported as ${format.toUpperCase()}`);
       setIsExportModalOpen(false);
     } catch (error) {
-      console.error('Failed to export students:', error);
-      toast.error(error.response?.data?.detail || 'Failed to export students');
+      console.error("Failed to export students:", error);
+      toast.error(error.response?.data?.detail || "Failed to export students");
     }
   };
 
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   const filteredStudents = useMemo(() => {
-    return students.filter(student => {
-      const matchesSearch = !debouncedSearchTerm || 
-        student.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-        student.admission_no.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-        student.roll_no.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
-      
-      const matchesClass = selectedClass === 'all_classes' || student.class_id === selectedClass;
-      const matchesSection = selectedSection === 'all_sections' || student.section_id === selectedSection;
-      
+    return students.filter((student) => {
+      const matchesSearch =
+        !debouncedSearchTerm ||
+        student.name
+          .toLowerCase()
+          .includes(debouncedSearchTerm.toLowerCase()) ||
+        student.admission_no
+          .toLowerCase()
+          .includes(debouncedSearchTerm.toLowerCase()) ||
+        student.roll_no
+          .toLowerCase()
+          .includes(debouncedSearchTerm.toLowerCase());
+
+      const matchesClass =
+        selectedClass === "all_classes" || student.class_id === selectedClass;
+      const matchesSection =
+        selectedSection === "all_sections" ||
+        student.section_id === selectedSection;
+
       return matchesSearch && matchesClass && matchesSection;
     });
   }, [students, debouncedSearchTerm, selectedClass, selectedSection]);
 
   const getClassName = (classId) => {
-    const cls = classes.find(c => c.id === classId);
-    return cls ? cls.name : 'অজানা';
+    const cls = classes.find((c) => c.id === classId);
+    return cls ? cls.name : "অজানা";
   };
 
   const getSectionName = (sectionId) => {
-    const section = sections.find(s => s.id === sectionId);
-    return section ? section.name : 'অজানা';
+    const section = sections.find((s) => s.id === sectionId);
+    return section ? section.name : "অজানা";
   };
 
   if (loading && students.length === 0) {
@@ -874,17 +946,23 @@ const StudentList = () => {
   }
 
   // Add Student View
-  if (currentView === 'add') {
+  if (currentView === "add") {
     return (
       <div className="space-y-6 fade-in">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <Button variant="outline" size="sm" onClick={() => navigate('/students')}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("/students")}
+            >
               <ArrowLeft className="h-4 w-4 mr-2" />
               তালিকায় ফিরে যান
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">নতুন ছাত্র যোগ করুন</h1>
+              <h1 className="text-3xl font-bold text-gray-900">
+                নতুন ছাত্র যোগ করুন
+              </h1>
               <p className="text-gray-600 mt-1">নিচে ছাত্রের তথ্য পূরণ করুন</p>
             </div>
           </div>
@@ -898,7 +976,9 @@ const StudentList = () => {
                   <Input
                     id="admission_no"
                     value={formData.admission_no}
-                    onChange={(e) => setFormData({...formData, admission_no: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, admission_no: e.target.value })
+                    }
                     required
                   />
                 </div>
@@ -907,7 +987,9 @@ const StudentList = () => {
                   <Input
                     id="roll_no"
                     value={formData.roll_no}
-                    onChange={(e) => setFormData({...formData, roll_no: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, roll_no: e.target.value })
+                    }
                     required
                   />
                 </div>
@@ -916,7 +998,9 @@ const StudentList = () => {
                   <Input
                     id="name"
                     value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
                     required
                   />
                 </div>
@@ -925,7 +1009,9 @@ const StudentList = () => {
                   <Input
                     id="father_name"
                     value={formData.father_name}
-                    onChange={(e) => setFormData({...formData, father_name: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, father_name: e.target.value })
+                    }
                     required
                   />
                 </div>
@@ -934,7 +1020,9 @@ const StudentList = () => {
                   <Input
                     id="mother_name"
                     value={formData.mother_name}
-                    onChange={(e) => setFormData({...formData, mother_name: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, mother_name: e.target.value })
+                    }
                     required
                   />
                 </div>
@@ -944,13 +1032,23 @@ const StudentList = () => {
                     id="date_of_birth"
                     type="date"
                     value={formData.date_of_birth}
-                    onChange={(e) => setFormData({...formData, date_of_birth: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        date_of_birth: e.target.value,
+                      })
+                    }
                     required
                   />
                 </div>
                 <div>
                   <Label htmlFor="gender">লিঙ্গ *</Label>
-                  <Select value={formData.gender} onValueChange={(value) => setFormData({...formData, gender: value})}>
+                  <Select
+                    value={formData.gender}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, gender: value })
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="লিঙ্গ নির্বাচন করুন" />
                     </SelectTrigger>
@@ -963,10 +1061,10 @@ const StudentList = () => {
                 </div>
                 <div>
                   <Label htmlFor="class_id">মারহালা *</Label>
-                  <Select 
-                    value={formData.class_id} 
+                  <Select
+                    value={formData.class_id}
                     onValueChange={(value) => {
-                      setFormData({...formData, class_id: value});
+                      setFormData({ ...formData, class_id: value });
                       fetchSections(value);
                     }}
                   >
@@ -984,7 +1082,12 @@ const StudentList = () => {
                 </div>
                 <div>
                   <Label htmlFor="section_id">শাখা *</Label>
-                  <Select value={formData.section_id} onValueChange={(value) => setFormData({...formData, section_id: value})}>
+                  <Select
+                    value={formData.section_id}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, section_id: value })
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="শাখা নির্বাচন করুন" />
                     </SelectTrigger>
@@ -1002,7 +1105,9 @@ const StudentList = () => {
                   <Input
                     id="phone"
                     value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, phone: e.target.value })
+                    }
                     required
                   />
                 </div>
@@ -1012,7 +1117,9 @@ const StudentList = () => {
                     id="email"
                     type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, email: e.target.value })
+                    }
                   />
                 </div>
                 <div className="md:col-span-2">
@@ -1020,7 +1127,9 @@ const StudentList = () => {
                   <Input
                     id="address"
                     value={formData.address}
-                    onChange={(e) => setFormData({...formData, address: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, address: e.target.value })
+                    }
                     required
                   />
                 </div>
@@ -1029,7 +1138,12 @@ const StudentList = () => {
                   <Input
                     id="guardian_name"
                     value={formData.guardian_name}
-                    onChange={(e) => setFormData({...formData, guardian_name: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        guardian_name: e.target.value,
+                      })
+                    }
                     required
                   />
                 </div>
@@ -1038,17 +1152,30 @@ const StudentList = () => {
                   <Input
                     id="guardian_phone"
                     value={formData.guardian_phone}
-                    onChange={(e) => setFormData({...formData, guardian_phone: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        guardian_phone: e.target.value,
+                      })
+                    }
                     required
                   />
                 </div>
               </div>
               <div className="flex justify-end space-x-3">
-                <Button type="button" variant="outline" onClick={() => navigate('/students')}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate("/students")}
+                >
                   বাতিল
                 </Button>
-                <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600" disabled={loading}>
-                  {loading ? 'সংরক্ষণ হচ্ছে...' : 'ছাত্র যোগ করুন'}
+                <Button
+                  type="submit"
+                  className="bg-emerald-500 hover:bg-emerald-600"
+                  disabled={loading}
+                >
+                  {loading ? "সংরক্ষণ হচ্ছে..." : "ছাত্র যোগ করুন"}
                 </Button>
               </div>
             </form>
@@ -1059,18 +1186,26 @@ const StudentList = () => {
   }
 
   // Bulk Import View
-  if (currentView === 'import') {
+  if (currentView === "import") {
     return (
       <div className="space-y-6 fade-in">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <Button variant="outline" size="sm" onClick={() => navigate('/students')}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("/students")}
+            >
               <ArrowLeft className="h-4 w-4 mr-2" />
               তালিকায় ফিরে যান
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">বাল্ক ছাত্র আমদানি</h1>
-              <p className="text-gray-600 mt-1">CSV বা Excel ফাইল থেকে একাধিক ছাত্র আমদানি করুন</p>
+              <h1 className="text-3xl font-bold text-gray-900">
+                বাল্ক ছাত্র আমদানি
+              </h1>
+              <p className="text-gray-600 mt-1">
+                CSV বা Excel ফাইল থেকে একাধিক ছাত্র আমদানি করুন
+              </p>
             </div>
           </div>
         </div>
@@ -1084,12 +1219,16 @@ const StudentList = () => {
           <CardContent className="space-y-6">
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
               <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">আপনার ফাইল আপলোড করুন</h3>
-              <p className="text-gray-600 mb-4">এখানে CSV বা Excel ফাইল টেনে আনুন, বা ব্রাউজ করতে ক্লিক করুন</p>
-              <Input 
-                type="file" 
-                accept=".csv,.xlsx,.xls" 
-                className="max-w-xs mx-auto" 
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                আপনার ফাইল আপলোড করুন
+              </h3>
+              <p className="text-gray-600 mb-4">
+                এখানে CSV বা Excel ফাইল টেনে আনুন, বা ব্রাউজ করতে ক্লিক করুন
+              </p>
+              <Input
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                className="max-w-xs mx-auto"
                 onChange={(e) => setImportFile(e.target.files[0])}
               />
               {importFile && (
@@ -1099,33 +1238,45 @@ const StudentList = () => {
               )}
             </div>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-medium text-blue-900 mb-2">ফাইল ফরম্যাট প্রয়োজনীয়তা:</h4>
+              <h4 className="font-medium text-blue-900 mb-2">
+                ফাইল ফরম্যাট প্রয়োজনীয়তা:
+              </h4>
               <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
                 <li>ফাইল CSV বা Excel ফরম্যাটে হতে হবে (.csv, .xlsx, .xls)</li>
                 <li>প্রথম সারিতে কলাম হেডার থাকতে হবে</li>
-                <li>প্রয়োজনীয় কলাম: admission_no, roll_no, name, father_name, mother_name, date_of_birth, gender, class_id, section_id, phone, email, address, guardian_name, guardian_phone</li>
+                <li>
+                  প্রয়োজনীয় কলাম: admission_no, roll_no, name, father_name,
+                  mother_name, date_of_birth, gender, class_id, section_id,
+                  phone, email, address, guardian_name, guardian_phone
+                </li>
                 <li>তারিখ ফরম্যাট YYYY-MM-DD হতে হবে (যেমন: 2008-05-15)</li>
                 <li>লিঙ্গ মান: Male বা Female</li>
               </ul>
             </div>
             <div className="flex justify-between items-center">
               <div className="flex space-x-2">
-                <Button variant="outline" onClick={() => downloadSampleTemplate('excel')}>
+                <Button
+                  variant="outline"
+                  onClick={() => downloadSampleTemplate("excel")}
+                >
                   <Download className="h-4 w-4 mr-2" />
                   Excel টেমপ্লেট ডাউনলোড
                 </Button>
-                <Button variant="outline" onClick={() => downloadSampleTemplate('csv')}>
+                <Button
+                  variant="outline"
+                  onClick={() => downloadSampleTemplate("csv")}
+                >
                   <Download className="h-4 w-4 mr-2" />
                   CSV টেমপ্লেট ডাউনলোড
                 </Button>
               </div>
-              <Button 
+              <Button
                 className="bg-emerald-500 hover:bg-emerald-600"
                 onClick={handleImportStudents}
                 disabled={loading || !importFile}
               >
                 <Upload className="h-4 w-4 mr-2" />
-                {uploadProgress || 'আমদানি শুরু করুন'}
+                {uploadProgress || "আমদানি শুরু করুন"}
               </Button>
             </div>
           </CardContent>
@@ -1135,18 +1286,26 @@ const StudentList = () => {
   }
 
   // Photo Upload View
-  if (currentView === 'photos') {
+  if (currentView === "photos") {
     return (
       <div className="space-y-6 fade-in">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <Button variant="outline" size="sm" onClick={() => navigate('/students')}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("/students")}
+            >
               <ArrowLeft className="h-4 w-4 mr-2" />
               তালিকায় ফিরে যান
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">ছাত্র ছবি আপলোড</h1>
-              <p className="text-gray-600 mt-1">বাল্ক ছাত্রদের ছবি আপলোড করুন</p>
+              <h1 className="text-3xl font-bold text-gray-900">
+                ছাত্র ছবি আপলোড
+              </h1>
+              <p className="text-gray-600 mt-1">
+                বাল্ক ছাত্রদের ছবি আপলোড করুন
+              </p>
             </div>
           </div>
         </div>
@@ -1160,14 +1319,21 @@ const StudentList = () => {
           <CardContent className="space-y-6">
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
               <Image className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">ছাত্রদের ছবি আপলোড করুন</h3>
-              <p className="text-gray-600 mb-4">আপলোড করতে একাধিক ছবি নির্বাচন করুন। ফাইলের নাম ভর্তি নম্বর হওয়া উচিত।</p>
-              <Input 
-                type="file" 
-                accept="image/*" 
-                multiple 
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                ছাত্রদের ছবি আপলোড করুন
+              </h3>
+              <p className="text-gray-600 mb-4">
+                আপলোড করতে একাধিক ছবি নির্বাচন করুন। ফাইলের নাম ভর্তি নম্বর
+                হওয়া উচিত।
+              </p>
+              <Input
+                type="file"
+                accept="image/*"
+                multiple
                 className="max-w-xs mx-auto"
-                onChange={(e) => setSelectedFiles(Array.from(e.target.files || []))}
+                onChange={(e) =>
+                  setSelectedFiles(Array.from(e.target.files || []))
+                }
               />
               {selectedFiles.length > 0 && (
                 <p className="text-sm text-emerald-600 mt-2 font-medium">
@@ -1176,23 +1342,28 @@ const StudentList = () => {
               )}
             </div>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-medium text-blue-900 mb-2">Photo Upload Guidelines:</h4>
+              <h4 className="font-medium text-blue-900 mb-2">
+                Photo Upload Guidelines:
+              </h4>
               <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
                 <li>Accepted formats: JPG, PNG, JPEG</li>
-                <li>File name should match student's admission number (e.g., ADM001.jpg)</li>
+                <li>
+                  File name should match student's admission number (e.g.,
+                  ADM001.jpg)
+                </li>
                 <li>Maximum file size: 2MB per photo</li>
                 <li>Recommended dimensions: 300x400 pixels (passport size)</li>
                 <li>Photos should have clear, well-lit faces</li>
               </ul>
             </div>
             <div className="flex justify-end">
-              <Button 
+              <Button
                 className="bg-emerald-500 hover:bg-emerald-600"
                 onClick={handleBulkPhotoUpload}
                 disabled={loading || selectedFiles.length === 0}
               >
                 <Camera className="h-4 w-4 mr-2" />
-                {uploadProgress || 'ছবি আপলোড করুন'}
+                {uploadProgress || "ছবি আপলোড করুন"}
               </Button>
             </div>
           </CardContent>
@@ -1207,23 +1378,49 @@ const StudentList = () => {
       {/* Header */}
       <div className="flex flex-col gap-3 sm:gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">ছাত্র তালিকা</h1>
-          <p className="text-xs sm:text-sm text-gray-600 mt-1">ছাত্রদের তথ্য এবং রেকর্ড পরিচালনা করুন</p>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">
+            ছাত্র তালিকা
+          </h1>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">
+            ছাত্রদের তথ্য এবং রেকর্ড পরিচালনা করুন
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <Button variant="outline" size="sm" className="text-xs sm:text-sm h-8 sm:h-9" onClick={() => setIsPhotoUploadModalOpen(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-xs sm:text-sm h-8 sm:h-9"
+            onClick={() => setIsPhotoUploadModalOpen(true)}
+          >
             <Camera className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             <span className="hidden xs:inline">বাল্ক </span>ছবি
           </Button>
-          <Button variant="outline" size="sm" className="text-xs sm:text-sm h-8 sm:h-9" onClick={() => setIsImportModalOpen(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-xs sm:text-sm h-8 sm:h-9"
+            onClick={() => setIsImportModalOpen(true)}
+          >
             <Upload className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             আমদানি
           </Button>
-          <Button variant="outline" size="sm" className="text-xs sm:text-sm h-8 sm:h-9" onClick={() => setIsExportModalOpen(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-xs sm:text-sm h-8 sm:h-9"
+            onClick={() => setIsExportModalOpen(true)}
+          >
             <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             রপ্তানি
           </Button>
-          <Button className="bg-emerald-500 hover:bg-emerald-600 text-xs sm:text-sm h-8 sm:h-9" onClick={() => { resetForm(); fetchNextAdmissionNumber(); setIsAddStudentModalOpen(true); }}>
+          <Button
+            className="bg-emerald-500 hover:bg-emerald-600 text-xs sm:text-sm h-8 sm:h-9"
+            onClick={() => {
+              resetForm();
+              fetchNextAdmissionNumber();
+              setIsAddStudentModalOpen(true);
+            }}
+          >
             <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             যোগ করুন
           </Button>
@@ -1259,7 +1456,11 @@ const StudentList = () => {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={selectedSection} onValueChange={setSelectedSection} disabled={!selectedClass}>
+              <Select
+                value={selectedSection}
+                onValueChange={setSelectedSection}
+                disabled={!selectedClass}
+              >
                 <SelectTrigger className="w-full sm:w-40 md:w-48 text-xs sm:text-sm">
                   <SelectValue placeholder="সকল শাখা" />
                 </SelectTrigger>
@@ -1284,7 +1485,9 @@ const StudentList = () => {
             <div className="flex items-center space-x-2">
               <Users className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500" />
               <span className="text-base sm:text-lg">ছাত্র তালিকা</span>
-              <Badge variant="secondary" className="text-xs">{filteredStudents.length} ছাত্র</Badge>
+              <Badge variant="secondary" className="text-xs">
+                {filteredStudents.length} ছাত্র
+              </Badge>
             </div>
           </CardTitle>
         </CardHeader>
@@ -1295,60 +1498,95 @@ const StudentList = () => {
                 <TableRow>
                   <TableHead className="w-10 sm:w-12 px-2 sm:px-4">#</TableHead>
                   <TableHead className="px-2 sm:px-4">ছাত্র</TableHead>
-                  <TableHead className="px-2 sm:px-4 hidden sm:table-cell">ভর্তি নম্বর</TableHead>
-                  <TableHead className="px-2 sm:px-4 hidden md:table-cell">রোল নম্বর</TableHead>
+                  <TableHead className="px-2 sm:px-4 hidden sm:table-cell">
+                    ভর্তি নম্বর
+                  </TableHead>
+                  <TableHead className="px-2 sm:px-4 hidden md:table-cell">
+                    রোল নম্বর
+                  </TableHead>
                   <TableHead className="px-2 sm:px-4">মারহালা</TableHead>
-                  <TableHead className="px-2 sm:px-4 hidden lg:table-cell">অভিভাবক</TableHead>
-                  <TableHead className="px-2 sm:px-4 hidden md:table-cell">যোগাযোগ</TableHead>
+                  <TableHead className="px-2 sm:px-4 hidden lg:table-cell">
+                    অভিভাবক
+                  </TableHead>
+                  <TableHead className="px-2 sm:px-4 hidden md:table-cell">
+                    যোগাযোগ
+                  </TableHead>
                   <TableHead className="px-2 sm:px-4">কার্যক্রম</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredStudents.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                      {searchTerm || selectedClass || selectedSection 
-                        ? 'আপনার অনুসন্ধান অনুযায়ী কোনো ছাত্র পাওয়া যায়নি'
-                        : 'এখনো কোনো ছাত্র যোগ করা হয়নি'
-                      }
+                    <TableCell
+                      colSpan={8}
+                      className="text-center py-8 text-gray-500"
+                    >
+                      {searchTerm || selectedClass || selectedSection
+                        ? "আপনার অনুসন্ধান অনুযায়ী কোনো ছাত্র পাওয়া যায়নি"
+                        : "এখনো কোনো ছাত্র যোগ করা হয়নি"}
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredStudents.map((student, index) => (
                     <TableRow key={student.id}>
-                      <TableCell className="font-medium px-2 sm:px-4 text-xs sm:text-sm">{index + 1}</TableCell>
+                      <TableCell className="font-medium px-2 sm:px-4 text-xs sm:text-sm">
+                        {index + 1}
+                      </TableCell>
                       <TableCell className="px-2 sm:px-4">
                         <div className="flex items-center space-x-2 sm:space-x-3">
                           <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
-                            <AvatarImage src={student.photo_url ? `${BASE_URL}${student.photo_url}` : ''} />
+                            <AvatarImage
+                              src={
+                                student.photo_url
+                                  ? `${BASE_URL}${student.photo_url}`
+                                  : ""
+                              }
+                            />
                             <AvatarFallback className="bg-emerald-100 text-emerald-700 text-xs sm:text-sm">
-                              {student.name.split(' ').map(n => n[0]).join('')}
+                              {student.name
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")}
                             </AvatarFallback>
                           </Avatar>
                           <div className="min-w-0">
-                            <p className="font-medium text-xs sm:text-sm truncate max-w-[100px] sm:max-w-none">{student.name}</p>
-                            <p className="text-xs text-gray-500 truncate max-w-[100px] sm:max-w-none">{student.father_name}</p>
+                            <p className="font-medium text-xs sm:text-sm truncate max-w-[100px] sm:max-w-none">
+                              {student.name}
+                            </p>
+                            <p className="text-xs text-gray-500 truncate max-w-[100px] sm:max-w-none">
+                              {student.father_name}
+                            </p>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell className="px-2 sm:px-4 hidden sm:table-cell">
-                        <Badge variant="outline" className="text-xs">{student.admission_no}</Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {student.admission_no}
+                        </Badge>
                       </TableCell>
                       <TableCell className="px-2 sm:px-4 hidden md:table-cell">
-                        <Badge variant="secondary" className="text-xs">{student.roll_no}</Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          {student.roll_no}
+                        </Badge>
                       </TableCell>
                       <TableCell className="px-2 sm:px-4">
                         <div className="text-xs sm:text-sm">
-                          <p className="font-medium">{getClassName(student.class_id)}</p>
-                          <p className="text-gray-500 text-xs">Sec {getSectionName(student.section_id)}</p>
+                          <p className="font-medium">
+                            {getClassName(student.class_id)}
+                          </p>
+                          <p className="text-gray-500 text-xs">
+                            Sec {getSectionName(student.section_id)}
+                          </p>
                         </div>
                       </TableCell>
                       <TableCell className="px-2 sm:px-4 hidden lg:table-cell">
                         <div className="text-xs sm:text-sm">
-                          <p className="font-medium truncate max-w-[120px]">{student.guardian_name}</p>
+                          <p className="font-medium truncate max-w-[120px]">
+                            {student.guardian_name}
+                          </p>
                           <div className="flex items-center text-gray-500 text-xs">
                             <Phone className="h-3 w-3 mr-1 flex-shrink-0" />
-                            <span className="truncate">{student.guardian_phone}</span>
+                            <span className="truncate">{student.phone}</span>
                           </div>
                         </div>
                       </TableCell>
@@ -1361,7 +1599,9 @@ const StudentList = () => {
                           {student.email && (
                             <div className="flex items-center text-gray-500 mt-1">
                               <Mail className="h-3 w-3 mr-1 flex-shrink-0" />
-                              <span className="truncate max-w-[100px]">{student.email}</span>
+                              <span className="truncate max-w-[100px]">
+                                {student.email}
+                              </span>
                             </div>
                           )}
                         </div>
@@ -1389,9 +1629,9 @@ const StudentList = () => {
                           >
                             <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             className="text-red-600 hover:text-red-700 h-7 w-7 sm:h-8 sm:w-8 p-0"
                             onClick={() => handleDeleteClick(student)}
                             title="মুছুন"
@@ -1410,7 +1650,10 @@ const StudentList = () => {
       </Card>
 
       {/* Bulk Photo Upload Modal */}
-      <Dialog open={isPhotoUploadModalOpen} onOpenChange={setIsPhotoUploadModalOpen}>
+      <Dialog
+        open={isPhotoUploadModalOpen}
+        onOpenChange={setIsPhotoUploadModalOpen}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
@@ -1418,7 +1661,8 @@ const StudentList = () => {
               <span>বাল্ক ছবি আপলোড</span>
             </DialogTitle>
             <DialogDescription>
-              একসাথে একাধিক ছাত্রের ছবি আপলোড করুন। ফাইলের নাম ছাত্রের ভর্তি নম্বরের সাথে মিল থাকতে হবে।
+              একসাথে একাধিক ছাত্রের ছবি আপলোড করুন। ফাইলের নাম ছাত্রের ভর্তি
+              নম্বরের সাথে মিল থাকতে হবে।
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -1439,7 +1683,9 @@ const StudentList = () => {
               )}
             </div>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <h4 className="font-medium text-blue-900 text-sm mb-2">নির্দেশিকা:</h4>
+              <h4 className="font-medium text-blue-900 text-sm mb-2">
+                নির্দেশিকা:
+              </h4>
               <ul className="text-xs text-blue-800 space-y-1 list-disc list-inside">
                 <li>ফরম্যাট: JPG, PNG</li>
                 <li>ফাইলের নাম = ভর্তি নম্বর (যেমন: ADM001.jpg)</li>
@@ -1463,22 +1709,31 @@ const StudentList = () => {
               onClick={handleBulkPhotoUpload}
               disabled={loading || !selectedFiles || selectedFiles.length === 0}
             >
-              {uploadProgress || 'ছবি আপলোড করুন'}
+              {uploadProgress || "ছবি আপলোড করুন"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Import Students Modal */}
-      <Dialog open={isImportModalOpen} onOpenChange={(open) => {
-        setIsImportModalOpen(open);
-        if (!open) {
-          setImportErrors([]);
-          setImportSummary(null);
-          setImportFile(null);
-        }
-      }}>
-        <DialogContent className={importErrors.length > 0 ? "max-w-2xl max-h-[80vh] overflow-y-auto" : "max-w-md"}>
+      <Dialog
+        open={isImportModalOpen}
+        onOpenChange={(open) => {
+          setIsImportModalOpen(open);
+          if (!open) {
+            setImportErrors([]);
+            setImportSummary(null);
+            setImportFile(null);
+          }
+        }}
+      >
+        <DialogContent
+          className={
+            importErrors.length > 0
+              ? "max-w-2xl max-h-[80vh] overflow-y-auto"
+              : "max-w-md"
+          }
+        >
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
               <Upload className="h-5 w-5 text-emerald-500" />
@@ -1488,33 +1743,43 @@ const StudentList = () => {
               CSV বা Excel ফাইল থেকে ছাত্রের তথ্য আমদানি করুন।
             </DialogDescription>
           </DialogHeader>
-          
+
           {/* আমদানি সারসংক্ষেপ */}
           {importSummary && (
-            <div className={`p-4 rounded-lg border ${
-              importSummary.failed_count === 0 
-                ? 'bg-green-50 border-green-200' 
-                : importSummary.imported_count > 0 
-                  ? 'bg-amber-50 border-amber-200'
-                  : 'bg-red-50 border-red-200'
-            }`}>
+            <div
+              className={`p-4 rounded-lg border ${
+                importSummary.failed_count === 0
+                  ? "bg-green-50 border-green-200"
+                  : importSummary.imported_count > 0
+                    ? "bg-amber-50 border-amber-200"
+                    : "bg-red-50 border-red-200"
+              }`}
+            >
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className={`font-semibold ${
-                    importSummary.failed_count === 0 
-                      ? 'text-green-800' 
-                      : importSummary.imported_count > 0 
-                        ? 'text-amber-800'
-                        : 'text-red-800'
-                  }`}>
+                  <h4
+                    className={`font-semibold ${
+                      importSummary.failed_count === 0
+                        ? "text-green-800"
+                        : importSummary.imported_count > 0
+                          ? "text-amber-800"
+                          : "text-red-800"
+                    }`}
+                  >
                     আমদানি সারসংক্ষেপ
                   </h4>
                   <p className="text-sm mt-1">
-                    <span className="text-green-600 font-medium">{importSummary.imported_count} successful</span>
+                    <span className="text-green-600 font-medium">
+                      {importSummary.imported_count} successful
+                    </span>
                     {importSummary.failed_count > 0 && (
-                      <span className="text-red-600 font-medium ml-2">• {importSummary.failed_count} failed</span>
+                      <span className="text-red-600 font-medium ml-2">
+                        • {importSummary.failed_count} failed
+                      </span>
                     )}
-                    <span className="text-gray-500 ml-2">/ {importSummary.total_rows} total</span>
+                    <span className="text-gray-500 ml-2">
+                      / {importSummary.total_rows} total
+                    </span>
                   </p>
                 </div>
                 {importSummary.failed_count === 0 && (
@@ -1535,34 +1800,55 @@ const StudentList = () => {
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-3 py-2 text-left font-medium text-gray-700">Row</th>
-                      <th className="px-3 py-2 text-left font-medium text-gray-700">Admission No</th>
-                      <th className="px-3 py-2 text-left font-medium text-gray-700">Student</th>
-                      <th className="px-3 py-2 text-left font-medium text-gray-700">Issue</th>
+                      <th className="px-3 py-2 text-left font-medium text-gray-700">
+                        Row
+                      </th>
+                      <th className="px-3 py-2 text-left font-medium text-gray-700">
+                        Admission No
+                      </th>
+                      <th className="px-3 py-2 text-left font-medium text-gray-700">
+                        Student
+                      </th>
+                      <th className="px-3 py-2 text-left font-medium text-gray-700">
+                        Issue
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {importErrors.map((error, index) => (
                       <tr key={index} className="hover:bg-red-50">
                         <td className="px-3 py-2 text-gray-600">{error.row}</td>
-                        <td className="px-3 py-2 font-mono text-xs">{error.admission_no}</td>
-                        <td className="px-3 py-2 text-gray-800">{error.student_name || 'Unknown'}</td>
+                        <td className="px-3 py-2 font-mono text-xs">
+                          {error.admission_no}
+                        </td>
+                        <td className="px-3 py-2 text-gray-800">
+                          {error.student_name || "Unknown"}
+                        </td>
                         <td className="px-3 py-2">
                           <div className="flex items-start space-x-2">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                              error.error_type === 'duplicate' 
-                                ? 'bg-orange-100 text-orange-800'
-                                : error.error_type === 'missing_fields'
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : 'bg-red-100 text-red-800'
-                            }`}>
-                              {error.error_type === 'duplicate' ? 'Duplicate' : 
-                               error.error_type === 'missing_fields' ? 'Missing Data' : 'Error'}
+                            <span
+                              className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                                error.error_type === "duplicate"
+                                  ? "bg-orange-100 text-orange-800"
+                                  : error.error_type === "missing_fields"
+                                    ? "bg-yellow-100 text-yellow-800"
+                                    : "bg-red-100 text-red-800"
+                              }`}
+                            >
+                              {error.error_type === "duplicate"
+                                ? "Duplicate"
+                                : error.error_type === "missing_fields"
+                                  ? "Missing Data"
+                                  : "Error"}
                             </span>
                           </div>
-                          <p className="text-red-600 text-xs mt-1">{error.error}</p>
+                          <p className="text-red-600 text-xs mt-1">
+                            {error.error}
+                          </p>
                           {error.suggestion && (
-                            <p className="text-gray-500 text-xs mt-0.5 italic">{error.suggestion}</p>
+                            <p className="text-gray-500 text-xs mt-0.5 italic">
+                              {error.suggestion}
+                            </p>
                           )}
                         </td>
                       </tr>
@@ -1571,7 +1857,8 @@ const StudentList = () => {
                 </table>
               </div>
               <p className="text-xs text-gray-500 mt-2">
-                Please fix these issues in your file and re-upload, or add these students manually.
+                Please fix these issues in your file and re-upload, or add these
+                students manually.
               </p>
             </div>
           )}
@@ -1588,29 +1875,34 @@ const StudentList = () => {
                     className="text-emerald-600 hover:text-emerald-700 text-sm p-0 h-auto"
                     onClick={async () => {
                       try {
-                        const token = localStorage.getItem('token');
-                        const response = await axios.get(`${API}/download/student-import-sample?format=excel`, {
-                          responseType: 'blob',
-                          headers: {
-                            'Authorization': `Bearer ${token}`
-                          }
-                        });
-                        
-                        const blob = new Blob([response.data], { 
-                          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+                        const token = localStorage.getItem("token");
+                        const response = await axios.get(
+                          `${API}/download/student-import-sample?format=excel`,
+                          {
+                            responseType: "blob",
+                            headers: {
+                              Authorization: `Bearer ${token}`,
+                            },
+                          },
+                        );
+
+                        const blob = new Blob([response.data], {
+                          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                         });
                         const url = window.URL.createObjectURL(blob);
-                        const link = document.createElement('a');
+                        const link = document.createElement("a");
                         link.href = url;
-                        link.download = 'student_import_sample.xlsx';
+                        link.download = "student_import_sample.xlsx";
                         document.body.appendChild(link);
                         link.click();
                         document.body.removeChild(link);
                         window.URL.revokeObjectURL(url);
-                        toast.success('Sample Excel template downloaded successfully');
+                        toast.success(
+                          "Sample Excel template downloaded successfully",
+                        );
                       } catch (error) {
-                        console.error('Download failed:', error);
-                        toast.error('Failed to download template');
+                        console.error("Download failed:", error);
+                        toast.error("Failed to download template");
                       }
                     }}
                   >
@@ -1632,18 +1924,22 @@ const StudentList = () => {
                 )}
               </div>
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                <h4 className="font-medium text-amber-900 text-sm mb-2">Required Columns:</h4>
+                <h4 className="font-medium text-amber-900 text-sm mb-2">
+                  Required Columns:
+                </h4>
                 <p className="text-xs text-amber-800">
-                  admission_no, roll_no, name, gender, date_of_birth, class_id, section_id, 
-                  father_name, F/phone, mother_name, address, guardian_name, guardian_phone
+                  admission_no, roll_no, name, gender, date_of_birth, class_id,
+                  section_id, father_name, F/phone, mother_name, address,
+                  guardian_name, guardian_phone
                 </p>
                 <p className="text-xs text-amber-700 mt-1">
-                  ঐচ্ছিক: পিতার হোয়াটসঅ্যাপ নং, মাতার ফোন, মাতার হোয়াটসঅ্যাপ নং, ইমেইল
+                  ঐচ্ছিক: পিতার হোয়াটসঅ্যাপ নং, মাতার ফোন, মাতার হোয়াটসঅ্যাপ
+                  নং, ইমেইল
                 </p>
               </div>
             </div>
           )}
-          
+
           <DialogFooter>
             {importErrors.length > 0 ? (
               <>
@@ -1685,7 +1981,7 @@ const StudentList = () => {
                   onClick={handleImportStudents}
                   disabled={loading || !importFile}
                 >
-                  {uploadProgress || 'ছাত্র আমদানি'}
+                  {uploadProgress || "ছাত্র আমদানি"}
                 </Button>
               </>
             )}
@@ -1707,15 +2003,17 @@ const StudentList = () => {
           </DialogHeader>
           <div className="space-y-3">
             <p className="text-sm text-gray-600">
-              বর্তমান ফিল্টার: {selectedClass !== 'all_classes' || selectedSection !== 'all_sections' 
-                ? 'ফিল্টার করা ডাটা রপ্তানি হবে' 
-                : 'সকল ছাত্র রপ্তানি হবে'}
+              বর্তমান ফিল্ c�ার:{" "}
+              {selectedClass !== "all_classes" ||
+              selectedSection !== "all_sections"
+                ? "ফিল্টার করা ডাটা রপ্তানি হবে"
+                : "সকল ছাত্র রপ্তানি হবে"}
             </p>
             <div className="grid grid-cols-3 gap-3">
               <Button
                 variant="outline"
                 className="flex flex-col items-center py-6 h-auto hover:border-emerald-500"
-                onClick={() => handleExport('csv')}
+                onClick={() => handleExport("csv")}
               >
                 <FileUp className="h-8 w-8 mb-2 text-blue-500" />
                 <span className="text-sm font-medium">CSV</span>
@@ -1723,7 +2021,7 @@ const StudentList = () => {
               <Button
                 variant="outline"
                 className="flex flex-col items-center py-6 h-auto hover:border-emerald-500"
-                onClick={() => handleExport('excel')}
+                onClick={() => handleExport("excel")}
               >
                 <FileUp className="h-8 w-8 mb-2 text-green-500" />
                 <span className="text-sm font-medium">Excel</span>
@@ -1731,7 +2029,7 @@ const StudentList = () => {
               <Button
                 variant="outline"
                 className="flex flex-col items-center py-6 h-auto hover:border-emerald-500"
-                onClick={() => handleExport('pdf')}
+                onClick={() => handleExport("pdf")}
               >
                 <FileUp className="h-8 w-8 mb-2 text-red-500" />
                 <span className="text-sm font-medium">PDF</span>
@@ -1750,15 +2048,20 @@ const StudentList = () => {
       </Dialog>
 
       {/* Add Student Modal */}
-      <Dialog open={isAddStudentModalOpen} onOpenChange={setIsAddStudentModalOpen}>
-        <DialogContent className={`${isMadrasahSimpleUI && useSimpleForm ? 'max-w-lg' : 'max-w-2xl'} max-h-[90vh] overflow-y-auto`}>
+      <Dialog
+        open={isAddStudentModalOpen}
+        onOpenChange={setIsAddStudentModalOpen}
+      >
+        <DialogContent
+          className={`${isMadrasahSimpleUI && useSimpleForm ? "max-w-lg" : "max-w-2xl"} max-h-[90vh] overflow-y-auto`}
+        >
           <DialogHeader>
             <DialogTitle>নতুন ছাত্র যোগ করুন</DialogTitle>
             <DialogDescription>
               নিচে ছাত্রের তথ্য দিন। * চিহ্নিত ঘর অবশ্যই পূরণ করতে হবে।
             </DialogDescription>
           </DialogHeader>
-          
+
           {/* Form Mode Toggle for Madrasah */}
           {isMadrasahSimpleUI && (
             <div className="flex items-center justify-center gap-2 p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg mb-2">
@@ -1767,7 +2070,9 @@ const StudentList = () => {
                 variant={useSimpleForm ? "default" : "outline"}
                 size="sm"
                 onClick={() => setUseSimpleForm(true)}
-                className={useSimpleForm ? "bg-emerald-600 hover:bg-emerald-700" : ""}
+                className={
+                  useSimpleForm ? "bg-emerald-600 hover:bg-emerald-700" : ""
+                }
               >
                 সহজ ফর্ম
               </Button>
@@ -1776,56 +2081,85 @@ const StudentList = () => {
                 variant={!useSimpleForm ? "default" : "outline"}
                 size="sm"
                 onClick={() => setUseSimpleForm(false)}
-                className={!useSimpleForm ? "bg-emerald-600 hover:bg-emerald-700" : ""}
+                className={
+                  !useSimpleForm ? "bg-emerald-600 hover:bg-emerald-700" : ""
+                }
               >
                 সম্পূর্ণ ফর্ম
               </Button>
             </div>
           )}
-          
+
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Simplified Madrasah Form */}
             {isMadrasahSimpleUI && useSimpleForm ? (
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="add_name" className="text-base font-semibold">ছাত্রের নাম *</Label>
+                  <Label htmlFor="add_name" className="text-base font-semibold">
+                    ছাত্রের নাম *
+                  </Label>
                   <Input
                     id="add_name"
                     value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
                     placeholder="ছাত্রের পুরো নাম লিখুন"
                     className="text-lg py-3"
                     required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="add_father_name" className="text-base font-semibold">পিতার নাম *</Label>
+                  <Label
+                    htmlFor="add_father_name"
+                    className="text-base font-semibold"
+                  >
+                    পিতার নাম *
+                  </Label>
                   <Input
                     id="add_father_name"
                     value={formData.father_name}
-                    onChange={(e) => setFormData({...formData, father_name: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, father_name: e.target.value })
+                    }
                     placeholder="পিতার নাম লিখুন"
                     className="text-lg py-3"
                     required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="add_phone" className="text-base font-semibold">মোবাইল নম্বর *</Label>
+                  <Label
+                    htmlFor="add_phone"
+                    className="text-base font-semibold"
+                  >
+                    মোবাইল নম্বর *
+                  </Label>
                   <Input
                     id="add_phone"
                     value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, phone: e.target.value })
+                    }
                     placeholder="০১XXXXXXXXX"
                     className="text-lg py-3"
                     required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="add_class_id" className="text-base font-semibold">মারহালা / শ্রেণি *</Label>
-                  <Select 
-                    value={formData.class_id} 
+                  <Label
+                    htmlFor="add_class_id"
+                    className="text-base font-semibold"
+                  >
+                    মারহালা / শ্রেণি *
+                  </Label>
+                  <Select
+                    value={formData.class_id}
                     onValueChange={(value) => {
-                      setFormData({...formData, class_id: value, section_id: ''});
+                      setFormData({
+                        ...formData,
+                        class_id: value,
+                        section_id: "",
+                      });
                       fetchSections(value);
                       if (autoRoll) {
                         fetchNextRollNumber(value, null);
@@ -1838,7 +2172,8 @@ const StudentList = () => {
                     <SelectContent>
                       {classes.length === 0 ? (
                         <div className="px-2 py-4 text-sm text-muted-foreground text-center">
-                          কোনো মারহালা পাওয়া যায়নি। প্রথমে সেটিংস থেকে মারহালা যোগ করুন।
+                          কোনো মারহালা পাওয়া যায়নি। প্রথমে সেটিংস থেকে মারহালা
+                          যোগ করুন।
                         </div>
                       ) : (
                         classes.map((cls) => (
@@ -1852,13 +2187,21 @@ const StudentList = () => {
                 </div>
                 {formData.class_id && sections.length > 0 && (
                   <div>
-                    <Label htmlFor="add_section_id" className="text-base font-semibold">শাখা</Label>
-                    <Select value={formData.section_id} onValueChange={(value) => {
-                      setFormData({...formData, section_id: value});
-                      if (autoRoll && formData.class_id) {
-                        fetchNextRollNumber(formData.class_id, value);
-                      }
-                    }}>
+                    <Label
+                      htmlFor="add_section_id"
+                      className="text-base font-semibold"
+                    >
+                      শাখা
+                    </Label>
+                    <Select
+                      value={formData.section_id}
+                      onValueChange={(value) => {
+                        setFormData({ ...formData, section_id: value });
+                        if (autoRoll && formData.class_id) {
+                          fetchNextRollNumber(formData.class_id, value);
+                        }
+                      }}
+                    >
                       <SelectTrigger className="text-lg py-3">
                         <SelectValue placeholder="শাখা নির্বাচন করুন" />
                       </SelectTrigger>
@@ -1874,7 +2217,12 @@ const StudentList = () => {
                 )}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <Label htmlFor="add_roll_no" className="text-base font-semibold">রোল নম্বর *</Label>
+                    <Label
+                      htmlFor="add_roll_no"
+                      className="text-base font-semibold"
+                    >
+                      রোল নম্বর *
+                    </Label>
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
@@ -1883,10 +2231,13 @@ const StudentList = () => {
                           autoRollRef.current = true;
                           setRollDuplicateWarning(null);
                           if (formData.class_id) {
-                            fetchNextRollNumber(formData.class_id, formData.section_id);
+                            fetchNextRollNumber(
+                              formData.class_id,
+                              formData.section_id,
+                            );
                           }
                         }}
-                        className={`px-2 py-1 text-xs rounded ${autoRoll ? 'bg-emerald-600 text-white' : 'bg-gray-200 text-gray-600'}`}
+                        className={`px-2 py-1 text-xs rounded ${autoRoll ? "bg-emerald-600 text-white" : "bg-gray-200 text-gray-600"}`}
                       >
                         স্বয়ংক্রিয়
                       </button>
@@ -1895,9 +2246,9 @@ const StudentList = () => {
                         onClick={() => {
                           setAutoRoll(false);
                           autoRollRef.current = false;
-                          setFormData(prev => ({ ...prev, roll_no: '' }));
+                          setFormData((prev) => ({ ...prev, roll_no: "" }));
                         }}
-                        className={`px-2 py-1 text-xs rounded ${!autoRoll ? 'bg-emerald-600 text-white' : 'bg-gray-200 text-gray-600'}`}
+                        className={`px-2 py-1 text-xs rounded ${!autoRoll ? "bg-emerald-600 text-white" : "bg-gray-200 text-gray-600"}`}
                       >
                         ম্যানুয়াল
                       </button>
@@ -1908,13 +2259,21 @@ const StudentList = () => {
                     value={formData.roll_no}
                     onChange={(e) => {
                       const newRoll = e.target.value;
-                      setFormData({...formData, roll_no: newRoll});
+                      setFormData({ ...formData, roll_no: newRoll });
                       if (!autoRoll && formData.class_id && newRoll) {
-                        checkRollDuplicate(formData.class_id, newRoll, formData.section_id);
+                        checkRollDuplicate(
+                          formData.class_id,
+                          newRoll,
+                          formData.section_id,
+                        );
                       }
                     }}
-                    placeholder={autoRoll ? "মারহালা নির্বাচন করলে স্বয়ংক্রিয়ভাবে হবে" : "যেমন: ১, ২, ৩..."}
-                    className={`text-lg py-3 ${autoRoll ? 'bg-gray-50' : ''}`}
+                    placeholder={
+                      autoRoll
+                        ? "মারহালা নির্বাচন করলে স্বয়ংক্রিয়ভাবে হবে"
+                        : "যেমন: ১, ২, ৩..."
+                    }
+                    className={`text-lg py-3 ${autoRoll ? "bg-gray-50" : ""}`}
                     readOnly={autoRoll}
                     required
                   />
@@ -1925,13 +2284,17 @@ const StudentList = () => {
                     </p>
                   )}
                   {isCheckingRoll && (
-                    <p className="text-xs text-gray-500 mt-1">যাচাই করা হচ্ছে...</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      যাচাই করা হচ্ছে...
+                    </p>
                   )}
                 </div>
-                
+
                 {/* Optional fields collapsed */}
                 <details className="border rounded-lg p-3">
-                  <summary className="cursor-pointer text-sm text-muted-foreground">ঐচ্ছিক তথ্য (ক্লিক করুন)</summary>
+                  <summary className="cursor-pointer text-sm text-muted-foreground">
+                    ঐচ্ছিক তথ্য (ক্লিক করুন)
+                  </summary>
                   <div className="mt-3 space-y-3">
                     <div>
                       <Label htmlFor="add_email">ইমেইল</Label>
@@ -1939,16 +2302,25 @@ const StudentList = () => {
                         id="add_email"
                         type="email"
                         value={formData.email}
-                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                        onChange={(e) =>
+                          setFormData({ ...formData, email: e.target.value })
+                        }
                         placeholder="example@email.com"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="add_father_whatsapp">পিতার হোয়াটসঅ্যাপ</Label>
+                      <Label htmlFor="add_father_whatsapp">
+                        পিতার হোয়াটসঅ্যাপ
+                      </Label>
                       <Input
                         id="add_father_whatsapp"
                         value={formData.father_whatsapp}
-                        onChange={(e) => setFormData({...formData, father_whatsapp: e.target.value})}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            father_whatsapp: e.target.value,
+                          })
+                        }
                         placeholder="হোয়াটসঅ্যাপ নম্বর"
                       />
                     </div>
@@ -1957,21 +2329,30 @@ const StudentList = () => {
                       <Input
                         id="add_address"
                         value={formData.address}
-                        onChange={(e) => setFormData({...formData, address: e.target.value})}
+                        onChange={(e) =>
+                          setFormData({ ...formData, address: e.target.value })
+                        }
                         placeholder="গ্রাম, থানা, জেলা"
                       />
                     </div>
                     <div className="flex flex-col items-center space-y-2">
                       <Label>ছবি (ঐচ্ছিক)</Label>
                       {photoPreview ? (
-                        <img src={photoPreview} alt="Student" className="w-20 h-20 rounded-full object-cover" />
+                        <img
+                          src={photoPreview}
+                          alt="Student"
+                          className="w-20 h-20 rounded-full object-cover"
+                        />
                       ) : (
                         <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center">
                           <Camera className="h-6 w-6 text-gray-400" />
                         </div>
                       )}
-                      <Label htmlFor="student-photo-simple" className="cursor-pointer text-emerald-600 text-sm">
-                        {photoPreview ? 'ছবি পরিবর্তন' : 'ছবি আপলোড'}
+                      <Label
+                        htmlFor="student-photo-simple"
+                        className="cursor-pointer text-emerald-600 text-sm"
+                      >
+                        {photoPreview ? "ছবি পরিবর্তন" : "ছবি আপলোড"}
                         <Input
                           id="student-photo-simple"
                           type="file"
@@ -1991,9 +2372,9 @@ const StudentList = () => {
                 <div className="flex flex-col items-center space-y-3 pb-4 border-b">
                   <div className="relative">
                     {photoPreview ? (
-                      <img 
-                        src={photoPreview} 
-                        alt="Student" 
+                      <img
+                        src={photoPreview}
+                        alt="Student"
                         className="w-24 h-24 rounded-full object-cover border-4 border-emerald-100"
                       />
                     ) : (
@@ -2005,7 +2386,7 @@ const StudentList = () => {
                   <Label htmlFor="student-photo" className="cursor-pointer">
                     <div className="flex items-center space-x-2 text-emerald-600 hover:text-emerald-700">
                       <Camera className="h-4 w-4" />
-                      <span>{photoPreview ? 'ছবি পরিবর্তন' : 'ছবি আপলোড'}</span>
+                      <span>{photoPreview ? "ছবি পরিবর্তন" : "ছবি আপলোড"}</span>
                     </div>
                     <Input
                       id="student-photo"
@@ -2022,7 +2403,12 @@ const StudentList = () => {
                     <Input
                       id="add_admission_no"
                       value={formData.admission_no}
-                      onChange={(e) => setFormData({...formData, admission_no: e.target.value})}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          admission_no: e.target.value,
+                        })
+                      }
                       required
                     />
                   </div>
@@ -2031,251 +2417,344 @@ const StudentList = () => {
                     <Input
                       id="add_roll_no"
                       value={formData.roll_no}
-                      onChange={(e) => setFormData({...formData, roll_no: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="md:col-span-2">
-                <Label htmlFor="add_name">পূর্ণ নাম *</Label>
-                <Input
-                  id="add_name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="add_father_name">পিতার নাম *</Label>
-                <Input
-                  id="add_father_name"
-                  value={formData.father_name}
-                  onChange={(e) => setFormData({...formData, father_name: e.target.value})}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="add_father_phone">পিতার ফোন</Label>
-                <Input
-                  id="add_father_phone"
-                  value={formData.father_phone}
-                  onChange={(e) => setFormData({...formData, father_phone: e.target.value})}
-                  placeholder="পিতার ফোন নম্বর"
-                />
-              </div>
-              <div>
-                <Label htmlFor="add_father_whatsapp">পিতার হোয়াটসঅ্যাপ</Label>
-                <Input
-                  id="add_father_whatsapp"
-                  value={formData.father_whatsapp}
-                  onChange={(e) => setFormData({...formData, father_whatsapp: e.target.value})}
-                  placeholder="পিতার হোয়াটসঅ্যাপ নম্বর"
-                />
-              </div>
-              <div>
-                <Label htmlFor="add_mother_name">মাতার নাম *</Label>
-                <Input
-                  id="add_mother_name"
-                  value={formData.mother_name}
-                  onChange={(e) => setFormData({...formData, mother_name: e.target.value})}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="add_mother_phone">মাতার ফোন</Label>
-                <Input
-                  id="add_mother_phone"
-                  value={formData.mother_phone}
-                  onChange={(e) => setFormData({...formData, mother_phone: e.target.value})}
-                  placeholder="মাতার ফোন নম্বর"
-                />
-              </div>
-              <div>
-                <Label htmlFor="add_mother_whatsapp">মাতার হোয়াটসঅ্যাপ</Label>
-                <Input
-                  id="add_mother_whatsapp"
-                  value={formData.mother_whatsapp}
-                  onChange={(e) => setFormData({...formData, mother_whatsapp: e.target.value})}
-                  placeholder="মাতার হোয়াটসঅ্যাপ নম্বর"
-                />
-              </div>
-              <div className="md:col-span-2">
-                <Label>জন্ম তারিখ *</Label>
-                <div className="grid grid-cols-3 gap-2">
+                      onChange={(e) =>
+                        setFormData({ ...formData, roll_no: e.target.value })
+                      }
+                      required
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label htmlFor="add_name">পূর্ণ নাম *</Label>
+                    <Input
+                      id="add_name"
+                      value={formData.name}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
+                      required
+                    />
+                  </div>
                   <div>
-                    <Select value={birthYear} onValueChange={(value) => handleDateChange('year', value)}>
+                    <Label htmlFor="add_father_name">পিতার নাম *</Label>
+                    <Input
+                      id="add_father_name"
+                      value={formData.father_name}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          father_name: e.target.value,
+                        })
+                      }
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="add_father_phone">পিতার ফোন</Label>
+                    <Input
+                      id="add_father_phone"
+                      value={formData.father_phone}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          father_phone: e.target.value,
+                        })
+                      }
+                      placeholder="পিতার ফোন নম্বর"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="add_father_whatsapp">
+                      পিতার হোয়াটসঅ্যাপ
+                    </Label>
+                    <Input
+                      id="add_father_whatsapp"
+                      value={formData.father_whatsapp}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          father_whatsapp: e.target.value,
+                        })
+                      }
+                      placeholder="পিতার হোয়াটসঅ্যাপ নম্বর"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="add_mother_name">মাতার নাম *</Label>
+                    <Input
+                      id="add_mother_name"
+                      value={formData.mother_name}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          mother_name: e.target.value,
+                        })
+                      }
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="add_mother_phone">মাতার ফোন</Label>
+                    <Input
+                      id="add_mother_phone"
+                      value={formData.mother_phone}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          mother_phone: e.target.value,
+                        })
+                      }
+                      placeholder="মাতার ফোন নম্বর"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="add_mother_whatsapp">
+                      মাতার হোয়াটসঅ্যাপ
+                    </Label>
+                    <Input
+                      id="add_mother_whatsapp"
+                      value={formData.mother_whatsapp}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          mother_whatsapp: e.target.value,
+                        })
+                      }
+                      placeholder="মাতার হোয়াটসঅ্যাপ নম্বর"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label>জন্ম তারিখ *</Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <Select
+                          value={birthYear}
+                          onValueChange={(value) =>
+                            handleDateChange("year", value)
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="বছর" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {getYearRange().map((year) => (
+                              <SelectItem key={year} value={year.toString()}>
+                                {year}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Select
+                          value={birthMonth}
+                          onValueChange={(value) =>
+                            handleDateChange("month", value)
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="মাস" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {months.map((month) => (
+                              <SelectItem key={month.value} value={month.value}>
+                                {month.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Select
+                          value={birthDay}
+                          onValueChange={(value) =>
+                            handleDateChange("day", value)
+                          }
+                          disabled={!birthYear || !birthMonth}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="দিন" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from(
+                              { length: getDaysInMonth(birthYear, birthMonth) },
+                              (_, i) => i + 1,
+                            ).map((day) => {
+                              const dayValue = day.toString().padStart(2, "0");
+                              return (
+                                <SelectItem key={day} value={dayValue}>
+                                  {day}
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    {dateError && (
+                      <p className="text-sm text-red-500 mt-1">{dateError}</p>
+                    )}
+                  </div>
+                  <div>
+                    <Label htmlFor="add_gender">লিঙ্গ *</Label>
+                    <Select
+                      value={formData.gender}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, gender: value })
+                      }
+                    >
                       <SelectTrigger>
-                        <SelectValue placeholder="বছর" />
+                        <SelectValue placeholder="লিঙ্গ নির্বাচন করুন" />
                       </SelectTrigger>
                       <SelectContent>
-                        {getYearRange().map((year) => (
-                          <SelectItem key={year} value={year.toString()}>
-                            {year}
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="Male">পুরুষ</SelectItem>
+                        <SelectItem value="Female">মহিলা</SelectItem>
+                        <SelectItem value="Other">অন্যান্য</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div>
-                    <Select value={birthMonth} onValueChange={(value) => handleDateChange('month', value)}>
+                    <Label htmlFor="add_class_id">মারহালা *</Label>
+                    <Select
+                      value={formData.class_id}
+                      onValueChange={(value) => {
+                        setFormData({
+                          ...formData,
+                          class_id: value,
+                          section_id: "",
+                        });
+                        fetchSections(value);
+                      }}
+                    >
                       <SelectTrigger>
-                        <SelectValue placeholder="মাস" />
+                        <SelectValue placeholder="মারহালা নির্বাচন করুন" />
                       </SelectTrigger>
                       <SelectContent>
-                        {months.map((month) => (
-                          <SelectItem key={month.value} value={month.value}>
-                            {month.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Select value={birthDay} onValueChange={(value) => handleDateChange('day', value)} disabled={!birthYear || !birthMonth}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="দিন" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Array.from({ length: getDaysInMonth(birthYear, birthMonth) }, (_, i) => i + 1).map((day) => {
-                          const dayValue = day.toString().padStart(2, '0');
-                          return (
-                            <SelectItem key={day} value={dayValue}>
-                              {day}
+                        {classes.length === 0 ? (
+                          <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                            কোনো মারহালা পাওয়া যায়নি। প্রথমে মারহালা
+                            ব্যবস্থাপনায় মারহালা যোগ করুন।
+                          </div>
+                        ) : (
+                          classes.map((cls) => (
+                            <SelectItem key={cls.id} value={cls.id}>
+                              {cls.name} ({cls.standard})
                             </SelectItem>
-                          );
-                        })}
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="add_section_id">শাখা *</Label>
+                    <Select
+                      value={formData.section_id}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, section_id: value })
+                      }
+                      disabled={!formData.class_id}
+                    >
+                      <SelectTrigger>
+                        <SelectValue
+                          placeholder={
+                            formData.class_id
+                              ? "শাখা নির্বাচন করুন"
+                              : "প্রথমে মারহালা নির্বাচন করুন"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {!formData.class_id ? (
+                          <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                            প্রথমে মারহালা নির্বাচন করুন
+                          </div>
+                        ) : sections.length === 0 ? (
+                          <div className="px-2 py-6 flex flex-col items-center gap-3">
+                            <p className="text-sm text-muted-foreground text-center">
+                              এই মারহালায় কোনো শাখা পাওয়া যায়নি।
+                            </p>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-emerald-600 border-emerald-600 hover:bg-emerald-50"
+                              onClick={() =>
+                                setIsQuickAddSectionModalOpen(true)
+                              }
+                            >
+                              + শাখা যোগ করুন
+                            </Button>
+                          </div>
+                        ) : (
+                          sections.map((section) => (
+                            <SelectItem key={section.id} value={section.id}>
+                              {section.name}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="add_phone">ফোন নম্বর *</Label>
+                    <Input
+                      id="add_phone"
+                      value={formData.phone}
+                      onChange={(e) =>
+                        setFormData({ ...formData, phone: e.target.value })
+                      }
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="add_email">ইমেইল</Label>
+                    <Input
+                      id="add_email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) =>
+                        setFormData({ ...formData, email: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label htmlFor="add_address">ঠিকানা *</Label>
+                    <Input
+                      id="add_address"
+                      value={formData.address}
+                      onChange={(e) =>
+                        setFormData({ ...formData, address: e.target.value })
+                      }
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="add_guardian_name">অভিভাবকের নাম *</Label>
+                    <Input
+                      id="add_guardian_name"
+                      value={formData.guardian_name}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          guardian_name: e.target.value,
+                        })
+                      }
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="add_guardian_phone">অভিভাবকের ফোন *</Label>
+                    <Input
+                      id="add_guardian_phone"
+                      value={formData.guardian_phone}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          guardian_phone: e.target.value,
+                        })
+                      }
+                      required
+                    />
                   </div>
                 </div>
-                {dateError && (
-                  <p className="text-sm text-red-500 mt-1">{dateError}</p>
-                )}
-              </div>
-              <div>
-                <Label htmlFor="add_gender">লিঙ্গ *</Label>
-                <Select value={formData.gender} onValueChange={(value) => setFormData({...formData, gender: value})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="লিঙ্গ নির্বাচন করুন" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Male">পুরুষ</SelectItem>
-                    <SelectItem value="Female">মহিলা</SelectItem>
-                    <SelectItem value="Other">অন্যান্য</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="add_class_id">মারহালা *</Label>
-                <Select 
-                  value={formData.class_id} 
-                  onValueChange={(value) => {
-                    setFormData({...formData, class_id: value, section_id: ''});
-                    fetchSections(value);
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="মারহালা নির্বাচন করুন" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {classes.length === 0 ? (
-                      <div className="px-2 py-4 text-sm text-muted-foreground text-center">
-                        কোনো মারহালা পাওয়া যায়নি। প্রথমে মারহালা ব্যবস্থাপনায় মারহালা যোগ করুন।
-                      </div>
-                    ) : (
-                      classes.map((cls) => (
-                        <SelectItem key={cls.id} value={cls.id}>
-                          {cls.name} ({cls.standard})
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="add_section_id">শাখা *</Label>
-                <Select 
-                  value={formData.section_id} 
-                  onValueChange={(value) => setFormData({...formData, section_id: value})}
-                  disabled={!formData.class_id}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={formData.class_id ? "শাখা নির্বাচন করুন" : "প্রথমে মারহালা নির্বাচন করুন"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {!formData.class_id ? (
-                      <div className="px-2 py-4 text-sm text-muted-foreground text-center">
-                        প্রথমে মারহালা নির্বাচন করুন
-                      </div>
-                    ) : sections.length === 0 ? (
-                      <div className="px-2 py-6 flex flex-col items-center gap-3">
-                        <p className="text-sm text-muted-foreground text-center">
-                          এই মারহালায় কোনো শাখা পাওয়া যায়নি।
-                        </p>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-emerald-600 border-emerald-600 hover:bg-emerald-50"
-                          onClick={() => setIsQuickAddSectionModalOpen(true)}
-                        >
-                          + শাখা যোগ করুন
-                        </Button>
-                      </div>
-                    ) : (
-                      sections.map((section) => (
-                        <SelectItem key={section.id} value={section.id}>
-                          {section.name}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="add_phone">ফোন নম্বর *</Label>
-                <Input
-                  id="add_phone"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="add_email">ইমেইল</Label>
-                <Input
-                  id="add_email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
-                />
-              </div>
-              <div className="md:col-span-2">
-                <Label htmlFor="add_address">ঠিকানা *</Label>
-                <Input
-                  id="add_address"
-                  value={formData.address}
-                  onChange={(e) => setFormData({...formData, address: e.target.value})}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="add_guardian_name">অভিভাবকের নাম *</Label>
-                <Input
-                  id="add_guardian_name"
-                  value={formData.guardian_name}
-                  onChange={(e) => setFormData({...formData, guardian_name: e.target.value})}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="add_guardian_phone">অভিভাবকের ফোন *</Label>
-                <Input
-                  id="add_guardian_phone"
-                  value={formData.guardian_phone}
-                  onChange={(e) => setFormData({...formData, guardian_phone: e.target.value})}
-                  required
-                />
-              </div>
-            </div>
               </>
             )}
             <DialogFooter>
@@ -2289,8 +2768,12 @@ const StudentList = () => {
               >
                 বাতিল
               </Button>
-              <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600" disabled={loading}>
-                {loading ? 'সংরক্ষণ হচ্ছে...' : 'ছাত্র যোগ করুন'}
+              <Button
+                type="submit"
+                className="bg-emerald-500 hover:bg-emerald-600"
+                disabled={loading}
+              >
+                {loading ? "সংরক্ষণ হচ্ছে..." : "ছাত্র যোগ করুন"}
               </Button>
             </DialogFooter>
           </form>
@@ -2298,12 +2781,17 @@ const StudentList = () => {
       </Dialog>
 
       {/* Quick Add Section Modal */}
-      <Dialog open={isQuickAddSectionModalOpen} onOpenChange={setIsQuickAddSectionModalOpen}>
+      <Dialog
+        open={isQuickAddSectionModalOpen}
+        onOpenChange={setIsQuickAddSectionModalOpen}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>নতুন শাখা যোগ করুন</DialogTitle>
             <DialogDescription>
-              {classes.find(c => c.id === formData.class_id)?.name || 'নির্বাচিত মারহালা'}-এর জন্য একটি শাখা যোগ করুন।
+              {classes.find((c) => c.id === formData.class_id)?.name ||
+                "নির্বাচিত মারহালা"}
+              -এর জন্য একটি শাখা যোগ করুন।
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleQuickAddSection} className="space-y-4">
@@ -2312,7 +2800,12 @@ const StudentList = () => {
               <Input
                 id="quick_section_name"
                 value={quickSectionData.name}
-                onChange={(e) => setQuickSectionData({...quickSectionData, name: e.target.value})}
+                onChange={(e) =>
+                  setQuickSectionData({
+                    ...quickSectionData,
+                    name: e.target.value,
+                  })
+                }
                 placeholder="যেমন: ক, খ, গ"
                 required
                 autoFocus
@@ -2325,7 +2818,12 @@ const StudentList = () => {
                 type="number"
                 min="1"
                 value={quickSectionData.max_students}
-                onChange={(e) => setQuickSectionData({...quickSectionData, max_students: e.target.value})}
+                onChange={(e) =>
+                  setQuickSectionData({
+                    ...quickSectionData,
+                    max_students: e.target.value,
+                  })
+                }
                 required
               />
             </div>
@@ -2335,17 +2833,17 @@ const StudentList = () => {
                 variant="outline"
                 onClick={() => {
                   setIsQuickAddSectionModalOpen(false);
-                  setQuickSectionData({ name: '', max_students: 40 });
+                  setQuickSectionData({ name: "", max_students: 40 });
                 }}
               >
                 বাতিল
               </Button>
-              <Button 
-                type="submit" 
-                className="bg-emerald-500 hover:bg-emerald-600" 
+              <Button
+                type="submit"
+                className="bg-emerald-500 hover:bg-emerald-600"
                 disabled={isSavingSection}
               >
-                {isSavingSection ? 'যোগ হচ্ছে...' : 'শাখা যোগ করুন'}
+                {isSavingSection ? "যোগ হচ্ছে..." : "শাখা যোগ করুন"}
               </Button>
             </DialogFooter>
           </form>
@@ -2364,9 +2862,18 @@ const StudentList = () => {
           <div className="py-4">
             {studentToDelete && (
               <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                <p className="text-sm"><span className="font-semibold">নাম:</span> {studentToDelete.name}</p>
-                <p className="text-sm"><span className="font-semibold">ভর্তি নম্বর:</span> {studentToDelete.admission_no}</p>
-                <p className="text-sm"><span className="font-semibold">রোল নম্বর:</span> {studentToDelete.roll_no}</p>
+                <p className="text-sm">
+                  <span className="font-semibold">নাম:</span>{" "}
+                  {studentToDelete.name}
+                </p>
+                <p className="text-sm">
+                  <span className="font-semibold">ভর্তি নম্বর:</span>{" "}
+                  {studentToDelete.admission_no}
+                </p>
+                <p className="text-sm">
+                  <span className="font-semibold">রোল নম্বর:</span>{" "}
+                  {studentToDelete.roll_no}
+                </p>
               </div>
             )}
             <p className="text-sm text-red-600 mt-4 font-medium">
@@ -2385,21 +2892,24 @@ const StudentList = () => {
             >
               বাতিল
             </Button>
-            <Button 
+            <Button
               type="button"
               variant="destructive"
               onClick={confirmDelete}
               disabled={loading}
               className="bg-red-600 hover:bg-red-700"
             >
-              {loading ? 'মুছা হচ্ছে...' : 'ছাত্র মুছুন'}
+              {loading ? "মুছা হচ্ছে..." : "ছাত্র মুছুন"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Student Credentials Modal */}
-      <Dialog open={isCredentialsModalOpen} onOpenChange={setIsCredentialsModalOpen}>
+      <Dialog
+        open={isCredentialsModalOpen}
+        onOpenChange={setIsCredentialsModalOpen}
+      >
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2 text-emerald-600">
@@ -2407,41 +2917,60 @@ const StudentList = () => {
               <span>ছাত্রের অ্যাকাউন্ট সফলভাবে তৈরি হয়েছে!</span>
             </DialogTitle>
             <DialogDescription>
-              এই ছাত্রের জন্য স্বয়ংক্রিয়ভাবে একটি লগইন অ্যাকাউন্ট তৈরি হয়েছে। অনুগ্রহ করে এই তথ্য ছাত্র বা অভিভাবকের সাথে শেয়ার করুন।
+              এই ছাত্রের জন্য স্বয়ংক্রিয়ভাবে একটি লগইন অ্যাকাউন্ট তৈরি হয়েছে।
+              অনুগ্রহ করে এই তথ্য ছাত্র বা অভিভাবকের সাথে শেয়ার করুন।
             </DialogDescription>
           </DialogHeader>
           {studentCredentials && (
             <div className="py-4 space-y-4">
               <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-4 space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">ছাত্রের নাম:</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">{studentCredentials.studentName}</span>
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    ছাত্রের নাম:
+                  </span>
+                  <span className="font-semibold text-gray-900 dark:text-white">
+                    {studentCredentials.studentName}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">ভর্তি নম্বর:</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">{studentCredentials.admissionNo}</span>
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    ভর্তি নম্বর:
+                  </span>
+                  <span className="font-semibold text-gray-900 dark:text-white">
+                    {studentCredentials.admissionNo}
+                  </span>
                 </div>
               </div>
-              
+
               <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 space-y-3 border-2 border-blue-200 dark:border-blue-800">
-                <h4 className="font-semibold text-blue-800 dark:text-blue-300 text-center">লগইন তথ্য</h4>
+                <h4 className="font-semibold text-blue-800 dark:text-blue-300 text-center">
+                  লগইন তথ্য
+                </h4>
                 <div className="flex justify-between items-center py-2 border-b border-blue-100 dark:border-blue-800">
-                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">ব্যবহারকারীর নাম:</span>
-                  <code className="bg-white dark:bg-gray-800 px-3 py-1 rounded font-mono text-sm font-bold text-blue-600 dark:text-blue-400">{studentCredentials.username}</code>
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    ব্যবহারকi�� ��ীর নাম:
+                  </span>
+                  <code className="bg-white dark:bg-gray-800 px-3 py-1 rounded font-mono text-sm font-bold text-blue-600 dark:text-blue-400">
+                    {studentCredentials.username}
+                  </code>
                 </div>
                 <div className="flex justify-between items-center py-2">
-                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">অস্থায়ী পাসওয়ার্ড:</span>
-                  <code className="bg-white dark:bg-gray-800 px-3 py-1 rounded font-mono text-sm font-bold text-blue-600 dark:text-blue-400">{studentCredentials.temporary_password}</code>
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    অস্থায়ী পাসওয়ার্ড:
+                  </span>
+                  <code className="bg-white dark:bg-gray-800 px-3 py-1 rounded font-mono text-sm font-bold text-blue-600 dark:text-blue-400">
+                    {studentCredentials.temporary_password}
+                  </code>
                 </div>
               </div>
-              
+
               <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
                 <p className="text-sm text-yellow-800 dark:text-yellow-300 flex items-start">
                   <span className="mr-2">⚠️</span>
                   <span>{studentCredentials.message}</span>
                 </p>
               </div>
-              
+
               <div className="flex gap-2 mt-4">
                 <Button
                   variant="outline"
@@ -2449,7 +2978,7 @@ const StudentList = () => {
                   onClick={() => {
                     const text = `Student Login Credentials\n\nStudent: ${studentCredentials.studentName}\nAdmission No: ${studentCredentials.admissionNo}\nUsername: ${studentCredentials.username}\nPassword: ${studentCredentials.temporary_password}\n\nPlease change password on first login.`;
                     navigator.clipboard.writeText(text);
-                    toast.success('Credentials copied to clipboard!');
+                    toast.success("Credentials copied to clipboard!");
                   }}
                 >
                   <Copy className="h-4 w-4 mr-2" />
@@ -2486,19 +3015,35 @@ const StudentList = () => {
               {/* Student Header */}
               <div className="flex items-center space-x-4 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg">
                 <Avatar className="h-20 w-20">
-                  <AvatarImage src={viewingStudent.photo_url ? `${BASE_URL}${viewingStudent.photo_url}` : ''} />
+                  <AvatarImage
+                    src={
+                      viewingStudent.photo_url
+                        ? `${BASE_URL}${viewingStudent.photo_url}`
+                        : ""
+                    }
+                  />
                   <AvatarFallback className="bg-emerald-100 text-emerald-700 text-xl">
-                    {viewingStudent.name.split(' ').map(n => n[0]).join('')}
+                    {viewingStudent.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900">{viewingStudent.name}</h3>
+                  <h3 className="text-xl font-bold text-gray-900">
+                    {viewingStudent.name}
+                  </h3>
                   <div className="flex items-center space-x-2 mt-1">
-                    <Badge variant="outline">{viewingStudent.admission_no}</Badge>
-                    <Badge variant="secondary">Roll: {viewingStudent.roll_no}</Badge>
+                    <Badge variant="outline">
+                      {viewingStudent.admission_no}
+                    </Badge>
+                    <Badge variant="secondary">
+                      Roll: {viewingStudent.roll_no}
+                    </Badge>
                   </div>
                   <p className="text-sm text-gray-500 mt-1">
-                    {getClassName(viewingStudent.class_id)} - Section {getSectionName(viewingStudent.section_id)}
+                    {getClassName(viewingStudent.class_id)} - Section{" "}
+                    {getSectionName(viewingStudent.section_id)}
                   </p>
                 </div>
               </div>
@@ -2513,19 +3058,27 @@ const StudentList = () => {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-500">Gender:</span>
-                      <span className="font-medium">{viewingStudent.gender}</span>
+                      <span className="font-medium">
+                        {viewingStudent.gender}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Date of Birth:</span>
-                      <span className="font-medium">{viewingStudent.date_of_birth}</span>
+                      <span className="font-medium">
+                        {viewingStudent.date_of_birth}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Email:</span>
-                      <span className="font-medium">{viewingStudent.email || '-'}</span>
+                      <span className="font-medium">
+                        {viewingStudent.email || "-"}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Phone:</span>
-                      <span className="font-medium">{viewingStudent.phone}</span>
+                      <span className="font-medium">
+                        {viewingStudent.phone}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -2535,13 +3088,17 @@ const StudentList = () => {
                     <Home className="h-4 w-4 mr-2 text-emerald-500" />
                     Address
                   </h4>
-                  <p className="text-sm text-gray-700">{viewingStudent.address || '-'}</p>
+                  <p className="text-sm text-gray-700">
+                    {viewingStudent.address || "-"}
+                  </p>
                 </div>
               </div>
 
               {/* Father's Information */}
               <div className="p-4 border rounded-lg">
-                <h4 className="font-semibold text-gray-900 mb-3">Father's Information</h4>
+                <h4 className="font-semibold text-gray-900 mb-3">
+                  Father's Information
+                </h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                   <div>
                     <span className="text-gray-500">Name:</span>
@@ -2549,18 +3106,24 @@ const StudentList = () => {
                   </div>
                   <div>
                     <span className="text-gray-500">Phone:</span>
-                    <p className="font-medium">{viewingStudent.father_phone || '-'}</p>
+                    <p className="font-medium">
+                      {viewingStudent.father_phone || "-"}
+                    </p>
                   </div>
                   <div>
                     <span className="text-gray-500">WhatsApp:</span>
-                    <p className="font-medium">{viewingStudent.father_whatsapp || '-'}</p>
+                    <p className="font-medium">
+                      {viewingStudent.father_whatsapp || "-"}
+                    </p>
                   </div>
                 </div>
               </div>
 
               {/* Mother's Information */}
               <div className="p-4 border rounded-lg">
-                <h4 className="font-semibold text-gray-900 mb-3">Mother's Information</h4>
+                <h4 className="font-semibold text-gray-900 mb-3">
+                  Mother's Information
+                </h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                   <div>
                     <span className="text-gray-500">Name:</span>
@@ -2568,26 +3131,36 @@ const StudentList = () => {
                   </div>
                   <div>
                     <span className="text-gray-500">Phone:</span>
-                    <p className="font-medium">{viewingStudent.mother_phone || '-'}</p>
+                    <p className="font-medium">
+                      {viewingStudent.mother_phone || "-"}
+                    </p>
                   </div>
                   <div>
                     <span className="text-gray-500">WhatsApp:</span>
-                    <p className="font-medium">{viewingStudent.mother_whatsapp || '-'}</p>
+                    <p className="font-medium">
+                      {viewingStudent.mother_whatsapp || "-"}
+                    </p>
                   </div>
                 </div>
               </div>
 
               {/* Guardian Information */}
               <div className="p-4 border rounded-lg">
-                <h4 className="font-semibold text-gray-900 mb-3">Guardian Information</h4>
+                <h4 className="font-semibold text-gray-900 mb-3">
+                  Guardian Information
+                </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-gray-500">Name:</span>
-                    <p className="font-medium">{viewingStudent.guardian_name}</p>
+                    <p className="font-medium">
+                      {viewingStudent.guardian_name}
+                    </p>
                   </div>
                   <div>
                     <span className="text-gray-500">Phone:</span>
-                    <p className="font-medium">{viewingStudent.guardian_phone}</p>
+                    <p className="font-medium">
+                      {viewingStudent.guardian_phone}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -2599,7 +3172,9 @@ const StudentList = () => {
               className="text-purple-600 border-purple-200 hover:bg-purple-50"
               onClick={() => {
                 setIsViewModalOpen(false);
-                navigate(`/results?student_id=${viewingStudent?.id}&class_id=${viewingStudent?.class_id}&section_id=${viewingStudent?.section_id}`);
+                navigate(
+                  `/results?student_id=${viewingStudent?.id}&class_id=${viewingStudent?.class_id}&section_id=${viewingStudent?.section_id}`,
+                );
               }}
             >
               <Eye className="h-4 w-4 mr-2" />
@@ -2608,9 +3183,11 @@ const StudentList = () => {
             <Button
               variant="outline"
               onClick={() => {
-                const printContent = document.getElementById('student-print-content');
+                const printContent = document.getElementById(
+                  "student-print-content",
+                );
                 if (printContent) {
-                  const printWindow = window.open('', '_blank');
+                  const printWindow = window.open("", "_blank");
                   printWindow.document.write(`
                     <html>
                       <head>
@@ -2632,7 +3209,10 @@ const StudentList = () => {
                       </head>
                       <body>
                         <div class="header">
-                          <div class="avatar">${viewingStudent?.name?.split(' ').map(n => n[0]).join('')}</div>
+                          <div class="avatar">${viewingStudent?.name
+                            ?.split(" ")
+                            .map((n) => n[0])
+                            .join("")}</div>
                           <div>
                             <div class="name">${viewingStudent?.name}</div>
                             <div><span class="badge">${viewingStudent?.admission_no}</span><span class="badge">Roll: ${viewingStudent?.roll_no}</span></div>
@@ -2645,22 +3225,22 @@ const StudentList = () => {
                           <div class="grid-2">
                             <div><div class="label">Gender</div><div class="value">${viewingStudent?.gender}</div></div>
                             <div><div class="label">Date of Birth</div><div class="value">${viewingStudent?.date_of_birth}</div></div>
-                            <div><div class="label">Email</div><div class="value">${viewingStudent?.email || '-'}</div></div>
+                            <div><div class="label">Email</div><div class="value">${viewingStudent?.email || "-"}</div></div>
                             <div><div class="label">Phone</div><div class="value">${viewingStudent?.phone}</div></div>
                           </div>
                         </div>
                         
                         <div class="section">
                           <h4>Address</h4>
-                          <p>${viewingStudent?.address || '-'}</p>
+                          <p>${viewingStudent?.address || "-"}</p>
                         </div>
                         
                         <div class="section">
                           <h4>Father's Information</h4>
                           <div class="grid">
                             <div><div class="label">Name</div><div class="value">${viewingStudent?.father_name}</div></div>
-                            <div><div class="label">Phone</div><div class="value">${viewingStudent?.father_phone || '-'}</div></div>
-                            <div><div class="label">WhatsApp</div><div class="value">${viewingStudent?.father_whatsapp || '-'}</div></div>
+                            <div><div class="label">Phone</div><div class="value">${viewingStudent?.father_phone || "-"}</div></div>
+                            <div><div class="label">WhatsApp</div><div class="value">${viewingStudent?.father_whatsapp || "-"}</div></div>
                           </div>
                         </div>
                         
@@ -2668,8 +3248,8 @@ const StudentList = () => {
                           <h4>Mother's Information</h4>
                           <div class="grid">
                             <div><div class="label">Name</div><div class="value">${viewingStudent?.mother_name}</div></div>
-                            <div><div class="label">Phone</div><div class="value">${viewingStudent?.mother_phone || '-'}</div></div>
-                            <div><div class="label">WhatsApp</div><div class="value">${viewingStudent?.mother_whatsapp || '-'}</div></div>
+                            <div><div class="label">Phone</div><div class="value">${viewingStudent?.mother_phone || "-"}</div></div>
+                            <div><div class="label">WhatsApp</div><div class="value">${viewingStudent?.mother_whatsapp || "-"}</div></div>
                           </div>
                         </div>
                         
@@ -2691,23 +3271,23 @@ const StudentList = () => {
               <Printer className="h-4 w-4 mr-2" />
               প্রিন্ট
             </Button>
-            <Button onClick={() => setIsViewModalOpen(false)}>
-              বন্ধ করুন
-            </Button>
+            <Button onClick={() => setIsViewModalOpen(false)}>বন্ধ করুন</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Edit Student Dialog - Same style as Add form */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <DialogContent className={`${isMadrasahSimpleUI ? 'max-w-lg' : 'max-w-2xl'} max-h-[90vh] overflow-y-auto`}>
+        <DialogContent
+          className={`${isMadrasahSimpleUI ? "max-w-lg" : "max-w-2xl"} max-h-[90vh] overflow-y-auto`}
+        >
           <DialogHeader>
             <DialogTitle>ছাত্র সম্পাদনা</DialogTitle>
             <DialogDescription>
               ছাত্রের তথ্য আপডেট করুন। * চিহ্নিত ঘর অবশ্যই পূরণ করতে হবে।
             </DialogDescription>
           </DialogHeader>
-          
+
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Madrasah Simple Edit Form */}
             {isMadrasahSimpleUI ? (
@@ -2715,9 +3295,14 @@ const StudentList = () => {
                 {/* Photo Section */}
                 <div className="flex flex-col items-center space-y-2 pb-4 border-b">
                   {photoPreview || editingStudent?.photo_url ? (
-                    <img 
-                      src={photoPreview || (editingStudent?.photo_url ? `${BASE_URL}${editingStudent.photo_url}` : '')} 
-                      alt="Student" 
+                    <img
+                      src={
+                        photoPreview ||
+                        (editingStudent?.photo_url
+                          ? `${BASE_URL}${editingStudent.photo_url}`
+                          : "")
+                      }
+                      alt="Student"
                       className="w-20 h-20 rounded-full object-cover border-4 border-emerald-100"
                     />
                   ) : (
@@ -2725,8 +3310,13 @@ const StudentList = () => {
                       <Camera className="h-6 w-6 text-gray-400" />
                     </div>
                   )}
-                  <Label htmlFor="edit-student-photo-simple" className="cursor-pointer text-emerald-600 text-sm">
-                    {photoPreview || editingStudent?.photo_url ? 'ছবি পরিবর্তন' : 'ছবি আপলোড'}
+                  <Label
+                    htmlFor="edit-student-photo-simple"
+                    className="cursor-pointer text-emerald-600 text-sm"
+                  >
+                    {photoPreview || editingStudent?.photo_url
+                      ? "ছবি পরিবর্তন"
+                      : "ছবি আপলোড"}
                     <Input
                       id="edit-student-photo-simple"
                       type="file"
@@ -2736,46 +3326,76 @@ const StudentList = () => {
                     />
                   </Label>
                 </div>
-                
+
                 <div>
-                  <Label htmlFor="edit_name" className="text-base font-semibold">ছাত্রের নাম *</Label>
+                  <Label
+                    htmlFor="edit_name"
+                    className="text-base font-semibold"
+                  >
+                    ছাত্রের নাম *
+                  </Label>
                   <Input
                     id="edit_name"
                     value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
                     placeholder="ছাত্রের পুরো নাম লিখুন"
                     className="text-lg py-3"
                     required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="edit_father_name" className="text-base font-semibold">পিতার নাম *</Label>
+                  <Label
+                    htmlFor="edit_father_name"
+                    className="text-base font-semibold"
+                  >
+                    পিতার নাম *
+                  </Label>
                   <Input
                     id="edit_father_name"
                     value={formData.father_name}
-                    onChange={(e) => setFormData({...formData, father_name: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, father_name: e.target.value })
+                    }
                     placeholder="পিতার নাম লিখুন"
                     className="text-lg py-3"
                     required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="edit_phone" className="text-base font-semibold">মোবাইল নম্বর *</Label>
+                  <Label
+                    htmlFor="edit_phone"
+                    className="text-base font-semibold"
+                  >
+                    মোবাইল নম্বর *
+                  </Label>
                   <Input
                     id="edit_phone"
                     value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, phone: e.target.value })
+                    }
                     placeholder="০১XXXXXXXXX"
                     className="text-lg py-3"
                     required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="edit_class_id" className="text-base font-semibold">মারহালা / শ্রেণি *</Label>
-                  <Select 
-                    value={formData.class_id} 
+                  <Label
+                    htmlFor="edit_class_id"
+                    className="text-base font-semibold"
+                  >
+                    মারহালা / শ্রেণি *
+                  </Label>
+                  <Select
+                    value={formData.class_id}
                     onValueChange={(value) => {
-                      setFormData({...formData, class_id: value, section_id: ''});
+                      setFormData({
+                        ...formData,
+                        class_id: value,
+                        section_id: "",
+                      });
                       fetchSections(value);
                     }}
                   >
@@ -2799,8 +3419,18 @@ const StudentList = () => {
                 </div>
                 {formData.class_id && sections.length > 0 && (
                   <div>
-                    <Label htmlFor="edit_section_id" className="text-base font-semibold">শাখা</Label>
-                    <Select value={formData.section_id} onValueChange={(value) => setFormData({...formData, section_id: value})}>
+                    <Label
+                      htmlFor="edit_section_id"
+                      className="text-base font-semibold"
+                    >
+                      শাখা
+                    </Label>
+                    <Select
+                      value={formData.section_id}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, section_id: value })
+                      }
+                    >
                       <SelectTrigger className="text-lg py-3">
                         <SelectValue placeholder="শাখা নির্বাচন করুন" />
                       </SelectTrigger>
@@ -2815,27 +3445,41 @@ const StudentList = () => {
                   </div>
                 )}
                 <div>
-                  <Label htmlFor="edit_roll_no" className="text-base font-semibold">রোল নম্বর *</Label>
+                  <Label
+                    htmlFor="edit_roll_no"
+                    className="text-base font-semibold"
+                  >
+                    রোল নম্বর *
+                  </Label>
                   <Input
                     id="edit_roll_no"
                     value={formData.roll_no}
-                    onChange={(e) => setFormData({...formData, roll_no: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, roll_no: e.target.value })
+                    }
                     placeholder="যেমন: ১, ২, ৩..."
                     className="text-lg py-3"
                     required
                   />
                 </div>
-                
+
                 {/* Optional fields collapsed */}
                 <details className="border rounded-lg p-3">
-                  <summary className="cursor-pointer text-sm text-muted-foreground">অতিরিক্ত তথ্য (ক্লিক করুন)</summary>
+                  <summary className="cursor-pointer text-sm text-muted-foreground">
+                    অতিরিক্ত তথ্য (ক্লিক করুন)
+                  </summary>
                   <div className="mt-3 space-y-3">
                     <div>
                       <Label htmlFor="edit_admission_no">ভর্তি নম্বর</Label>
                       <Input
                         id="edit_admission_no"
                         value={formData.admission_no}
-                        onChange={(e) => setFormData({...formData, admission_no: e.target.value})}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            admission_no: e.target.value,
+                          })
+                        }
                         placeholder="ভর্তি নম্বর"
                       />
                     </div>
@@ -2845,16 +3489,25 @@ const StudentList = () => {
                         id="edit_email"
                         type="email"
                         value={formData.email}
-                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                        onChange={(e) =>
+                          setFormData({ ...formData, email: e.target.value })
+                        }
                         placeholder="example@email.com"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="edit_father_whatsapp">পিতার হোয়াটসঅ্যাপ</Label>
+                      <Label htmlFor="edit_father_whatsapp">
+                        পিতার হোয়াটসঅ্যাপ
+                      </Label>
                       <Input
                         id="edit_father_whatsapp"
                         value={formData.father_whatsapp}
-                        onChange={(e) => setFormData({...formData, father_whatsapp: e.target.value})}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            father_whatsapp: e.target.value,
+                          })
+                        }
                         placeholder="হোয়াটসঅ্যাপ নম্বর"
                       />
                     </div>
@@ -2863,7 +3516,12 @@ const StudentList = () => {
                       <Input
                         id="edit_mother_name"
                         value={formData.mother_name}
-                        onChange={(e) => setFormData({...formData, mother_name: e.target.value})}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            mother_name: e.target.value,
+                          })
+                        }
                         placeholder="মাতার নাম"
                       />
                     </div>
@@ -2872,7 +3530,9 @@ const StudentList = () => {
                       <Input
                         id="edit_address"
                         value={formData.address}
-                        onChange={(e) => setFormData({...formData, address: e.target.value})}
+                        onChange={(e) =>
+                          setFormData({ ...formData, address: e.target.value })
+                        }
                         placeholder="গ্রাম, থানা, জেলা"
                       />
                     </div>
@@ -2882,12 +3542,22 @@ const StudentList = () => {
                         id="edit_date_of_birth"
                         type="date"
                         value={formData.date_of_birth}
-                        onChange={(e) => setFormData({...formData, date_of_birth: e.target.value})}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            date_of_birth: e.target.value,
+                          })
+                        }
                       />
                     </div>
                     <div>
                       <Label htmlFor="edit_gender">লিঙ্গ</Label>
-                      <Select value={formData.gender} onValueChange={(value) => setFormData({...formData, gender: value})}>
+                      <Select
+                        value={formData.gender}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, gender: value })
+                        }
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="লিঙ্গ নির্বাচন করুন" />
                         </SelectTrigger>
@@ -2907,9 +3577,14 @@ const StudentList = () => {
                 <div className="flex flex-col items-center space-y-3 pb-4 border-b">
                   <div className="relative">
                     {photoPreview || editingStudent?.photo_url ? (
-                      <img 
-                        src={photoPreview || (editingStudent?.photo_url ? `${BASE_URL}${editingStudent.photo_url}` : '')} 
-                        alt="Student" 
+                      <img
+                        src={
+                          photoPreview ||
+                          (editingStudent?.photo_url
+                            ? `${BASE_URL}${editingStudent.photo_url}`
+                            : "")
+                        }
+                        alt="Student"
                         className="w-24 h-24 rounded-full object-cover border-4 border-emerald-100"
                       />
                     ) : (
@@ -2918,10 +3593,17 @@ const StudentList = () => {
                       </div>
                     )}
                   </div>
-                  <Label htmlFor="edit-student-photo" className="cursor-pointer">
+                  <Label
+                    htmlFor="edit-student-photo"
+                    className="cursor-pointer"
+                  >
                     <div className="flex items-center space-x-2 text-emerald-600 hover:text-emerald-700">
                       <Camera className="h-4 w-4" />
-                      <span>{photoPreview || editingStudent?.photo_url ? 'Change Photo' : 'Upload Photo'}</span>
+                      <span>
+                        {photoPreview || editingStudent?.photo_url
+                          ? "Change Photo"
+                          : "Upload Photo"}
+                      </span>
                     </div>
                     <Input
                       id="edit-student-photo"
@@ -2938,7 +3620,12 @@ const StudentList = () => {
                     <Input
                       id="admission_no"
                       value={formData.admission_no}
-                      onChange={(e) => setFormData({...formData, admission_no: e.target.value})}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          admission_no: e.target.value,
+                        })
+                      }
                       required
                     />
                   </div>
@@ -2947,7 +3634,9 @@ const StudentList = () => {
                     <Input
                       id="roll_no"
                       value={formData.roll_no}
-                      onChange={(e) => setFormData({...formData, roll_no: e.target.value})}
+                      onChange={(e) =>
+                        setFormData({ ...formData, roll_no: e.target.value })
+                      }
                       required
                     />
                   </div>
@@ -2956,7 +3645,9 @@ const StudentList = () => {
                     <Input
                       id="name"
                       value={formData.name}
-                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
                       required
                     />
                   </div>
@@ -2965,7 +3656,12 @@ const StudentList = () => {
                     <Input
                       id="father_name"
                       value={formData.father_name}
-                      onChange={(e) => setFormData({...formData, father_name: e.target.value})}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          father_name: e.target.value,
+                        })
+                      }
                       required
                     />
                   </div>
@@ -2974,7 +3670,12 @@ const StudentList = () => {
                     <Input
                       id="edit_father_phone"
                       value={formData.father_phone}
-                      onChange={(e) => setFormData({...formData, father_phone: e.target.value})}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          father_phone: e.target.value,
+                        })
+                      }
                       placeholder="পিতার ফোন নম্বর"
                     />
                   </div>
@@ -2983,7 +3684,12 @@ const StudentList = () => {
                     <Input
                       id="mother_name"
                       value={formData.mother_name}
-                      onChange={(e) => setFormData({...formData, mother_name: e.target.value})}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          mother_name: e.target.value,
+                        })
+                      }
                       required
                     />
                   </div>
@@ -2993,13 +3699,23 @@ const StudentList = () => {
                       id="date_of_birth"
                       type="date"
                       value={formData.date_of_birth}
-                      onChange={(e) => setFormData({...formData, date_of_birth: e.target.value})}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          date_of_birth: e.target.value,
+                        })
+                      }
                       required
                     />
                   </div>
                   <div>
                     <Label htmlFor="gender">লিঙ্গ *</Label>
-                    <Select value={formData.gender} onValueChange={(value) => setFormData({...formData, gender: value})}>
+                    <Select
+                      value={formData.gender}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, gender: value })
+                      }
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="লিঙ্গ নির্বাচন করুন" />
                       </SelectTrigger>
@@ -3012,10 +3728,14 @@ const StudentList = () => {
                   </div>
                   <div>
                     <Label htmlFor="class_id">মারহালা *</Label>
-                    <Select 
-                      value={formData.class_id} 
+                    <Select
+                      value={formData.class_id}
                       onValueChange={(value) => {
-                        setFormData({...formData, class_id: value, section_id: ''});
+                        setFormData({
+                          ...formData,
+                          class_id: value,
+                          section_id: "",
+                        });
                         fetchSections(value);
                       }}
                     >
@@ -3033,9 +3753,11 @@ const StudentList = () => {
                   </div>
                   <div>
                     <Label htmlFor="section_id">শাখা</Label>
-                    <Select 
-                      value={formData.section_id} 
-                      onValueChange={(value) => setFormData({...formData, section_id: value})}
+                    <Select
+                      value={formData.section_id}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, section_id: value })
+                      }
                       disabled={!formData.class_id}
                     >
                       <SelectTrigger>
@@ -3055,7 +3777,9 @@ const StudentList = () => {
                     <Input
                       id="phone"
                       value={formData.phone}
-                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                      onChange={(e) =>
+                        setFormData({ ...formData, phone: e.target.value })
+                      }
                       required
                     />
                   </div>
@@ -3065,7 +3789,9 @@ const StudentList = () => {
                       id="email"
                       type="email"
                       value={formData.email}
-                      onChange={(e) => setFormData({...formData, email: e.target.value})}
+                      onChange={(e) =>
+                        setFormData({ ...formData, email: e.target.value })
+                      }
                     />
                   </div>
                   <div className="md:col-span-2">
@@ -3073,7 +3799,9 @@ const StudentList = () => {
                     <Input
                       id="address"
                       value={formData.address}
-                      onChange={(e) => setFormData({...formData, address: e.target.value})}
+                      onChange={(e) =>
+                        setFormData({ ...formData, address: e.target.value })
+                      }
                       required
                     />
                   </div>
@@ -3082,7 +3810,12 @@ const StudentList = () => {
                     <Input
                       id="guardian_name"
                       value={formData.guardian_name}
-                      onChange={(e) => setFormData({...formData, guardian_name: e.target.value})}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          guardian_name: e.target.value,
+                        })
+                      }
                     />
                   </div>
                   <div>
@@ -3090,7 +3823,12 @@ const StudentList = () => {
                     <Input
                       id="guardian_phone"
                       value={formData.guardian_phone}
-                      onChange={(e) => setFormData({...formData, guardian_phone: e.target.value})}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          guardian_phone: e.target.value,
+                        })
+                      }
                     />
                   </div>
                 </div>
@@ -3108,10 +3846,12 @@ const StudentList = () => {
               >
                 বাতিল
               </Button>
-              <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600" disabled={isSubmitting}>
-                {isSubmitting 
-                  ? 'সংরক্ষণ হচ্ছে...' 
-                  : 'আপডেট করুন'}
+              <Button
+                type="submit"
+                className="bg-emerald-500 hover:bg-emerald-600"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "সংরক্ষণ হচ্ছে..." : "আপডেট করুন"}
               </Button>
             </DialogFooter>
           </form>

@@ -1,18 +1,18 @@
-import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Badge } from './ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { 
+import React, { useState, useEffect, useRef } from "react";
+import axios from "axios";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Badge } from "./ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-} from './ui/table';
+} from "./ui/table";
 import {
   Dialog,
   DialogContent,
@@ -21,19 +21,19 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from './ui/dialog';
-import { Label } from './ui/label';
-import { 
+} from "./ui/dialog";
+import { Label } from "./ui/label";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from './ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { 
-  BookOpen, 
-  Plus, 
+} from "./ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import {
+  BookOpen,
+  Plus,
   Users,
   UserCheck,
   Edit,
@@ -50,12 +50,12 @@ import {
   GripVertical,
   AlertTriangle,
   Building2,
-  Moon
-} from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
-import Swal from 'sweetalert2';
-import 'sweetalert2/dist/sweetalert2.min.css';
+  Moon,
+} from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
+import Swal from "sweetalert2";
+import "sweetalert2/dist/sweetalert2.min.css";
 
 const BACKEND_URL = process.env.REACT_APP_API_URL;
 const API = BACKEND_URL;
@@ -63,16 +63,15 @@ const API = BACKEND_URL;
 const withTimeout = (promise, timeoutMs = 10000) => {
   let timeoutId;
   const timeoutPromise = new Promise((_, reject) => {
-    timeoutId = setTimeout(() => reject(new Error('Request timeout')), timeoutMs);
+    timeoutId = setTimeout(
+      () => reject(new Error("Request timeout")),
+      timeoutMs,
+    );
   });
-  
+
   return Promise.race([promise, timeoutPromise]).finally(() => {
     if (timeoutId) clearTimeout(timeoutId);
   });
-};
-
-const safeBackgroundRefresh = (refreshFn) => {
-  Promise.resolve(refreshFn()).catch(err => console.error('Background refresh failed:', err));
 };
 
 const ClassManagement = () => {
@@ -81,105 +80,209 @@ const ClassManagement = () => {
   const [sections, setSections] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [staff, setStaff] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [pageLoading, setPageLoading] = useState(true);
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
   const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
   const [isSubjectModalOpen, setIsSubjectModalOpen] = useState(false);
   const [editingClass, setEditingClass] = useState(null);
   const [editingSection, setEditingSection] = useState(null);
   const [editingSubject, setEditingSubject] = useState(null);
-  const [selectedClassFilter, setSelectedClassFilter] = useState('all');
-  const [institutionType, setInstitutionType] = useState('school');
+  const [selectedClassFilter, setSelectedClassFilter] = useState("all");
+  const [institutionType, setInstitutionType] = useState("school");
   const [classDefaults, setClassDefaults] = useState(null);
   const [showInactiveClasses, setShowInactiveClasses] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const submittingRef = useRef(false);
-
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const classSubmittingRef = useRef(false);
+  const sectionSubmittingRef = useRef(false);
+  const subjectSubmittingRef = useRef(false);
   const [classFormData, setClassFormData] = useState({
-    name: '',
-    standard: 'select_standard',
-    display_name: '',
+    name: "",
+    standard: "select_standard",
+    display_name: "",
     internal_standard: 0,
-    class_teacher_id: 'no_teacher',
+    class_teacher_id: "no_teacher",
     max_students: 60,
     order_index: 0,
-    institution_type: 'school'
+    institution_type: "school",
   });
 
   const [sectionFormData, setSectionFormData] = useState({
-    class_id: 'select_class',
-    name: '',
-    section_teacher_id: 'no_teacher',
-    max_students: 40
+    class_id: "select_class",
+    name: "",
+    section_teacher_id: "no_teacher",
+    max_students: 40,
   });
 
   const [subjectFormData, setSubjectFormData] = useState({
-    subject_name: '',
-    subject_code: '',
-    class_standard: 'select_class',
-    section_id: 'all_sections',
-    description: '',
-    is_elective: false
+    subject_name: "",
+    subject_code: "",
+    class_standard: "select_class",
+    section_id: "all_sections",
+    description: "",
+    is_elective: false,
   });
 
   const [expandedClasses, setExpandedClasses] = useState({});
 
   // Get unique standards from classes API (dynamic)
   const getUniqueStandards = () => {
-    const uniqueStandards = [...new Set(classes.map(cls => cls.standard))];
+    const uniqueStandards = [...new Set(classes.map((cls) => cls.standard))];
     return uniqueStandards.sort((a, b) => {
       // Custom sort order for classes
-      const order = ['Nursery', 'LKG', 'UKG', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12'];
+      const order = [
+        "Nursery",
+        "LKG",
+        "UKG",
+        "Class 1",
+        "Class 2",
+        "Class 3",
+        "Class 4",
+        "Class 5",
+        "Class 6",
+        "Class 7",
+        "Class 8",
+        "Class 9",
+        "Class 10",
+        "Class 11",
+        "Class 12",
+      ];
       return order.indexOf(a) - order.indexOf(b);
     });
   };
 
   // Fallback standards for class creation based on institution type
   const schoolStandards = [
-    { standard: 'Nursery', display_name: 'Nursery', internal_standard: 0 },
-    { standard: 'LKG', display_name: 'LKG', internal_standard: 0 },
-    { standard: 'UKG', display_name: 'UKG', internal_standard: 0 },
-    { standard: 'Class 1', display_name: 'Class 1', internal_standard: 1 },
-    { standard: 'Class 2', display_name: 'Class 2', internal_standard: 2 },
-    { standard: 'Class 3', display_name: 'Class 3', internal_standard: 3 },
-    { standard: 'Class 4', display_name: 'Class 4', internal_standard: 4 },
-    { standard: 'Class 5', display_name: 'Class 5', internal_standard: 5 },
-    { standard: 'Class 6', display_name: 'Class 6', internal_standard: 6 },
-    { standard: 'Class 7', display_name: 'Class 7', internal_standard: 7 },
-    { standard: 'Class 8', display_name: 'Class 8', internal_standard: 8 },
-    { standard: 'Class 9', display_name: 'Class 9', internal_standard: 9 },
-    { standard: 'Class 10', display_name: 'Class 10', internal_standard: 10 },
-    { standard: 'Class 11', display_name: 'Class 11 (HSC 1st Year)', internal_standard: 11 },
-    { standard: 'Class 12', display_name: 'Class 12 (HSC 2nd Year)', internal_standard: 12 },
+    { standard: "Nursery", display_name: "Nursery", internal_standard: 0 },
+    { standard: "LKG", display_name: "LKG", internal_standard: 0 },
+    { standard: "UKG", display_name: "UKG", internal_standard: 0 },
+    { standard: "Class 1", display_name: "Class 1", internal_standard: 1 },
+    { standard: "Class 2", display_name: "Class 2", internal_standard: 2 },
+    { standard: "Class 3", display_name: "Class 3", internal_standard: 3 },
+    { standard: "Class 4", display_name: "Class 4", internal_standard: 4 },
+    { standard: "Class 5", display_name: "Class 5", internal_standard: 5 },
+    { standard: "Class 6", display_name: "Class 6", internal_standard: 6 },
+    { standard: "Class 7", display_name: "Class 7", internal_standard: 7 },
+    { standard: "Class 8", display_name: "Class 8", internal_standard: 8 },
+    { standard: "Class 9", display_name: "Class 9", internal_standard: 9 },
+    { standard: "Class 10", display_name: "Class 10", internal_standard: 10 },
+    {
+      standard: "Class 11",
+      display_name: "Class 11 (HSC 1st Year)",
+      internal_standard: 11,
+    },
+    {
+      standard: "Class 12",
+      display_name: "Class 12 (HSC 2nd Year)",
+      internal_standard: 12,
+    },
   ];
 
   const madrasahStandards = [
-    { standard: 'Class 1', display_name: 'ইবতেদায়ী ১ম বর্ষ', internal_standard: 1, category: 'Ebtedayee' },
-    { standard: 'Class 2', display_name: 'ইবতেদায়ী ২য় বর্ষ', internal_standard: 2, category: 'Ebtedayee' },
-    { standard: 'Class 3', display_name: 'ইবতেদায়ী ৩য় বর্ষ', internal_standard: 3, category: 'Ebtedayee' },
-    { standard: 'Class 4', display_name: 'ইবতেদায়ী ৪র্থ বর্ষ', internal_standard: 4, category: 'Ebtedayee' },
-    { standard: 'Class 5', display_name: 'ইবতেদায়ী ৫ম বর্ষ', internal_standard: 5, category: 'Ebtedayee' },
-    { standard: 'Class 6', display_name: 'দাখিল ৬ষ্ঠ শ্রেণি', internal_standard: 6, category: 'Dakhil' },
-    { standard: 'Class 7', display_name: 'দাখিল ৭ম শ্রেণি', internal_standard: 7, category: 'Dakhil' },
-    { standard: 'Class 8', display_name: 'দাখিল ৮ম শ্রেণি', internal_standard: 8, category: 'Dakhil' },
-    { standard: 'Class 9', display_name: 'দাখিল ৯ম শ্রেণি', internal_standard: 9, category: 'Dakhil' },
-    { standard: 'Class 10', display_name: 'দাখিল ১০ম শ্রেণি', internal_standard: 10, category: 'Dakhil' },
-    { standard: 'Class 11', display_name: 'আলিম ১ম বর্ষ', internal_standard: 11, category: 'Alim' },
-    { standard: 'Class 12', display_name: 'আলিম ২য় বর্ষ', internal_standard: 12, category: 'Alim' },
-    { standard: 'Nazera', display_name: 'নাজেরা', internal_standard: 0, category: 'Special' },
-    { standard: 'Hifz', display_name: 'হিফজ', internal_standard: 0, category: 'Special' },
-    { standard: 'Kitab', display_name: 'কিতাব', internal_standard: 0, category: 'Special' },
+    {
+      standard: "Class 1",
+      display_name: "ইবতেদায়ী ১ম বর্ষ",
+      internal_standard: 1,
+      category: "Ebtedayee",
+    },
+    {
+      standard: "Class 2",
+      display_name: "ইবতেদায়ী ২য় বর্ষ",
+      internal_standard: 2,
+      category: "Ebtedayee",
+    },
+    {
+      standard: "Class 3",
+      display_name: "ইবতেদায়ী ৩য় বর্ষ",
+      internal_standard: 3,
+      category: "Ebtedayee",
+    },
+    {
+      standard: "Class 4",
+      display_name: "ইবতেদায়ী ৪র্থ বর্ষ",
+      internal_standard: 4,
+      category: "Ebtedayee",
+    },
+    {
+      standard: "Class 5",
+      display_name: "ইবতেদায়ী ৫ম বর্ষ",
+      internal_standard: 5,
+      category: "Ebtedayee",
+    },
+    {
+      standard: "Class 6",
+      display_name: "দাখিল ৬ষ্ঠ শ্রেণি",
+      internal_standard: 6,
+      category: "Dakhil",
+    },
+    {
+      standard: "Class 7",
+      display_name: "দাখিল ৭ম শ্রেণি",
+      internal_standard: 7,
+      category: "Dakhil",
+    },
+    {
+      standard: "Class 8",
+      display_name: "দাখিল ৮ম শ্রেণি",
+      internal_standard: 8,
+      category: "Dakhil",
+    },
+    {
+      standard: "Class 9",
+      display_name: "দাখিল ৯ম শ্রেণি",
+      internal_standard: 9,
+      category: "Dakhil",
+    },
+    {
+      standard: "Class 10",
+      display_name: "দাখিল ১০ম শ্রেণি",
+      internal_standard: 10,
+      category: "Dakhil",
+    },
+    {
+      standard: "Class 11",
+      display_name: "আলিম ১ম বর্ষ",
+      internal_standard: 11,
+      category: "Alim",
+    },
+    {
+      standard: "Class 12",
+      display_name: "আলিম ২য় বর্ষ",
+      internal_standard: 12,
+      category: "Alim",
+    },
+    {
+      standard: "Nazera",
+      display_name: "নাজেরা",
+      internal_standard: 0,
+      category: "Special",
+    },
+    {
+      standard: "Hifz",
+      display_name: "হিফজ",
+      internal_standard: 0,
+      category: "Special",
+    },
+    {
+      standard: "Kitab",
+      display_name: "কিতাব",
+      internal_standard: 0,
+      category: "Special",
+    },
   ];
 
-  const defaultStandards = institutionType === 'madrasah' ? madrasahStandards : schoolStandards;
+  const defaultStandards =
+    institutionType === "madrasah" ? madrasahStandards : schoolStandards;
 
   // For subject dropdowns, use standards from existing classes
   const classStandards = getUniqueStandards();
 
   useEffect(() => {
-    fetchData();
     fetchInstitutionSettings();
   }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [institutionType]);
 
   const fetchInstitutionSettings = async () => {
     try {
@@ -188,192 +291,205 @@ const ClassManagement = () => {
         setInstitutionType(response.data.institution_type);
       }
     } catch (error) {
-      console.log('Using default institution type: school');
+      console.log("Using default institution type: school");
     }
   };
 
   const fetchData = async () => {
     try {
-      console.log('🔄 Fetching class management data...');
-      const [classesRes, sectionsRes, staffRes, subjectsRes] = await Promise.all([
-        axios.get(`${API}/classes`),
-        axios.get(`${API}/sections`),
-        axios.get(`${API}/staff`),
-        axios.get(`${API}/subjects`)
-      ]);
-      
-      console.log('✅ Classes fetched:', classesRes.data);
-      console.log('✅ Sections fetched:', sectionsRes.data);
-      console.log('✅ Staff fetched:', staffRes.data);
-      console.log('✅ Subjects fetched:', subjectsRes.data);
-      
-      const classData = Array.isArray(classesRes.data) ? classesRes.data : (classesRes.data?.classes || []);
-      const sectionData = Array.isArray(sectionsRes.data) ? sectionsRes.data : (sectionsRes.data?.sections || []);
-      const staffData = Array.isArray(staffRes.data) ? staffRes.data : (staffRes.data?.staff || []);
-      const subjectData = Array.isArray(subjectsRes.data) ? subjectsRes.data : (subjectsRes.data?.subjects || []);
-      
+      console.log("🔄 Fetching class management data...");
+      const [classesRes, sectionsRes, staffRes, subjectsRes] =
+        await Promise.all([
+          axios.get(`${API}/classes`),
+          axios.get(`${API}/sections`),
+          axios.get(`${API}/staff`),
+          axios.get(`${API}/subjects`),
+        ]);
+
+      console.log("✅ Classes fetched:", classesRes.data);
+      console.log("✅ Sections fetched:", sectionsRes.data);
+      console.log("✅ Staff fetched:", staffRes.data);
+      console.log("✅ Subjects fetched:", subjectsRes.data);
+
+      const classData = Array.isArray(classesRes.data)
+        ? classesRes.data
+        : classesRes.data?.classes || [];
+      const sectionData = Array.isArray(sectionsRes.data)
+        ? sectionsRes.data
+        : sectionsRes.data?.sections || [];
+      const staffData = Array.isArray(staffRes.data)
+        ? staffRes.data
+        : staffRes.data?.staff || [];
+      const subjectData = Array.isArray(subjectsRes.data)
+        ? subjectsRes.data
+        : subjectsRes.data?.subjects || [];
+
       setClasses(classData);
       setSections(sectionData);
       setSubjects(subjectData);
-      
+
       // Filter staff to include teachers and senior positions
-      const teachers = staffData.filter(s => 
-        s.designation && (
-          s.designation.toLowerCase().includes('teacher') || 
-          s.designation.toLowerCase().includes('principal') ||
-          s.designation.toLowerCase().includes('head')
-        )
+      const teachers = staffData.filter(
+        (s) =>
+          s.designation &&
+          (s.designation.toLowerCase().includes("teacher") ||
+            s.designation.toLowerCase().includes("principal") ||
+            s.designation.toLowerCase().includes("head")),
       );
-      console.log('✅ Teachers filtered:', teachers);
-      
+      console.log("✅ Teachers filtered:", teachers);
+
       setStaff(teachers);
     } catch (error) {
-      console.error('❌ Failed to fetch data:', error);
-      toast.error('Failed to load data: ' + (error.response?.data?.detail || error.message));
+      console.error("❌ Failed to fetch data:", error);
+      toast.error(
+        "Failed to load data: " +
+          (error.response?.data?.detail || error.message),
+      );
     } finally {
-      setLoading(false);
+      setPageLoading(false);
     }
   };
 
   const handleClassSubmit = async (e) => {
     e.preventDefault();
-    
-    if (submittingRef.current) {
-      return;
-    }
-    
-    console.log('🔄 Submitting class form:', classFormData);
-    submittingRef.current = true;
-    setIsSubmitting(true);
+
+    if (classSubmittingRef.current) return;
+
+    classSubmittingRef.current = true;
+    setSubmitLoading(true);
 
     const unlockTimeout = setTimeout(() => {
-      submittingRef.current = false;
-      setIsSubmitting(false);
-      toast.warning('Operation is taking longer than expected. Please check the list.');
+      classSubmittingRef.current = false;
+      setSubmitLoading(false);
+      toast.warning(
+        "Operation is taking longer than expected. Please check the list.",
+      );
     }, 15000);
 
     try {
-      if (classFormData.standard === 'select_standard') {
-        toast.error('Please select a standard');
-        clearTimeout(unlockTimeout);
-        submittingRef.current = false;
-        setIsSubmitting(false);
+      if (classFormData.standard === "select_standard") {
+        toast.error("Please select a standard");
         return;
       }
 
       const submitData = {
         ...classFormData,
-        max_students: parseInt(classFormData.max_students),
-        class_teacher_id: classFormData.class_teacher_id === 'no_teacher' ? null : classFormData.class_teacher_id,
+        max_students: parseInt(classFormData.max_students, 10),
+        class_teacher_id:
+          classFormData.class_teacher_id === "no_teacher"
+            ? null
+            : classFormData.class_teacher_id,
         display_name: classFormData.display_name || classFormData.name,
         internal_standard: classFormData.internal_standard || 0,
-        order_index: classFormData.order_index || classes.length,
-        institution_type: institutionType
+        order_index:
+          typeof classFormData.order_index === "number"
+            ? classFormData.order_index
+            : classes.length,
+        institution_type: institutionType,
       };
 
-      console.log('📤 Sending data to API:', submitData);
-
+      // 🔁 UPDATE CLASS (REAL-TIME)
       if (editingClass) {
-        await withTimeout(axios.put(`${API}/classes/${editingClass.id}`, submitData), 10000);
-        toast.success('Class updated successfully');
-      } else {
-        await withTimeout(axios.post(`${API}/classes`, submitData), 10000);
-        toast.success('Class added successfully');
+        const res = await withTimeout(
+          axios.put(`${API}/classes/${editingClass.id}`, submitData),
+          10000,
+        );
+
+        const updatedClass = res.data?.class || res.data || submitData;
+
+        setClasses((prev) =>
+          prev.map((cls) =>
+            cls.id === editingClass.id ? { ...cls, ...updatedClass } : cls,
+          ),
+        );
+
+        toast.success("Class updated successfully");
       }
-      
+      // ➕ CREATE CLASS (REAL-TIME, NO REFETCH)
+      else {
+        const res = await withTimeout(
+          axios.post(`${API}/classes`, submitData),
+          10000,
+        );
+
+        const newClass = res.data?.class || res.data;
+
+        setClasses((prev) => [...prev, newClass]);
+
+        toast.success("Class added successfully");
+      }
+
       setIsClassModalOpen(false);
       setEditingClass(null);
       resetClassForm();
-      safeBackgroundRefresh(fetchData);
     } catch (error) {
-      console.error('Failed to save class:', error);
-      const errorMessage = error.message === 'Request timeout' 
-        ? 'Request timed out. Please try again.'
-        : (error.response?.data?.detail || 'Failed to save class');
+      const errorMessage =
+        error.message === "Request timeout"
+          ? "Request timed out. Please try again."
+          : error.response?.data?.detail || "Failed to save class";
+
       toast.error(errorMessage);
     } finally {
       clearTimeout(unlockTimeout);
-      submittingRef.current = false;
-      setIsSubmitting(false);
+      classSubmittingRef.current = false;
+      setSubmitLoading(false);
     }
   };
 
   const handleSectionSubmit = async (e) => {
     e.preventDefault();
-    
-    console.log('🔄 Section form submit triggered, submittingRef:', submittingRef.current);
-    console.log('📋 Section form data:', sectionFormData);
-    
-    if (submittingRef.current) {
-      console.log('⚠️ Already submitting, returning early');
-      return;
-    }
-    
-    submittingRef.current = true;
-    setIsSubmitting(true);
-    setLoading(true);
+    if (sectionSubmittingRef.current) return;
 
-    const unlockTimeout = setTimeout(() => {
-      submittingRef.current = false;
-      setIsSubmitting(false);
-      setLoading(false);
-      toast.warning('Operation is taking longer than expected. Please check the list.');
-    }, 15000);
+    sectionSubmittingRef.current = true;
+    setSubmitLoading(true);
 
     try {
-      if (!sectionFormData.class_id || sectionFormData.class_id === 'select_class' || sectionFormData.class_id === '') {
-        toast.error('Please select a class');
-        clearTimeout(unlockTimeout);
-        submittingRef.current = false;
-        setIsSubmitting(false);
-        setLoading(false);
-        return;
-      }
-
-      if (!sectionFormData.name || sectionFormData.name.trim() === '') {
-        toast.error('Please enter a section name');
-        clearTimeout(unlockTimeout);
-        submittingRef.current = false;
-        setIsSubmitting(false);
-        setLoading(false);
-        return;
-      }
+      const token = localStorage.getItem("token");
 
       const submitData = {
         class_id: sectionFormData.class_id,
         name: sectionFormData.name.trim(),
         max_students: parseInt(sectionFormData.max_students) || 40,
-        section_teacher_id: sectionFormData.section_teacher_id === 'no_teacher' ? null : sectionFormData.section_teacher_id
+        section_teacher_id:
+          sectionFormData.section_teacher_id === "no_teacher"
+            ? null
+            : sectionFormData.section_teacher_id,
       };
 
-      console.log('📤 Sending section data to API:', submitData);
-
       if (editingSection) {
-        const response = await withTimeout(axios.put(`${API}/sections/${editingSection.id}`, submitData), 10000);
-        console.log('✅ Section update response:', response.data);
-        toast.success('Section updated successfully');
+        const res = await axios.put(
+          `${API}/sections/${editingSection.id}`,
+          submitData,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+
+        const updatedSection = res.data?.section || res.data;
+
+        // ✅ REAL-TIME UPDATE
+        setSections((prev) =>
+          prev.map((s) =>
+            s.id === editingSection.id ? { ...s, ...updatedSection } : s,
+          ),
+        );
+
+        toast.success("Section updated successfully");
       } else {
-        const response = await withTimeout(axios.post(`${API}/sections`, submitData), 10000);
-        console.log('✅ Section create response:', response.data);
-        toast.success('Section added successfully');
+        const res = await axios.post(`${API}/sections`, submitData, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        setSections((prev) => [...prev, res.data]);
+        toast.success("Section added successfully");
       }
-      
+
       setIsSectionModalOpen(false);
       setEditingSection(null);
       resetSectionForm();
-      safeBackgroundRefresh(fetchData);
     } catch (error) {
-      console.error('❌ Failed to save section:', error);
-      console.error('❌ Error details:', error.response?.data);
-      const errorMessage = error.message === 'Request timeout' 
-        ? 'Request timed out. Please try again.'
-        : (error.response?.data?.detail || error.message || 'Failed to save section');
-      toast.error(errorMessage);
+      toast.error(error.response?.data?.detail || "Failed to save section");
     } finally {
-      clearTimeout(unlockTimeout);
-      submittingRef.current = false;
-      setIsSubmitting(false);
-      setLoading(false);
+      sectionSubmittingRef.current = false;
+      setSubmitLoading(false);
     }
   };
 
@@ -383,10 +499,10 @@ const ClassManagement = () => {
       standard: cls.standard,
       display_name: cls.display_name || cls.name || cls.standard,
       internal_standard: cls.internal_standard || 0,
-      class_teacher_id: cls.class_teacher_id || 'no_teacher',
+      class_teacher_id: cls.class_teacher_id || "no_teacher",
       max_students: cls.max_students,
       order_index: cls.order_index || 0,
-      institution_type: cls.institution_type || institutionType
+      institution_type: cls.institution_type || institutionType,
     });
     setEditingClass(cls);
     setIsClassModalOpen(true);
@@ -396,8 +512,8 @@ const ClassManagement = () => {
     setSectionFormData({
       class_id: section.class_id,
       name: section.name,
-      section_teacher_id: section.section_teacher_id || 'no_teacher',
-      max_students: section.max_students
+      section_teacher_id: section.section_teacher_id || "no_teacher",
+      max_students: section.max_students,
     });
     setEditingSection(section);
     setIsSectionModalOpen(true);
@@ -406,147 +522,180 @@ const ClassManagement = () => {
   const handleDeleteClass = async (cls) => {
     const result = await Swal.fire({
       title: `Delete ${cls.name}?`,
-      text: 'This action will remove all sections under this class and cannot be undone.',
-      icon: 'warning',
+      text: "This action will remove all sections under this class and cannot be undone.",
+      icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Yes, Delete it!',
-      cancelButtonText: 'Cancel'
+      confirmButtonColor: "#d33",
+      confirmButtonText: "Yes, Delete it!",
     });
 
-    if (!result.isConfirmed) {
-      return;
-    }
+    if (!result.isConfirmed) return;
 
-    setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        toast.error("Authentication required. Please log in again.");
+        return;
+      }
+
       await axios.delete(`${API}/classes/${cls.id}`, {
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
-      
+
+      // 🔥 REAL-TIME UI UPDATE (soft delete)
+      setClasses((prev) =>
+        prev.map((c) => (c.id === cls.id ? { ...c, is_active: false } : c)),
+      );
+
       toast.success(`Class "${cls.name}" deleted successfully`);
-      fetchData(); // Reload data to update counters and list
     } catch (error) {
-      console.error('Failed to delete class:', error);
-      toast.error(error.response?.data?.detail || 'Failed to delete class');
-    } finally {
-      setLoading(false);
+      console.error("Delete failed:", error);
+
+      if (error.response?.status === 404) {
+        toast.error("Class not found or access denied");
+      } else if (error.response?.status === 403) {
+        toast.error("You are not authorized to delete this class");
+      } else {
+        toast.error(error.response?.data?.detail || "Failed to delete class");
+      }
     }
   };
 
   const handleDeleteSection = async (section) => {
     const result = await Swal.fire({
       title: `Delete Section ${section.name}?`,
-      text: 'This action cannot be undone.',
-      icon: 'warning',
+      text: "This action cannot be undone.",
+      icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Yes, Delete it!',
-      cancelButtonText: 'Cancel'
+      confirmButtonColor: "#d33",
+      confirmButtonText: "Yes, Delete it!",
     });
 
-    if (!result.isConfirmed) {
-      return;
-    }
+    if (!result.isConfirmed) return;
 
-    setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
+
       await axios.delete(`${API}/sections/${section.id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+        headers: { Authorization: `Bearer ${token}` },
       });
-      
+
+      // 🔥 REAL-TIME UI REMOVAL
+      setSections((prev) => prev.filter((s) => s.id !== section.id));
+
       toast.success(`Section "${section.name}" deleted successfully`);
-      fetchData();
     } catch (error) {
-      console.error('Failed to delete section:', error);
-      toast.error(error.response?.data?.detail || 'Failed to delete section');
-    } finally {
-      setLoading(false);
+      toast.error(error.response?.data?.detail || "Failed to delete section");
     }
   };
 
   const resetClassForm = () => {
     setClassFormData({
-      name: '',
-      standard: 'select_standard',
-      display_name: '',
+      name: "",
+      standard: "select_standard",
+      display_name: "",
       internal_standard: 0,
-      class_teacher_id: 'no_teacher',
+      class_teacher_id: "no_teacher",
       max_students: 60,
       order_index: 0,
-      institution_type: institutionType
+      institution_type: institutionType,
     });
   };
 
   const resetSectionForm = () => {
     setSectionFormData({
-      class_id: 'select_class',
-      name: '',
-      section_teacher_id: 'no_teacher',
-      max_students: 40
+      class_id: "select_class",
+      name: "",
+      section_teacher_id: "no_teacher",
+      max_students: 40,
     });
   };
 
   const resetSubjectForm = () => {
     setSubjectFormData({
-      subject_name: '',
-      subject_code: '',
-      class_standard: 'select_class',
-      section_id: 'all_sections',
-      description: '',
-      is_elective: false
+      subject_name: "",
+      subject_code: "",
+      class_standard: "select_class",
+      section_id: "all_sections",
+      description: "",
+      is_elective: false,
     });
   };
 
   const handleSubjectSubmit = async (e) => {
     e.preventDefault();
-    console.log('🔄 Submitting subject form:', subjectFormData);
-    setLoading(true);
+    if (subjectSubmittingRef.current) return;
+
+    subjectSubmittingRef.current = true;
+    setSubmitLoading(true);
 
     try {
-      if (subjectFormData.class_standard === 'select_class') {
-        toast.error('Please select a class');
-        setLoading(false);
+      if (subjectFormData.class_standard === "select_class") {
+        toast.error("Please select a class");
         return;
       }
 
-      const token = localStorage.getItem('token');
-      const headers = {
-        Authorization: `Bearer ${token}`
-      };
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast.error("Authentication required. Please log in again.");
+        return;
+      }
+
+      const headers = { Authorization: `Bearer ${token}` };
 
       const submitData = {
         ...subjectFormData,
-        section_id: subjectFormData.section_id === 'all_sections' ? null : subjectFormData.section_id
+        section_id:
+          subjectFormData.section_id === "all_sections"
+            ? null
+            : subjectFormData.section_id,
       };
 
-      console.log('📤 Sending subject data to API:', submitData);
-
+      // 🔁 UPDATE SUBJECT
       if (editingSubject) {
-        await axios.put(`${API}/subjects/${editingSubject.id}`, submitData, { headers });
-        toast.success('Subject updated successfully');
-      } else {
-        await axios.post(`${API}/subjects`, submitData, { headers });
-        toast.success('Subject added successfully');
+        const res = await axios.put(
+          `${API}/subjects/${editingSubject.id}`,
+          submitData,
+          { headers },
+        );
+
+        const updatedSubject = res.data?.subject || res.data || submitData;
+
+        // 🔥 REAL-TIME UPDATE
+        setSubjects((prev) =>
+          prev.map((s) =>
+            s.id === editingSubject.id ? { ...s, ...updatedSubject } : s,
+          ),
+        );
+
+        toast.success("Subject updated successfully");
       }
-      
+      // ➕ CREATE SUBJECT
+      else {
+        const res = await axios.post(`${API}/subjects`, submitData, {
+          headers,
+        });
+
+        const newSubject = res.data?.subject || res.data;
+
+        // 🔥 REAL-TIME ADD
+        setSubjects((prev) => [...prev, newSubject]);
+
+        toast.success("Subject added successfully");
+      }
+
       setIsSubjectModalOpen(false);
       setEditingSubject(null);
       resetSubjectForm();
-      fetchData();
     } catch (error) {
-      console.error('Failed to save subject:', error);
-      toast.error(error.response?.data?.detail || 'Failed to save subject');
+      console.error("Failed to save subject:", error);
+      toast.error(error.response?.data?.detail || "Failed to save subject");
     } finally {
-      setLoading(false);
+      subjectSubmittingRef.current = false;
+      setSubmitLoading(false);
     }
   };
 
@@ -555,122 +704,133 @@ const ClassManagement = () => {
       subject_name: subject.subject_name,
       subject_code: subject.subject_code,
       class_standard: subject.class_standard,
-      section_id: subject.section_id || 'all_sections',
-      description: subject.description || '',
-      is_elective: subject.is_elective || false
+      section_id: subject.section_id || "all_sections",
+      description: subject.description || "",
+      is_elective: subject.is_elective || false,
     });
     setEditingSubject(subject);
     setIsSubjectModalOpen(true);
   };
 
   const toggleClassFolder = (classStandard) => {
-    setExpandedClasses(prev => ({
+    setExpandedClasses((prev) => ({
       ...prev,
-      [classStandard]: !prev[classStandard]
+      [classStandard]: !prev[classStandard],
     }));
   };
 
   const getSectionsForSelectedClass = () => {
-    if (subjectFormData.class_standard === 'select_class') return [];
-    const selectedClass = classes.find(c => c.standard === subjectFormData.class_standard);
+    if (subjectFormData.class_standard === "select_class") return [];
+    const selectedClass = classes.find(
+      (c) => c.standard === subjectFormData.class_standard,
+    );
     if (!selectedClass) return [];
-    return sections.filter(s => s.class_id === selectedClass.id);
+    return sections.filter((s) => s.class_id === selectedClass.id);
   };
 
   const getSectionName = (sectionId) => {
-    const section = sections.find(s => s.id === sectionId);
-    return section ? section.name : 'All Sections';
+    const section = sections.find((s) => s.id === sectionId);
+    return section ? section.name : "All Sections";
   };
 
   const handleDeleteSubject = async (subject) => {
     const result = await Swal.fire({
-      title: `Delete ${subject.subject_name}?`,
-      text: 'This action cannot be undone.',
-      icon: 'warning',
+      title: `Delete "${subject.subject_name}"?`,
+      text: "This action cannot be undone.",
+      icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Yes, Delete it!',
-      cancelButtonText: 'Cancel'
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, Delete it!",
+      cancelButtonText: "Cancel",
     });
 
-    if (!result.isConfirmed) {
-      return;
-    }
+    if (!result.isConfirmed) return;
 
-    setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast.error("Authentication required. Please log in again.");
+        return;
+      }
+
       await axios.delete(`${API}/subjects/${subject.id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+        headers: { Authorization: `Bearer ${token}` },
       });
-      
+
+      // 🔥 REAL-TIME UI UPDATE (NO REFETCH)
+      setSubjects((prev) => prev.filter((s) => s.id !== subject.id));
+
       toast.success(`Subject "${subject.subject_name}" deleted successfully`);
-      fetchData();
     } catch (error) {
-      console.error('Failed to delete subject:', error);
-      toast.error(error.response?.data?.detail || 'Failed to delete subject');
-    } finally {
-      setLoading(false);
+      console.error("Failed to delete subject:", error);
+
+      if (error.response?.status === 404) {
+        // backend already deleted → clean UI anyway
+        setSubjects((prev) => prev.filter((s) => s.id !== subject.id));
+        toast.warning("Subject was already deleted. UI refreshed.");
+      } else if (error.response?.status === 403) {
+        toast.error("You are not authorized to delete this subject");
+      } else {
+        toast.error(error.response?.data?.detail || "Failed to delete subject");
+      }
     }
   };
 
   const getSubjectsForClass = (classStandard) => {
-    return subjects.filter(s => s.class_standard === classStandard);
+    return subjects.filter((s) => s.class_standard === classStandard);
   };
 
   const getFilteredSubjects = () => {
-    if (selectedClassFilter === 'all') {
+    if (selectedClassFilter === "all") {
       return subjects;
     }
-    return subjects.filter(s => s.class_standard === selectedClassFilter);
+    return subjects.filter((s) => s.class_standard === selectedClassFilter);
   };
 
   const createSampleTeachers = async () => {
     try {
-      console.log('🔄 Creating sample teachers for testing...');
+      console.log("🔄 Creating sample teachers for testing...");
       const sampleTeachers = [
         {
-          employee_id: 'TEACH001',
-          name: 'John Smith',
-          email: 'john.smith@school.com',
-          phone: '9876543210',
-          designation: 'Teacher',
-          department: 'Teaching',
-          qualification: 'B.Ed, M.A',
+          employee_id: "TEACH001",
+          name: "John Smith",
+          email: "john.smith@school.com",
+          phone: "9876543210",
+          designation: "Teacher",
+          department: "Teaching",
+          qualification: "B.Ed, M.A",
           experience_years: 5,
-          date_of_joining: '2024-01-15',
+          date_of_joining: "2024-01-15",
           salary: 45000,
-          address: '123 Teacher Street'
+          address: "123 Teacher Street",
         },
         {
-          employee_id: 'TEACH002',
-          name: 'Sarah Johnson',
-          email: 'sarah.johnson@school.com',
-          phone: '9876543211',
-          designation: 'Senior Teacher',
-          department: 'Teaching',
-          qualification: 'M.Ed, M.Sc',
+          employee_id: "TEACH002",
+          name: "Sarah Johnson",
+          email: "sarah.johnson@school.com",
+          phone: "9876543211",
+          designation: "Senior Teacher",
+          department: "Teaching",
+          qualification: "M.Ed, M.Sc",
           experience_years: 8,
-          date_of_joining: '2022-06-01',
+          date_of_joining: "2022-06-01",
           salary: 55000,
-          address: '456 Education Lane'
+          address: "456 Education Lane",
         },
         {
-          employee_id: 'HEAD001',
-          name: 'Dr. Robert Wilson',
-          email: 'robert.wilson@school.com',
-          phone: '9876543212',
-          designation: 'Head Teacher',
-          department: 'Administration',
-          qualification: 'Ph.D, B.Ed',
+          employee_id: "HEAD001",
+          name: "Dr. Robert Wilson",
+          email: "robert.wilson@school.com",
+          phone: "9876543212",
+          designation: "Head Teacher",
+          department: "Administration",
+          qualification: "Ph.D, B.Ed",
           experience_years: 15,
-          date_of_joining: '2020-04-01',
+          date_of_joining: "2020-04-01",
           salary: 75000,
-          address: '789 Principal Road'
-        }
+          address: "789 Principal Road",
+        },
       ];
 
       for (const teacher of sampleTeachers) {
@@ -678,36 +838,42 @@ const ClassManagement = () => {
           await axios.post(`${API}/staff`, teacher);
           console.log(`✅ Created teacher: ${teacher.name}`);
         } catch (error) {
-          console.log(`ℹ️ Teacher ${teacher.name} already exists or error:`, error.response?.status);
+          console.log(
+            `ℹ️ Teacher ${teacher.name} already exists or error:`,
+            error.response?.status,
+          );
         }
       }
-      
+
       // Refresh data after creating teachers
       fetchData();
-      toast.success('Sample teachers created successfully!');
+      toast.success("Sample teachers created successfully!");
     } catch (error) {
-      console.error('❌ Failed to create sample teachers:', error);
-      toast.error('Failed to create sample teachers');
+      console.error("❌ Failed to create sample teachers:", error);
+      toast.error("Failed to create sample teachers");
     }
   };
 
   const getTeacherName = (teacherId) => {
-    if (!teacherId) return 'Not assigned';
-    const teacher = staff.find(s => s.id === teacherId);
-    return teacher ? teacher.name : 'Unknown';
+    if (!teacherId) return "Not assigned";
+    const teacher = staff.find((s) => s.id === teacherId);
+    return teacher ? teacher.name : "Unknown";
   };
 
   const getDisplayName = (cls) => {
     // For madrasah institution type, apply Bengali class names based on internal_standard
-    if (institutionType === 'madrasah') {
-      const internalStd = cls.internal_standard || parseInt(cls.standard?.match(/\d+/)?.[0]) || 0;
-      const madrasahMatch = madrasahStandards.find(m => m.internal_standard === internalStd && internalStd > 0);
+    if (institutionType === "madrasah") {
+      const internalStd =
+        cls.internal_standard || parseInt(cls.standard?.match(/\d+/)?.[0]) || 0;
+      const madrasahMatch = madrasahStandards.find(
+        (m) => m.internal_standard === internalStd && internalStd > 0,
+      );
       if (madrasahMatch) {
         return madrasahMatch.display_name;
       }
       // Check for special classes by standard name
-      const specialMatch = madrasahStandards.find(m => 
-        m.standard === cls.standard || m.standard === cls.name
+      const specialMatch = madrasahStandards.find(
+        (m) => m.standard === cls.standard || m.standard === cls.name,
       );
       if (specialMatch) {
         return specialMatch.display_name;
@@ -718,117 +884,210 @@ const ClassManagement = () => {
 
   const handleToggleClassStatus = async (cls) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(`${API}/classes/${cls.id}/toggle-status`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      toast.success(`Class "${getDisplayName(cls)}" ${cls.is_active ? 'disabled' : 'enabled'} successfully`);
-      fetchData();
+      const token = localStorage.getItem("token");
+
+      await axios.put(
+        `${API}/classes/${cls.id}/toggle-status`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+
+      setClasses((prev) =>
+        prev.map((c) =>
+          c.id === cls.id ? { ...c, is_active: !c.is_active } : c,
+        ),
+      );
+
+      toast.success(
+        `Class "${getDisplayName(cls)}" ${
+          cls.is_active ? "disabled" : "enabled"
+        } successfully`,
+      );
     } catch (error) {
-      console.error('Failed to toggle class status:', error);
-      toast.error(error.response?.data?.detail || 'Failed to toggle class status');
+      toast.error(
+        error.response?.data?.detail || "Failed to toggle class status",
+      );
     }
   };
 
   const handleSafeDeleteClass = async (cls) => {
+    // 0️⃣ First confirmation — SHOW IMMEDIATELY
+    const firstConfirm = await Swal.fire({
+      title: `Delete "${getDisplayName(cls)}"?`,
+      text: "We will check if this class has any data before deleting.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Continue",
+      cancelButtonText: "Cancel",
+      confirmButtonColor: "#ef4444",
+    });
+
+    if (!firstConfirm.isConfirmed) return;
+
+    // 1️⃣ Show loader instantly (UX fix)
+    Swal.fire({
+      title: "Checking class usage...",
+      text: "Please wait",
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
+    });
+
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
+      if (!token) {
+        Swal.close();
+        toast.error("Authentication required. Please log in again.");
+        return;
+      }
+
+      // 2️⃣ Usage check (can be slow — now UX-safe)
       const usageRes = await axios.get(`${API}/classes/${cls.id}/usage-check`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       const usage = usageRes.data;
-      
+
+      Swal.close(); // ✅ close loader once data arrives
+
+      // 3️⃣ HAS DATA → SOFT DELETE
       if (usage.has_data) {
-        Swal.fire({
-          title: t('classManagement.cannotDelete') || 'Cannot Delete Class',
+        const result = await Swal.fire({
+          title: "Cannot Delete Class",
           html: `
-            <div class="text-left">
-              <p>${t('classManagement.classHasData') || 'This class has associated data:'}</p>
-              <ul class="list-disc ml-4 mt-2">
-                <li>${t('classManagement.students') || 'Students'}: ${usage.usage.students}</li>
-                <li>${t('classManagement.attendance') || 'Attendance Records'}: ${usage.usage.attendance}</li>
-                <li>${t('classManagement.exams') || 'Exams'}: ${usage.usage.exams}</li>
-                <li>${t('classManagement.results') || 'Results'}: ${usage.usage.results}</li>
+            <div style="text-align:left">
+              <p>This class has associated data:</p>
+              <ul style="margin-left:15px;margin-top:8px">
+                <li>Students: ${usage.usage.students}</li>
+                <li>Attendance: ${usage.usage.attendance}</li>
+                <li>Exams: ${usage.usage.exams}</li>
+                <li>Results: ${usage.usage.results}</li>
               </ul>
-              <p class="mt-3">${t('classManagement.disableInstead') || 'Consider disabling the class instead.'}</p>
+              <p style="margin-top:10px">
+                You can disable this class instead.
+              </p>
             </div>
           `,
-          icon: 'warning',
+          icon: "warning",
           showCancelButton: true,
-          confirmButtonText: t('classManagement.disableClass') || 'Disable Class',
-          cancelButtonText: t('common.cancel') || 'Cancel',
-          confirmButtonColor: '#f59e0b'
-        }).then((result) => {
-          if (result.isConfirmed) {
-            handleToggleClassStatus(cls);
-          }
+          confirmButtonText: "Disable Class",
+          cancelButtonText: "Cancel",
+          confirmButtonColor: "#f59e0b",
         });
-      } else {
-        Swal.fire({
-          title: t('classManagement.deleteClass') || 'Delete Class',
-          text: `${t('classManagement.confirmDelete') || 'Are you sure you want to permanently delete'} "${getDisplayName(cls)}"?`,
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonText: t('common.delete') || 'Delete',
-          cancelButtonText: t('common.cancel') || 'Cancel',
-          confirmButtonColor: '#ef4444'
-        }).then(async (result) => {
-          if (result.isConfirmed) {
-            await axios.delete(`${API}/classes/${cls.id}/permanent`, {
-              headers: { Authorization: `Bearer ${token}` }
-            });
-            toast.success(`Class "${getDisplayName(cls)}" deleted successfully`);
-            fetchData();
-          }
+
+        if (!result.isConfirmed) return;
+
+        await axios.delete(`${API}/classes/${cls.id}`, {
+          headers: { Authorization: `Bearer ${token}` },
         });
+
+        // 🔥 real-time soft delete
+        setClasses((prev) =>
+          prev.map((c) => (c.id === cls.id ? { ...c, is_active: false } : c)),
+        );
+
+        toast.success(`Class "${getDisplayName(cls)}" disabled successfully`);
+        return;
       }
+
+      // 4️⃣ NO DATA → PERMANENT DELETE
+      const confirmPermanent = await Swal.fire({
+        title: "Delete Class Permanently?",
+        text: `This will permanently delete "${getDisplayName(cls)}". This action cannot be undone.`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Delete Permanently",
+        cancelButtonText: "Cancel",
+        confirmButtonColor: "#ef4444",
+      });
+
+      if (!confirmPermanent.isConfirmed) return;
+
+      await axios.delete(`${API}/classes/${cls.id}/permanent`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // 🔥 real-time hard delete
+      setClasses((prev) => prev.filter((c) => c.id !== cls.id));
+      setSections((prev) => prev.filter((s) => s.class_id !== cls.id));
+      setSubjects((prev) =>
+        prev.filter((s) => s.class_standard !== cls.standard),
+      );
+
+      toast.success(`Class "${getDisplayName(cls)}" permanently deleted`);
     } catch (error) {
-      console.error('Failed to check class usage:', error);
-      toast.error(error.response?.data?.detail || 'Failed to check class usage');
+      Swal.close();
+      console.error("Class delete failed:", error);
+
+      if (error.response?.status === 403) {
+        toast.error("You are not authorized to delete this class");
+      } else if (error.response?.status === 404) {
+        // backend already deleted — clean UI anyway
+        setClasses((prev) => prev.filter((c) => c.id !== cls.id));
+        toast.warning("Class was already deleted. UI refreshed.");
+      } else {
+        toast.error(error.response?.data?.detail || "Failed to delete class");
+      }
     }
   };
 
   const handleInitializeDefaults = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       Swal.fire({
-        title: t('classManagement.initializeClasses') || 'Initialize Classes',
-        text: `${t('classManagement.initializeConfirm') || 'This will add default classes for'} ${institutionType === 'madrasah' ? 'Madrasah' : 'School'}. ${t('classManagement.existingClassesKept') || 'Existing classes will be kept.'}`,
-        icon: 'question',
+        title: t("classManagement.initializeClasses") || "Initialize Classes",
+        text: `${t("classManagement.initializeConfirm") || "This will add default classes for"} ${institutionType === "madrasah" ? "Madrasah" : "School"}. ${t("classManagement.existingClassesKept") || "Existing classes will be kept."}`,
+        icon: "question",
         showCancelButton: true,
-        confirmButtonText: t('common.confirm') || 'Confirm',
-        cancelButtonText: t('common.cancel') || 'Cancel'
+        confirmButtonText: t("common.confirm") || "Confirm",
+        cancelButtonText: t("common.cancel") || "Cancel",
       }).then(async (result) => {
         if (result.isConfirmed) {
-          await axios.post(`${API}/classes/initialize-defaults`, {
-            institution_type: institutionType,
-            include_special_classes: institutionType === 'madrasah'
-          }, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          toast.success(t('classManagement.classesInitialized') || 'Classes initialized successfully!');
+          await axios.post(
+            `${API}/classes/initialize-defaults`,
+            {
+              institution_type: institutionType,
+              include_special_classes: institutionType === "madrasah",
+            },
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          );
+          toast.success(
+            t("classManagement.classesInitialized") ||
+              "Classes initialized successfully!",
+          );
           fetchData();
         }
       });
     } catch (error) {
-      console.error('Failed to initialize classes:', error);
-      toast.error(error.response?.data?.detail || 'Failed to initialize classes');
+      console.error("Failed to initialize classes:", error);
+      toast.error(
+        error.response?.data?.detail || "Failed to initialize classes",
+      );
     }
   };
 
   const handleInstitutionTypeChange = async (newType) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(`${API}/institution/settings`, {
-        institution_type: newType
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const token = localStorage.getItem("token");
+      await axios.put(
+        `${API}/institution/settings`,
+        {
+          institution_type: newType,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
       setInstitutionType(newType);
-      toast.success(`Institution type changed to ${newType === 'madrasah' ? 'Madrasah' : 'School'}`);
+      toast.success(
+        `Institution type changed to ${newType === "madrasah" ? "Madrasah" : "School"}`,
+      );
     } catch (error) {
-      console.error('Failed to update institution type:', error);
+      console.error("Failed to update institution type:", error);
       setInstitutionType(newType);
     }
   };
@@ -836,21 +1095,21 @@ const ClassManagement = () => {
   const getFilteredClasses = () => {
     let filtered = classes;
     if (!showInactiveClasses) {
-      filtered = filtered.filter(cls => cls.is_active !== false);
+      filtered = filtered.filter((cls) => cls.is_active !== false);
     }
     return filtered.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
   };
 
   const getClassName = (classId) => {
-    const cls = classes.find(c => c.id === classId);
-    return cls ? `${cls.name} (${cls.standard})` : 'Unknown';
+    const cls = classes.find((c) => c.id === classId);
+    return cls ? `${cls.name} (${cls.standard})` : "Unknown";
   };
 
   const getSectionsForClass = (classId) => {
-    return sections.filter(s => s.class_id === classId);
+    return sections.filter((s) => s.class_id === classId);
   };
 
-  if (loading && classes.length === 0) {
+  if (pageLoading && classes.length === 0) {
     return (
       <div className="space-y-6">
         <div className="animate-pulse">
@@ -867,16 +1126,17 @@ const ClassManagement = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            {t('classManagement.title') || 'Class Management'}
+            {t("classManagement.title") || "Class Management"}
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            {t('classManagement.subtitle') || 'Manage classes, sections, and teacher assignments'}
+            {t("classManagement.subtitle") ||
+              "Manage classes, sections, and teacher assignments"}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {staff.length === 0 && (
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={createSampleTeachers}
               className="bg-blue-50 hover:bg-blue-100 text-blue-700"
@@ -885,40 +1145,51 @@ const ClassManagement = () => {
               Add Sample Teachers
             </Button>
           )}
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             onClick={async () => {
               try {
-                console.log('🔄 Exporting class data...');
+                console.log("🔄 Exporting class data...");
                 // Generate CSV export
                 const csvData = [
-                  ['Class Name', 'Standard', 'Class Teacher', 'Sections', 'Max Students', 'Current Students'],
-                  ...classes.map(cls => [
+                  [
+                    "Class Name",
+                    "Standard",
+                    "Class Teacher",
+                    "Sections",
+                    "Max Students",
+                    "Current Students",
+                  ],
+                  ...classes.map((cls) => [
                     cls.name,
                     cls.standard,
                     getTeacherName(cls.class_teacher_id),
                     getSectionsForClass(cls.id).length,
                     cls.max_students,
-                    0 // Will be calculated from actual student data
-                  ])
+                    0, // Will be calculated from actual student data
+                  ]),
                 ];
 
-                const csvContent = csvData.map(row => row.join(',')).join('\n');
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement('a');
+                const csvContent = csvData
+                  .map((row) => row.join(","))
+                  .join("\n");
+                const blob = new Blob([csvContent], {
+                  type: "text/csv;charset=utf-8;",
+                });
+                const link = document.createElement("a");
                 const url = URL.createObjectURL(blob);
-                link.setAttribute('href', url);
-                link.setAttribute('download', 'class-management-report.csv');
-                link.style.visibility = 'hidden';
+                link.setAttribute("href", url);
+                link.setAttribute("download", "class-management-report.csv");
+                link.style.visibility = "hidden";
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                
-                toast.success('Class data exported successfully');
+
+                toast.success("Class data exported successfully");
               } catch (error) {
-                console.error('Export failed:', error);
-                toast.error('Failed to export data');
+                console.error("Export failed:", error);
+                toast.error("Failed to export data");
               }
             }}
           >
@@ -933,45 +1204,47 @@ const ClassManagement = () => {
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              {institutionType === 'madrasah' ? (
+              {institutionType === "madrasah" ? (
                 <Moon className="h-6 w-6 text-emerald-600" />
               ) : (
                 <Building2 className="h-6 w-6 text-emerald-600" />
               )}
               <div>
                 <h3 className="font-semibold text-gray-900 dark:text-white">
-                  {t('classManagement.institutionType') || 'Institution Type'}
+                  {t("classManagement.institutionType") || "Institution Type"}
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {institutionType === 'madrasah' 
-                    ? (t('classManagement.madrasahDesc') || 'Madrasah class structure (Ebtedayee, Dakhil, Alim)')
-                    : (t('classManagement.schoolDesc') || 'Standard school class structure (Class 1-12)')}
+                  {institutionType === "madrasah"
+                    ? t("classManagement.madrasahDesc") ||
+                      "Madrasah class structure (Ebtedayee, Dakhil, Alim)"
+                    : t("classManagement.schoolDesc") ||
+                      "Standard school class structure (Class 1-12)"}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <div className="flex items-center bg-white dark:bg-gray-800 rounded-lg p-1 shadow-sm">
                 <button
-                  onClick={() => handleInstitutionTypeChange('school')}
+                  onClick={() => handleInstitutionTypeChange("school")}
                   className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                    institutionType === 'school'
-                      ? 'bg-emerald-500 text-white shadow-sm'
-                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    institutionType === "school"
+                      ? "bg-emerald-500 text-white shadow-sm"
+                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
                   }`}
                 >
                   <Building2 className="h-4 w-4 inline mr-1" />
-                  {t('classManagement.school') || 'School'}
+                  {t("classManagement.school") || "School"}
                 </button>
                 <button
-                  onClick={() => handleInstitutionTypeChange('madrasah')}
+                  onClick={() => handleInstitutionTypeChange("madrasah")}
                   className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                    institutionType === 'madrasah'
-                      ? 'bg-emerald-500 text-white shadow-sm'
-                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    institutionType === "madrasah"
+                      ? "bg-emerald-500 text-white shadow-sm"
+                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
                   }`}
                 >
                   <Moon className="h-4 w-4 inline mr-1" />
-                  {t('classManagement.madrasah') || 'Madrasah'}
+                  {t("classManagement.madrasah") || "Madrasah"}
                 </button>
               </div>
               <Button
@@ -981,7 +1254,8 @@ const ClassManagement = () => {
                 className="bg-white dark:bg-gray-800"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                {t('classManagement.initializeDefaults') || 'Initialize Defaults'}
+                {t("classManagement.initializeDefaults") ||
+                  "Initialize Defaults"}
               </Button>
             </div>
           </div>
@@ -999,7 +1273,7 @@ const ClassManagement = () => {
           ) : (
             <ToggleLeft className="h-5 w-5" />
           )}
-          {t('classManagement.showInactive') || 'Show inactive classes'}
+          {t("classManagement.showInactive") || "Show inactive classes"}
         </button>
       </div>
 
@@ -1009,8 +1283,12 @@ const ClassManagement = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Classes</p>
-                <p className="text-3xl font-bold text-gray-900">{classes.length}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Classes
+                </p>
+                <p className="text-3xl font-bold text-gray-900">
+                  {classes.length}
+                </p>
               </div>
               <BookOpen className="h-8 w-8 text-emerald-500" />
             </div>
@@ -1020,8 +1298,12 @@ const ClassManagement = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Sections</p>
-                <p className="text-3xl font-bold text-gray-900">{sections.length}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Sections
+                </p>
+                <p className="text-3xl font-bold text-gray-900">
+                  {sections.length}
+                </p>
               </div>
               <Users className="h-8 w-8 text-blue-500" />
             </div>
@@ -1031,8 +1313,12 @@ const ClassManagement = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Subjects</p>
-                <p className="text-3xl font-bold text-gray-900">{subjects.length}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Subjects
+                </p>
+                <p className="text-3xl font-bold text-gray-900">
+                  {subjects.length}
+                </p>
               </div>
               <GraduationCap className="h-8 w-8 text-orange-500" />
             </div>
@@ -1042,9 +1328,12 @@ const ClassManagement = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Assigned Teachers</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Assigned Teachers
+                </p>
                 <p className="text-3xl font-bold text-gray-900">
-                  {classes.filter(c => c.class_teacher_id).length + sections.filter(s => s.section_teacher_id).length}
+                  {classes.filter((c) => c.class_teacher_id).length +
+                    sections.filter((s) => s.section_teacher_id).length}
                 </p>
               </div>
               <UserCheck className="h-8 w-8 text-purple-500" />
@@ -1067,13 +1356,13 @@ const ClassManagement = () => {
             <h2 className="text-xl font-semibold">Classes</h2>
             <Dialog open={isClassModalOpen} onOpenChange={setIsClassModalOpen}>
               <DialogTrigger asChild>
-                <Button 
+                <Button
                   className="bg-emerald-500 hover:bg-emerald-600"
                   onClick={() => {
-                    console.log('🔄 Add Class button clicked!');
-                    console.log('Modal state before:', isClassModalOpen);
+                    console.log("🔄 Add Class button clicked!");
+                    console.log("Modal state before:", isClassModalOpen);
                     setIsClassModalOpen(true);
-                    console.log('Modal state set to true');
+                    console.log("Modal state set to true");
                   }}
                 >
                   <Plus className="h-4 w-4 mr-2" />
@@ -1083,40 +1372,64 @@ const ClassManagement = () => {
               <DialogContent className="dark:bg-gray-900">
                 <DialogHeader>
                   <DialogTitle className="dark:text-white">
-                    {editingClass ? (t('classManagement.editClass') || 'Edit Class') : (t('classManagement.addNewClass') || 'Add New Class')}
+                    {editingClass
+                      ? t("classManagement.editClass") || "Edit Class"
+                      : t("classManagement.addNewClass") || "Add New Class"}
                   </DialogTitle>
                   <DialogDescription className="dark:text-gray-400">
-                    {t('classManagement.classFormDesc') || 'Create or modify class information.'}
+                    {t("classManagement.classFormDesc") ||
+                      "Create or modify class information."}
                   </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleClassSubmit} className="space-y-4">
                   <div>
-                    <Label htmlFor="standard" className="dark:text-gray-300">{t('classManagement.standard') || 'Standard'} *</Label>
-                    <Select 
-                      value={classFormData.standard} 
+                    <Label htmlFor="standard" className="dark:text-gray-300">
+                      {t("classManagement.standard") || "Standard"} *
+                    </Label>
+                    <Select
+                      value={classFormData.standard}
                       onValueChange={(value) => {
-                        const standardsList = institutionType === 'madrasah' ? madrasahStandards : defaultStandards;
-                        const selectedStd = standardsList.find(s => s.standard === value);
+                        const standardsList =
+                          institutionType === "madrasah"
+                            ? madrasahStandards
+                            : defaultStandards;
+                        const selectedStd = standardsList.find(
+                          (s) => s.standard === value,
+                        );
                         setClassFormData({
-                          ...classFormData, 
+                          ...classFormData,
                           standard: value,
                           display_name: selectedStd?.display_name || value,
-                          internal_standard: selectedStd?.internal_standard || 0,
-                          name: selectedStd?.display_name || value
+                          internal_standard:
+                            selectedStd?.internal_standard || 0,
+                          name: selectedStd?.display_name || value,
                         });
                       }}
                     >
                       <SelectTrigger className="dark:bg-gray-800 dark:border-gray-700">
-                        <SelectValue placeholder={t('classManagement.selectStandard') || 'Select standard'} />
+                        <SelectValue
+                          placeholder={
+                            t("classManagement.selectStandard") ||
+                            "Select standard"
+                          }
+                        />
                       </SelectTrigger>
                       <SelectContent className="dark:bg-gray-800">
-                        <SelectItem value="select_standard" disabled>{t('classManagement.selectStandard') || 'Select Standard'}</SelectItem>
-                        {(institutionType === 'madrasah' ? madrasahStandards : defaultStandards).map((std) => (
+                        <SelectItem value="select_standard" disabled>
+                          {t("classManagement.selectStandard") ||
+                            "Select Standard"}
+                        </SelectItem>
+                        {(institutionType === "madrasah"
+                          ? madrasahStandards
+                          : defaultStandards
+                        ).map((std) => (
                           <SelectItem key={std.standard} value={std.standard}>
                             <span className="flex items-center gap-2">
                               <span>{std.display_name}</span>
                               {std.display_name !== std.standard && (
-                                <span className="text-xs text-gray-500">({std.standard})</span>
+                                <span className="text-xs text-gray-500">
+                                  ({std.standard})
+                                </span>
                               )}
                             </span>
                           </SelectItem>
@@ -1125,32 +1438,55 @@ const ClassManagement = () => {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="display_name" className="dark:text-gray-300">
-                      {t('classManagement.displayName') || 'Display Name (Bengali/Custom)'} *
+                    <Label
+                      htmlFor="display_name"
+                      className="dark:text-gray-300"
+                    >
+                      {t("classManagement.displayName") ||
+                        "Display Name (Bengali/Custom)"}{" "}
+                      *
                     </Label>
                     <Input
                       id="display_name"
                       value={classFormData.display_name}
-                      onChange={(e) => setClassFormData({...classFormData, display_name: e.target.value, name: e.target.value})}
-                      placeholder={institutionType === 'madrasah' ? 'e.g., ইবতেদায়ী ১ম বর্ষ' : 'e.g., Class 1'}
+                      onChange={(e) =>
+                        setClassFormData({
+                          ...classFormData,
+                          display_name: e.target.value,
+                          name: e.target.value,
+                        })
+                      }
+                      placeholder={
+                        institutionType === "madrasah"
+                          ? "e.g., ইবতেদায়ী ১ম বর্ষ"
+                          : "e.g., Class 1"
+                      }
                       className="dark:bg-gray-800 dark:border-gray-700"
                       required
                     />
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {t('classManagement.displayNameHint') || 'This name will be shown in the UI. You can use Bengali or any custom name.'}
+                      {t("classManagement.displayNameHint") ||
+                        "This name will be shown in the UI. You can use Bengali or any custom name."}
                     </p>
                   </div>
                   <div>
                     <Label htmlFor="class_teacher">Class Teacher</Label>
-                    <Select 
-                      value={classFormData.class_teacher_id} 
-                      onValueChange={(value) => setClassFormData({...classFormData, class_teacher_id: value})}
+                    <Select
+                      value={classFormData.class_teacher_id}
+                      onValueChange={(value) =>
+                        setClassFormData({
+                          ...classFormData,
+                          class_teacher_id: value,
+                        })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select teacher (optional)" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="no_teacher">No teacher assigned</SelectItem>
+                        <SelectItem value="no_teacher">
+                          No teacher assigned
+                        </SelectItem>
                         {staff.map((teacher) => (
                           <SelectItem key={teacher.id} value={teacher.id}>
                             {teacher.name} - {teacher.designation}
@@ -1166,7 +1502,12 @@ const ClassManagement = () => {
                       type="number"
                       min="1"
                       value={classFormData.max_students}
-                      onChange={(e) => setClassFormData({...classFormData, max_students: e.target.value})}
+                      onChange={(e) =>
+                        setClassFormData({
+                          ...classFormData,
+                          max_students: e.target.value,
+                        })
+                      }
                       required
                     />
                   </div>
@@ -1182,8 +1523,16 @@ const ClassManagement = () => {
                     >
                       Cancel
                     </Button>
-                    <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600" disabled={loading}>
-                      {loading ? 'Saving...' : (editingClass ? 'Update Class' : 'Add Class')}
+                    <Button
+                      type="submit"
+                      className="bg-emerald-500 hover:bg-emerald-600"
+                      disabled={submitLoading}
+                    >
+                      {pageLoading
+                        ? "Saving..."
+                        : editingClass
+                          ? "Update Class"
+                          : "Add Class"}
                     </Button>
                   </DialogFooter>
                 </form>
@@ -1198,44 +1547,70 @@ const ClassManagement = () => {
                   <TableHeader>
                     <TableRow className="bg-gray-50 dark:bg-gray-800">
                       <TableHead className="w-12">#</TableHead>
-                      <TableHead>{t('classManagement.displayName') || 'Display Name'}</TableHead>
-                      <TableHead>{t('classManagement.standard') || 'Standard'}</TableHead>
-                      <TableHead>{t('classManagement.classTeacher') || 'Class Teacher'}</TableHead>
-                      <TableHead>{t('classManagement.sections') || 'Sections'}</TableHead>
-                      <TableHead>{t('classManagement.maxStudents') || 'Max Students'}</TableHead>
-                      <TableHead>{t('classManagement.status') || 'Status'}</TableHead>
-                      <TableHead>{t('classManagement.actions') || 'Actions'}</TableHead>
+                      <TableHead>
+                        {t("classManagement.displayName") || "Display Name"}
+                      </TableHead>
+                      <TableHead>
+                        {t("classManagement.standard") || "Standard"}
+                      </TableHead>
+                      <TableHead>
+                        {t("classManagement.classTeacher") || "Class Teacher"}
+                      </TableHead>
+                      <TableHead>
+                        {t("classManagement.sections") || "Sections"}
+                      </TableHead>
+                      <TableHead>
+                        {t("classManagement.maxStudents") || "Max Students"}
+                      </TableHead>
+                      <TableHead>
+                        {t("classManagement.status") || "Status"}
+                      </TableHead>
+                      <TableHead>
+                        {t("classManagement.actions") || "Actions"}
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {getFilteredClasses().length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={8} className="text-center py-8 text-gray-500 dark:text-gray-400">
-                          {t('classManagement.noClasses') || 'No classes added yet'}
+                        <TableCell
+                          colSpan={8}
+                          className="text-center py-8 text-gray-500 dark:text-gray-400"
+                        >
+                          {t("classManagement.noClasses") ||
+                            "No classes added yet"}
                         </TableCell>
                       </TableRow>
                     ) : (
                       getFilteredClasses().map((cls, index) => (
-                        <TableRow 
-                          key={cls.id} 
-                          className={`${cls.is_active === false ? 'opacity-50 bg-gray-50 dark:bg-gray-800/50' : ''}`}
+                        <TableRow
+                          key={cls.id}
+                          className={`${cls.is_active === false ? "opacity-50 bg-gray-50 dark:bg-gray-800/50" : ""}`}
                         >
-                          <TableCell className="font-medium">{index + 1}</TableCell>
+                          <TableCell className="font-medium">
+                            {index + 1}
+                          </TableCell>
                           <TableCell>
                             <div className="flex flex-col">
                               <span className="font-medium text-gray-900 dark:text-white">
                                 {getDisplayName(cls)}
                               </span>
-                              {cls.display_name && cls.display_name !== cls.standard && (
-                                <span className="text-xs text-gray-500 dark:text-gray-400">
-                                  {cls.standard}
-                                </span>
-                              )}
+                              {cls.display_name &&
+                                cls.display_name !== cls.standard && (
+                                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                                    {cls.standard}
+                                  </span>
+                                )}
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="secondary" className="dark:bg-gray-700 dark:text-gray-200">
-                              {cls.internal_standard ? `Level ${cls.internal_standard}` : cls.standard}
+                            <Badge
+                              variant="secondary"
+                              className="dark:bg-gray-700 dark:text-gray-200"
+                            >
+                              {cls.internal_standard
+                                ? `Level ${cls.internal_standard}`
+                                : cls.standard}
                             </Badge>
                           </TableCell>
                           <TableCell>
@@ -1244,42 +1619,53 @@ const ClassManagement = () => {
                                 <>
                                   <Avatar className="h-6 w-6">
                                     <AvatarFallback className="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
-                                      {getTeacherName(cls.class_teacher_id).split(' ').map(n => n[0]).join('')}
+                                      {getTeacherName(cls.class_teacher_id)
+                                        .split(" ")
+                                        .map((n) => n[0])
+                                        .join("")}
                                     </AvatarFallback>
                                   </Avatar>
-                                  <span className="text-sm dark:text-gray-300">{getTeacherName(cls.class_teacher_id)}</span>
+                                  <span className="text-sm dark:text-gray-300">
+                                    {getTeacherName(cls.class_teacher_id)}
+                                  </span>
                                 </>
                               ) : (
                                 <span className="text-gray-500 dark:text-gray-400 text-sm">
-                                  {t('classManagement.notAssigned') || 'Not assigned'}
+                                  {t("Not assigned") || "Not assigned"}
                                 </span>
                               )}
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline" className="dark:border-gray-600 dark:text-gray-300">
-                              {getSectionsForClass(cls.id).length} {t('classManagement.sections') || 'sections'}
+                            <Badge
+                              variant="outline"
+                              className="dark:border-gray-600 dark:text-gray-300"
+                            >
+                              {getSectionsForClass(cls.id).length}{" "}
+                              {t("classManagement.sections") || "sections"}
                             </Badge>
                           </TableCell>
-                          <TableCell className="dark:text-gray-300">{cls.max_students}</TableCell>
+                          <TableCell className="dark:text-gray-300">
+                            {cls.max_students}
+                          </TableCell>
                           <TableCell>
                             <button
                               onClick={() => handleToggleClassStatus(cls)}
                               className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors ${
                                 cls.is_active !== false
-                                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                  : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+                                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                  : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
                               }`}
                             >
                               {cls.is_active !== false ? (
                                 <>
                                   <ToggleRight className="h-3 w-3" />
-                                  {t('classManagement.active') || 'Active'}
+                                  {t("classManagement.active") || "Active"}
                                 </>
                               ) : (
                                 <>
                                   <ToggleLeft className="h-3 w-3" />
-                                  {t('classManagement.inactive') || 'Inactive'}
+                                  {t("classManagement.inactive") || "Inactive"}
                                 </>
                               )}
                             </button>
@@ -1290,16 +1676,16 @@ const ClassManagement = () => {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleEditClass(cls)}
-                                title={t('common.edit') || 'Edit'}
+                                title={t("common.edit") || "Edit"}
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
+                              <Button
+                                variant="ghost"
+                                size="sm"
                                 className="text-red-600 hover:text-red-700 dark:text-red-400"
                                 onClick={() => handleSafeDeleteClass(cls)}
-                                title={t('common.delete') || 'Delete'}
+                                title={t("common.delete") || "Delete"}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -1319,15 +1705,18 @@ const ClassManagement = () => {
         <TabsContent value="sections" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Sections</h2>
-            <Dialog open={isSectionModalOpen} onOpenChange={setIsSectionModalOpen}>
+            <Dialog
+              open={isSectionModalOpen}
+              onOpenChange={setIsSectionModalOpen}
+            >
               <DialogTrigger asChild>
-                <Button 
+                <Button
                   className="bg-emerald-500 hover:bg-emerald-600"
                   onClick={() => {
-                    console.log('🔄 Add Section button clicked!');
-                    console.log('Modal state before:', isSectionModalOpen);
+                    console.log("🔄 Add Section button clicked!");
+                    console.log("Modal state before:", isSectionModalOpen);
                     setIsSectionModalOpen(true);
-                    console.log('Modal state set to true');
+                    console.log("Modal state set to true");
                   }}
                 >
                   <Plus className="h-4 w-4 mr-2" />
@@ -1337,7 +1726,7 @@ const ClassManagement = () => {
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>
-                    {editingSection ? 'Edit Section' : 'Add New Section'}
+                    {editingSection ? "Edit Section" : "Add New Section"}
                   </DialogTitle>
                   <DialogDescription>
                     Create or modify section information.
@@ -1346,15 +1735,22 @@ const ClassManagement = () => {
                 <form onSubmit={handleSectionSubmit} className="space-y-4">
                   <div>
                     <Label htmlFor="section_class">Class *</Label>
-                    <Select 
-                      value={sectionFormData.class_id} 
-                      onValueChange={(value) => setSectionFormData({...sectionFormData, class_id: value})}
+                    <Select
+                      value={sectionFormData.class_id}
+                      onValueChange={(value) =>
+                        setSectionFormData({
+                          ...sectionFormData,
+                          class_id: value,
+                        })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select class" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="select_class" disabled>Select Class</SelectItem>
+                        <SelectItem value="select_class" disabled>
+                          Select Class
+                        </SelectItem>
                         {classes.map((cls) => (
                           <SelectItem key={cls.id} value={cls.id}>
                             {cls.name} ({cls.standard})
@@ -1368,22 +1764,34 @@ const ClassManagement = () => {
                     <Input
                       id="section_name"
                       value={sectionFormData.name}
-                      onChange={(e) => setSectionFormData({...sectionFormData, name: e.target.value})}
+                      onChange={(e) =>
+                        setSectionFormData({
+                          ...sectionFormData,
+                          name: e.target.value,
+                        })
+                      }
                       placeholder="e.g., A, B, C"
                       required
                     />
                   </div>
                   <div>
                     <Label htmlFor="section_teacher">Section Teacher</Label>
-                    <Select 
-                      value={sectionFormData.section_teacher_id} 
-                      onValueChange={(value) => setSectionFormData({...sectionFormData, section_teacher_id: value})}
+                    <Select
+                      value={sectionFormData.section_teacher_id}
+                      onValueChange={(value) =>
+                        setSectionFormData({
+                          ...sectionFormData,
+                          section_teacher_id: value,
+                        })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select teacher (optional)" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="no_teacher">No teacher assigned</SelectItem>
+                        <SelectItem value="no_teacher">
+                          No teacher assigned
+                        </SelectItem>
                         {staff.map((teacher) => (
                           <SelectItem key={teacher.id} value={teacher.id}>
                             {teacher.name} - {teacher.designation}
@@ -1393,13 +1801,20 @@ const ClassManagement = () => {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="max_students_section">Maximum Students</Label>
+                    <Label htmlFor="max_students_section">
+                      Maximum Students
+                    </Label>
                     <Input
                       id="max_students_section"
                       type="number"
                       min="1"
                       value={sectionFormData.max_students}
-                      onChange={(e) => setSectionFormData({...sectionFormData, max_students: e.target.value})}
+                      onChange={(e) =>
+                        setSectionFormData({
+                          ...sectionFormData,
+                          max_students: e.target.value,
+                        })
+                      }
                       required
                     />
                   </div>
@@ -1415,8 +1830,16 @@ const ClassManagement = () => {
                     >
                       Cancel
                     </Button>
-                    <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600" disabled={isSubmitting}>
-                      {isSubmitting ? 'Saving...' : (editingSection ? 'Update Section' : 'Add Section')}
+                    <Button
+                      type="submit"
+                      className="bg-emerald-500 hover:bg-emerald-600"
+                      disabled={submitLoading}
+                    >
+                      {submitLoading
+                        ? "Saving..."
+                        : editingSection
+                          ? "Update Section"
+                          : "Add Section"}
                     </Button>
                   </DialogFooter>
                 </form>
@@ -1441,33 +1864,49 @@ const ClassManagement = () => {
                   <TableBody>
                     {sections.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                        <TableCell
+                          colSpan={6}
+                          className="text-center py-8 text-gray-500"
+                        >
                           No sections added yet
                         </TableCell>
                       </TableRow>
                     ) : (
                       sections.map((section, index) => (
                         <TableRow key={section.id}>
-                          <TableCell className="font-medium">{index + 1}</TableCell>
+                          <TableCell className="font-medium">
+                            {index + 1}
+                          </TableCell>
                           <TableCell>
                             <Badge variant="secondary" className="font-medium">
                               {section.name}
                             </Badge>
                           </TableCell>
-                          <TableCell>{getClassName(section.class_id)}</TableCell>
+                          <TableCell>
+                            {getClassName(section.class_id)}
+                          </TableCell>
                           <TableCell>
                             <div className="flex items-center space-x-2">
                               {section.section_teacher_id ? (
                                 <>
                                   <Avatar className="h-6 w-6">
                                     <AvatarFallback className="text-xs bg-blue-100 text-blue-700">
-                                      {getTeacherName(section.section_teacher_id).split(' ').map(n => n[0]).join('')}
+                                      {getTeacherName(
+                                        section.section_teacher_id,
+                                      )
+                                        .split(" ")
+                                        .map((n) => n[0])
+                                        .join("")}
                                     </AvatarFallback>
                                   </Avatar>
-                                  <span className="text-sm">{getTeacherName(section.section_teacher_id)}</span>
+                                  <span className="text-sm">
+                                    {getTeacherName(section.section_teacher_id)}
+                                  </span>
                                 </>
                               ) : (
-                                <span className="text-gray-500 text-sm">Not assigned</span>
+                                <span className="text-gray-500 text-sm">
+                                  Not assigned
+                                </span>
                               )}
                             </div>
                           </TableCell>
@@ -1481,9 +1920,9 @@ const ClassManagement = () => {
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
+                              <Button
+                                variant="ghost"
+                                size="sm"
                                 className="text-red-600 hover:text-red-700"
                                 onClick={() => handleDeleteSection(section)}
                               >
@@ -1506,8 +1945,8 @@ const ClassManagement = () => {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="flex items-center gap-4">
               <h2 className="text-xl font-semibold">Class Subjects</h2>
-              <Select 
-                value={selectedClassFilter} 
+              <Select
+                value={selectedClassFilter}
                 onValueChange={setSelectedClassFilter}
               >
                 <SelectTrigger className="w-[180px]">
@@ -1522,14 +1961,19 @@ const ClassManagement = () => {
                       </SelectItem>
                     ))
                   ) : (
-                    <SelectItem value="no_classes" disabled>No classes available</SelectItem>
+                    <SelectItem value="no_classes" disabled>
+                      No classes available
+                    </SelectItem>
                   )}
                 </SelectContent>
               </Select>
             </div>
-            <Dialog open={isSubjectModalOpen} onOpenChange={setIsSubjectModalOpen}>
+            <Dialog
+              open={isSubjectModalOpen}
+              onOpenChange={setIsSubjectModalOpen}
+            >
               <DialogTrigger asChild>
-                <Button 
+                <Button
                   className="bg-emerald-500 hover:bg-emerald-600"
                   onClick={() => {
                     setIsSubjectModalOpen(true);
@@ -1542,7 +1986,7 @@ const ClassManagement = () => {
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>
-                    {editingSubject ? 'Edit Subject' : 'Add New Subject'}
+                    {editingSubject ? "Edit Subject" : "Add New Subject"}
                   </DialogTitle>
                   <DialogDescription>
                     Add or modify subjects for a specific class.
@@ -1551,15 +1995,23 @@ const ClassManagement = () => {
                 <form onSubmit={handleSubjectSubmit} className="space-y-4">
                   <div>
                     <Label htmlFor="subject_class">Class *</Label>
-                    <Select 
-                      value={subjectFormData.class_standard} 
-                      onValueChange={(value) => setSubjectFormData({...subjectFormData, class_standard: value, section_id: 'all_sections'})}
+                    <Select
+                      value={subjectFormData.class_standard}
+                      onValueChange={(value) =>
+                        setSubjectFormData({
+                          ...subjectFormData,
+                          class_standard: value,
+                          section_id: "all_sections",
+                        })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select class" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="select_class" disabled>Select Class</SelectItem>
+                        <SelectItem value="select_class" disabled>
+                          Select Class
+                        </SelectItem>
                         {classStandards.length > 0 ? (
                           classStandards.map((std) => (
                             <SelectItem key={std} value={std}>
@@ -1567,23 +2019,34 @@ const ClassManagement = () => {
                             </SelectItem>
                           ))
                         ) : (
-                          <SelectItem value="no_classes" disabled>Please create classes first</SelectItem>
+                          <SelectItem value="no_classes" disabled>
+                            Please create classes first
+                          </SelectItem>
                         )}
                       </SelectContent>
                     </Select>
                   </div>
                   <div>
                     <Label htmlFor="subject_section">Section (Optional)</Label>
-                    <Select 
-                      value={subjectFormData.section_id} 
-                      onValueChange={(value) => setSubjectFormData({...subjectFormData, section_id: value})}
-                      disabled={subjectFormData.class_standard === 'select_class'}
+                    <Select
+                      value={subjectFormData.section_id}
+                      onValueChange={(value) =>
+                        setSubjectFormData({
+                          ...subjectFormData,
+                          section_id: value,
+                        })
+                      }
+                      disabled={
+                        subjectFormData.class_standard === "select_class"
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="All Sections" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all_sections">All Sections</SelectItem>
+                        <SelectItem value="all_sections">
+                          All Sections
+                        </SelectItem>
                         {getSectionsForSelectedClass().map((sec) => (
                           <SelectItem key={sec.id} value={sec.id}>
                             Section {sec.name}
@@ -1591,14 +2054,21 @@ const ClassManagement = () => {
                         ))}
                       </SelectContent>
                     </Select>
-                    <p className="text-xs text-gray-500 mt-1">Leave as "All Sections" to apply to entire class</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Leave as "All Sections" to apply to entire class
+                    </p>
                   </div>
                   <div>
                     <Label htmlFor="subject_name">Subject Name *</Label>
                     <Input
                       id="subject_name"
                       value={subjectFormData.subject_name}
-                      onChange={(e) => setSubjectFormData({...subjectFormData, subject_name: e.target.value})}
+                      onChange={(e) =>
+                        setSubjectFormData({
+                          ...subjectFormData,
+                          subject_name: e.target.value,
+                        })
+                      }
                       placeholder="e.g., Mathematics, Science"
                       required
                     />
@@ -1608,7 +2078,12 @@ const ClassManagement = () => {
                     <Input
                       id="subject_code"
                       value={subjectFormData.subject_code}
-                      onChange={(e) => setSubjectFormData({...subjectFormData, subject_code: e.target.value})}
+                      onChange={(e) =>
+                        setSubjectFormData({
+                          ...subjectFormData,
+                          subject_code: e.target.value,
+                        })
+                      }
                       placeholder="e.g., MATH101, SCI101"
                       required
                     />
@@ -1618,7 +2093,12 @@ const ClassManagement = () => {
                     <Input
                       id="subject_description"
                       value={subjectFormData.description}
-                      onChange={(e) => setSubjectFormData({...subjectFormData, description: e.target.value})}
+                      onChange={(e) =>
+                        setSubjectFormData({
+                          ...subjectFormData,
+                          description: e.target.value,
+                        })
+                      }
                       placeholder="Brief description of the subject"
                     />
                   </div>
@@ -1627,7 +2107,12 @@ const ClassManagement = () => {
                       type="checkbox"
                       id="is_elective"
                       checked={subjectFormData.is_elective}
-                      onChange={(e) => setSubjectFormData({...subjectFormData, is_elective: e.target.checked})}
+                      onChange={(e) =>
+                        setSubjectFormData({
+                          ...subjectFormData,
+                          is_elective: e.target.checked,
+                        })
+                      }
                       className="h-4 w-4 rounded border-gray-300"
                     />
                     <Label htmlFor="is_elective">Elective Subject</Label>
@@ -1644,8 +2129,16 @@ const ClassManagement = () => {
                     >
                       Cancel
                     </Button>
-                    <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600" disabled={loading}>
-                      {loading ? 'Saving...' : (editingSubject ? 'Update Subject' : 'Add Subject')}
+                    <Button
+                      type="submit"
+                      className="bg-emerald-500 hover:bg-emerald-600"
+                      disabled={submitLoading}
+                    >
+                      {pageLoading
+                        ? "Saving..."
+                        : editingSubject
+                          ? "Update Subject"
+                          : "Add Subject"}
                     </Button>
                   </DialogFooter>
                 </form>
@@ -1656,15 +2149,21 @@ const ClassManagement = () => {
           {classStandards.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center text-gray-500">
-                No classes created yet. Please create classes first to add subjects.
+                No classes created yet. Please create classes first to add
+                subjects.
               </CardContent>
             </Card>
           ) : (
             <div className="space-y-3">
-              {(selectedClassFilter === 'all' ? classStandards : [selectedClassFilter]).map((classStd) => {
-                const classSubjects = subjects.filter(s => s.class_standard === classStd);
+              {(selectedClassFilter === "all"
+                ? classStandards
+                : [selectedClassFilter]
+              ).map((classStd) => {
+                const classSubjects = subjects.filter(
+                  (s) => s.class_standard === classStd,
+                );
                 const isExpanded = expandedClasses[classStd] !== false;
-                
+
                 return (
                   <Card key={classStd} className="overflow-hidden">
                     <button
@@ -1677,9 +2176,12 @@ const ClassManagement = () => {
                         ) : (
                           <Folder className="h-5 w-5 text-amber-500" />
                         )}
-                        <span className="font-semibold text-lg">{classStd}</span>
+                        <span className="font-semibold text-lg">
+                          {classStd}
+                        </span>
                         <Badge variant="secondary" className="ml-2">
-                          {classSubjects.length} subject{classSubjects.length !== 1 ? 's' : ''}
+                          {classSubjects.length} subject
+                          {classSubjects.length !== 1 ? "s" : ""}
                         </Badge>
                       </div>
                       {isExpanded ? (
@@ -1688,7 +2190,7 @@ const ClassManagement = () => {
                         <ChevronRight className="h-5 w-5 text-gray-400" />
                       )}
                     </button>
-                    
+
                     {isExpanded && (
                       <CardContent className="pt-0 pb-4">
                         {classSubjects.length === 0 ? (
@@ -1711,9 +2213,13 @@ const ClassManagement = () => {
                               <TableBody>
                                 {classSubjects.map((subject, index) => (
                                   <TableRow key={subject.id}>
-                                    <TableCell className="font-medium">{index + 1}</TableCell>
+                                    <TableCell className="font-medium">
+                                      {index + 1}
+                                    </TableCell>
                                     <TableCell>
-                                      <div className="font-medium">{subject.subject_name}</div>
+                                      <div className="font-medium">
+                                        {subject.subject_name}
+                                      </div>
                                       {subject.description && (
                                         <div className="text-xs text-gray-500 truncate max-w-[200px]">
                                           {subject.description}
@@ -1721,18 +2227,29 @@ const ClassManagement = () => {
                                       )}
                                     </TableCell>
                                     <TableCell>
-                                      <Badge variant="outline">{subject.subject_code}</Badge>
+                                      <Badge variant="outline">
+                                        {subject.subject_code}
+                                      </Badge>
                                     </TableCell>
                                     <TableCell>
-                                      <Badge variant="secondary" className="text-xs">
-                                        {subject.section_id ? `Section ${getSectionName(subject.section_id)}` : 'All'}
+                                      <Badge
+                                        variant="secondary"
+                                        className="text-xs"
+                                      >
+                                        {subject.section_id
+                                          ? `Section ${getSectionName(subject.section_id)}`
+                                          : "All"}
                                       </Badge>
                                     </TableCell>
                                     <TableCell>
                                       {subject.is_elective ? (
-                                        <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">Elective</Badge>
+                                        <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
+                                          Elective
+                                        </Badge>
                                       ) : (
-                                        <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">Core</Badge>
+                                        <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
+                                          Core
+                                        </Badge>
                                       )}
                                     </TableCell>
                                     <TableCell>
@@ -1740,15 +2257,19 @@ const ClassManagement = () => {
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          onClick={() => handleEditSubject(subject)}
+                                          onClick={() =>
+                                            handleEditSubject(subject)
+                                          }
                                         >
                                           <Edit className="h-4 w-4" />
                                         </Button>
-                                        <Button 
-                                          variant="ghost" 
-                                          size="sm" 
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
                                           className="text-red-600 hover:text-red-700"
-                                          onClick={() => handleDeleteSubject(subject)}
+                                          onClick={() =>
+                                            handleDeleteSubject(subject)
+                                          }
                                         >
                                           <Trash2 className="h-4 w-4" />
                                         </Button>

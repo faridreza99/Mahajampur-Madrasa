@@ -53,9 +53,9 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const [allowedModules, setAllowedModules] = useState(null);
   const [modulesLoaded, setModulesLoaded] = useState(false);
   const [schoolBranding, setSchoolBranding] = useState({
-    school_name: 'School ERP',
+    school_name: "School ERP",
     logo_url: null,
-    primary_color: '#10B981'
+    primary_color: "#10B981",
   });
 
   useEffect(() => {
@@ -75,9 +75,9 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         if (response.ok) {
           const data = await response.json();
           setSchoolBranding({
-            school_name: data.school_name || 'School ERP',
+            school_name: data.school_name || "School ERP",
             logo_url: data.logo_url,
-            primary_color: data.primary_color || '#10B981'
+            primary_color: data.primary_color || "#10B981",
           });
         }
       } catch (error) {
@@ -113,6 +113,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
     fetchAllowedModules();
   }, [user, location.pathname]);
+  console.log(allowedModules);
 
   const t = (key) => i18n.t(key);
 
@@ -313,12 +314,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           title: "Staff ID Cards",
           madrasahTitle: "শিক্ষক আইডি কার্ড",
           path: "/staff/id-cards",
-          roles: ["super_admin", "admin"],
-        },
-        {
-          title: "Add Staff",
-          madrasahTitle: "নতুন শিক্ষক",
-          path: "/staff/add",
           roles: ["super_admin", "admin"],
         },
       ],
@@ -592,18 +587,49 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const moduleKeyMapping = {
     home: ["home", "dashboard"],
     student_portal: ["student_portal"], // Always allowed for students via role check
-    academic: ["attendance", "results", "timetable", "calendar", "class", "classes"],
+    academic: [
+      "attendance",
+      "results",
+      "timetable",
+      "calendar",
+      "class",
+      "classes",
+    ],
     students: ["students", "admission-summary", "admission_summary"],
     staff: ["staff"],
     finance: ["fees", "accounts", "certificates", "payroll"],
     content: ["cms", "academic_cms", "academic-cms"],
-    "ai-tools": ["cms", "academic_cms", "ai-assistant", "ai_assistant", "quiz-tool", "quiz_tool", "test-generator", "test_generator", "ai-summary", "ai_summary", "ai-notes", "ai_notes"],
+    "ai-tools": [
+      "cms",
+      "academic_cms",
+      "ai-assistant",
+      "ai_assistant",
+      "quiz-tool",
+      "quiz_tool",
+      "test-generator",
+      "test_generator",
+      "ai-summary",
+      "ai_summary",
+      "ai-notes",
+      "ai_notes",
+    ],
     reports: ["reports"],
     certificates: ["certificates"],
     communication: ["communication", "notifications"],
-    settings: ["settings", "vehicle", "vehicle_transport", "biometric", "biometric_devices", "online-admission", "online_admission", "hss-module", "hss_module", "tenant_management"],
+    settings: [
+      "settings",
+      "vehicle",
+      "vehicle_transport",
+      "biometric",
+      "biometric_devices",
+      "online-admission",
+      "online_admission",
+      "hss-module",
+      "hss_module",
+      "tenant_management",
+    ],
   };
-  
+
   // Keys that bypass module restrictions (shown based on role only)
   const bypassModuleRestrictions = ["student_portal", "home"];
 
@@ -622,7 +648,11 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     "/hss/students": ["hss-module", "hss_module"],
     "/transport/routes": ["vehicle", "vehicle_transport", "vehicle-transport"],
     "/certificates": ["certificates"],
-    "/students/attendance": ["student-attendance", "student_attendance", "attendance"],
+    "/students/attendance": [
+      "student-attendance",
+      "student_attendance",
+      "attendance",
+    ],
     "/attendance": ["staff-attendance", "staff_attendance", "attendance"],
   };
 
@@ -630,14 +660,23 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const isSubItemAllowed = (subItemPath) => {
     // Super admin sees all
     if (user?.role === "super_admin") return true;
-    // No restrictions set - show all
-    if (!allowedModules || allowedModules.length === 0) return true;
-    // Check if this sub-item has module restrictions
-    const requiredModules = subItemModuleMapping[subItemPath];
-    if (!requiredModules) return true; // No mapping = always show
-    return requiredModules.some(mod => allowedModules.includes(mod));
-  };
 
+    // No restrictions
+    if (!allowedModules || allowedModules.length === 0) return true;
+
+    // Attendance (covers /attendance, /attendance/mark, etc)
+    if (subItemPath.startsWith("/attendance")) {
+      return allowedModules.includes("attendance");
+    }
+
+    // Student attendance
+    if (subItemPath.startsWith("/students/attendance")) {
+      return allowedModules.includes("attendance");
+    }
+
+    // Default: allow
+    return true;
+  };
   // Don't show any menu items until modules are loaded (except for super_admin who sees all)
   const filteredMenuItems = menuItems.filter((item) => {
     const hasRole = item.roles.includes(user?.role);
@@ -664,8 +703,10 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
     // Check if any of the mapped modules for this menu item are allowed
     const mappedModules = moduleKeyMapping[item.key] || [item.key];
-    const hasAllowedModule = mappedModules.some(mod => allowedModules.includes(mod));
-    
+    const hasAllowedModule = mappedModules.some((mod) =>
+      allowedModules.includes(mod),
+    );
+
     return hasRole && hasAllowedModule;
   });
 
@@ -674,11 +715,16 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
   const isActiveMenu = (item) => {
     if (item.path) {
-      return location.pathname === item.path;
+      return (
+        location.pathname === item.path ||
+        location.pathname.startsWith(item.path + "/")
+      );
     }
     if (item.subItems) {
       return item.subItems.some(
-        (subItem) => location.pathname === subItem.path,
+        (subItem) =>
+          location.pathname === subItem.path ||
+          location.pathname.startsWith(subItem.path + "/"),
       );
     }
     return false;
@@ -703,18 +749,23 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       <div className="p-6 border-b border-white/10">
         <div className="flex items-center space-x-3">
           {schoolBranding.logo_url ? (
-            <img 
-              src={schoolBranding.logo_url} 
-              alt={schoolBranding.school_name} 
+            <img
+              src={schoolBranding.logo_url}
+              alt={schoolBranding.school_name}
               className="h-10 w-10 object-contain rounded-lg bg-white p-1"
             />
           ) : (
-            <div className="p-2 rounded-lg" style={{ backgroundColor: schoolBranding.primary_color }}>
+            <div
+              className="p-2 rounded-lg"
+              style={{ backgroundColor: schoolBranding.primary_color }}
+            >
               <GraduationCap className="h-6 w-6 text-white" />
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <h1 className="text-white font-bold text-lg truncate">{schoolBranding.school_name}</h1>
+            <h1 className="text-white font-bold text-lg truncate">
+              {schoolBranding.school_name}
+            </h1>
             <p className="text-gray-300 text-xs truncate">{user?.full_name}</p>
           </div>
         </div>
@@ -745,7 +796,11 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                     >
                       <div className="flex items-center space-x-3">
                         <Icon className="h-5 w-5" />
-                        <span className="font-medium">{isMadrasahSimpleUI && item.madrasahTitle ? item.madrasahTitle : item.title}</span>
+                        <span className="font-medium">
+                          {isMadrasahSimpleUI && item.madrasahTitle
+                            ? item.madrasahTitle
+                            : item.title}
+                        </span>
                       </div>
                       {isOpen ? (
                         <ChevronDown className="h-4 w-4" />
@@ -758,9 +813,19 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                     {item.subItems
                       .filter(
                         (subItem) =>
-                          (!subItem.roles || subItem.roles.includes(user?.role)) &&
+                          (!subItem.roles ||
+                            subItem.roles.includes(user?.role)) &&
                           isSubItemAllowed(subItem.path) &&
-                          !(isMadrasahSimpleUI && ['/fees/structure', '/fees/reports', '/accounts', '/results', '/settings/timetable'].includes(subItem.path)) &&
+                          !(
+                            isMadrasahSimpleUI &&
+                            [
+                              "/fees/structure",
+                              "/fees/reports",
+                              "/accounts",
+                              "/results",
+                              "/settings/timetable",
+                            ].includes(subItem.path)
+                          ) &&
                           (subItem.madrasahOnly ? isMadrasahSimpleUI : true) &&
                           !(isMadrasahSimpleUI && subItem.hideInMadrasah),
                       )
@@ -769,12 +834,15 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                           key={index}
                           onClick={() => handleNavigation(subItem.path)}
                           className={`w-full text-left p-2 rounded-md text-sm transition-all hover:bg-white/10 ${
-                            location.pathname === subItem.path
+                            location.pathname === subItem.path ||
+                            location.pathname.startsWith(subItem.path + "/")
                               ? "bg-emerald-500/20 text-emerald-300"
                               : "text-gray-400 hover:text-white"
                           }`}
                         >
-                          {isMadrasahSimpleUI && subItem.madrasahTitle ? subItem.madrasahTitle : subItem.title}
+                          {isMadrasahSimpleUI && subItem.madrasahTitle
+                            ? subItem.madrasahTitle
+                            : subItem.title}
                         </button>
                       ))}
                   </CollapsibleContent>
@@ -793,7 +861,11 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                 }`}
               >
                 <Icon className="h-5 w-5" />
-                <span className="font-medium">{isMadrasahSimpleUI && item.madrasahTitle ? item.madrasahTitle : item.title}</span>
+                <span className="font-medium">
+                  {isMadrasahSimpleUI && item.madrasahTitle
+                    ? item.madrasahTitle
+                    : item.title}
+                </span>
               </button>
             );
           })}
