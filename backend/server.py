@@ -13345,16 +13345,14 @@ def create_professional_pdf_template(school_name: str = "School ERP System", sch
         )
     }
     
-    # Table styles templates - use Bengali font for proper Unicode support
+    # Table styles templates - use Helvetica for Latin text
     table_styles = {
         'header': [
             ('BACKGROUND', (0, 0), (-1, 0), primary_color),
             ('TEXTCOLOR', (0, 0), (-1, 0), rl_colors.whitesmoke),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'NotoSansBengali-Bold'),
-            ('FONTNAME', (0, 1), (-1, -1), 'NotoSansBengali'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('FONTSIZE', (0, 1), (-1, -1), 9),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
             ('TOPPADDING', (0, 0), (-1, 0), 12),
             ('GRID', (0, 0), (-1, -1), 1, rl_colors.Color(0.8, 0.8, 0.8))
@@ -13367,10 +13365,8 @@ def create_professional_pdf_template(school_name: str = "School ERP System", sch
             ('BACKGROUND', (0, 0), (-1, 0), secondary_color),
             ('TEXTCOLOR', (0, 0), (-1, 0), rl_colors.whitesmoke),
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, 0), 'NotoSansBengali-Bold'),
-            ('FONTNAME', (0, 1), (-1, -1), 'NotoSansBengali'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, 0), 11),
-            ('FONTSIZE', (0, 1), (-1, -1), 10),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
             ('TOPPADDING', (0, 0), (-1, -1), 8),
             ('LEFTPADDING', (0, 0), (-1, -1), 10),
@@ -13613,6 +13609,7 @@ def create_summary_box(summary_data, template, col_widths=None):
 def create_data_table(headers, data_rows, template, col_widths=None, repeat_header=True):
     """
     Create professional data table with alternating row colors
+    Automatically handles Bengali text by wrapping in Paragraphs with Bengali font
     
     Args:
         headers: List of column headers
@@ -13624,11 +13621,53 @@ def create_data_table(headers, data_rows, template, col_widths=None, repeat_head
     Returns:
         Table object with professional styling
     """
-    from reportlab.platypus import Table, TableStyle
+    from reportlab.platypus import Table, TableStyle, Paragraph
+    from reportlab.lib.styles import ParagraphStyle
     from reportlab.lib.units import inch
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    import os
+    import re
+    
+    # Register Bengali fonts if not already registered
+    try:
+        bengali_font_path = os.path.join(os.path.dirname(__file__), "fonts", "NotoSansBengali-Regular.ttf")
+        if os.path.exists(bengali_font_path):
+            pdfmetrics.registerFont(TTFont("NotoSansBengali", bengali_font_path))
+    except Exception:
+        pass
+    
+    # Helper function to detect Bengali text
+    def has_bengali(text):
+        if not text:
+            return False
+        # Bengali Unicode range: U+0980 to U+09FF
+        bengali_pattern = re.compile(r'[ঀ-৿]')
+        return bool(bengali_pattern.search(str(text)))
+    
+    # Style for Bengali text in table cells
+    bengali_style = ParagraphStyle(
+        name='BengaliCell',
+        fontName='NotoSansBengali',
+        fontSize=9,
+        leading=11,
+        wordWrap='LTR'
+    )
+    
+    # Process data rows to wrap Bengali text in Paragraphs
+    processed_rows = []
+    for row in data_rows:
+        processed_row = []
+        for cell in row:
+            cell_str = str(cell) if cell else ""
+            if has_bengali(cell_str):
+                processed_row.append(Paragraph(cell_str, bengali_style))
+            else:
+                processed_row.append(cell_str)
+        processed_rows.append(processed_row)
     
     # Combine headers and data
-    table_data = [headers] + data_rows
+    table_data = [headers] + processed_rows
     
     # Auto-calculate column widths if not provided
     if not col_widths:
