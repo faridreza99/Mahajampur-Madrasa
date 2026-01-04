@@ -17171,7 +17171,7 @@ async def create_fee_configuration(
         logging.error(f"Exception traceback:", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to create fee configuration: {str(e)}")
 
-@api_router.get("/fees/configurations", response_model=List[FeeConfiguration])
+@api_router.get("/fees/configurations")
 async def get_fee_configurations(current_user: User = Depends(get_current_user)):
     """Get all fee configurations for the tenant"""
     try:
@@ -17180,7 +17180,17 @@ async def get_fee_configurations(current_user: User = Depends(get_current_user))
             "is_active": True
         }).to_list(1000)
         
-        return [FeeConfiguration(**config) for config in configs]
+        result = []
+        for config in configs:
+            # Convert SON to dict and remove MongoDB _id
+            config_dict = dict(config)
+            config_dict.pop("_id", None)
+            # Ensure required fields have defaults
+            if not config_dict.get("created_by"):
+                config_dict["created_by"] = "system"
+            result.append(config_dict)
+        
+        return result
         
     except Exception as e:
         logging.error(f"Failed to get fee configurations: {str(e)}")
