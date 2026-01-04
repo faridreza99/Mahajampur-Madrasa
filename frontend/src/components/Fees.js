@@ -114,6 +114,7 @@ const Fees = () => {
   const [selectedSection, setSelectedSection] = useState("all");
   const [studentPayments, setStudentPayments] = useState([]);
   const [studentFeesSummary, setStudentFeesSummary] = useState(null);
+  const [calculatedFees, setCalculatedFees] = useState(null);
 
   // Fee Collection Tab state
   const [collectionForm, setCollectionForm] = useState({
@@ -514,8 +515,28 @@ const Fees = () => {
     }
   };
 
+  const fetchCalculatedFees = async (studentId) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token || !studentId) return;
+      
+      const response = await axios.get(`${API}/fees/student/${studentId}/calculated`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      setCalculatedFees(response.data);
+      console.log("📊 Calculated fees loaded:", response.data);
+    } catch (error) {
+      console.error("Error fetching calculated fees:", error);
+      setCalculatedFees(null);
+    }
+  };
+
   const handleStudentSelect = (student) => {
     setSelectedStudent(student);
+    if (student?.id) {
+      fetchCalculatedFees(student.id);
+    }
     fetchStudentFinancials(student.id);
   };
 

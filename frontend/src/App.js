@@ -102,6 +102,7 @@ const Homework = lazy(() => import("./components/Homework"));
 const LessonPlans = lazy(() => import("./components/LessonPlans"));
 const Search = lazy(() => import("./components/Search"));
 const AdmissionFees = lazy(() => import("./components/AdmissionFees"));
+const FeeSetup = lazy(() => import("./components/FeeSetup"));
 const CommitteeDonation = lazy(() => import("./components/CommitteeDonation"));
 const FinancialSummary = lazy(
   () => import("./components/reports/FinancialSummary"),
@@ -581,6 +582,14 @@ function App() {
                         element={
                           <ProtectedRoute>
                             <Fees />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/fees/setup"
+                        element={
+                          <ProtectedRoute>
+                            <FeeSetup />
                           </ProtectedRoute>
                         }
                       />

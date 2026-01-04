@@ -178,10 +178,26 @@ const StudentList = () => {
   }, []);
 
   useEffect(() => {
-    if (selectedClass) {
+    // Fetch sections for the selected class (marhala)
+    // When all_classes is selected, fetch all sections for the filter dropdown
+    if (selectedClass && selectedClass !== "all_classes") {
       fetchSections(selectedClass);
+      setSelectedSection("all_sections"); // Reset section when class changes
+    } else {
+      // When no specific class selected, load all sections for filtering
+      fetchAllSections();
     }
   }, [selectedClass]);
+  
+  const fetchAllSections = async () => {
+    try {
+      const response = await axios.get(`${API}/sections`);
+      setSections(response.data || []);
+    } catch (error) {
+      console.error("Failed to fetch all sections:", error);
+      setSections([]);
+    }
+  };
 
   useEffect(() => {
     setIsAddModalOpen(false);

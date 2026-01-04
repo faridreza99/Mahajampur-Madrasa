@@ -3867,18 +3867,53 @@ async def create_student(student_data: StudentCreate, current_user: User = Depen
         logging.error(f"Failed to create student record: {e}")
         raise HTTPException(status_code=500, detail="Failed to create student record")
     
-    # Initialize fee ledger for student
+    # Initialize fee ledger for student with marhala-based fee structure
     try:
+        academic_year = str(datetime.utcnow().year)
+        
+        # Fetch marhala fee structure for this student's class (safely handle None)
+        marhala_fees = None
+        if student_data.class_id:
+            marhala_fees = await db.marhala_fee_structures.find_one({
+                "tenant_id": current_user.tenant_id,
+                "marhala_id": student_data.class_id,
+                "academic_year": academic_year,
+                "is_active": True,
+                "is_enabled": True
+            })
+        
+        # Calculate total expected fees from marhala structure (safe handling)
+        total_fees = 0
+        monthly_fee = 0
+        admission_fee = 0
+        exam_fee = 0
+        marhala_structure_id = None
+        
+        if marhala_fees and isinstance(marhala_fees, dict):
+            monthly_fee = marhala_fees.get("monthly_fee", 0) or 0
+            admission_fee = marhala_fees.get("admission_fee", 0) or 0
+            exam_fee = marhala_fees.get("exam_fee", 0) or 0
+            marhala_structure_id = marhala_fees.get("id")
+            # Calculate annual expected: 12 months + admission + exam
+            total_fees = (monthly_fee * 12) + admission_fee + exam_fee
+            logging.info(f"Student {student_id} linked to marhala fees: monthly={monthly_fee}, admission={admission_fee}, exam={exam_fee}, total={total_fees}")
+        else:
+            logging.info(f"No marhala fee structure found for class {student_data.class_id}, using zero defaults")
+        
         fee_ledger = {
             "id": str(uuid.uuid4()),
             "tenant_id": current_user.tenant_id,
             "school_id": school_id,
             "student_id": student_id,
             "class_id": student_data.class_id,
-            "academic_year": str(datetime.utcnow().year),
-            "total_fees": 0,
+            "academic_year": academic_year,
+            "marhala_fee_structure_id": marhala_structure_id,
+            "monthly_fee": monthly_fee,
+            "admission_fee": admission_fee,
+            "exam_fee": exam_fee,
+            "total_fees": total_fees,
             "paid_amount": 0,
-            "balance": 0,
+            "balance": total_fees,
             "payments": [],
             "is_active": True,
             "created_at": datetime.utcnow(),
@@ -15371,6 +15406,57 @@ class FeeConfigurationUpdate(BaseModel):
     late_fee: Optional[float] = None
     discount: Optional[float] = None
 
+# ==================== MARHALA-WISE FEE STRUCTURE ====================
+class MarhalaFeeStructure(BaseModel):
+    """Marhala-wise fee structure for systematic fee management"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    school_id: Optional[str] = None
+    marhala_id: str  # Class/Marhala ID
+    marhala_name: str  # Class/Marhala name for display
+    academic_year: str  # e.g., "2024", "2025"
+    
+    # Fee amounts
+    monthly_fee: float = 0.0  # মাসিক বেতন
+    admission_fee: float = 0.0  # ভর্তি ফি
+    exam_fee: float = 0.0  # পরীক্ষা ফি
+    session_fee: float = 0.0  # সেশন ফি
+    
+    # Late fees
+    monthly_late_fee: float = 0.0
+    
+    # Due dates
+    monthly_due_day: int = 10  # Day of month when fee is due
+    
+    # Status
+    is_enabled: bool = True
+    is_active: bool = True
+    
+    created_by: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class MarhalaFeeStructureCreate(BaseModel):
+    marhala_id: str
+    marhala_name: str
+    academic_year: str
+    monthly_fee: float = 0.0
+    admission_fee: float = 0.0
+    exam_fee: float = 0.0
+    session_fee: float = 0.0
+    monthly_late_fee: float = 0.0
+    monthly_due_day: int = 10
+    is_enabled: bool = True
+
+class MarhalaFeeStructureUpdate(BaseModel):
+    monthly_fee: Optional[float] = None
+    admission_fee: Optional[float] = None
+    exam_fee: Optional[float] = None
+    session_fee: Optional[float] = None
+    monthly_late_fee: Optional[float] = None
+    monthly_due_day: Optional[int] = None
+    is_enabled: Optional[bool] = None
+
 # ========================================
 # 🔒 PROTECTED MODEL - MaxTechBD Fee Engine v3.0-final-stable
 # ⚠️ DO NOT MODIFY without reviewing VERSION file
@@ -17187,6 +17273,292 @@ async def delete_fee_configuration(
         logging.error(f"Failed to delete fee configuration: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to delete fee configuration")
 
+# ==================== MARHALA-WISE FEE SETUP ENDPOINTS ====================
+
+@api_router.get("/fees/marhala-setup")
+async def get_marhala_fee_structures(
+    academic_year: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all marhala-wise fee structures for the tenant"""
+    try:
+        query = {
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        }
+        if academic_year:
+            query["academic_year"] = academic_year
+        
+        structures = await db.marhala_fee_structures.find(query).to_list(1000)
+        
+        # Get marhala (class) information
+        classes = await db.classes.find({
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        }).to_list(1000)
+        
+        class_map = {c.get("id"): c for c in classes if c.get("id")}
+        
+        result = []
+        for struct in structures:
+            # Convert SON to dict and remove MongoDB _id safely
+            struct_dict = dict(struct)
+            struct_dict.pop("_id", None)
+            # Add class name if not set
+            if not struct_dict.get("marhala_name") and struct_dict.get("marhala_id") in class_map:
+                struct_dict["marhala_name"] = class_map[struct_dict["marhala_id"]].get("name", "")
+            result.append(struct_dict)
+        
+        return result
+        
+    except Exception as e:
+        logging.error(f"Failed to get marhala fee structures: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve fee structures")
+
+@api_router.post("/fees/marhala-setup")
+async def create_marhala_fee_structure(
+    data: MarhalaFeeStructureCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new marhala-wise fee structure"""
+    try:
+        # Get school_id
+        school_id = getattr(current_user, 'school_id', None)
+        if not school_id:
+            schools = await db.schools.find({
+                "tenant_id": current_user.tenant_id,
+                "is_active": True
+            }).to_list(1)
+            if schools:
+                school_id = schools[0]["id"]
+        
+        # Check if structure already exists for this marhala and academic year
+        existing = await db.marhala_fee_structures.find_one({
+            "tenant_id": current_user.tenant_id,
+            "marhala_id": data.marhala_id,
+            "academic_year": data.academic_year,
+            "is_active": True
+        })
+        
+        if existing:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Fee structure already exists for {data.marhala_name} in {data.academic_year}"
+            )
+        
+        structure = MarhalaFeeStructure(
+            tenant_id=current_user.tenant_id,
+            school_id=school_id,
+            marhala_id=data.marhala_id,
+            marhala_name=data.marhala_name,
+            academic_year=data.academic_year,
+            monthly_fee=data.monthly_fee,
+            admission_fee=data.admission_fee,
+            exam_fee=data.exam_fee,
+            session_fee=data.session_fee,
+            monthly_late_fee=data.monthly_late_fee,
+            monthly_due_day=data.monthly_due_day,
+            is_enabled=data.is_enabled,
+            created_by=current_user.id
+        )
+        
+        await db.marhala_fee_structures.insert_one(structure.dict())
+        
+        logging.info(f"Marhala fee structure created: {structure.id} for {data.marhala_name}")
+        return structure.dict()
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Failed to create marhala fee structure: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to create fee structure: {str(e)}")
+
+@api_router.put("/fees/marhala-setup/{structure_id}")
+async def update_marhala_fee_structure(
+    structure_id: str,
+    data: MarhalaFeeStructureUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update an existing marhala-wise fee structure"""
+    try:
+        existing = await db.marhala_fee_structures.find_one({
+            "id": structure_id,
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        })
+        
+        if not existing:
+            raise HTTPException(status_code=404, detail="Fee structure not found")
+        
+        update_data = {k: v for k, v in data.dict().items() if v is not None}
+        update_data["updated_at"] = datetime.utcnow()
+        
+        await db.marhala_fee_structures.update_one(
+            {"id": structure_id, "tenant_id": current_user.tenant_id},
+            {"$set": update_data}
+        )
+        
+        updated_doc = await db.marhala_fee_structures.find_one({"id": structure_id})
+        # Convert SON to dict and remove _id safely
+        result = dict(updated_doc) if updated_doc else {}
+        result.pop("_id", None)
+        
+        logging.info(f"Marhala fee structure updated: {structure_id}")
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Failed to update marhala fee structure: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to update fee structure")
+
+@api_router.delete("/fees/marhala-setup/{structure_id}")
+async def delete_marhala_fee_structure(
+    structure_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a marhala-wise fee structure"""
+    try:
+        existing = await db.marhala_fee_structures.find_one({
+            "id": structure_id,
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        })
+        
+        if not existing:
+            raise HTTPException(status_code=404, detail="Fee structure not found")
+        
+        await db.marhala_fee_structures.update_one(
+            {"id": structure_id, "tenant_id": current_user.tenant_id},
+            {"$set": {"is_active": False, "updated_at": datetime.utcnow()}}
+        )
+        
+        logging.info(f"Marhala fee structure deleted: {structure_id}")
+        return {"message": "Fee structure deleted successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Failed to delete marhala fee structure: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to delete fee structure")
+
+@api_router.get("/fees/student/{student_id}/calculated")
+async def get_student_calculated_fees(
+    student_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get calculated fee summary for a student based on marhala fee setup"""
+    try:
+        # Get student details
+        student = await db.students.find_one({
+            "id": student_id,
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        })
+        
+        if not student:
+            raise HTTPException(status_code=404, detail="Student not found")
+        
+        # Get current academic year
+        current_year = str(datetime.utcnow().year)
+        
+        # Get marhala fee structure for student's class
+        class_id = student.get("class_id")
+        if not class_id:
+            return {
+                "student_id": student_id,
+                "student_name": student.get("name_en") or student.get("name_bn", "Unknown"),
+                "admission_no": student.get("admission_no", ""),
+                "class_id": None,
+                "fee_structure": None,
+                "monthly_fee": 0,
+                "admission_fee": 0,
+                "exam_fee": 0,
+                "total_paid": 0,
+                "total_due": 0,
+                "message": "No class assigned to student"
+            }
+        
+        # Get fee structure for student's marhala
+        fee_structure = await db.marhala_fee_structures.find_one({
+            "tenant_id": current_user.tenant_id,
+            "marhala_id": class_id,
+            "academic_year": current_year,
+            "is_active": True,
+            "is_enabled": True
+        })
+        
+        # Calculate total paid from payments
+        payments = await db.fee_payments.find({
+            "student_id": student_id,
+            "tenant_id": current_user.tenant_id,
+            "status": {"$in": ["completed", "verified"]}
+        }).to_list(1000)
+        
+        total_paid = sum(p.get("amount", 0) for p in payments)
+        
+        # Calculate expected fees based on structure
+        if fee_structure:
+            monthly_fee = fee_structure.get("monthly_fee", 0)
+            admission_fee = fee_structure.get("admission_fee", 0)
+            exam_fee = fee_structure.get("exam_fee", 0)
+            
+            # Calculate months since admission or start of year
+            admission_date = student.get("admission_date") or student.get("created_at")
+            if isinstance(admission_date, str):
+                try:
+                    admission_date = datetime.fromisoformat(admission_date.replace('Z', '+00:00'))
+                except:
+                    admission_date = datetime.utcnow()
+            
+            now = datetime.utcnow()
+            months_elapsed = (now.year - admission_date.year) * 12 + (now.month - admission_date.month) + 1
+            months_elapsed = min(months_elapsed, 12)  # Cap at 12 months per year
+            
+            expected_monthly = monthly_fee * months_elapsed
+            total_expected = expected_monthly + admission_fee
+            total_due = max(0, total_expected - total_paid)
+            
+            return {
+                "student_id": student_id,
+                "student_name": student.get("name_en") or student.get("name_bn", "Unknown"),
+                "admission_no": student.get("admission_no", ""),
+                "class_id": class_id,
+                "marhala_name": fee_structure.get("marhala_name", ""),
+                "fee_structure": {
+                    "id": fee_structure.get("id"),
+                    "monthly_fee": monthly_fee,
+                    "admission_fee": admission_fee,
+                    "exam_fee": exam_fee,
+                    "monthly_late_fee": fee_structure.get("monthly_late_fee", 0)
+                },
+                "months_elapsed": months_elapsed,
+                "expected_monthly_total": expected_monthly,
+                "expected_total": total_expected,
+                "total_paid": total_paid,
+                "total_due": total_due
+            }
+        else:
+            return {
+                "student_id": student_id,
+                "student_name": student.get("name_en") or student.get("name_bn", "Unknown"),
+                "admission_no": student.get("admission_no", ""),
+                "class_id": class_id,
+                "fee_structure": None,
+                "monthly_fee": 0,
+                "admission_fee": 0,
+                "exam_fee": 0,
+                "total_paid": total_paid,
+                "total_due": 0,
+                "message": "No fee structure configured for this marhala"
+            }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Failed to get student calculated fees: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to calculate student fees")
+
 @api_router.post("/fees/generate-due")
 async def generate_student_fees(
     config_id: Optional[str] = None,
@@ -17336,7 +17708,7 @@ async def get_fee_dashboard(current_user: User = Depends(get_current_user)):
         pending_result = await db.student_fees.aggregate(pending_pipeline).to_list(1)
         pending_approvals = pending_result[0].get("total", 0) if pending_result else 0
         
-        # Monthly target (calculated from fee configurations)
+        # Monthly target (calculated from marhala fee structures and fee configurations)
         fee_configs = await db.fee_configurations.find({
             "tenant_id": current_user.tenant_id,
             "is_active": True
@@ -17351,6 +17723,38 @@ async def get_fee_dashboard(current_user: User = Depends(get_current_user)):
                 monthly_target += (config.get("amount", 0) / 3) * 10
             elif config.get("frequency") == "yearly":
                 monthly_target += (config.get("amount", 0) / 12) * 10
+        
+        # Also calculate from marhala fee structures (more accurate) using aggregation
+        current_year = str(datetime.utcnow().year)
+        marhala_structures = await db.marhala_fee_structures.find({
+            "tenant_id": current_user.tenant_id,
+            "academic_year": current_year,
+            "is_active": True,
+            "is_enabled": True
+        }).to_list(100)
+        
+        if marhala_structures:
+            # Use aggregation to get student counts per class efficiently (avoid N+1)
+            class_ids = [s.get("marhala_id") for s in marhala_structures if s.get("marhala_id")]
+            student_counts_pipeline = [
+                {"$match": {
+                    "tenant_id": current_user.tenant_id,
+                    "class_id": {"$in": class_ids},
+                    "is_active": True
+                }},
+                {"$group": {
+                    "_id": "$class_id",
+                    "count": {"$sum": 1}
+                }}
+            ]
+            student_counts = await db.students.aggregate(student_counts_pipeline).to_list(1000)
+            count_map = {sc["_id"]: sc["count"] for sc in student_counts}
+            
+            for structure in marhala_structures:
+                marhala_id = structure.get("marhala_id")
+                student_count = count_map.get(marhala_id, 0)
+                monthly_fee = structure.get("monthly_fee", 0) or 0
+                monthly_target += monthly_fee * student_count
         
         # Get monthly collection data for the last 6 months
         bengali_months = ['জানু', 'ফেব্রু', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই', 'আগস্ট', 'সেপ্টে', 'অক্টো', 'নভে', 'ডিসে']

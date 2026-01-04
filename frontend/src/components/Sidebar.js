@@ -344,6 +344,12 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           roles: ["super_admin", "admin"],
         },
         {
+          title: "Fee Setup",
+          madrasahTitle: "ফি সেটআপ",
+          path: "/fees/setup",
+          roles: ["super_admin", "admin"],
+        },
+        {
           title: "Fee Structure",
           madrasahTitle: "ফি কাঠামো",
           path: "/fees/structure",
