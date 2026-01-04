@@ -13247,11 +13247,14 @@ def create_professional_pdf_template(school_name: str = "School ERP System", sch
     from reportlab.pdfbase.ttfonts import TTFont
     import os
     
-    # Register Bengali font for proper Unicode support
+    # Register Bengali fonts for proper Unicode support
     bengali_font_path = os.path.join(os.path.dirname(__file__), "fonts", "NotoSansBengali-Regular.ttf")
+    bengali_bold_font_path = os.path.join(os.path.dirname(__file__), "fonts", "NotoSansBengali-Bold.ttf")
     if os.path.exists(bengali_font_path):
         try:
             pdfmetrics.registerFont(TTFont("NotoSansBengali", bengali_font_path))
+            if os.path.exists(bengali_bold_font_path):
+                pdfmetrics.registerFont(TTFont("NotoSansBengali-Bold", bengali_bold_font_path))
         except Exception:
             pass  # Font may already be registered
     
@@ -13342,14 +13345,16 @@ def create_professional_pdf_template(school_name: str = "School ERP System", sch
         )
     }
     
-    # Table styles templates
+    # Table styles templates - use Bengali font for proper Unicode support
     table_styles = {
         'header': [
             ('BACKGROUND', (0, 0), (-1, 0), primary_color),
             ('TEXTCOLOR', (0, 0), (-1, 0), rl_colors.whitesmoke),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTNAME', (0, 0), (-1, 0), 'NotoSansBengali-Bold'),
+            ('FONTNAME', (0, 1), (-1, -1), 'NotoSansBengali'),
             ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
             ('TOPPADDING', (0, 0), (-1, 0), 12),
             ('GRID', (0, 0), (-1, -1), 1, rl_colors.Color(0.8, 0.8, 0.8))
@@ -13362,8 +13367,10 @@ def create_professional_pdf_template(school_name: str = "School ERP System", sch
             ('BACKGROUND', (0, 0), (-1, 0), secondary_color),
             ('TEXTCOLOR', (0, 0), (-1, 0), rl_colors.whitesmoke),
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTNAME', (0, 0), (-1, 0), 'NotoSansBengali-Bold'),
+            ('FONTNAME', (0, 1), (-1, -1), 'NotoSansBengali'),
             ('FONTSIZE', (0, 0), (-1, 0), 11),
+            ('FONTSIZE', (0, 1), (-1, -1), 10),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
             ('TOPPADDING', (0, 0), (-1, -1), 8),
             ('LEFTPADDING', (0, 0), (-1, -1), 10),
