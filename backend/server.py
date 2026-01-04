@@ -18008,14 +18008,26 @@ async def get_student_fees(
         student_fees = []
         for fee in student_fees_raw:
             logging.info(f"🔍 Processing fee: student={fee.get('student_name')}, amount={fee.get('amount')}, pending={fee.get('pending_amount')}, overdue={fee.get('overdue_amount')}, keys={list(fee.keys())}")
-            # Calculate days overdue if due date exists
+            # Calculate days overdue if due date exists (handle various types)
             days_overdue = 0
             if fee.get("due_date"):
                 due_date = fee["due_date"]
-                if isinstance(due_date, str):
-                    due_date = datetime.fromisoformat(due_date.replace('Z', '+00:00'))
-                if due_date < datetime.utcnow():
-                    days_overdue = (datetime.utcnow() - due_date).days
+                try:
+                    # Handle string dates
+                    if isinstance(due_date, str):
+                        due_date = datetime.fromisoformat(due_date.replace('Z', '+00:00'))
+                    # Handle integer timestamps
+                    elif isinstance(due_date, (int, float)):
+                        due_date = datetime.fromtimestamp(due_date / 1000 if due_date > 10000000000 else due_date)
+                    # Handle datetime objects - ensure timezone naive for comparison
+                    if isinstance(due_date, datetime):
+                        if due_date.tzinfo is not None:
+                            due_date = due_date.replace(tzinfo=None)
+                        if due_date < datetime.utcnow():
+                            days_overdue = (datetime.utcnow() - due_date).days
+                except Exception as e:
+                    logging.warning(f"Failed to parse due_date {fee.get('due_date')}: {e}")
+                    days_overdue = 0
             
             # Only include fees with pending or overdue amounts
             total_due = fee.get("pending_amount", 0) + fee.get("overdue_amount", 0)
