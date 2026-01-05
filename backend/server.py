@@ -18012,6 +18012,7 @@ async def get_student_fees(
         logging.info(f"📊 Students: Found {len(students)} active students")
         
         # Fetch all completed payments grouped by student
+        # Fetch all completed payments grouped by student from fee_payments
         payments_cursor = db.fee_payments.aggregate([
             {
                 "$match": {
@@ -18037,6 +18038,37 @@ async def get_student_fees(
             }
         ])
         payments_by_student = {p["_id"]: p async for p in payments_cursor}
+        
+        # Also fetch admission fees from admission_fees collection
+        admission_cursor = db.admission_fees.aggregate([
+            {
+                "$match": {
+                    "tenant_id": current_user.tenant_id,
+                    "status": {"$in": ["completed", "verified", "paid"]}
+                }
+            },
+            {
+                "$group": {
+                    "_id": "$student_id",
+                    "admission_paid": {"$sum": "$amount"}
+                }
+            }
+        ])
+        admission_by_student = {p["_id"]: p.get("admission_paid", 0) async for p in admission_cursor}
+        
+        # Merge admission_fees into payments_by_student
+        for student_id, admission_amount in admission_by_student.items():
+            if student_id in payments_by_student:
+                payments_by_student[student_id]["admission_paid"] = payments_by_student[student_id].get("admission_paid", 0) + admission_amount
+                payments_by_student[student_id]["total_paid"] = payments_by_student[student_id].get("total_paid", 0) + admission_amount
+            else:
+                payments_by_student[student_id] = {
+                    "_id": student_id,
+                    "total_paid": admission_amount,
+                    "admission_paid": admission_amount,
+                    "monthly_paid": 0
+                }
+        
         
         # Calculate dues for each student dynamically
         student_fees = []

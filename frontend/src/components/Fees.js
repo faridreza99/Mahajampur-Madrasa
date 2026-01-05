@@ -55,6 +55,7 @@ import {
 import { toast } from "sonner";
 
 const API = process.env.REACT_APP_API_URL || "/api";
+const BASE_URL = API ? API.replace('/api', '') : '';
 
 const Fees = () => {
   // Currency context for dynamic currency display
@@ -1995,6 +1996,7 @@ const Fees = () => {
                             >
                               <div className="flex items-center gap-3 flex-1">
                                 <Avatar className="h-12 w-12">
+                                  <AvatarImage src={student.photo_url ? `${BASE_URL}${student.photo_url}` : ""} />
                                   <AvatarFallback className="bg-emerald-100 text-emerald-700 text-lg font-bold">
                                     {(
                                       student.name ||
@@ -2093,6 +2095,7 @@ const Fees = () => {
                 {/* Selected Student Info */}
                 <div className="bg-gray-50 rounded-lg p-4 mb-6 flex items-center gap-4">
                   <Avatar className="h-16 w-16">
+                    <AvatarImage src={selectedStudent.photo_url ? `${BASE_URL}${selectedStudent.photo_url}` : ""} />
                     <AvatarFallback className="bg-emerald-100 text-emerald-700 text-xl font-bold">
                       {(
                         selectedStudent.name ||
@@ -2913,6 +2916,7 @@ const Fees = () => {
                           >
                             <div className="flex items-center space-x-2 sm:space-x-3">
                               <Avatar className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0">
+                                <AvatarImage src={student.photo_url ? `${BASE_URL}${student.photo_url}` : ""} />
                                 <AvatarFallback className="bg-emerald-100 text-emerald-700 text-xs sm:text-sm">
                                   {student.name
                                     .split(" ")
@@ -2967,6 +2971,7 @@ const Fees = () => {
                       <CardContent>
                         <div className="flex items-start space-x-4">
                           <Avatar className="h-16 w-16">
+                            <AvatarImage src={selectedStudent.photo_url ? `${BASE_URL}${selectedStudent.photo_url}` : ""} />
                             <AvatarFallback className="bg-emerald-100 text-emerald-700 text-lg">
                               {selectedStudent.name
                                 .split(" ")
@@ -4045,6 +4050,7 @@ const Fees = () => {
                           >
                             <div className="flex items-center gap-3">
                               <Avatar className="h-10 w-10">
+                                <AvatarImage src={student.photo_url ? `${BASE_URL}${student.photo_url}` : ""} />
                                 <AvatarFallback className="bg-emerald-100 text-emerald-700">
                                   {(
                                     student.name ||
@@ -4107,6 +4113,7 @@ const Fees = () => {
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
                           <Avatar className="h-12 w-12">
+                            <AvatarImage src={selectedStudent.photo_url ? `${BASE_URL}${selectedStudent.photo_url}` : ""} />
                             <AvatarFallback className="bg-emerald-200 text-emerald-800 text-lg">
                               {(
                                 selectedStudent.name ||
