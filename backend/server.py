@@ -18060,11 +18060,16 @@ async def get_student_fees(
         ])
         admission_by_student = {p["_id"]: p.get("admission_paid", 0) async for p in admission_cursor}
         
-        # Merge admission_fees into payments_by_student
+        # Merge admission_fees into payments_by_student - AVOID DOUBLE COUNTING
+        # Only add admission_fees if NOT already paid via fee_payments
         for student_id, admission_amount in admission_by_student.items():
             if student_id in payments_by_student:
-                payments_by_student[student_id]["admission_paid"] = payments_by_student[student_id].get("admission_paid", 0) + admission_amount
-                payments_by_student[student_id]["total_paid"] = payments_by_student[student_id].get("total_paid", 0) + admission_amount
+                # Only add if admission not already paid via fee_payments
+                existing_admission = payments_by_student[student_id].get("admission_paid", 0)
+                if existing_admission == 0:
+                    payments_by_student[student_id]["admission_paid"] = admission_amount
+                    payments_by_student[student_id]["total_paid"] = payments_by_student[student_id].get("total_paid", 0) + admission_amount
+                # If already paid via fee_payments, don't double count
             else:
                 payments_by_student[student_id] = {
                     "_id": student_id,
@@ -18307,7 +18312,7 @@ async def get_admission_fee_status(
     student_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Check if student has paid admission fee"""
+    """Check if student has paid admission fee - checks all payment sources"""
     try:
         # Get student details
         student = await db.students.find_one({
@@ -18319,35 +18324,75 @@ async def get_admission_fee_status(
         if not student:
             raise HTTPException(status_code=404, detail="Student not found")
         
-        # Check if admission fee is paid
-        admission_payment = await db.payments.find_one({
+        class_id = student.get("class_id")
+        
+        # Check admission_fees collection first (includes status=null as paid)
+        admission_from_collection = await db.admission_fees.find_one({
             "student_id": student_id,
             "tenant_id": current_user.tenant_id,
-            "fee_type": "Admission Fees"
-        })
-        
-        # Get admission fee amount from fee configuration
-        student_class = student.get("class") or student.get("class_name") or ""
-        fee_config = await db.fee_configurations.find_one({
-            "tenant_id": current_user.tenant_id,
-            "fee_type": "Admission Fees",
             "$or": [
-                {"applyToClasses": student_class},
-                {"applyToClasses": "all"},
-                {"class_name": student_class}
+                {"status": {"$in": ["completed", "verified", "paid"]}},
+                {"status": None},
+                {"status": {"$exists": False}}
             ]
         })
         
+        # Also check fee_payments collection for Admission Fee type
+        admission_from_fee_payments = await db.fee_payments.find_one({
+            "student_id": student_id,
+            "tenant_id": current_user.tenant_id,
+            "fee_type": "Admission Fee",
+            "status": {"$in": ["completed", "verified"]}
+        })
+        
+        # Also check legacy payments collection
+        admission_from_payments = await db.payments.find_one({
+            "student_id": student_id,
+            "tenant_id": current_user.tenant_id,
+            "fee_type": {"$in": ["Admission Fee", "Admission Fees"]}
+        })
+        
+        # Admission fee is paid if found in ANY collection
+        admission_payment = admission_from_collection or admission_from_fee_payments or admission_from_payments
+        is_paid = admission_payment is not None
+        
+        # Get admission fee amount from marhala_fee_structures (single source of truth)
+        current_year = str(datetime.utcnow().year)
+        fee_structure = await db.marhala_fee_structures.find_one({
+            "tenant_id": current_user.tenant_id,
+            "marhala_id": class_id,
+            "academic_year": current_year,
+            "is_active": True,
+            "is_enabled": True
+        })
+        
+        admission_fee_amount = fee_structure.get("admission_fee", 0) if fee_structure else 0
+        
+        # Get payment details
+        payment_date = None
+        receipt_no = None
+        paid_amount = 0
+        
+        if admission_payment:
+            payment_date = admission_payment.get("payment_date") or admission_payment.get("created_at")
+            receipt_no = admission_payment.get("receipt_no") or admission_payment.get("id")
+            paid_amount = admission_payment.get("amount", 0)
+        
+        logging.info(f"📋 Admission status for {student_id}: paid={is_paid}, amount={admission_fee_amount}, paid_amount={paid_amount}")
+        
         return {
             "student_id": student_id,
-            "admission_fee_paid": admission_payment is not None,
-            "admission_fee_amount": fee_config.get("amount", 0) if fee_config else 0,
-            "payment_date": admission_payment.get("payment_date") if admission_payment else None,
-            "receipt_no": admission_payment.get("receipt_no") if admission_payment else None
+            "paid": is_paid,
+            "admission_fee_paid": is_paid,
+            "admission_fee_amount": admission_fee_amount,
+            "paid_amount": paid_amount,
+            "payment_date": payment_date,
+            "receipt_no": receipt_no
         }
     except HTTPException:
         raise
     except Exception as e:
+        logging.error(f"Error checking admission status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -18356,27 +18401,46 @@ async def get_paid_months(
     student_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Get list of months for which tuition fee is paid"""
+    """Get list of months for which monthly fee is paid - checks all payment sources"""
     try:
-        # Get all monthly payments for this student
-        payments = await db.payments.find({
+        paid_months = set()
+        
+        # Check fee_payments collection for Monthly Fee type
+        fee_payments = await db.fee_payments.find({
             "student_id": student_id,
             "tenant_id": current_user.tenant_id,
-            "fee_type": "Tuition Fees"
+            "fee_type": "Monthly Fee",
+            "status": {"$in": ["completed", "verified"]}
         }).to_list(None)
         
-        paid_months = []
-        for payment in payments:
+        for payment in fee_payments:
             month = payment.get("payment_month")
             if month:
-                paid_months.append(month)
+                paid_months.add(month)
+        
+        # Also check legacy payments collection
+        legacy_payments = await db.payments.find({
+            "student_id": student_id,
+            "tenant_id": current_user.tenant_id,
+            "fee_type": {"$in": ["Tuition Fees", "Monthly Fee", "Monthly Fees"]}
+        }).to_list(None)
+        
+        for payment in legacy_payments:
+            month = payment.get("payment_month")
+            if month:
+                paid_months.add(month)
+        
+        paid_months_list = sorted(list(paid_months))
+        
+        logging.info(f"📋 Paid months for {student_id}: {paid_months_list}")
         
         return {
             "student_id": student_id,
-            "paid_months": paid_months,
-            "total_payments": len(payments)
+            "paid_months": paid_months_list,
+            "total_payments": len(paid_months_list)
         }
     except Exception as e:
+        logging.error(f"Error getting paid months: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

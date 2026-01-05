@@ -422,7 +422,7 @@ const Fees = () => {
       const paidMonths = paidMonthsRes.data?.paid_months || [];
       const studentFees = studentFeesRes.data || [];
       
-      // Find student's fee summary
+      // Find student's fee summary from student-fees endpoint
       const studentFeeSummary = studentFees.find(s => s.student_id === student.id) || {};
       
       // Calculate dues breakdown
@@ -435,8 +435,16 @@ const Fees = () => {
       
       const monthlyFee = feeConfig?.monthly_fee || 0;
       const admissionFee = feeConfig?.admission_fee || 0;
+      
+      // Check if admission fee is paid from the updated admission-status response
+      const isAdmissionPaid = admissionStatus?.paid || admissionStatus?.admission_fee_paid || false;
+      const admissionPaidAmount = isAdmissionPaid ? (admissionStatus?.paid_amount || admissionFee) : 0;
+      
+      // Calculate total paid: admission fee (if paid) + monthly fees (from paid months)
+      const monthlyPaidAmount = paidMonths.length * monthlyFee;
+      const totalPaid = admissionPaidAmount + monthlyPaidAmount;
+      
       const totalExpected = (monthlyFee * monthsElapsed) + admissionFee;
-      const totalPaid = studentFeeSummary.paid_amount || 0;
       const totalDue = Math.max(0, totalExpected - totalPaid);
       
       setBreakdownData({
@@ -449,7 +457,9 @@ const Fees = () => {
         totalDue,
         admissionFee,
         monthlyFee,
-        admissionFeePaid: admissionStatus?.paid || false,
+        admissionFeePaid: isAdmissionPaid,
+        admissionPaidAmount,
+        monthlyPaidAmount,
         monthsPaid: paidMonths.length,
         monthsDue: Math.max(0, monthsElapsed - paidMonths.length),
       });
