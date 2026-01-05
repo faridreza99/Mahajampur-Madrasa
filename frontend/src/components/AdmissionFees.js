@@ -203,8 +203,8 @@ const AdmissionFees = () => {
       
       try {
         const [feeConfigRes, admissionStatusRes] = await Promise.all([
-          axios.get(`${API}/fees/fee-config/${student.id}`),
-          axios.get(`${API}/fees/admission-status/${student.id}`)
+          axios.get(`${API}/fees/student/${student.id}/fee-config`),
+          axios.get(`${API}/fees/student/${student.id}/admission-status`)
         ]);
         
         const config = feeConfigRes.data;
