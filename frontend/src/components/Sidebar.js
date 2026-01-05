@@ -68,10 +68,19 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   }, []);
 
   useEffect(() => {
-    const scrollElement = scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]');
-    if (scrollElement && scrollPositionRef.current > 0) {
-      scrollElement.scrollTop = scrollPositionRef.current;
-    }
+    const restoreScroll = () => {
+      const scrollElement = scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollElement && scrollPositionRef.current > 0) {
+        scrollElement.scrollTop = scrollPositionRef.current;
+      }
+    };
+    // Use requestAnimationFrame to ensure DOM has updated before restoring scroll
+    const frameId = requestAnimationFrame(() => {
+      restoreScroll();
+      // Double-check with a small delay as a fallback
+      setTimeout(restoreScroll, 50);
+    });
+    return () => cancelAnimationFrame(frameId);
   }, [location.pathname]);
 
   useEffect(() => {
