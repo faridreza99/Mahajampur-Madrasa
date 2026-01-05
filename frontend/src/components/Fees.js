@@ -141,6 +141,13 @@ const Fees = () => {
   // Madrasah Simple Wizard State
   const [madrasahWizardStep, setMadrasahWizardStep] = useState(1); // 1=ছাত্র নির্বাচন, 2=বেতন আদায়, 3=রসিদ
   const [lastReceipt, setLastReceipt] = useState(null); // For receipt printing
+  
+  // Fee Setup Enforcement State
+  const [studentFeeConfig, setStudentFeeConfig] = useState(null);
+  const [admissionStatus, setAdmissionStatus] = useState(null);
+  const [paidMonths, setPaidMonths] = useState([]);
+  const [selectedMonths, setSelectedMonths] = useState([]);
+  const [feeCheckLoading, setFeeCheckLoading] = useState(false);
 
   // School Branding for Receipt
   const [schoolBranding, setSchoolBranding] = useState({
@@ -343,6 +350,68 @@ const Fees = () => {
       // Reset recent payments to empty array
       setRecentPayments([]);
     }
+  };
+
+  // Fetch fee configuration, admission status, and paid months for a student
+  const fetchStudentFeeStatus = async (studentId) => {
+    if (!studentId) return;
+    setFeeCheckLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const [feeConfigRes, admissionRes, paidMonthsRes] = await Promise.all([
+        axios.get(`${API}/fees/student/${studentId}/fee-config`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${API}/fees/student/${studentId}/admission-status`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${API}/fees/student/${studentId}/paid-months`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+      
+      setStudentFeeConfig(feeConfigRes.data);
+      setAdmissionStatus(admissionRes.data);
+      setPaidMonths(paidMonthsRes.data?.paid_months || []);
+      setSelectedMonths([]);
+    } catch (error) {
+      console.error("Failed to fetch student fee status:", error);
+      setStudentFeeConfig(null);
+      setAdmissionStatus(null);
+      setPaidMonths([]);
+    } finally {
+      setFeeCheckLoading(false);
+    }
+  };
+
+  // Generate list of months for the current academic year
+  const getAcademicYearMonths = () => {
+    const months = [];
+    const currentYear = new Date().getFullYear();
+    const monthNames = [
+      "জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন",
+      "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর"
+    ];
+    for (let m = 0; m < 12; m++) {
+      const monthKey = `${currentYear}-${String(m + 1).padStart(2, "0")}`;
+      months.push({ key: monthKey, name: `${monthNames[m]} ${currentYear}` });
+    }
+    return months;
+  };
+
+  // Toggle month selection
+  const toggleMonthSelection = (monthKey) => {
+    setSelectedMonths((prev) =>
+      prev.includes(monthKey)
+        ? prev.filter((m) => m !== monthKey)
+        : [...prev, monthKey]
+    );
+  };
+
+  // Calculate total from selected months
+  const calculateMonthlyTotal = () => {
+    if (!studentFeeConfig?.monthly_fee || selectedMonths.length === 0) return 0;
+    return studentFeeConfig.monthly_fee * selectedMonths.length;
   };
 
   const calculateTotalsFromConfigurations = (configs) => {
@@ -1978,6 +2047,7 @@ const Fees = () => {
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setSelectedStudent(student);
+                                    fetchStudentFeeStatus(student.id);
                                     setMadrasahWizardStep(2);
                                   }}
                                 >
@@ -2045,101 +2115,201 @@ const Fees = () => {
                   </div>
                 </div>
 
-                {/* Simple Fee Form */}
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">
-                      বেতনের পরিমাণ (টাকা)
-                    </label>
-                    <Input
-                      type="number"
-                      placeholder="যেমন: ৫০০"
-                      value={collectionForm.amount}
-                      onChange={(e) =>
-                        setCollectionForm({
-                          ...collectionForm,
-                          amount: e.target.value,
-                        })
-                      }
-                      className="h-14 text-xl font-bold text-center border-emerald-300 focus:border-emerald-500"
-                    />
+                {/* Fee Setup Enforced Payment Form */}
+                {feeCheckLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin h-8 w-8 border-4 border-emerald-500 border-t-transparent rounded-full mx-auto mb-3"></div>
+                    <p className="text-gray-600">ফি তথ্য লোড হচ্ছে...</p>
                   </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">
-                      মন্তব্য (ঐচ্ছিক)
-                    </label>
-                    <Input
-                      placeholder="যেমন: ডিসেম্বর মাসের বেতন"
-                      value={collectionForm.remarks}
-                      onChange={(e) =>
-                        setCollectionForm({
-                          ...collectionForm,
-                          remarks: e.target.value,
-                        })
-                      }
-                      className="h-12 border-gray-300"
-                    />
+                ) : !studentFeeConfig?.fee_configured ? (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                    <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-3" />
+                    <h4 className="text-lg font-bold text-red-700 mb-2">ফি সেটআপ করা হয়নি</h4>
+                    <p className="text-red-600 mb-4">
+                      এই মারহালার জন্য ফি সেটআপ করা হয়নি।<br />
+                      অনুগ্রহ করে আগে Fee Setup সম্পন্ন করুন।
+                    </p>
+                    <Button
+                      variant="outline"
+                      className="border-red-300 text-red-700"
+                      onClick={() => setMadrasahWizardStep(1)}
+                    >
+                      ← ফিরে যান
+                    </Button>
                   </div>
-                  <Button
-                    className="w-full h-14 text-lg font-bold bg-emerald-500 hover:bg-emerald-600"
-                    onClick={async () => {
-                      if (
-                        !collectionForm.amount ||
-                        parseFloat(collectionForm.amount) <= 0
-                      ) {
-                        toast.error("বেতনের পরিমাণ দিন");
-                        return;
-                      }
-                      setLoading(true);
-                      try {
-                        const token = localStorage.getItem("token");
-                        const response = await axios.post(
-                          `${API}/fees/payments`,
-                          {
-                            student_id: selectedStudent.id,
-                            student_name:
-                              selectedStudent.name ||
-                              selectedStudent.student_name,
+                ) : !admissionStatus?.admission_fee_paid ? (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 text-center">
+                    <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto mb-3" />
+                    <h4 className="text-lg font-bold text-amber-700 mb-2">ভর্তি ফি আগে পরিশোধ করুন</h4>
+                    <p className="text-amber-600 mb-4">
+                      মাসিক বেতন আদায়ের আগে ভর্তি ফি পরিশোধ করতে হবে।<br />
+                      ভর্তি ফি: ৳{studentFeeConfig?.admission_fee?.toLocaleString() || 0}
+                    </p>
+                    <Button
+                      className="bg-amber-500 hover:bg-amber-600 text-white font-bold"
+                      onClick={async () => {
+                        setLoading(true);
+                        try {
+                          const token = localStorage.getItem("token");
+                          const response = await axios.post(
+                            `${API}/fees/payments`,
+                            {
+                              student_id: selectedStudent.id,
+                              fee_type: "Admission Fees",
+                              amount: studentFeeConfig.admission_fee,
+                              payment_mode: "Cash",
+                              remarks: "ভর্তি ফি",
+                            },
+                            { headers: { Authorization: `Bearer ${token}` } }
+                          );
+                          toast.success("✅ ভর্তি ফি সফলভাবে আদায় হয়েছে!");
+                          await fetchStudentFeeStatus(selectedStudent.id);
+                          await loadFeeDataFromBackend();
+                        } catch (error) {
+                          console.error("Admission fee payment failed:", error);
+                          toast.error("ভর্তি ফি আদায় ব্যর্থ হয়েছে");
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      disabled={loading}
+                    >
+                      {loading ? "প্রক্রিয়াকরণ হচ্ছে..." : `৳${studentFeeConfig?.admission_fee?.toLocaleString()} ভর্তি ফি আদায় করুন`}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {/* Fee Info from Fee Setup */}
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-emerald-600">মাসিক বেতন (Fee Setup থেকে)</p>
+                          <p className="text-2xl font-bold text-emerald-700">
+                            ৳{studentFeeConfig?.monthly_fee?.toLocaleString() || 0}
+                          </p>
+                        </div>
+                        <CheckCircle className="h-8 w-8 text-emerald-500" />
+                      </div>
+                    </div>
+
+                    {/* Month Selection */}
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-3 block">
+                        মাস নির্বাচন করুন (একাধিক মাস নির্বাচন করা যাবে)
+                      </label>
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                        {getAcademicYearMonths().map((month) => {
+                          const isPaid = paidMonths.includes(month.key);
+                          const isSelected = selectedMonths.includes(month.key);
+                          return (
+                            <button
+                              key={month.key}
+                              onClick={() => !isPaid && toggleMonthSelection(month.key)}
+                              disabled={isPaid}
+                              className={`p-2 rounded-lg border text-sm font-medium transition-all ${
+                                isPaid
+                                  ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+                                  : isSelected
+                                    ? "bg-emerald-500 border-emerald-500 text-white"
+                                    : "bg-white border-gray-300 text-gray-700 hover:border-emerald-400"
+                              }`}
+                            >
+                              {month.name.split(" ")[0]}
+                              {isPaid && <span className="block text-xs">✓ পেইড</span>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Total Amount (Read-only) */}
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-600">নির্বাচিত মাস: {selectedMonths.length}</p>
+                          <p className="text-sm text-gray-600">প্রতি মাসে: ৳{studentFeeConfig?.monthly_fee?.toLocaleString()}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-gray-600">মোট পরিমাণ</p>
+                          <p className="text-3xl font-bold text-emerald-600">
+                            ৳{calculateMonthlyTotal().toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Remarks */}
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-2 block">
+                        মন্তব্য (ঐচ্ছিক)
+                      </label>
+                      <Input
+                        placeholder="যেমন: অগ্রিম বেতন"
+                        value={collectionForm.remarks}
+                        onChange={(e) =>
+                          setCollectionForm({
+                            ...collectionForm,
+                            remarks: e.target.value,
+                          })
+                        }
+                        className="h-12 border-gray-300"
+                      />
+                    </div>
+
+                    {/* Submit Button */}
+                    <Button
+                      className="w-full h-14 text-lg font-bold bg-emerald-500 hover:bg-emerald-600"
+                      onClick={async () => {
+                        if (selectedMonths.length === 0) {
+                          toast.error("অন্তত একটি মাস নির্বাচন করুন");
+                          return;
+                        }
+                        setLoading(true);
+                        try {
+                          const token = localStorage.getItem("token");
+                          const response = await axios.post(
+                            `${API}/fees/payments/multi-month`,
+                            {
+                              student_id: selectedStudent.id,
+                              months: selectedMonths,
+                              amount_per_month: studentFeeConfig.monthly_fee,
+                              payment_mode: "Cash",
+                              remarks: collectionForm.remarks || "",
+                            },
+                            { headers: { Authorization: `Bearer ${token}` } }
+                          );
+                          setLastReceipt({
+                            student: selectedStudent,
+                            amount: calculateMonthlyTotal(),
+                            date: new Date().toLocaleDateString("bn-BD"),
                             fee_type: "Tuition Fees",
-                            amount: parseFloat(collectionForm.amount),
                             payment_mode: "Cash",
-                            remarks: collectionForm.remarks || "মাসিক বেতন",
-                            class_id: selectedStudent.class_id,
-                            section_id: selectedStudent.section_id,
-                          },
-                          {
-                            headers: { Authorization: `Bearer ${token}` },
-                          },
-                        );
-                        // Use backend response data, only add fallbacks for UI-specific fields
-                        setLastReceipt({
-                          student: selectedStudent,
-                          amount: parseFloat(collectionForm.amount),
-                          date: new Date().toLocaleDateString("bn-BD"),
-                          // Fallbacks only used if backend doesn't provide these
-                          fee_type: "Tuition Fees",
-                          payment_mode: "Cash",
-                          remarks: collectionForm.remarks || "মাসিক বেতন",
-                          status: "Paid",
-                          // Backend response takes priority (spread after fallbacks)
-                          ...response.data,
-                        });
-                        // Refresh fee data immediately to update the student list
-                        await loadFeeDataFromBackend();
-                        setMadrasahWizardStep(3);
-                        toast.success("✅ বেতন সফলভাবে আদায় হয়েছে!");
-                      } catch (error) {
-                        console.error("Payment failed:", error);
-                        toast.error("বেতন আদায় ব্যর্থ হয়েছে");
-                      } finally {
-                        setLoading(false);
-                      }
-                    }}
-                    disabled={loading}
-                  >
-                    {loading ? "প্রক্রিয়াকরণ হচ্ছে..." : "✓ বেতন আদায় করুন"}
-                  </Button>
-                </div>
+                            remarks: `মাসিক বেতন (${selectedMonths.length} মাস)`,
+                            months_paid: selectedMonths,
+                            status: "Paid",
+                            ...response.data,
+                          });
+                          await loadFeeDataFromBackend();
+                          setMadrasahWizardStep(3);
+                          toast.success(`✅ ${selectedMonths.length} মাসের বেতন সফলভাবে আদায় হয়েছে!`);
+                        } catch (error) {
+                          console.error("Payment failed:", error);
+                          const errorMsg = error.response?.data?.detail || "বেতন আদায় ব্যর্থ হয়েছে";
+                          toast.error(errorMsg);
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      disabled={loading || selectedMonths.length === 0}
+                    >
+                      {loading
+                        ? "প্রক্রিয়াকরণ হচ্ছে..."
+                        : selectedMonths.length === 0
+                          ? "মাস নির্বাচন করুন"
+                          : `✓ ৳${calculateMonthlyTotal().toLocaleString()} বেতন আদায় করুন`}
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}

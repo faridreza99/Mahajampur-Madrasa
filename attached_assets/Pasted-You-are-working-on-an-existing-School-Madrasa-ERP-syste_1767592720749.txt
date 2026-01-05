@@ -1,0 +1,191 @@
+You are working on an existing School / Madrasa ERP system.
+This task is a CRITICAL accounting logic refactor + bug fix.
+
+Follow instructions strictly.
+Do NOT redesign UI.
+Do NOT add new database tables.
+Do NOT change Bengali labels.
+Do NOT add extra features beyond scope.
+
+====================================
+GLOBAL ACCOUNTING RULE (IMPORTANT)
+====================================
+
+• ALL fees and payment amounts must come ONLY from Fee Setup
+• No manual amount input anywhere
+• Fee Setup is the SINGLE SOURCE OF TRUTH
+
+====================================
+ISSUES TO FIX (ALL TOGETHER)
+====================================
+
+1) Fee is showing static / wrong due amount
+2) “মারহালা ফি অবস্থা” wrongly exists in payment module
+3) Admission Fee is not enforced before monthly payment
+4) Sidebar scroll jumps to top on route change
+5) Monthly payment does not track which months are paid
+6) Monthly payment allows manual amount instead of Fee Setup
+7) Payment allowed even when Marhala fee is not configured
+
+====================================
+ISSUE 1: DYNAMIC FEE & DUE CALCULATION
+====================================
+
+PROBLEM:
+Student list shows static due (e.g. ৳5,000).
+
+FIX:
+
+• Remove any stored or hardcoded:
+  - due_amount
+  - fee_status
+
+• Calculate dynamically using:
+
+Formula:
+due = (monthly_fee × total_applicable_months) − total_paid
+
+Status:
+- due > 0  → "বকেয়া আছে"
+- due <= 0 → "বকেয়া নেই"
+
+❌ No static numbers
+❌ No manual status control
+
+====================================
+ISSUE 2: REMOVE “মারহালা ফি অবস্থা”
+====================================
+
+• Completely remove “মারহালা ফি অবস্থা” from:
+  - Monthly payment page
+  - Salary / Fee payment UI
+  - Any manual fee logic
+
+Payment module must:
+✔ Only record payments
+✔ Never define fee amount
+
+====================================
+ISSUE 3: ADMISSION FEE (MANDATORY & ONE-TIME)
+====================================
+
+• Admission Fee comes ONLY from Fee Setup
+• Based on Student Marhala + active year
+• Admission Fee is ONE-TIME only
+
+Logic:
+Check payments where type = "admission"
+
+IF admission fee NOT paid:
+  ❌ Block monthly payment
+  ❌ Disable “বেতন দিন” button
+  ❌ Show message:
+     "ভর্তি ফি আগে পরিশোধ করুন"
+
+IF paid:
+  ✅ Allow monthly payment
+
+====================================
+ISSUE 4: SIDEBAR SCROLL BUG
+====================================
+
+PROBLEM:
+Sidebar scrolls to top when clicking bottom menu items.
+
+FIX:
+
+• Sidebar must NOT re-render on route change
+• Preserve scroll position
+
+Implement ONE:
+- Save & restore scrollTop using useRef
+OR
+- Move Sidebar into Layout component to prevent unmount
+
+❌ Do not redesign sidebar
+❌ Do not change menu order
+
+====================================
+ISSUE 5: MULTI-MONTH PAYMENT SUPPORT
+====================================
+
+PROBLEM:
+Payment only stores amount, not months.
+
+FIX:
+
+• Allow selecting MULTIPLE unpaid months
+• System auto-calculates total amount
+
+IMPORTANT BACKEND RULE:
+
+• For each selected month:
+  - Create ONE payment record
+  - payment.type = "monthly"
+  - payment.month = YYYY-MM
+
+❌ Do not store one lump-sum payment
+❌ Do not allow paying same month twice
+
+====================================
+ISSUE 6: PAYMENT AMOUNT FROM FEE SETUP ONLY
+====================================
+
+In Monthly Payment (বেতন ব্যবস্থাপনা):
+
+• Amount must AUTO-LOAD from Fee Setup
+• Amount field must be READ-ONLY
+• Total = monthly_fee × selected_months
+
+❌ Manual amount input NOT allowed
+
+====================================
+ISSUE 7: MARHALA FEE NOT CONFIGURED (BLOCK PAYMENT)
+====================================
+
+When opening monthly payment page:
+
+IF Fee Setup NOT found for student.marhala:
+  ❌ Disable payment form
+  ❌ Disable submit button
+  ⚠️ Show alert text (Bangla):
+
+"এই মারহালার জন্য ফি সেটআপ করা হয়নি।
+অনুগ্রহ করে আগে Fee Setup সম্পন্ন করুন।"
+
+====================================
+FINAL DATA FLOW (SOURCE OF TRUTH)
+====================================
+
+Student → Marhala
+Marhala → Fee Setup (Admission Fee + Monthly Fee)
+Payments:
+  - admission (one-time)
+  - monthly (month-wise)
+
+Due & Status → Always derived dynamically
+
+====================================
+DO NOT
+====================================
+
+❌ Do not add new tables
+❌ Do not hardcode any fee
+❌ Do not allow bypass of admission fee
+❌ Do not change UI language
+❌ Do not redesign pages
+
+====================================
+FINAL CHECKLIST
+====================================
+
+✔ Fee always comes from Fee Setup
+✔ Monthly amount auto-loaded & locked
+✔ Admission Fee mandatory before monthly
+✔ Multi-month advance payment works
+✔ Paid months are clearly tracked
+✔ Due amount always correct
+✔ Sidebar does not jump to top
+
+After implementation:
+Briefly explain what bugs were fixed and how the logic works.

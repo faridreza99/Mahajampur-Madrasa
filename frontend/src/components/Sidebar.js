@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../App";
 import { useInstitution } from "../context/InstitutionContext";
@@ -57,6 +57,22 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     logo_url: null,
     primary_color: "#10B981",
   });
+  
+  const scrollRef = useRef(null);
+  const scrollPositionRef = useRef(0);
+
+  const handleScroll = useCallback((e) => {
+    if (e.target) {
+      scrollPositionRef.current = e.target.scrollTop;
+    }
+  }, []);
+
+  useEffect(() => {
+    const scrollElement = scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+    if (scrollElement && scrollPositionRef.current > 0) {
+      scrollElement.scrollTop = scrollPositionRef.current;
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     const handleLanguageChange = () => forceUpdate((n) => n + 1);
@@ -778,7 +794,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       </div>
 
       {/* Navigation */}
-      <ScrollArea className="flex-1 px-4">
+      <ScrollArea className="flex-1 px-4" ref={scrollRef} onScrollCapture={handleScroll}>
         <nav className="py-4 space-y-2">
           {filteredMenuItems.map((item) => {
             const Icon = item.icon;

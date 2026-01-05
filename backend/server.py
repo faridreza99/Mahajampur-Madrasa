@@ -15499,6 +15499,7 @@ class Payment(BaseModel):
     receipt_no: str
     remarks: Optional[str] = None
     payment_date: datetime = Field(default_factory=datetime.utcnow)
+    payment_month: Optional[str] = None  # Format: YYYY-MM for monthly fee tracking
     created_by: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -15510,6 +15511,7 @@ class PaymentCreate(BaseModel):
     transaction_id: Optional[str] = None
     remarks: Optional[str] = None
 
+    payment_month: Optional[str] = None  # Format: YYYY-MM for monthly fee tracking
 class BulkPaymentCreate(BaseModel):
     student_ids: List[str]
     fee_type: str
@@ -18124,6 +18126,7 @@ async def create_payment(
             receipt_no=receipt_no,
             payment_date=datetime.utcnow(),  # Explicit timestamp for accurate "today" filtering
             remarks=payment_data.remarks,
+            payment_month=payment_data.payment_month,
             created_by=current_user.id
         )
         
@@ -18207,6 +18210,222 @@ async def create_payment(
         logging.error(f"Failed to create payment: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to record payment")
 
+
+@api_router.get("/fees/student/{student_id}/admission-status")
+async def get_admission_fee_status(
+    student_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Check if student has paid admission fee"""
+    try:
+        # Get student details
+        student = await db.students.find_one({
+            "id": student_id,
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        })
+        
+        if not student:
+            raise HTTPException(status_code=404, detail="Student not found")
+        
+        # Check if admission fee is paid
+        admission_payment = await db.payments.find_one({
+            "student_id": student_id,
+            "tenant_id": current_user.tenant_id,
+            "fee_type": "Admission Fees"
+        })
+        
+        # Get admission fee amount from fee configuration
+        student_class = student.get("class") or student.get("class_name") or ""
+        fee_config = await db.fee_configurations.find_one({
+            "tenant_id": current_user.tenant_id,
+            "fee_type": "Admission Fees",
+            "$or": [
+                {"applyToClasses": student_class},
+                {"applyToClasses": "all"},
+                {"class_name": student_class}
+            ]
+        })
+        
+        return {
+            "student_id": student_id,
+            "admission_fee_paid": admission_payment is not None,
+            "admission_fee_amount": fee_config.get("amount", 0) if fee_config else 0,
+            "payment_date": admission_payment.get("payment_date") if admission_payment else None,
+            "receipt_no": admission_payment.get("receipt_no") if admission_payment else None
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.get("/fees/student/{student_id}/paid-months")
+async def get_paid_months(
+    student_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get list of months for which tuition fee is paid"""
+    try:
+        # Get all monthly payments for this student
+        payments = await db.payments.find({
+            "student_id": student_id,
+            "tenant_id": current_user.tenant_id,
+            "fee_type": "Tuition Fees"
+        }).to_list(None)
+        
+        paid_months = []
+        for payment in payments:
+            month = payment.get("payment_month")
+            if month:
+                paid_months.append(month)
+        
+        return {
+            "student_id": student_id,
+            "paid_months": paid_months,
+            "total_payments": len(payments)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.get("/fees/student/{student_id}/fee-config")
+async def get_student_fee_config(
+    student_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get fee configuration for student's marhala/class"""
+    try:
+        # Get student details
+        student = await db.students.find_one({
+            "id": student_id,
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        })
+        
+        if not student:
+            raise HTTPException(status_code=404, detail="Student not found")
+        
+        student_class = student.get("class") or student.get("class_name") or ""
+        
+        # Get tuition fee config
+        tuition_config = await db.fee_configurations.find_one({
+            "tenant_id": current_user.tenant_id,
+            "fee_type": "Tuition Fees",
+            "$or": [
+                {"applyToClasses": student_class},
+                {"applyToClasses": "all"},
+                {"class_name": student_class}
+            ]
+        })
+        
+        # Get admission fee config
+        admission_config = await db.fee_configurations.find_one({
+            "tenant_id": current_user.tenant_id,
+            "fee_type": "Admission Fees",
+            "$or": [
+                {"applyToClasses": student_class},
+                {"applyToClasses": "all"},
+                {"class_name": student_class}
+            ]
+        })
+        
+        return {
+            "student_id": student_id,
+            "student_class": student_class,
+            "monthly_fee": tuition_config.get("amount", 0) if tuition_config else 0,
+            "admission_fee": admission_config.get("amount", 0) if admission_config else 0,
+            "fee_configured": tuition_config is not None
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.post("/fees/payments/multi-month")
+async def create_multi_month_payment(
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Create separate payment records for each selected month"""
+    try:
+        student_id = data.get("student_id")
+        months = data.get("months", [])
+        amount_per_month = data.get("amount_per_month", 0)
+        payment_mode = data.get("payment_mode", "Cash")
+        remarks = data.get("remarks", "")
+        
+        if not student_id or not months or amount_per_month <= 0:
+            raise HTTPException(status_code=400, detail="Invalid payment data")
+        
+        # Get student details
+        student = await db.students.find_one({
+            "id": student_id,
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        })
+        
+        if not student:
+            raise HTTPException(status_code=404, detail="Student not found")
+        
+        # Check for duplicate months
+        existing_payments = await db.payments.find({
+            "student_id": student_id,
+            "tenant_id": current_user.tenant_id,
+            "fee_type": "Tuition Fees",
+            "payment_month": {"$in": months}
+        }).to_list(None)
+        
+        already_paid = [p.get("payment_month") for p in existing_payments if p.get("payment_month")]
+        if already_paid:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Payment already exists for months: {', '.join(already_paid)}"
+            )
+        
+        created_payments = []
+        base_receipt = f"RCP{datetime.utcnow().strftime('%Y%m%d')}{uuid.uuid4().hex[:4].upper()}"
+        
+        for idx, month in enumerate(months):
+            receipt_no = f"{base_receipt}-{idx+1}"
+            
+            payment = Payment(
+                tenant_id=current_user.tenant_id,
+                school_id=student.get("school_id"),
+                student_id=student_id,
+                student_name=student["name"],
+                admission_no=student.get("admission_no", ""),
+                fee_type="Tuition Fees",
+                amount=amount_per_month,
+                payment_mode=payment_mode,
+                transaction_id=data.get("transaction_id"),
+                receipt_no=receipt_no,
+                payment_month=month,
+                payment_date=datetime.utcnow(),
+                remarks=f"{remarks} ({month})" if remarks else f"মাসিক বেতন ({month})",
+                created_by=current_user.id
+            )
+            
+            payment_dict = payment.dict()
+            await db.payments.insert_one(payment_dict)
+            payment_dict.pop("_id", None)
+            created_payments.append(payment_dict)
+            
+            # Update student fees
+            await apply_payment_to_student_fees(payment, current_user)
+        
+        return {
+            "success": True,
+            "total_amount": amount_per_month * len(months),
+            "months_paid": months,
+            "payments": created_payments,
+            "receipt_no": base_receipt
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 @api_router.post("/fees/bulk-payments")
 @api_router.post("/payments/bulk")  # Additional route for frontend compatibility
 async def create_bulk_payment(
@@ -18256,7 +18475,7 @@ async def create_bulk_payment(
                 receipt_no=receipt_no,
                 payment_date=datetime.utcnow(),  # Explicit timestamp for accurate "today" filtering
                 remarks=bulk_data.remarks,
-                created_by=current_user.id
+            created_by=current_user.id
             )
             
             # Save payment
@@ -31483,7 +31702,7 @@ async def create_madrasah_simple_result(
         session=result_data.session,
         grade=result_data.grade,
         remarks=result_data.remarks,
-        created_by=current_user.id
+            created_by=current_user.id
     )
     
     await db.madrasah_simple_results.insert_one(result.dict())
@@ -31610,7 +31829,7 @@ async def create_madrasah_simple_routine(
         teacher_name=routine_data.teacher_name,
         start_time=routine_data.start_time,
         end_time=routine_data.end_time,
-        created_by=current_user.id
+            created_by=current_user.id
     )
     
     await db.madrasah_simple_routines.insert_one(routine.dict())
