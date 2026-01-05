@@ -2054,12 +2054,18 @@ const Fees = () => {
                                     (sum, f) => sum + (f.overdue_amount || 0),
                                     0,
                                   ),
+                                  total_due: studentFeeRecords.reduce(
+                                    (sum, f) => sum + (f.total_due || f.pending_amount || 0),
+                                    0,
+                                  ),
                                 }
                               : null;
+                          // Use total_due (dynamically calculated from Fee Setup) for accurate dues check
                           const hasDue =
                             studentDue &&
-                            (studentDue.pending_amount > 0 ||
-                              studentDue.overdue_amount > 0);
+                            ((studentDue.total_due || 0) > 0 ||
+                              (studentDue.pending_amount || 0) > 0 ||
+                              (studentDue.overdue_amount || 0) > 0);
                           return (
                             <div
                               key={student.id || student._id}
@@ -2107,6 +2113,7 @@ const Fees = () => {
                                       <p className="text-red-600 font-medium">
                                         বকেয়া: ৳
                                         {(
+                                          studentDue.total_due || 
                                           (studentDue.pending_amount || 0) +
                                           (studentDue.overdue_amount || 0)
                                         ).toLocaleString()}
@@ -5608,7 +5615,7 @@ const Fees = () => {
 
       {/* Payment Breakdown Modal */}
       <Dialog open={showBreakdownModal} onOpenChange={setShowBreakdownModal}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-emerald-700">
               <FileText className="h-5 w-5" />
