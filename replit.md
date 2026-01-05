@@ -3,7 +3,7 @@
 This Cloud School ERP is a **Single Madrasah** management system (fixed tenant: MHAM5678) with comprehensive educational modules and AI capabilities. The system includes student management, attendance tracking, results, ID card generation, fee management, and AI tools. It provides a simplified, Bengali-first interface optimized for Madrasah institutions with professional reporting and scalable architecture supporting 100k+ students.
 
 ## Recent Changes (January 2026)
-- **Fee Management Accounting Refactor**: Comprehensive refactor enforcing Fee Setup as single source of truth:
+- **Fee Management Accounting Refactor - Complete**: Comprehensive refactor enforcing Fee Setup as single source of truth:
   - Removed scroll-to-top effect from DashboardLayout for persistent sidebar state
   - Added 4 backend endpoints: admission-status, paid-months, fee-config, multi-month
   - **Fixed fee-config endpoint**: Now queries `marhala_fee_structures` collection (used by Fee Setup) instead of legacy `fee_configurations`. Matches student's `class_id` to `marhala_id` for proper fee lookup.
@@ -11,6 +11,10 @@ This Cloud School ERP is a **Single Madrasah** management system (fixed tenant: 
   - Admission fee must be paid before monthly fees (enforced in both Quick Collect and multi-month flows)
   - Multi-month payments create individual database records per month with payment_month field
   - Bengali warning message "ভর্তি ফি আগে পরিশোধ করুন" shown when admission fee not paid
+  - **Dynamic Dues Calculation**: `/fees/student-fees` endpoint now calculates dues dynamically from `marhala_fee_structures` instead of reading static amounts. Formula: `(monthly_fee × months_elapsed + admission_fee) - total_paid`
+  - **Backend Admission Fee Enforcement**: `POST /admission-fees` now ignores client-provided amounts and fetches admission fee from Fee Setup server-side, preventing any API-level manipulation
+  - **Duplicate Payment Prevention**: Both `admission_fees` and `fee_payments` collections are checked before accepting new admission fee payments
+  - **AdmissionFees.js Read-Only**: Amount field is now read-only with "ফি সেটআপ থেকে" label, fetches fee config when student is selected
 - **Central Financial Reports Hub**: Comprehensive reporting system with 5 financial report pages:
   - Financial Summary (আর্থিক সারাংশ): Overview of all fees, donations, today's collection, and dues
   - Admission Fee Report (ভর্তি ফি রিপোর্ট): Detailed admission fee collection history
