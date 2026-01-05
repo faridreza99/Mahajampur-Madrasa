@@ -1991,49 +1991,6 @@ const Fees = () => {
                   </div>
                 </div>
 
-                {/* Marhala Fee Overview Panel */}
-                <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                  <h4 className="font-medium text-gray-700 mb-3 flex items-center gap-2">
-                    <DollarSign className="h-4 w-4" />
-                    মারহালা ফি অবস্থা
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {feeConfigurations["Tuition Fees"]?.length > 0 ? (
-                      feeConfigurations["Tuition Fees"]
-                        .slice(0, 6)
-                        .map((config, idx) => (
-                          <div
-                            key={idx}
-                            className="bg-white p-3 rounded border flex items-center justify-between"
-                          >
-                            <div>
-                              <p className="font-medium text-sm">
-                                {config.applyToClasses || "সকল মারহালা"}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                মাসিক: {formatCurrency(config.amount || 0)}
-                              </p>
-                            </div>
-                            <Badge className="bg-green-100 text-green-700 text-xs">
-                              সক্রিয়
-                            </Badge>
-                          </div>
-                        ))
-                    ) : (
-                      <div className="col-span-full text-center text-gray-500 py-4">
-                        <p className="text-sm">কোনো ফি কনফিগার করা হয়নি</p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="mt-2"
-                          onClick={() => handleFeeConfiguration("Tuition Fees")}
-                        >
-                          ফি সেট করুন
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
               </CardContent>
             </Card>
           )}

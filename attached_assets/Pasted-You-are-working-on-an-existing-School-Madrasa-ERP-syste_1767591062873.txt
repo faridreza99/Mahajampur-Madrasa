@@ -1,0 +1,114 @@
+You are working on an existing School / Madrasa ERP system.
+Follow instructions strictly.
+Do not redesign UI.
+Do not add new features.
+Only refactor logic and remove wrong sections.
+
+GOAL:
+Remove “মারহালা ফি অবস্থা” section from বেতন ব্যবস্থাপনা
+and make Fee Setup the ONLY source of marhala fee & fee status.
+
+========================
+1️⃣ SALARY / PAYMENT MANAGEMENT (IMPORTANT)
+========================
+
+In বেতন ব্যবস্থাপনা page:
+
+❌ Completely REMOVE the following:
+- “মারহালা ফি অবস্থা” section
+- Monthly fee display inside payment page
+- Fee status card or summary
+- Any fee amount coming from here
+
+✅ This page should ONLY:
+- List students
+- Show payment button
+- Show paid amount / due amount (derived)
+- Allow payment entry
+- Generate receipt
+
+⚠️ Payment page must NOT define or control fee amount.
+
+========================
+2️⃣ FEE SETUP (SINGLE SOURCE)
+========================
+
+Fee Setup module is the ONLY place to define:
+
+• Marhala / Class
+• Monthly Fee
+• Admission Fee
+• Exam Fee
+• Active / Inactive
+• Academic Year
+
+Each Marhala must have one active fee configuration.
+
+========================
+3️⃣ AUTO FEE STATUS CALCULATION
+========================
+
+Fee status must be calculated dynamically using:
+
+• Student’s Marhala
+• Active Fee Setup
+• Total Paid Amount
+
+Rules:
+- Paid = 0 → Due
+- Paid < Monthly Fee → Partial
+- Paid >= Monthly Fee → Paid
+
+❌ No manual status update
+❌ No fee status stored in payment table
+
+========================
+4️⃣ DATA FLOW RULE (STRICT)
+========================
+
+Student → Marhala  
+Marhala → Fee Setup  
+Fee Setup → Monthly Fee  
+Payment → Updates paid amount  
+Fee Status → Derived (Not stored)
+
+========================
+5️⃣ UI DISPLAY RULE
+========================
+
+Fee Status may be DISPLAYED in:
+• Student list
+• Due list
+• Reports
+• Dashboard
+
+But can NEVER be edited manually.
+
+========================
+6️⃣ DATABASE CLEANUP
+========================
+
+• Remove marhala_fee_status field from salary/payment related tables
+• Do not duplicate fee amount in payment records
+• Keep Fee Setup as source of truth
+
+========================
+7️⃣ DO NOT
+========================
+
+❌ Do not change sidebar menu
+❌ Do not rename Bengali labels
+❌ Do not add extra cards or charts
+❌ Do not break existing data
+
+========================
+8️⃣ FINAL CHECK
+========================
+
+✔ No “মারহালা ফি অবস্থা” visible in payment page
+✔ Fee always comes from Fee Setup
+✔ Payment page is clean & simple
+✔ Logic matches Madrasa monthly workflow
+
+After implementation:
+Briefly explain what was removed and what logic was refactored.
