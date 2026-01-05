@@ -60,9 +60,10 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   
   const scrollRef = useRef(null);
   const scrollPositionRef = useRef(0);
+  const isNavigatingRef = useRef(false);
 
   const handleScroll = useCallback((e) => {
-    if (e.target) {
+    if (e.target && !isNavigatingRef.current) {
       scrollPositionRef.current = e.target.scrollTop;
     }
   }, []);
@@ -78,7 +79,11 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     const frameId = requestAnimationFrame(() => {
       restoreScroll();
       // Double-check with a small delay as a fallback
-      setTimeout(restoreScroll, 50);
+      setTimeout(() => {
+        restoreScroll();
+        // Clear navigation flag after restoration is complete
+        isNavigatingRef.current = false;
+      }, 100);
     });
     return () => cancelAnimationFrame(frameId);
   }, [location.pathname]);
@@ -763,6 +768,12 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
   const handleNavigation = (path) => {
     if (path) {
+      // Save scroll position and set flag before navigation
+      const scrollElement = scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollElement) {
+        scrollPositionRef.current = scrollElement.scrollTop;
+      }
+      isNavigatingRef.current = true;
       navigate(path);
       setIsOpen(false);
     }
