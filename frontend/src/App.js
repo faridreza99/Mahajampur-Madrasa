@@ -11,25 +11,20 @@ import {
   Routes,
   Route,
   Navigate,
-  useLocation,
 } from "react-router-dom";
 import axios from "axios";
 import "./App.css";
 
-// Import contexts
 import { CurrencyProvider } from "./context/CurrencyContext";
 import { InstitutionProvider } from "./context/InstitutionContext";
 import { LoadingProvider } from "./context/LoadingContext";
 
-// Core components (loaded immediately)
 import LoginPage from "./components/LoginPage";
-import Sidebar from "./components/Sidebar";
-import Header from "./components/Header";
+import DashboardLayout from "./components/DashboardLayout";
 
 import { Toaster } from "./components/ui/sonner";
 import { useInstitution } from "./context/InstitutionContext";
 
-// Lazy loaded components for better performance
 const Dashboard = lazy(() => import("./components/Dashboard"));
 const MadrasahDashboard = lazy(() => import("./components/MadrasahDashboard"));
 const StudentList = lazy(() => import("./components/StudentList"));
@@ -120,7 +115,6 @@ const DateWiseReport = lazy(
   () => import("./components/reports/DateWiseReport"),
 );
 
-// Loading spinner for lazy components
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center h-64">
     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
@@ -130,7 +124,6 @@ const LoadingSpinner = () => (
 const API = process.env.REACT_APP_API_URL || "/api";
 console.log("API URL - ", API);
 
-// Dynamic Title and Favicon Hook
 const useDynamicBranding = () => {
   useEffect(() => {
     const fetchBranding = async () => {
@@ -171,7 +164,6 @@ const useDynamicBranding = () => {
   }, []);
 };
 
-// Auth Context
 const AuthContext = createContext();
 
 export const useAuth = () => {
@@ -195,12 +187,10 @@ const AuthProvider = ({ children }) => {
       setLoading(false);
     }
 
-    // Setup axios interceptor for 401 responses
     const interceptor = axios.interceptors.response.use(
       (response) => response,
       (error) => {
         if (error.response?.status === 401) {
-          // Clear auth state and redirect to login
           localStorage.removeItem("token");
           localStorage.removeItem("user");
           setToken(null);
@@ -230,20 +220,20 @@ const AuthProvider = ({ children }) => {
   };
 
   const login = async (username, password, tenantId = null) => {
-    console.log("🔄 Login function called with:", {
+    console.log("Login function called with:", {
       username,
       password: "***",
       tenantId,
     });
     try {
-      console.log("🔄 Making API request to:", `${API}/auth/login`);
+      console.log("Making API request to:", `${API}/auth/login`);
       const response = await axios.post(`${API}/auth/login`, {
         username,
         password,
         tenant_id: tenantId,
       });
 
-      console.log("✅ Login API response:", response.data);
+      console.log("Login API response:", response.data);
       const { access_token, user: userData } = response.data;
 
       localStorage.setItem("token", access_token);
@@ -257,7 +247,7 @@ const AuthProvider = ({ children }) => {
 
       return { success: true };
     } catch (error) {
-      console.error("❌ Login API failed:", error);
+      console.error("Login API failed:", error);
       return {
         success: false,
         error: error.response?.data?.detail || "Login failed",
@@ -297,7 +287,6 @@ const AuthProvider = ({ children }) => {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
 
@@ -312,7 +301,6 @@ const ProtectedRoute = ({ children }) => {
   return user ? children : <Navigate to="/login" replace />;
 };
 
-// Results Router - routes to appropriate results page based on user role
 const ResultsRouter = () => {
   const { user } = useAuth();
 
@@ -321,69 +309,8 @@ const ResultsRouter = () => {
   } else if (user?.role === "parent") {
     return <ParentResults />;
   } else {
-    // For admin, principal, teacher roles - show main Results management
     return <Results />;
   }
-};
-
-// Main Layout Component
-const Layout = ({ children }) => {
-  const { user } = useAuth();
-  const location = useLocation();
-  const mainRef = React.useRef(null);
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = React.useState(false);
-  const isLoginPage = location.pathname === "/login";
-
-  // Smooth scroll to top on route change
-  React.useEffect(() => {
-    if (mainRef.current && !isLoginPage) {
-      // Small delay to ensure DOM is ready
-      requestAnimationFrame(() => {
-        if (mainRef.current) {
-          mainRef.current.scrollTo({
-            top: 0,
-            left: 0,
-            behavior: "smooth",
-          });
-        }
-      });
-    }
-  }, [location.pathname, isLoginPage]);
-
-  if (isLoginPage) {
-    return children;
-  }
-
-  return (
-    <div className="flex min-h-screen overflow-hidden bg-gray-50 dark:bg-gray-950">
-      <Sidebar
-        isOpen={isMobileSidebarOpen}
-        setIsOpen={setIsMobileSidebarOpen}
-      />
-      <div className="flex flex-col flex-1 min-w-0 w-full md:pl-64">
-        <Header onMenuClick={() => setIsMobileSidebarOpen(true)} />
-        <main
-          ref={mainRef}
-          className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-950 px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8"
-        >
-          <div className="pb-6 max-w-full overflow-x-hidden">{children}</div>
-          <footer className="py-3 text-center border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 mt-auto">
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Developed By{" "}
-              <a
-                href="https://maxtechbd.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-red-600 font-bold hover:underline"
-              >
-                Maxtechbd.com
-              </a>
-            </p>
-          </footer>
-        </main>
-      </div>
-    </div>
-  );
 };
 
 const DashboardWrapper = () => {
@@ -396,6 +323,20 @@ const BrandingLoader = () => {
   return null;
 };
 
+const ProtectedDashboardLayout = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-emerald-500"></div>
+      </div>
+    );
+  }
+
+  return user ? <DashboardLayout /> : <Navigate to="/login" replace />;
+};
+
 function App() {
   return (
     <LoadingProvider>
@@ -405,486 +346,74 @@ function App() {
             <Router>
               <BrandingLoader />
               <div className="App">
-                <Layout>
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <Routes>
-                      <Route path="/login" element={<LoginPage />} />
-                      <Route
-                        path="/"
-                        element={
-                          <ProtectedRoute>
-                            <DashboardWrapper />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/dashboard"
-                        element={
-                          <ProtectedRoute>
-                            <DashboardWrapper />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/search"
-                        element={
-                          <ProtectedRoute>
-                            <Search />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/admission-summary"
-                        element={
-                          <ProtectedRoute>
-                            <AdmissionSummary />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/students/attendance/*"
-                        element={
-                          <ProtectedRoute>
-                            <StudentAttendance />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/students/id-cards"
-                        element={
-                          <ProtectedRoute>
-                            <StudentIDCard />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/students/*"
-                        element={
-                          <ProtectedRoute>
-                            <StudentList />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/staff/id-cards"
-                        element={
-                          <ProtectedRoute>
-                            <StaffIDCard />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/staff/*"
-                        element={
-                          <ProtectedRoute>
-                            <StaffList />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/classes"
-                        element={
-                          <ProtectedRoute>
-                            <ClassManagement />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/attendance/*"
-                        element={
-                          <ProtectedRoute>
-                            <Attendance />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/results"
-                        element={
-                          <ProtectedRoute>
-                            <ResultsRouter />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/result-configuration"
-                        element={
-                          <ProtectedRoute>
-                            <ResultConfiguration />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/madrasah/simple-result"
-                        element={
-                          <ProtectedRoute>
-                            <MadrasahSimpleResult />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/madrasah/simple-routine"
-                        element={
-                          <ProtectedRoute>
-                            <MadrasahSimpleRoutine />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/madrasah/simple-settings"
-                        element={
-                          <ProtectedRoute>
-                            <MadrasahSimpleSettings />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/madrasah/reports"
-                        element={
-                          <ProtectedRoute>
-                            <MadrasahReportPage />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/calendar"
-                        element={
-                          <ProtectedRoute>
-                            <Calendar />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/notifications"
-                        element={
-                          <ProtectedRoute>
-                            <Notifications />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/rating-surveys"
-                        element={
-                          <ProtectedRoute>
-                            <RatingSurveys />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/hss/*"
-                        element={
-                          <ProtectedRoute>
-                            <HSS />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/fees/*"
-                        element={
-                          <ProtectedRoute>
-                            <Fees />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/fees/setup"
-                        element={
-                          <ProtectedRoute>
-                            <FeeSetup />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/admission-fees"
-                        element={
-                          <ProtectedRoute>
-                            <AdmissionFees />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/committee-donation"
-                        element={
-                          <ProtectedRoute>
-                            <CommitteeDonation />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/payroll/*"
-                        element={
-                          <ProtectedRoute>
-                            <Payroll />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/accounts"
-                        element={
-                          <ProtectedRoute>
-                            <Accounts />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/certificates/*"
-                        element={
-                          <ProtectedRoute>
-                            <Certificates />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/vehicle/*"
-                        element={
-                          <ProtectedRoute>
-                            <Vehicle />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/reports/*"
-                        element={
-                          <ProtectedRoute>
-                            <Reports />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/biometric/*"
-                        element={
-                          <ProtectedRoute>
-                            <BiometricDevices />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/online-admission/*"
-                        element={
-                          <ProtectedRoute>
-                            <OnlineAdmission />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/settings/*"
-                        element={
-                          <ProtectedRoute>
-                            <Settings />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/tenant-management"
-                        element={
-                          <ProtectedRoute>
-                            <TenantManagement />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/subscription-management"
-                        element={
-                          <ProtectedRoute>
-                            <SubscriptionManagement />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/system-settings"
-                        element={
-                          <ProtectedRoute>
-                            <SystemSettings />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/school-branding"
-                        element={
-                          <ProtectedRoute>
-                            <SchoolBranding />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/subscription-history"
-                        element={
-                          <ProtectedRoute>
-                            <SubscriptionHistory />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/cms"
-                        element={
-                          <ProtectedRoute>
-                            <AcademicCMS />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/ai-assistant"
-                        element={
-                          <ProtectedRoute>
-                            <AIAssistant />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/ai-assistant/logs"
-                        element={
-                          <ProtectedRoute>
-                            <AILogs />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/quiz-tool"
-                        element={
-                          <ProtectedRoute>
-                            <QuizTool />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/test-generator"
-                        element={
-                          <ProtectedRoute>
-                            <TestGenerator />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/question-paper-builder"
-                        element={
-                          <ProtectedRoute>
-                            <QuestionPaperBuilder />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/ai-summary"
-                        element={
-                          <ProtectedRoute>
-                            <AISummary />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/ai-notes"
-                        element={
-                          <ProtectedRoute>
-                            <AINotes />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/student/dashboard"
-                        element={
-                          <ProtectedRoute>
-                            <StudentDashboard />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/student/profile"
-                        element={
-                          <ProtectedRoute>
-                            <StudentProfile />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/student/fees"
-                        element={
-                          <ProtectedRoute>
-                            <StudentFees />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/student/admit-card"
-                        element={
-                          <ProtectedRoute>
-                            <StudentAdmitCard />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/student/attendance"
-                        element={
-                          <ProtectedRoute>
-                            <StudentAttendanceView />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/teacher/dashboard"
-                        element={
-                          <ProtectedRoute>
-                            <TeacherDashboard />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/homework"
-                        element={
-                          <ProtectedRoute>
-                            <Homework />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/lesson-plans"
-                        element={
-                          <ProtectedRoute>
-                            <LessonPlans />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/reports/financial-summary"
-                        element={
-                          <ProtectedRoute>
-                            <FinancialSummary />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/reports/admission-fees"
-                        element={
-                          <ProtectedRoute>
-                            <AdmissionFeeReport />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/reports/monthly-fees"
-                        element={
-                          <ProtectedRoute>
-                            <MonthlyFeeReport />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/reports/donations"
-                        element={
-                          <ProtectedRoute>
-                            <DonationReport />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/reports/date-wise"
-                        element={
-                          <ProtectedRoute>
-                            <DateWiseReport />
-                          </ProtectedRoute>
-                        }
-                      />
+                <Suspense fallback={<LoadingSpinner />}>
+                  <Routes>
+                    <Route path="/login" element={<LoginPage />} />
+                    
+                    <Route element={<ProtectedDashboardLayout />}>
+                      <Route path="/" element={<DashboardWrapper />} />
+                      <Route path="/dashboard" element={<DashboardWrapper />} />
+                      <Route path="/search" element={<Search />} />
+                      <Route path="/admission-summary" element={<AdmissionSummary />} />
+                      <Route path="/students/attendance/*" element={<StudentAttendance />} />
+                      <Route path="/students/id-cards" element={<StudentIDCard />} />
+                      <Route path="/students/*" element={<StudentList />} />
+                      <Route path="/staff/id-cards" element={<StaffIDCard />} />
+                      <Route path="/staff/*" element={<StaffList />} />
+                      <Route path="/classes" element={<ClassManagement />} />
+                      <Route path="/attendance/*" element={<Attendance />} />
+                      <Route path="/results" element={<ResultsRouter />} />
+                      <Route path="/result-configuration" element={<ResultConfiguration />} />
+                      <Route path="/madrasah/simple-result" element={<MadrasahSimpleResult />} />
+                      <Route path="/madrasah/simple-routine" element={<MadrasahSimpleRoutine />} />
+                      <Route path="/madrasah/simple-settings" element={<MadrasahSimpleSettings />} />
+                      <Route path="/madrasah/reports" element={<MadrasahReportPage />} />
+                      <Route path="/calendar" element={<Calendar />} />
+                      <Route path="/notifications" element={<Notifications />} />
+                      <Route path="/rating-surveys" element={<RatingSurveys />} />
+                      <Route path="/hss/*" element={<HSS />} />
+                      <Route path="/fees/*" element={<Fees />} />
+                      <Route path="/fees/setup" element={<FeeSetup />} />
+                      <Route path="/admission-fees" element={<AdmissionFees />} />
+                      <Route path="/committee-donation" element={<CommitteeDonation />} />
+                      <Route path="/payroll/*" element={<Payroll />} />
+                      <Route path="/accounts" element={<Accounts />} />
+                      <Route path="/certificates/*" element={<Certificates />} />
+                      <Route path="/vehicle/*" element={<Vehicle />} />
+                      <Route path="/reports/*" element={<Reports />} />
+                      <Route path="/biometric/*" element={<BiometricDevices />} />
+                      <Route path="/online-admission/*" element={<OnlineAdmission />} />
+                      <Route path="/settings/*" element={<Settings />} />
+                      <Route path="/tenant-management" element={<TenantManagement />} />
+                      <Route path="/subscription-management" element={<SubscriptionManagement />} />
+                      <Route path="/system-settings" element={<SystemSettings />} />
+                      <Route path="/school-branding" element={<SchoolBranding />} />
+                      <Route path="/subscription-history" element={<SubscriptionHistory />} />
+                      <Route path="/cms" element={<AcademicCMS />} />
+                      <Route path="/ai-assistant" element={<AIAssistant />} />
+                      <Route path="/ai-assistant/logs" element={<AILogs />} />
+                      <Route path="/quiz-tool" element={<QuizTool />} />
+                      <Route path="/test-generator" element={<TestGenerator />} />
+                      <Route path="/question-paper-builder" element={<QuestionPaperBuilder />} />
+                      <Route path="/ai-summary" element={<AISummary />} />
+                      <Route path="/ai-notes" element={<AINotes />} />
+                      <Route path="/student/dashboard" element={<StudentDashboard />} />
+                      <Route path="/student/profile" element={<StudentProfile />} />
+                      <Route path="/student/fees" element={<StudentFees />} />
+                      <Route path="/student/admit-card" element={<StudentAdmitCard />} />
+                      <Route path="/student/attendance" element={<StudentAttendanceView />} />
+                      <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
+                      <Route path="/homework" element={<Homework />} />
+                      <Route path="/lesson-plans" element={<LessonPlans />} />
+                      <Route path="/reports/financial-summary" element={<FinancialSummary />} />
+                      <Route path="/reports/admission-fees" element={<AdmissionFeeReport />} />
+                      <Route path="/reports/monthly-fees" element={<MonthlyFeeReport />} />
+                      <Route path="/reports/donations" element={<DonationReport />} />
+                      <Route path="/reports/date-wise" element={<DateWiseReport />} />
                       <Route path="*" element={<Navigate to="/" replace />} />
-                    </Routes>
-                  </Suspense>
-                </Layout>
+                    </Route>
+                  </Routes>
+                </Suspense>
                 <Toaster />
               </div>
             </Router>

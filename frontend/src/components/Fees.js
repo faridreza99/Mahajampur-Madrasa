@@ -4131,79 +4131,81 @@ const Fees = () => {
                         </div>
                         <div className="text-right">
                           <p className="text-sm text-gray-600">মাসিক বেতন</p>
-                          <Input
-                            type="number"
-                            placeholder="টাকার পরিমাণ"
-                            className="w-32 text-right font-bold"
-                            value={collectionForm.amount}
-                            onChange={(e) =>
-                              setCollectionForm((prev) => ({
-                                ...prev,
-                                amount: e.target.value,
-                              }))
-                            }
-                          />
+                          <p className="text-2xl font-bold text-emerald-600">
+                            ৳{studentFeeConfig?.monthly_fee?.toLocaleString() || "0"}
+                          </p>
+                          <p className="text-xs text-gray-500">(ফি সেটআপ থেকে নির্ধারিত)</p>
                         </div>
                       </div>
-                      <div className="flex gap-3">
-                        <Select
-                          value={collectionForm.payment_mode || "Cash"}
-                          onValueChange={(value) =>
-                            setCollectionForm((prev) => ({
-                              ...prev,
-                              payment_mode: value,
-                            }))
-                          }
-                        >
-                          <SelectTrigger className="flex-1">
-                            <SelectValue placeholder="পেমেন্ট মোড" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Cash">নগদ</SelectItem>
-                            <SelectItem value="bKash">বিকাশ</SelectItem>
-                            <SelectItem value="Nagad">নগদ (ডিজিটাল)</SelectItem>
-                            <SelectItem value="Bank">ব্যাংক</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Button
-                          className="bg-emerald-500 hover:bg-emerald-600 px-8"
-                          disabled={
-                            loading ||
-                            !collectionForm.amount ||
-                            parseFloat(collectionForm.amount) <= 0
-                          }
-                          onClick={async () => {
-                            const paymentData = {
-                              student_id:
-                                selectedStudent.id || selectedStudent._id,
-                              fee_type: "Monthly Fee",
-                              amount: parseFloat(collectionForm.amount),
-                              payment_mode:
-                                collectionForm.payment_mode || "Cash",
-                              remarks: "মাসিক বেতন আদায়",
-                            };
-                            const success = await submitPayment(paymentData);
-                            if (success) {
-                              setSelectedStudent(null);
+                      {!admissionStatus?.admission_fee_paid ? (
+                        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                          <p className="text-amber-800 font-medium text-center">
+                            ⚠️ ভর্তি ফি আগে পরিশোধ করুন
+                          </p>
+                          <p className="text-xs text-amber-600 text-center mt-1">
+                            মাসিক বেতন আদায়ের আগে ভর্তি ফি পরিশোধ করতে হবে
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="flex gap-3">
+                          <Select
+                            value={collectionForm.payment_mode || "Cash"}
+                            onValueChange={(value) =>
                               setCollectionForm((prev) => ({
                                 ...prev,
-                                amount: "",
-                                payment_mode: "Cash",
-                              }));
-                              toast.success("✅ বেতন আদায় সফল!");
+                                payment_mode: value,
+                              }))
                             }
-                          }}
-                        >
-                          {loading ? (
-                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                          ) : (
-                            <>
-                              <CreditCard className="h-4 w-4 mr-2" />
-                              বেতন আদায় করুন
-                            </>
-                          )}
-                        </Button>
-                      </div>
+                          >
+                            <SelectTrigger className="flex-1">
+                              <SelectValue placeholder="পেমেন্ট মোড" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Cash">নগদ</SelectItem>
+                              <SelectItem value="bKash">বিকাশ</SelectItem>
+                              <SelectItem value="Nagad">নগদ (ডিজিটাল)</SelectItem>
+                              <SelectItem value="Bank">ব্যাংক</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            className="bg-emerald-500 hover:bg-emerald-600 px-8"
+                            disabled={
+                              loading ||
+                              !studentFeeConfig?.monthly_fee ||
+                              studentFeeConfig.monthly_fee <= 0
+                            }
+                            onClick={async () => {
+                              const paymentData = {
+                                student_id:
+                                  selectedStudent.id || selectedStudent._id,
+                                fee_type: "Monthly Fee",
+                                amount: studentFeeConfig.monthly_fee,
+                                payment_mode:
+                                  collectionForm.payment_mode || "Cash",
+                                remarks: "মাসিক বেতন আদায়",
+                              };
+                              const success = await submitPayment(paymentData);
+                              if (success) {
+                                setSelectedStudent(null);
+                                setCollectionForm((prev) => ({
+                                  ...prev,
+                                  payment_mode: "Cash",
+                                }));
+                                toast.success("✅ বেতন আদায় সফল!");
+                              }
+                            }}
+                          >
+                            {loading ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                            ) : (
+                              <>
+                                <CreditCard className="h-4 w-4 mr-2" />
+                                বেতন আদায় করুন
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </CardContent>
