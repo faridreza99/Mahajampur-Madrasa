@@ -1598,11 +1598,11 @@ const StudentList = () => {
                       <TableCell className="px-2 sm:px-4 hidden lg:table-cell">
                         <div className="text-xs sm:text-sm">
                           <p className="font-medium truncate max-w-[120px]">
-                            {student.guardian_name}
+                            {student.guardian_name || "-"}
                           </p>
                           <div className="flex items-center text-gray-500 text-xs">
                             <Phone className="h-3 w-3 mr-1 flex-shrink-0" />
-                            <span className="truncate">{student.phone}</span>
+                            <span className="truncate">{student.guardian_phone || student.phone || "-"}</span>
                           </div>
                         </div>
                       </TableCell>
@@ -2159,6 +2159,40 @@ const StudentList = () => {
                     placeholder="০১XXXXXXXXX"
                     className="text-lg py-3"
                     required
+                  />
+                </div>
+                <div>
+                  <Label
+                    htmlFor="add_guardian_name"
+                    className="text-base font-semibold"
+                  >
+                    অভিভাবকের নাম
+                  </Label>
+                  <Input
+                    id="add_guardian_name"
+                    value={formData.guardian_name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, guardian_name: e.target.value })
+                    }
+                    placeholder="অভিভাবকের নাম লিখুন"
+                    className="text-lg py-3"
+                  />
+                </div>
+                <div>
+                  <Label
+                    htmlFor="add_guardian_phone"
+                    className="text-base font-semibold"
+                  >
+                    অভিভাবকের মোবাইল
+                  </Label>
+                  <Input
+                    id="add_guardian_phone"
+                    value={formData.guardian_phone}
+                    onChange={(e) =>
+                      setFormData({ ...formData, guardian_phone: e.target.value })
+                    }
+                    placeholder="০১XXXXXXXXX"
+                    className="text-lg py-3"
                   />
                 </div>
                 <div>
