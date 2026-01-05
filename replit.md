@@ -6,6 +6,7 @@ This Cloud School ERP is a **Single Madrasah** management system (fixed tenant: 
 - **Fee Management Accounting Refactor**: Comprehensive refactor enforcing Fee Setup as single source of truth:
   - Removed scroll-to-top effect from DashboardLayout for persistent sidebar state
   - Added 4 backend endpoints: admission-status, paid-months, fee-config, multi-month
+  - **Fixed fee-config endpoint**: Now queries `marhala_fee_structures` collection (used by Fee Setup) instead of legacy `fee_configurations`. Matches student's `class_id` to `marhala_id` for proper fee lookup.
   - Payment amount is now read-only, derived from Fee Setup configuration
   - Admission fee must be paid before monthly fees (enforced in both Quick Collect and multi-month flows)
   - Multi-month payments create individual database records per month with payment_month field

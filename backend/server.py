@@ -18294,7 +18294,7 @@ async def get_student_fee_config(
     student_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Get fee configuration for student's marhala/class"""
+    """Get fee configuration for student's marhala/class from marhala_fee_structures"""
     try:
         # Get student details
         student = await db.students.find_one({
@@ -18306,40 +18306,71 @@ async def get_student_fee_config(
         if not student:
             raise HTTPException(status_code=404, detail="Student not found")
         
-        student_class = student.get("class") or student.get("class_name") or ""
+        # Get student's class_id (primary) and fallback to class name
+        student_class_id = student.get("class_id") or ""
+        student_class_name = student.get("class") or student.get("class_name") or ""
         
-        # Get tuition fee config
+        # First, try to find fee config from marhala_fee_structures (new system)
+        marhala_fee_config = None
+        
+        # Try matching by class_id (marhala_id)
+        if student_class_id:
+            marhala_fee_config = await db.marhala_fee_structures.find_one({
+                "tenant_id": current_user.tenant_id,
+                "marhala_id": student_class_id,
+                "is_active": True
+            })
+        
+        # Fallback: try matching by marhala_name
+        if not marhala_fee_config and student_class_name:
+            marhala_fee_config = await db.marhala_fee_structures.find_one({
+                "tenant_id": current_user.tenant_id,
+                "marhala_name": student_class_name,
+                "is_active": True
+            })
+        
+        if marhala_fee_config:
+            return {
+                "student_id": student_id,
+                "student_class": student_class_name or student_class_id,
+                "monthly_fee": marhala_fee_config.get("monthly_fee", 0) or 0,
+                "admission_fee": marhala_fee_config.get("admission_fee", 0) or 0,
+                "exam_fee": marhala_fee_config.get("exam_fee", 0) or 0,
+                "fee_configured": True
+            }
+        
+        # Fallback to old fee_configurations collection for legacy data
         tuition_config = await db.fee_configurations.find_one({
             "tenant_id": current_user.tenant_id,
             "fee_type": "Tuition Fees",
             "$or": [
-                {"applyToClasses": student_class},
+                {"applyToClasses": student_class_name},
                 {"applyToClasses": "all"},
-                {"class_name": student_class}
+                {"class_name": student_class_name}
             ]
         })
         
-        # Get admission fee config
         admission_config = await db.fee_configurations.find_one({
             "tenant_id": current_user.tenant_id,
             "fee_type": "Admission Fees",
             "$or": [
-                {"applyToClasses": student_class},
+                {"applyToClasses": student_class_name},
                 {"applyToClasses": "all"},
-                {"class_name": student_class}
+                {"class_name": student_class_name}
             ]
         })
         
         return {
             "student_id": student_id,
-            "student_class": student_class,
+            "student_class": student_class_name or student_class_id,
             "monthly_fee": tuition_config.get("amount", 0) if tuition_config else 0,
             "admission_fee": admission_config.get("amount", 0) if admission_config else 0,
-            "fee_configured": tuition_config is not None
+            "fee_configured": tuition_config is not None or marhala_fee_config is not None
         }
     except HTTPException:
         raise
     except Exception as e:
+        logging.error(f"Failed to get student fee config: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
