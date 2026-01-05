@@ -17976,8 +17976,7 @@ async def get_recent_payments(
         raise HTTPException(status_code=500, detail="Failed to retrieve recent payments")
 
 # ========================================
-# 🔒 PROTECTED ENDPOINT - MaxTechBD Fee Engine v3.0-final-stable
-# ⚠️ DO NOT MODIFY is_active filter - required for fee system to work
+# 🔄 REFACTORED: Dynamically calculates dues from marhala_fee_structures (Fee Setup)
 # ========================================
 @api_router.get("/fees/student-fees")
 async def get_student_fees(
@@ -17985,80 +17984,136 @@ async def get_student_fees(
     status: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
-    """Get student fees records with due/overdue amounts"""
+    """Get student fees with dues calculated dynamically from Fee Setup (marhala_fee_structures)"""
     try:
-        # Query for active student fees - support old records without is_active field
-        query_filter = {
+        current_year = str(datetime.utcnow().year)
+        
+        # Fetch all active fee structures for this tenant
+        fee_structures = await db.marhala_fee_structures.find({
             "tenant_id": current_user.tenant_id,
-            "$or": [
-                {"is_active": True},
-                {"is_active": {"$exists": False}}
-            ]
+            "academic_year": current_year,
+            "is_active": True,
+            "is_enabled": True
+        }).to_list(100)
+        
+        # Create lookup by marhala_id (which maps to class_id)
+        fee_lookup = {fs.get("marhala_id"): fs for fs in fee_structures}
+        logging.info(f"📊 Fee Setup lookup: Found {len(fee_structures)} active fee structures")
+        
+        # Fetch all active students
+        student_query = {
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
         }
-        
         if student_id:
-            query_filter["student_id"] = student_id
+            student_query["id"] = student_id
+            
+        students = await db.students.find(student_query).to_list(2000)
+        logging.info(f"📊 Students: Found {len(students)} active students")
         
-        if status:
-            query_filter["status"] = status
+        # Fetch all completed payments grouped by student
+        payments_cursor = db.fee_payments.aggregate([
+            {
+                "$match": {
+                    "tenant_id": current_user.tenant_id,
+                    "status": {"$in": ["completed", "verified"]}
+                }
+            },
+            {
+                "$group": {
+                    "_id": "$student_id",
+                    "total_paid": {"$sum": "$amount"},
+                    "admission_paid": {
+                        "$sum": {
+                            "$cond": [{"$eq": ["$fee_type", "Admission Fee"]}, "$amount", 0]
+                        }
+                    },
+                    "monthly_paid": {
+                        "$sum": {
+                            "$cond": [{"$eq": ["$fee_type", "Monthly Fee"]}, "$amount", 0]
+                        }
+                    }
+                }
+            }
+        ])
+        payments_by_student = {p["_id"]: p async for p in payments_cursor}
         
-        # Fetch student fees records
-        student_fees_raw = await db.student_fees.find(query_filter).to_list(1000)
-        logging.info(f"🔍 GET student_fees: Found {len(student_fees_raw)} total records in database")
-        
-        # Transform and enrich with student details
+        # Calculate dues for each student dynamically
         student_fees = []
-        for fee in student_fees_raw:
-            logging.info(f"🔍 Processing fee: student={fee.get('student_name')}, amount={fee.get('amount')}, pending={fee.get('pending_amount')}, overdue={fee.get('overdue_amount')}, keys={list(fee.keys())}")
-            # Calculate days overdue if due date exists (handle various types)
-            days_overdue = 0
-            if fee.get("due_date"):
-                due_date = fee["due_date"]
+        for student in students:
+            class_id = student.get("class_id")
+            if not class_id:
+                continue
+                
+            fee_structure = fee_lookup.get(class_id)
+            if not fee_structure:
+                continue
+            
+            monthly_fee = fee_structure.get("monthly_fee", 0)
+            admission_fee = fee_structure.get("admission_fee", 0)
+            
+            # Calculate months elapsed since admission
+            admission_date = student.get("admission_date") or student.get("created_at")
+            if isinstance(admission_date, str):
                 try:
-                    # Handle string dates
-                    if isinstance(due_date, str):
-                        due_date = datetime.fromisoformat(due_date.replace('Z', '+00:00'))
-                    # Handle integer timestamps
-                    elif isinstance(due_date, (int, float)):
-                        due_date = datetime.fromtimestamp(due_date / 1000 if due_date > 10000000000 else due_date)
-                    # Handle datetime objects - ensure timezone naive for comparison
-                    if isinstance(due_date, datetime):
-                        if due_date.tzinfo is not None:
-                            due_date = due_date.replace(tzinfo=None)
-                        if due_date < datetime.utcnow():
-                            days_overdue = (datetime.utcnow() - due_date).days
-                except Exception as e:
-                    logging.warning(f"Failed to parse due_date {fee.get('due_date')}: {e}")
-                    days_overdue = 0
+                    admission_date = datetime.fromisoformat(admission_date.replace('Z', '+00:00'))
+                except:
+                    admission_date = datetime.utcnow()
+            elif admission_date is None:
+                admission_date = datetime.utcnow()
             
-            # Only include fees with pending or overdue amounts
-            total_due = fee.get("pending_amount", 0) + fee.get("overdue_amount", 0)
+            now = datetime.utcnow()
+            months_elapsed = (now.year - admission_date.year) * 12 + (now.month - admission_date.month) + 1
+            months_elapsed = max(1, min(months_elapsed, 12))
             
+            # Calculate expected total fees
+            expected_monthly = monthly_fee * months_elapsed
+            expected_total = expected_monthly + admission_fee
+            
+            # Get actual payments
+            payment_info = payments_by_student.get(student.get("id"), {})
+            total_paid = payment_info.get("total_paid", 0)
+            admission_paid = payment_info.get("admission_paid", 0)
+            
+            # Calculate dues
+            total_due = max(0, expected_total - total_paid)
+            admission_due = max(0, admission_fee - admission_paid)
+            
+            # Only include students with dues
             if total_due > 0:
                 student_fees.append({
-                    "id": fee.get("id"),
-                    "student_id": fee.get("student_id"),
-                    "student_name": fee.get("student_name"),
-                    "admission_no": fee.get("admission_no"),
-                    "class_id": fee.get("class_id"),
-                    "section_id": fee.get("section_id"),
-                    "fee_type": fee.get("fee_type"),
-                    "amount": fee.get("amount", 0),
-                    "paid_amount": fee.get("paid_amount", 0),
-                    "pending_amount": fee.get("pending_amount", 0),
-                    "overdue_amount": fee.get("overdue_amount", 0),
+                    "id": student.get("id"),
+                    "student_id": student.get("id"),
+                    "student_name": student.get("name_bn") or student.get("name_en", "Unknown"),
+                    "admission_no": student.get("admission_no", ""),
+                    "class_id": class_id,
+                    "class_name": fee_structure.get("marhala_name", ""),
+                    "fee_type": "Combined",
+                    "amount": expected_total,
+                    "paid_amount": total_paid,
+                    "pending_amount": total_due,
+                    "overdue_amount": admission_due,
                     "total_due": total_due,
-                    "due_date": fee.get("due_date"),
-                    "days_overdue": days_overdue,
-                    "status": fee.get("status", "pending")
+                    "monthly_fee": monthly_fee,
+                    "admission_fee": admission_fee,
+                    "admission_paid": admission_paid > 0,
+                    "months_elapsed": months_elapsed,
+                    "status": "pending" if total_due > 0 else "paid"
                 })
         
-        logging.info(f"📊 Student fees: Returning {len(student_fees)} records with due amounts")
+        # Filter by status if provided
+        if status:
+            student_fees = [f for f in student_fees if f["status"] == status]
+        
+        logging.info(f"📊 Dynamic student fees: Returning {len(student_fees)} students with dues from Fee Setup")
         return student_fees
         
     except Exception as e:
         logging.error(f"Failed to get student fees: {str(e)}")
+        import traceback
+        logging.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail="Failed to retrieve student fees")
+
 
 
 

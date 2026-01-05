@@ -86,6 +86,8 @@ const AdmissionFees = () => {
   
   const [lastReceipt, setLastReceipt] = useState(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [feeConfig, setFeeConfig] = useState(null);
+  const [admissionPaid, setAdmissionPaid] = useState(false);
   
   const paymentModes = [
     { value: 'Cash', labelKey: 'admissionFees.cash' },
@@ -144,6 +146,11 @@ const AdmissionFees = () => {
       return;
     }
     
+    if (admissionPaid) {
+      toast.error(isBangla ? 'এই ছাত্রের ভর্তি ফি ইতিমধ্যে পরিশোধ হয়েছে' : 'Admission fee already paid for this student');
+      return;
+    }
+    
     try {
       setLoading(true);
       const response = await axios.post(`${API}/admission-fees`, {
@@ -163,6 +170,8 @@ const AdmissionFees = () => {
         payment_mode: 'Cash',
         remarks: ''
       });
+      setFeeConfig(null);
+      setAdmissionPaid(false);
       fetchFees();
     } catch (error) {
       console.error('Error creating admission fee:', error);
@@ -187,16 +196,44 @@ const AdmissionFees = () => {
     }
   };
 
-  const handleStudentSelect = (studentId) => {
+  const handleStudentSelect = async (studentId) => {
     const student = students.find(s => s.id === studentId);
     if (student) {
       const className = classes.find(c => c.id === student.class_id)?.name || '';
-      setFormData({
-        ...formData,
-        student_id: student.id,
-        student_name: student.name,
-        class_name: className
-      });
+      
+      try {
+        const [feeConfigRes, admissionStatusRes] = await Promise.all([
+          axios.get(`${API}/fees/fee-config/${student.id}`),
+          axios.get(`${API}/fees/admission-status/${student.id}`)
+        ]);
+        
+        const config = feeConfigRes.data;
+        const admissionStatus = admissionStatusRes.data;
+        
+        setFeeConfig(config);
+        setAdmissionPaid(admissionStatus.admission_paid);
+        
+        setFormData({
+          ...formData,
+          student_id: student.id,
+          student_name: student.name_bn || student.name || student.name_en,
+          class_name: className,
+          amount: config.admission_fee || 0
+        });
+        
+        if (admissionStatus.admission_paid) {
+          toast.warning(isBangla ? 'এই ছাত্রের ভর্তি ফি ইতিমধ্যে পরিশোধ হয়েছে' : 'Admission fee already paid for this student');
+        }
+      } catch (error) {
+        console.error('Error fetching fee config:', error);
+        setFormData({
+          ...formData,
+          student_id: student.id,
+          student_name: student.name_bn || student.name || student.name_en,
+          class_name: className,
+          amount: ''
+        });
+      }
     }
   };
 
@@ -453,14 +490,24 @@ const AdmissionFees = () => {
             </div>
             
             <div>
-              <Label>{t('admissionFees.amount')} *</Label>
+              <Label>{t('admissionFees.amount')} * {isBangla ? '(ফি সেটআপ থেকে)' : '(From Fee Setup)'}</Label>
               <Input
                 type="number"
                 value={formData.amount}
-                onChange={(e) => setFormData({...formData, amount: e.target.value})}
-                placeholder={t('admissionFees.enterAmount')}
-                required
+                readOnly
+                className="bg-gray-100 cursor-not-allowed font-bold text-lg"
+                placeholder={isBangla ? 'ছাত্র নির্বাচন করুন' : 'Select a student'}
               />
+              {feeConfig && (
+                <p className="text-sm text-emerald-600 mt-1">
+                  {isBangla ? `ফি সেটআপ অনুযায়ী ভর্তি ফি: ৳${toBengaliNumeral(feeConfig.admission_fee?.toLocaleString() || '0')}` : `Admission fee per Fee Setup: ${formatCurrency(feeConfig.admission_fee || 0)}`}
+                </p>
+              )}
+              {admissionPaid && (
+                <p className="text-sm text-red-600 mt-1 font-medium">
+                  {isBangla ? '⚠️ এই ছাত্রের ভর্তি ফি ইতিমধ্যে পরিশোধ হয়েছে' : '⚠️ Admission fee already paid'}
+                </p>
+              )}
             </div>
             
             <div>
