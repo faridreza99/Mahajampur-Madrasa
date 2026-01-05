@@ -51,6 +51,8 @@ import {
   CheckCircle,
   XCircle,
   PieChart,
+  Info,
+  Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -149,6 +151,12 @@ const Fees = () => {
   const [paidMonths, setPaidMonths] = useState([]);
   const [selectedMonths, setSelectedMonths] = useState([]);
   const [feeCheckLoading, setFeeCheckLoading] = useState(false);
+  
+  // Payment Breakdown Modal State
+  const [showBreakdownModal, setShowBreakdownModal] = useState(false);
+  const [breakdownStudent, setBreakdownStudent] = useState(null);
+  const [breakdownData, setBreakdownData] = useState(null);
+  const [breakdownLoading, setBreakdownLoading] = useState(false);
 
   // School Branding for Receipt
   const [schoolBranding, setSchoolBranding] = useState({
@@ -382,6 +390,74 @@ const Fees = () => {
       setPaidMonths([]);
     } finally {
       setFeeCheckLoading(false);
+    }
+  };
+
+  // Fetch detailed payment breakdown for a student
+  const fetchPaymentBreakdown = async (student) => {
+    if (!student?.id) return;
+    setBreakdownStudent(student);
+    setBreakdownLoading(true);
+    setShowBreakdownModal(true);
+    
+    try {
+      const token = localStorage.getItem("token");
+      const [feeConfigRes, admissionRes, paidMonthsRes, studentFeesRes] = await Promise.all([
+        axios.get(`${API}/fees/student/${student.id}/fee-config`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${API}/fees/student/${student.id}/admission-status`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${API}/fees/student/${student.id}/paid-months`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${API}/fees/student-fees?student_id=${student.id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+      
+      const feeConfig = feeConfigRes.data;
+      const admissionStatus = admissionRes.data;
+      const paidMonths = paidMonthsRes.data?.paid_months || [];
+      const studentFees = studentFeesRes.data || [];
+      
+      // Find student's fee summary
+      const studentFeeSummary = studentFees.find(s => s.student_id === student.id) || {};
+      
+      // Calculate dues breakdown
+      const admissionDate = new Date(student.admission_date || student.created_at || new Date());
+      const today = new Date();
+      const monthsElapsed = Math.max(1, 
+        (today.getFullYear() - admissionDate.getFullYear()) * 12 + 
+        (today.getMonth() - admissionDate.getMonth()) + 1
+      );
+      
+      const monthlyFee = feeConfig?.monthly_fee || 0;
+      const admissionFee = feeConfig?.admission_fee || 0;
+      const totalExpected = (monthlyFee * monthsElapsed) + admissionFee;
+      const totalPaid = studentFeeSummary.paid_amount || 0;
+      const totalDue = Math.max(0, totalExpected - totalPaid);
+      
+      setBreakdownData({
+        feeConfig,
+        admissionStatus,
+        paidMonths,
+        monthsElapsed,
+        totalExpected,
+        totalPaid,
+        totalDue,
+        admissionFee,
+        monthlyFee,
+        admissionFeePaid: admissionStatus?.paid || false,
+        monthsPaid: paidMonths.length,
+        monthsDue: Math.max(0, monthsElapsed - paidMonths.length),
+      });
+    } catch (error) {
+      console.error("Failed to fetch payment breakdown:", error);
+      setBreakdownData(null);
+    } finally {
+      setBreakdownLoading(false);
     }
   };
 
@@ -2043,6 +2119,18 @@ const Fees = () => {
                                 >
                                   {hasDue ? "বকেয়া আছে" : "বকেয়া নেই"}
                                 </Badge>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    fetchPaymentBreakdown(student);
+                                  }}
+                                >
+                                  <Eye className="h-4 w-4 mr-1" />
+                                  বিস্তারিত
+                                </Button>
                                 <Button
                                   size="lg"
                                   className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-6"
@@ -5514,6 +5602,163 @@ const Fees = () => {
             >
               {loading ? "Sending..." : "Send Reminders"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Breakdown Modal */}
+      <Dialog open={showBreakdownModal} onOpenChange={setShowBreakdownModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-emerald-700">
+              <FileText className="h-5 w-5" />
+              বিস্তারিত হিসাব
+            </DialogTitle>
+            <DialogDescription>
+              {breakdownStudent?.name || breakdownStudent?.student_name || "ছাত্র"} এর পেমেন্ট বিবরণ
+            </DialogDescription>
+          </DialogHeader>
+
+          {breakdownLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
+              <span className="ml-3 text-gray-500">লোড হচ্ছে...</span>
+            </div>
+          ) : breakdownData ? (
+            <div className="space-y-4">
+              {/* Student Info */}
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-12 w-12">
+                    <AvatarImage src={breakdownStudent?.photo_url ? `${BASE_URL}${breakdownStudent.photo_url}` : null} />
+                    <AvatarFallback className="bg-emerald-100 text-emerald-700">
+                      {(breakdownStudent?.name || breakdownStudent?.student_name || "?").charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-semibold">{breakdownStudent?.name || breakdownStudent?.student_name}</p>
+                    <p className="text-sm text-gray-500">রোল: {breakdownStudent?.roll_no || breakdownStudent?.roll || "-"}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Fee Configuration */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                <h4 className="font-semibold text-blue-700 dark:text-blue-300 mb-3 flex items-center gap-2">
+                  <DollarSign className="h-4 w-4" />
+                  ফি কনফিগারেশন (ফি সেটআপ থেকে)
+                </h4>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">ভর্তি ফি:</span>
+                    <span className="font-medium">৳{(breakdownData.admissionFee || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">মাসিক ফি:</span>
+                    <span className="font-medium">৳{(breakdownData.monthlyFee || 0).toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Status */}
+              <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-4">
+                <h4 className="font-semibold text-emerald-700 dark:text-emerald-300 mb-3 flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4" />
+                  পেমেন্ট স্ট্যাটাস
+                </h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-400">ভর্তি ফি পরিশোধ:</span>
+                    <Badge className={breakdownData.admissionFeePaid ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}>
+                      {breakdownData.admissionFeePaid ? "হ্যাঁ ✓" : "না ✗"}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">মোট মাস (ভর্তি থেকে আজ পর্যন্ত):</span>
+                    <span className="font-medium">{breakdownData.monthsElapsed || 0} মাস</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">পরিশোধিত মাস:</span>
+                    <span className="font-medium text-green-600">{breakdownData.monthsPaid || 0} মাস</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">বাকি মাস:</span>
+                    <span className="font-medium text-red-600">{breakdownData.monthsDue || 0} মাস</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Summary Calculation */}
+              <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4">
+                <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                  <PieChart className="h-4 w-4" />
+                  হিসাব সারাংশ
+                </h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between py-1 border-b border-gray-200 dark:border-gray-700">
+                    <span>ভর্তি ফি:</span>
+                    <span>৳{(breakdownData.admissionFee || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-gray-200 dark:border-gray-700">
+                    <span>মাসিক ফি ({breakdownData.monthsElapsed} মাস × ৳{(breakdownData.monthlyFee || 0).toLocaleString()}):</span>
+                    <span>৳{((breakdownData.monthlyFee || 0) * (breakdownData.monthsElapsed || 0)).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-gray-200 dark:border-gray-700 font-medium">
+                    <span>মোট প্রত্যাশিত:</span>
+                    <span>৳{(breakdownData.totalExpected || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-gray-200 dark:border-gray-700 text-green-600">
+                    <span>মোট পরিশোধিত:</span>
+                    <span>৳{(breakdownData.totalPaid || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between py-2 text-lg font-bold">
+                    <span className={breakdownData.totalDue > 0 ? "text-red-600" : "text-green-600"}>
+                      {breakdownData.totalDue > 0 ? "বকেয়া:" : "অতিরিক্ত পরিশোধ:"}
+                    </span>
+                    <span className={breakdownData.totalDue > 0 ? "text-red-600" : "text-green-600"}>
+                      ৳{Math.abs(breakdownData.totalDue || 0).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Paid Months List */}
+              {breakdownData.paidMonths && breakdownData.paidMonths.length > 0 && (
+                <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
+                  <h4 className="font-semibold text-green-700 dark:text-green-300 mb-2">পরিশোধিত মাসসমূহ:</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {breakdownData.paidMonths.map((month, idx) => (
+                      <Badge key={idx} className="bg-green-100 text-green-700">
+                        {month}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              কোনো তথ্য পাওয়া যায়নি
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBreakdownModal(false)}>
+              বন্ধ করুন
+            </Button>
+            {breakdownData?.totalDue > 0 && (
+              <Button 
+                className="bg-emerald-500 hover:bg-emerald-600"
+                onClick={() => {
+                  setShowBreakdownModal(false);
+                  setSelectedStudent(breakdownStudent);
+                  fetchStudentFeeStatus(breakdownStudent?.id);
+                  setMadrasahWizardStep(2);
+                }}
+              >
+                বেতন নিন
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
