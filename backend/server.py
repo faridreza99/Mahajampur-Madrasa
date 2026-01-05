@@ -32248,18 +32248,72 @@ async def create_admission_fee(
     fee_data: AdmissionFeeCreate,
     current_user: User = Depends(get_current_user)
 ):
-    """Create a new admission fee payment and generate receipt"""
+    """Create a new admission fee payment - amount enforced from Fee Setup"""
     try:
+        current_year = str(datetime.utcnow().year)
+        
+        # Look up student to get their class_id
+        student = await db.students.find_one({
+            "id": fee_data.student_id,
+            "tenant_id": current_user.tenant_id,
+            "is_active": True
+        })
+        
+        if not student:
+            raise HTTPException(status_code=404, detail="ছাত্র খুঁজে পাওয়া যায়নি")
+        
+        class_id = student.get("class_id")
+        if not class_id:
+            raise HTTPException(status_code=400, detail="ছাত্রের কোন জামাত নির্ধারিত নেই")
+        
+        # Look up fee structure from Fee Setup (marhala_fee_structures)
+        fee_structure = await db.marhala_fee_structures.find_one({
+            "tenant_id": current_user.tenant_id,
+            "marhala_id": class_id,
+            "academic_year": current_year,
+            "is_active": True,
+            "is_enabled": True
+        })
+        
+        if not fee_structure:
+            raise HTTPException(status_code=400, detail="ফি সেটআপে এই জামাতের জন্য কোন ফি কনফিগারেশন পাওয়া যায়নি")
+        
+        # Get admission fee from Fee Setup (ignore client-provided amount)
+        admission_fee_amount = fee_structure.get("admission_fee", 0)
+        if admission_fee_amount <= 0:
+            raise HTTPException(status_code=400, detail="ফি সেটআপে ভর্তি ফি সেট করা হয়নি")
+        
+        # Check if admission fee already paid
+        existing_payment = await db.admission_fees.find_one({
+            "student_id": fee_data.student_id,
+            "tenant_id": current_user.tenant_id
+        })
+        
+        if existing_payment:
+            raise HTTPException(status_code=400, detail="এই ছাত্রের ভর্তি ফি ইতিমধ্যে পরিশোধ হয়েছে")
+        
+        # Also check fee_payments collection for admission fees
+        existing_fee_payment = await db.fee_payments.find_one({
+            "student_id": fee_data.student_id,
+            "tenant_id": current_user.tenant_id,
+            "fee_type": "Admission Fee",
+            "status": {"$in": ["completed", "verified"]}
+        })
+        
+        if existing_fee_payment:
+            raise HTTPException(status_code=400, detail="এই ছাত্রের ভর্তি ফি ইতিমধ্যে পরিশোধ হয়েছে")
+        
         # Generate unique receipt number
         count = await db.admission_fees.count_documents({"tenant_id": current_user.tenant_id})
         receipt_no = f"ADM-{current_user.tenant_id[:4].upper()}-{count + 1:05d}"
         
+        # Use admission_fee from Fee Setup, not client-provided amount
         admission_fee = {
             "id": str(uuid.uuid4()),
             "student_id": fee_data.student_id,
             "student_name": fee_data.student_name,
             "class_name": fee_data.class_name,
-            "amount": fee_data.amount,
+            "amount": admission_fee_amount,  # From Fee Setup, not client
             "payment_mode": fee_data.payment_mode,
             "receipt_no": receipt_no,
             "payment_date": datetime.utcnow(),
@@ -32271,14 +32325,38 @@ async def create_admission_fee(
         
         await db.admission_fees.insert_one(admission_fee)
         
+        # Also create a fee_payment record for accounting consistency
+        fee_payment_record = {
+            "id": str(uuid.uuid4()),
+            "student_id": fee_data.student_id,
+            "student_name": fee_data.student_name,
+            "fee_type": "Admission Fee",
+            "amount": admission_fee_amount,
+            "payment_mode": fee_data.payment_mode,
+            "receipt_no": receipt_no,
+            "payment_date": datetime.utcnow(),
+            "status": "completed",
+            "tenant_id": current_user.tenant_id,
+            "created_by": current_user.id,
+            "created_at": datetime.utcnow()
+        }
+        await db.fee_payments.insert_one(fee_payment_record)
+        
         # Remove MongoDB _id before returning
         admission_fee.pop("_id", None)
         
+        logging.info(f"✅ Admission fee created: student={fee_data.student_id}, amount={admission_fee_amount} (from Fee Setup)")
+        
         return AdmissionFeeResponse(**admission_fee)
         
+    except HTTPException:
+        raise
     except Exception as e:
         logging.error(f"Failed to create admission fee: {str(e)}")
+        import traceback
+        logging.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail="ভর্তি ফি সংরক্ষণ করতে ব্যর্থ হয়েছে")
+
 
 @api_router.get("/admission-fees")
 async def get_admission_fees(
