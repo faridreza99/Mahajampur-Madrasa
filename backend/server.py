@@ -18039,6 +18039,38 @@ async def get_student_fees(
         ])
         payments_by_student = {p["_id"]: p async for p in payments_cursor}
         
+        # Also fetch monthly payments from legacy payments collection
+        legacy_monthly_cursor = db.payments.aggregate([
+            {
+                "$match": {
+                    "tenant_id": current_user.tenant_id,
+                    "fee_type": {"$in": ["Tuition Fees", "Monthly Fee", "Monthly Fees"]}
+                }
+            },
+            {
+                "$group": {
+                    "_id": "$student_id",
+                    "monthly_paid": {"$sum": "$amount"}
+                }
+            }
+        ])
+        
+        # Merge legacy monthly payments into payments_by_student
+        async for legacy in legacy_monthly_cursor:
+            student_id = legacy["_id"]
+            legacy_monthly = legacy.get("monthly_paid", 0)
+            if student_id in payments_by_student:
+                # Add legacy monthly to existing monthly_paid
+                payments_by_student[student_id]["monthly_paid"] = payments_by_student[student_id].get("monthly_paid", 0) + legacy_monthly
+                payments_by_student[student_id]["total_paid"] = payments_by_student[student_id].get("total_paid", 0) + legacy_monthly
+            else:
+                payments_by_student[student_id] = {
+                    "_id": student_id,
+                    "total_paid": legacy_monthly,
+                    "admission_paid": 0,
+                    "monthly_paid": legacy_monthly
+                }
+        
         # Also fetch admission fees from admission_fees collection
         admission_cursor = db.admission_fees.aggregate([
             {
