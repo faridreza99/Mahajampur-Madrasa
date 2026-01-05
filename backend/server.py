@@ -18044,7 +18044,11 @@ async def get_student_fees(
             {
                 "$match": {
                     "tenant_id": current_user.tenant_id,
-                    "status": {"$in": ["completed", "verified", "paid"]}
+                    "$or": [
+                        {"status": {"$in": ["completed", "verified", "paid"]}},
+                        {"status": None},
+                        {"status": {"$exists": False}}
+                    ]
                 }
             },
             {
